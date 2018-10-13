@@ -5,16 +5,52 @@
 
 .partieNameContainer {
   display: flex;
-  padding: 25px 0 25px 0;
-  overflow: hidden;
-  height: 17px;
+  flex-direction: column;
+  padding: 10px 0 10px 0;
+  height: auto;
   color: #252525;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   cursor: pointer;
   justify-content: center;
+  font-size: 18px;
+}
+
+.partieNameContainerSelected {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 10px 0 10px 0;
+  height: auto;
+  color: #252525;
+  cursor: pointer;
+  justify-content: center;
+  font-size: 18px;
+  background-color: Gainsboro;
+}
+
+.partieTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .partieNameContainer:hover {
   background-color: Gainsboro;
+}
+
+.partieChildContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: auto;
+  font-size: 12px;
+  text-align: center;
+}
+
+.partieItem {
+  padding: 5px 10px 5px 20px;
+  text-align: left;
+}
+
+.partieItem:hover {
+  background-color: white;
 }
