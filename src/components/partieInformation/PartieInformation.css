@@ -1,0 +1,8 @@
+.mainChild {
+  flex: 4;
+  margin: 5px;
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+  background-color: white;
+}

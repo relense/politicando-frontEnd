@@ -1,0 +1,20 @@
+.mainContainer {
+    overflow: scroll;
+}
+
+
+.partieNameContainer {
+  display: flex;
+  padding: 25px 0 25px 0;
+  overflow: hidden;
+  height: 17px;
+  color: #252525;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  justify-content: center;
+}
+
+.partieNameContainer:hover {
+  background-color: Gainsboro;
+}

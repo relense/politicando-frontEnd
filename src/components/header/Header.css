@@ -1,0 +1,18 @@
+.header {
+  flex: 1;
+  background-color: #9FACFD;
+  padding-right: 50px;
+}
+
+.nav {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  justify-content: flex-start;
+  height: 100%;
+  align-items: center;
+}
+
+.navElems {
+  margin: 0 50px 0 50px;
+}
