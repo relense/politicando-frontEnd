@@ -1,15 +1,17 @@
 import React, { Component } from 'react';
-import './App.css';
+import { connect } from 'react-redux';
 import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
-
-
-const dimensions = { height: window.innerHeight, width: window.innerWidth };
+import { loadParties } from './actions/partiesActions';
 
 class App extends Component {
+  componentWillMount() {
+    this.props.fetchParties();
+  }
+
   render() {
     return (
-      <div className="parentContainer" style={dimensions}>
+      <div style={{width: '100%', height: '100%'}}>
         <Header />
         <MainContent />
       </div>
@@ -17,4 +19,19 @@ class App extends Component {
   }
 }
 
-export default App;
+function mapStateToProps(state) {
+  return { }
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    fetchParties: () => {
+      dispatch(loadParties())
+    }
+  };
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(App);

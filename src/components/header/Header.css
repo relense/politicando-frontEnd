@@ -1,18 +1,29 @@
 .header {
-  flex: 1;
-  background-color: #9FACFD;
-  padding-right: 50px;
+  background-color: white;
+  flex-direction: column;
+  justify-content: center;
+  height: 120px;
+}
+
+.title {
+  text-align: center;
 }
 
 .nav {
   display: flex;
-  flex: 1;
-  flex-direction: row;
-  justify-content: flex-start;
-  height: 100%;
-  align-items: center;
+  justify-content: center;
+  padding-bottom: 5px;
 }
 
 .navElems {
-  margin: 0 50px 0 50px;
+  margin: 0 10px 0 10px;
+  font-size: 16px;
+  color: #E2DADA;
+  cursor: pointer;
+}
+
+.selectedElem {
+  margin: 0 10px 0 10px;
+  font-size: 16px;
+  color: black;
 }

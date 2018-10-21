@@ -1,33 +1,10 @@
+.mainContainerParties {
+    display: flex;
+    padding: 0 50px 10px 50px;
+    height: 75%;
+}
+
 .mainContainer {
-  display: flex;
-  flex: 10;
-  flex-direction: row;
-  background-color: rgba(0,0,0,0.07);
-}
-
-.smallChild {
-  flex: 1;
-  display: flex;
-  margin: 5px 0 5px 0;
-  flex-direction: column;
-  text-align: center;
-  background-color: white;
-  font-weight: 400;
-  overflow: scroll;
-}
-
-.mainChild {
-  flex: 4;
-  margin: 5px;
-  display: flex;
-  flex-direction: column;
-  padding-left: 10px;
-  background-color: white;
-}
-
-.contentContainer {
-  display: flex;
-  flex: 9;
-  flex-direction: row;
-  overflow: scroll;
+  padding: 0 50px 10px 50px;
+  height: 100%;
 }

@@ -1,5 +1,6 @@
 .mainContainer {
     overflow: scroll;
+    margin-bottom: 50px;
 }
 
 
@@ -28,6 +29,7 @@
 }
 
 .partieTitle {
+  margin-bottom: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

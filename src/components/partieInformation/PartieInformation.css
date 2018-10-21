@@ -1,8 +1,72 @@
-.mainChild {
-  flex: 4;
-  margin: 5px;
+.partieInformationMainContainer {
+    display: flex;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.partieLogo {
+  max-width: 50px;
+  max-height: 50px;
+}
+
+.partieTitle {
+    font-size: 16px;
+    margin-left: 20px;
+}
+
+.partieInformationContent {
+  display: flex;
+  flex-direction: row;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.parentOptionContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+.optionsContainer {
+  display: flex;
+  flex: 1;
+  padding: 10px;
+  font-size: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.optionsContainer:hover {
+  opacity: 0.8;
+}
+
+.optionsTitleContainer {
+  display: flex;
+  flex-direction: row;
+  max-height: 45px;
+}
+
+.optionsCardTitle {
+  padding-left: 10px;
+  color: white;
+}
+
+.doubleOptionContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+.parendOptionContainer {
   display: flex;
   flex-direction: column;
-  padding-left: 10px;
-  background-color: white;
+  flex: 10;
+}
+
+.smallContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }

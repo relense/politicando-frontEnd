@@ -1,5 +1,5 @@
 import { connect } from 'react-redux';
-import { loadParties, asyncChangeCurrentPartie } from '../../actions/partiesActions';
+import { asyncChangeCurrentPartie } from '../../actions/partiesActions';
 import { asyncChangeView } from '../../actions/viewActions';
 import React from 'react';
 import './List.css';
@@ -13,10 +13,6 @@ class List extends React.Component {
       open: false,
       index: null
     };
-  }
-
-  componentWillMount() {
-    this.props.fetchParties()
   }
 
   selectPartie = (i) => {
@@ -105,9 +101,6 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    fetchParties: () => {
-      dispatch(loadParties())
-    },
     changeView: (view) => {
       dispatch(asyncChangeView(view))
     },

@@ -1,44 +1,25 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './MainContent.css';
-import List from '../list/List.js';
-import PartieInformation from '../partieInformation/PartieInformation'
+import PartieInformation from '../partieInformation/PartieInformation';
+import LatestNews from '../latestNews/LatestNews';
 
 class MainContent extends Component {
-
-  getHome = () =>  {
-    return (
-        <div className="mainChild">
-          <h3>Últimas informações</h3>
-        </div>
-      );
-  }
-
-  getPartieContent = () => {
-    return <PartieInformation />
-  }
 
   getView = () => {
     switch(this.props.currentView) {
       case "Home":
-        return this.getHome();
+        return <div className="mainContainer"><LatestNews /></div>
       case "Partie":
-        return this.getPartieContent();
+        return <div className="mainContainerParties"><PartieInformation /></div>
       default:
-        return this.getHome();
+        return <div className="mainContainer"><LatestNews /></div>
     }
   }
 
   render() {
     return (
-      <div className="mainContainer">
-        <div className="smallChild">
-          <List />
-        </div>
-        <div className="contentContainer">
-          { this.getView() }
-        </div>
-      </div>
+        this.getView() 
     );
   }
 }
