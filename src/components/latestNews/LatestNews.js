@@ -4,38 +4,34 @@ import './LatestNews.css';
 import LatestNewsSingleContainer from './LatestNewsSingleContainer';
 
 class LatestNews extends Component {
-  render() {
-    return (
-      <div className="latestNewsMainContainer">
-        <h3>Latest Information</h3>
+    renderDoubleNewsRow = () => {
+        var data = [];
 
-        <div className="latestNewsDoubleContainer">
-          <LatestNewsSingleContainer />
-          <LatestNewsSingleContainer />
-        </div>
+        for(let i = 0; i < this.props.articles.length / 2; i += 2){
+            data.push(
+                <div key={"doubleContainer" + i} className="latestNewsDoubleContainer">
+                    <LatestNewsSingleContainer key={"newsContainer" + i} title={this.props.articles[i].title} content={this.props.articles[i].content} />
+                    <LatestNewsSingleContainer key={"newsContainer" + i + 1} title={this.props.articles[i + 1 ].title} content={this.props.articles[i + 1].content} />
+                </div>
+            )
+        }
+        return data;
+    }
 
-        <div className="latestNewsDoubleContainer">
-          <LatestNewsSingleContainer />
-          <LatestNewsSingleContainer />
-        </div>
-
-        <div className="latestNewsDoubleContainer">
-          <LatestNewsSingleContainer />
-          <LatestNewsSingleContainer />
-        </div>
-
-        <div className="latestNewsDoubleContainer">
-          <LatestNewsSingleContainer />
-          <LatestNewsSingleContainer />
-        </div>
-        
-      </div>
-    );
-  }
+    render() {
+        return (
+          <div className="latestNewsMainContainer">
+            <h3>Latest Information</h3>
+            {this.renderDoubleNewsRow()}
+          </div>
+        );
+    }
 }
 
 function mapStateToProps(state) {
-  return { };
+  return {
+      articles: state.articles.all_articles
+  };
 }
 
 function mapDispatchToProps(dispatch) {

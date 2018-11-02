@@ -3,10 +3,12 @@ import { connect } from 'react-redux';
 import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
 import { loadParties } from './actions/partiesActions';
+import { loadArticles } from './actions/articlesActions';
 
 class App extends Component {
   componentWillMount() {
     this.props.fetchParties();
+    this.props.fetchArticles();
   }
 
   render() {
@@ -27,6 +29,9 @@ function mapDispatchToProps(dispatch) {
   return {
     fetchParties: () => {
       dispatch(loadParties())
+    },
+    fetchArticles: () => {
+        dispatch(loadArticles())
     }
   };
 }
