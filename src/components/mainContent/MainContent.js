@@ -9,24 +9,37 @@ class MainContent extends Component {
   getView = () => {
     switch(this.props.currentView) {
       case "Home":
-        return <div className="mainContainer"><LatestNews /></div>
+        return (
+          <div className="mainContainer">
+            <div className="spacingAdjustment">
+            </div>
+            <LatestNews articles={this.props.articles} />
+          </div>
+        )
       case "Partie":
         return <div className="mainContainerParties"><PartieInformation /></div>
       default:
-        return <div className="mainContainer"><LatestNews /></div>
+        return (
+          <div className="mainContainer">
+            <div className="spacingAdjustment">
+            </div>
+            <LatestNews articles={this.props.articles} />
+          </div>
+        )
     }
   }
 
   render() {
     return (
-        this.getView() 
+        this.getView()
     );
   }
 }
 
 function mapStateToProps(state) {
   return {
-    currentView: state.view.currentView
+    currentView: state.view.currentView,
+    articles: state.articles.all_articles
   };
 }
 

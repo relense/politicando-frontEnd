@@ -1,8 +1,9 @@
-import { FETCH_PARTIES, RECEIVE_PARTIES, CHANGE_CURRENT_PARTIE } from '../actions/actionTypes';
+import { FETCH_PARTIES, RECEIVE_PARTIES, CHANGE_CURRENT_PARTIE, FETCH_PARTIE_ARTICLES } from '../actions/actionTypes';
 
 const initialState = {
     partieList: [],
-    currentPartie: ""
+    currentPartie: "",
+    partieNews: null
 }
 
 export default function parties(state = initialState, action) {
@@ -20,6 +21,11 @@ export default function parties(state = initialState, action) {
       return {
         ...state,
         currentPartie: action.partie
+      }
+    case FETCH_PARTIE_ARTICLES:
+      return {
+        ...state,
+        partieNews: action.news
       }
 
     default:

@@ -1,17 +1,16 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import './LatestNews.css';
 import LatestNewsSingleContainer from './LatestNewsSingleContainer';
 
 class LatestNews extends Component {
-    renderDoubleNewsRow = () => {
+    renderItem = () => {
         var data = [];
 
-        for(let i = 0; i < this.props.articles.length / 2; i += 2){
+        if (this.props.articles === 0 || this.props.articles === undefined) return;
+
+        for(let i = 0; i < this.props.articles.length; i++){
             data.push(
                 <div key={"doubleContainer" + i} className="latestNewsDoubleContainer">
-                    <LatestNewsSingleContainer key={"newsContainer" + i} title={this.props.articles[i].title} content={this.props.articles[i].content} />
-                    <LatestNewsSingleContainer key={"newsContainer" + i + 1} title={this.props.articles[i + 1 ].title} content={this.props.articles[i + 1].content} />
+                    <LatestNewsSingleContainer key={"newsContainer" + i} article={this.props.articles[i]}/>
                 </div>
             )
         }
@@ -21,24 +20,11 @@ class LatestNews extends Component {
     render() {
         return (
           <div className="latestNewsMainContainer">
-            <h3>Latest Information</h3>
-            {this.renderDoubleNewsRow()}
+            {this.renderItem()}
           </div>
         );
     }
 }
 
-function mapStateToProps(state) {
-  return {
-      articles: state.articles.all_articles
-  };
-}
 
-function mapDispatchToProps(dispatch) {
-  return { };
-}
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(LatestNews);
+export default LatestNews;

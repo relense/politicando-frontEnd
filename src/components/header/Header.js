@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './Header.css';
 import { asyncChangeView } from '../../actions/viewActions';
-import { asyncChangeCurrentPartie } from '../../actions/partiesActions';
+import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
 
 const HOME = 'HOME';
 const ABOUT = 'ABOUT';
-const VOTES = 'VOTES';
+// const VOTES = 'VOTES';
 const PARTIES = 'PARTIES';
-const IDEOLOGIES = 'IDEOLOGIES';
+// const IDEOLOGIES = 'IDEOLOGIES';
 
 class Header extends Component {
   constructor(props){
@@ -37,6 +37,7 @@ class Header extends Component {
   selectPartie = (i) => {
     this.props.changeView("Partie");
     this.props.changeCurrentPartie(this.props.parties[i]);
+    this.props.getPartieNews(this.props.parties[i].id)
 
     this.setState({
       open: this.state.open ? ((this.state.index === i) ? false : true) : true,
@@ -65,34 +66,34 @@ class Header extends Component {
     let data = [];
 
     if(this.state.current === HOME) {
-      data.push(<div key={HOME} className="navElems selectedElem" onClick={() => this.elemFuncs(HOME)}>Home</div>);
+      data.push(<div key={HOME} className="navElems selectedElem" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
     } else {
-      data.push(<div key={HOME} className="navElems" onClick={() => this.elemFuncs(HOME)}>Home</div>);
+      data.push(<div key={HOME} className="navElems" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
     }
 
     if(this.state.current  === ABOUT) {
-      data.push(<div key={ABOUT} className="navElems selectedElem" onClick={() => this.elemFuncs(ABOUT)}>Sobre</div>)
+      data.push(<div key={ABOUT} className="navElems selectedElem" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
     } else {
-      data.push(<div key={ABOUT} className="navElems" onClick={() => this.elemFuncs(ABOUT)}>Sobre</div>)
+      data.push(<div key={ABOUT} className="navElems" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
     }
-
-    if(this.state.current  === VOTES) {
-      data.push(<div key={VOTES} className="navElems selectedElem" onClick={() => this.elemFuncs(VOTES)}>Votações</div>)
-    } else {
-      data.push(<div key={VOTES} className="navElems" onClick={() => this.elemFuncs(VOTES)}>Votações</div>)
-    }
+    //
+    // if(this.state.current  === VOTES) {
+    //   data.push(<div key={VOTES} className="navElems selectedElem" onClick={() => this.elemFuncs(VOTES)}>VOTES</div>)
+    // } else {
+    //   data.push(<div key={VOTES} className="navElems" onClick={() => this.elemFuncs(VOTES)}>VOTES</div>)
+    // }
 
     if(this.state.current  === PARTIES) {
-      data.push(<div key={PARTIES} className="navElems selectedElem" onClick={() => this.elemFuncs(PARTIES)}>Partidos</div>)
+      data.push(<div key={PARTIES} className="navElems selectedElem" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>)
     } else {
-      data.push(<div key={PARTIES} className="navElems" onClick={() => this.elemFuncs(PARTIES)}>Partidos</div>)
+      data.push(<div key={PARTIES} className="navElems" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>)
     }
 
-    if(this.state.current  === IDEOLOGIES) {
-      data.push(<div key={IDEOLOGIES} className="navElems selectedElem" onClick={() => this.elemFuncs(IDEOLOGIES)}>Ideologias</div>)
-    } else {
-      data.push(<div key={IDEOLOGIES} className="navElems" onClick={() => this.elemFuncs(IDEOLOGIES)}>Ideologias</div>)
-    }
+    // if(this.state.current  === IDEOLOGIES) {
+    //   data.push(<div key={IDEOLOGIES} className="navElems selectedElem" onClick={() => this.elemFuncs(IDEOLOGIES)}>IDEOLOGIES</div>)
+    // } else {
+    //   data.push(<div key={IDEOLOGIES} className="navElems" onClick={() => this.elemFuncs(IDEOLOGIES)}>IDEOLOGIES</div>)
+    // }
 
     return data;
 
@@ -131,7 +132,7 @@ class Header extends Component {
       <div className="header">
 
         <div className="title">
-          <h1>Politicando</h1>
+          <h1>POLITICANDO</h1>
         </div>
 
         <div className="nav">
@@ -164,6 +165,9 @@ function mapDispatchToProps(dispatch) {
     },
     changeCurrentPartie: (partie) => {
       dispatch(asyncChangeCurrentPartie(partie))
+    },
+    getPartieNews: (partie_id) => {
+      dispatch(asyncGetPartieNews(partie_id))
     }
   };
 }

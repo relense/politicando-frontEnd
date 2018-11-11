@@ -16,6 +16,13 @@ export function changeCurentPartie(partie) {
   }
 }
 
+export function receivePartieNews(response) {
+  return {
+    type: types.FETCH_PARTIE_ARTICLES,
+    news: response
+  }
+}
+
 export const loadParties = () => {
   return async function(dispatch) {
     try {
@@ -31,6 +38,17 @@ export const asyncChangeCurrentPartie = (partie) => {
   return async function(dispatch) {
     try {
       dispatch(changeCurentPartie(partie))
+    } catch(error) {
+      console.log(error)
+    }
+  }
+}
+
+export const asyncGetPartieNews = (partie_id) => {
+  return async function(dispatch) {
+    try {
+      const response = await get(apiUrls.getPartieNews.replace('{partie_id}', partie_id))
+      dispatch(receivePartieNews(response))
     } catch(error) {
       console.log(error)
     }

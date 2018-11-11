@@ -1,9 +1,14 @@
 .partieInformationMainContainer {
     display: flex;
     flex: 1;
-    display: flex;
     flex-direction: column;
     background-color: white;
+}
+
+.latestNewsDoubleContainer {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 35px;
 }
 
 .partieLogo {
@@ -16,11 +21,18 @@
     margin-left: 20px;
 }
 
+.partieTitleLast {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+}
+
 .partieInformationContent {
   display: flex;
   flex-direction: row;
-  height: auto;
+  height: 30px;
   margin-bottom: 20px;
+  align-items: center;
 }
 
 .parentOptionContainer {
