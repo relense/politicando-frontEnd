@@ -1,11 +1,6 @@
-.mainContainerParties {
-    display: flex;
-    padding: 0 50px 10px 50px;
-}
-
 .mainContainer {
-  padding: 0 50px 10px 50px;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .spacingAdjustment {

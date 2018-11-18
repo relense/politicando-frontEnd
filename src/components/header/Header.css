@@ -1,24 +1,38 @@
 .header {
+  height: 130px;
+  margin-bottom: 20px;
   background-color: white;
-  flex-direction: column;
-  justify-content: center;
-  height: 120px;
+}
+
+.sticky {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 2;
 }
 
 .title {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.siteTitleLink {
+  text-decoration: none;
+  cursor: pointer;
+  color: black;
 }
 
 .nav {
   display: flex;
   justify-content: center;
-  padding-bottom: 5px;
+  padding-bottom: 10px;
+  height: 15px;
 }
 
 .navElems {
   margin: 0 10px 0 10px;
   font-size: 16px;
-  color: #E2DADA;
+  color: #988282;
   cursor: pointer;
 }
 

@@ -1,30 +1,28 @@
 import React, { Component } from 'react';
-import LatestNewsSingleContainer from './LatestNewsSingleContainer';
+import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer';
 
-class LatestNews extends Component {
-    renderItem = () => {
-        var data = [];
+export default class LatestNews extends Component {
 
-        if (this.props.articles === 0 || this.props.articles === undefined) return;
+  renderItem = () => {
+    var data = [];
 
-        for(let i = 0; i < this.props.articles.length; i++){
-            data.push(
-                <div key={"doubleContainer" + i} className="latestNewsDoubleContainer">
-                    <LatestNewsSingleContainer key={"newsContainer" + i} article={this.props.articles[i]}/>
-                </div>
-            )
-        }
-        return data;
+    if (this.props.articles === 0 || this.props.articles === undefined) return;
+
+    for(let i = 0; i < this.props.articles.length; i++){
+      data.push(
+        <div key={"doubleContainer" + i} className="latestNewsDoubleContainer">
+          <LatestNewsSingleContainer key={"newsContainer" + i} article={this.props.articles[i]}/>
+        </div>
+      )
     }
+    return data;
+  }
 
-    render() {
-        return (
-          <div className="latestNewsMainContainer">
-            {this.renderItem()}
-          </div>
-        );
-    }
+  render() {
+    return (
+      <div className="latestNewsMainContainer">
+        {this.renderItem()}
+      </div>
+    );
+  }
 }
-
-
-export default LatestNews;

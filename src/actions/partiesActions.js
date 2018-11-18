@@ -23,6 +23,14 @@ export function receivePartieNews(response) {
   }
 }
 
+export function receiveNext10Articles(articles) {
+  return {
+    type: types.FETCH_NEXT_TEN_PARTY_NEWS,
+    ten_articles: articles
+  }
+}
+
+
 export const loadParties = () => {
   return async function(dispatch) {
     try {
@@ -52,5 +60,16 @@ export const asyncGetPartieNews = (partie_id) => {
     } catch(error) {
       console.log(error)
     }
+  }
+}
+
+export const loadNextTenPartyArticles = (party_id, article_id) => {
+  return async function(dispatch){
+      try {
+          const response = await get(apiUrls.getNextTenPartieNews.replace('{article_id}', article_id).replace('{party_id}', party_id))
+          dispatch(receiveNext10Articles(response))
+      } catch (error) {
+          console.log(error)
+      }
   }
 }

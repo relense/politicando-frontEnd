@@ -1,102 +1,52 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './Header.css';
-import { asyncChangeView } from '../../actions/viewActions';
+import { asyncChangeView, asyncChangePartyView } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
 
 const HOME = 'HOME';
 const ABOUT = 'ABOUT';
-// const VOTES = 'VOTES';
 const PARTIES = 'PARTIES';
-// const IDEOLOGIES = 'IDEOLOGIES';
 
 class Header extends Component {
-  constructor(props){
-    super(props);
-
-    this.state = {
-      current: HOME,
-      currentPartie: "",
-      open: false,
-      index: null
-    }
-  }
-
-  changeElem = (current) => {
-    this.setState({
-      current: current
-    })
-  }
-
-  changePartie = (partie) => {
-    this.setState({
-      currentPartie: partie
-    })
-  }
-
   selectPartie = (i) => {
-    this.props.changeView("Partie");
+    this.props.changeView("PARTIES");
     this.props.changeCurrentPartie(this.props.parties[i]);
     this.props.getPartieNews(this.props.parties[i].id)
-
-    this.setState({
-      open: this.state.open ? ((this.state.index === i) ? false : true) : true,
-      index: i
-    })
   }
 
   elemFuncs = (currentElem, i = -1) => {
-
     if(i !== -1) {
       this.selectPartie(i);
-      this.changePartie(currentElem);
-
+      window.scrollTo(0, 0)
+      this.props.setPartyView("NOTICIAS");    
       return;
     } else {
-      this.props.changeView("Home");
-      this.changePartie("");
+      this.props.changeView(currentElem);
+      if(currentElem !== "PARTIES")
+        window.scrollTo(0, 0)
     }
-
-    this.changeElem(currentElem);
   }
-
-
 
   renderMainRow = () => {
     let data = [];
 
-    if(this.state.current === HOME) {
+    if(this.props.current === HOME)
       data.push(<div key={HOME} className="navElems selectedElem" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
-    } else {
+    else
       data.push(<div key={HOME} className="navElems" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
-    }
 
-    if(this.state.current  === ABOUT) {
-      data.push(<div key={ABOUT} className="navElems selectedElem" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
-    } else {
-      data.push(<div key={ABOUT} className="navElems" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
-    }
-    //
-    // if(this.state.current  === VOTES) {
-    //   data.push(<div key={VOTES} className="navElems selectedElem" onClick={() => this.elemFuncs(VOTES)}>VOTES</div>)
-    // } else {
-    //   data.push(<div key={VOTES} className="navElems" onClick={() => this.elemFuncs(VOTES)}>VOTES</div>)
-    // }
-
-    if(this.state.current  === PARTIES) {
+    if(this.props.current  === PARTIES)
       data.push(<div key={PARTIES} className="navElems selectedElem" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>)
-    } else {
+    else
       data.push(<div key={PARTIES} className="navElems" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>)
-    }
 
-    // if(this.state.current  === IDEOLOGIES) {
-    //   data.push(<div key={IDEOLOGIES} className="navElems selectedElem" onClick={() => this.elemFuncs(IDEOLOGIES)}>IDEOLOGIES</div>)
-    // } else {
-    //   data.push(<div key={IDEOLOGIES} className="navElems" onClick={() => this.elemFuncs(IDEOLOGIES)}>IDEOLOGIES</div>)
-    // }
+    if(this.props.current  === ABOUT)
+      data.push(<div key={ABOUT} className="navElems selectedElem" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
+    else
+      data.push(<div key={ABOUT} className="navElems" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>)
 
     return data;
-
   }
 
   renderPartieRow = () => {
@@ -104,48 +54,36 @@ class Header extends Component {
 
     if (this.props.parties.length !== 0) {
       for(let i = 0; i < this.props.parties.length; i++) {
-        if(this.state.currentPartie === this.props.parties[i].party_name) {
+        if(this.props.currentPartie.party_name === this.props.parties[i].party_name) {
           data.push(
-              <div key={i} className="navElems selectedElem" onClick={() => this.elemFuncs(this.props.parties[i].party_name, i)}>
+              <div key={i} className="navElems selectedElem" onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                   { this.props.parties[i].party_name }
               </div>
           );
         } else {
           data.push(
-              <div key={i} className="navElems" onClick={() => this.elemFuncs(this.props.parties[i].party_name, i)}>
+              <div key={i} className="navElems" onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                   { this.props.parties[i].party_name }
               </div>
           );
         }
       }
     }
-
     return data;
-  }
-
-  renderIdeologiesRow = () => {
-    return;
   }
 
   render() {
     return (
-      <div className="header">
-
+      <div className={this.props.scroll ? "header sticky" : "header"}>
         <div className="title">
-          <h1>POLITICANDO</h1>
+          <a href="http://localhost:3000" className="siteTitleLink"><h1>POLITICANDO</h1></a>
         </div>
-
         <div className="nav">
           { this.renderMainRow() }
         </div>
-
-        {
-          this.state.current === PARTIES &&
-            <div className="nav">
-              { this.renderPartieRow() }
-            </div>
+        {this.props.current === PARTIES ?
+          <div className="nav">{ this.renderPartieRow() }</div> : <div className="nav"><div className="navElems"></div></div>
         }
-
       </div>
     );
   }
@@ -153,8 +91,10 @@ class Header extends Component {
 
 function mapStateToProps(state) {
   return {
+    current: state.view.currentView,
     parties: state.parties.partieList,
-    estado: state
+    currentPartie: state.parties.currentPartie,
+    partyView: state.view.partyView
   };
 }
 
@@ -168,6 +108,9 @@ function mapDispatchToProps(dispatch) {
     },
     getPartieNews: (partie_id) => {
       dispatch(asyncGetPartieNews(partie_id))
+    },
+    setPartyView: (view) => {
+      dispatch(asyncChangePartyView(view))
     }
   };
 }

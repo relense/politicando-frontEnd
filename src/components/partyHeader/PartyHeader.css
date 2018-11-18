@@ -1,20 +1,7 @@
-.partieInformationMainContainer {
+.partyHeaderLogoContainer {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  background-color: white;
-  width: inherit;
-}
-
-.partieLogoContainer {
-  display: flex;
-  width: 10%;
+  width: 25%;
   justify-content: center;
-}
-
-.partieLogo {
-  max-width: 50px;
-  max-height: 50px;
 }
 
 .partieElems {
@@ -29,13 +16,13 @@
   color: black;
 }
 
-.partieInformationContent {
+.partieHeaderContent {
   display: flex;
   flex-direction: row;
   height: 30px;
   margin-bottom: 20px;
   align-items: center;
   padding: 0 200px 0 200px;
-  justify-content: space-around;
+  justify-content: center;
 }
 
