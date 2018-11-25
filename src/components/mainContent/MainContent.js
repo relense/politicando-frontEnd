@@ -10,59 +10,35 @@ class MainContent extends Component {
   getView = () => {
     switch(this.props.currentView) {
       case "HOME":
-        return (
-          <div className={this.props.drawer ? 'mainContainerDark' : 'mainContainer'} onClick={() => this.props.closeDrawer()}>
-            <div className="spacingAdjustment"></div>
-            <div className={this.props.drawer ? 'removeLinks' : ''}>
-              <LatestNews articles={this.props.articles} />
-            </div>
-          </div>
-        )
+        return (this.setView(<LatestNews articles={this.props.articles} />, true));
 
       case "PARTIES":
-          if (this.props.partyView === "NOTICIAS") {
-            return (
-              <div className={this.props.drawer ? 'mainContainerDark' : 'mainContainer'} onClick={() => this.props.closeDrawer()}>                                                    
-                <div className={this.props.drawer ? 'removeLinks' : ''}>
-                <PartieInformation />
-                </div>
-              </div>
-            )
-          } else {
-            return (
-              <div className={this.props.drawer ? 'mainContainerDark' : 'mainContainer'} onClick={() => this.props.closeDrawer()}>
-                <div className={this.props.drawer ? 'removeLinks' : ''}>
-                  <PartyCouncilman />
-                </div>
-              </div>
-            )
-          }
-
+          if (this.props.partyView === "NOTICIAS") 
+            return (this.setView(<PartieInformation />));
+          else 
+            return (this.setView(<PartyCouncilman />));
+          
       case "ABOUT":
-          return (
-            <div className={this.props.drawer ? 'mainContainerDark' : 'mainContainer'} onClick={() => this.props.closeDrawer()}>
-              <div className="spacingAdjustment"></div>
-            </div>
-          )
+          return (this.setView());
 
       default:
-        return (
-          <div className={this.props.drawer ? 'mainContainerDark' : 'mainContainer'} onClick={() => this.props.closeDrawer()}>
-            <div className="mainContainer">
-              <div className="spacingAdjustment"></div>
-              <div className={this.props.drawer ? 'removeLinks' : ''}>
-               <LatestNews articles={this.props.articles} />
-              </div>
-            </div>
-          </div>
-        )
+        return (this.setView(<LatestNews articles={this.props.articles} />, true));
     }
   }
 
+  setView = (component = null, adjust = false) => {
+      return (
+        <div className={this.props.drawer ? 'mainContainerDark' : ''} onClick={() => this.props.closeDrawer()}>
+          {adjust && <div className="spacingAdjustment"></div>}
+          <div className={this.props.drawer ? 'removeLinks' : ''}>
+            {component}
+          </div>
+        </div>
+      )
+  }
+
   render() {
-    return (
-        this.getView()
-    );
+    return (this.getView());
   }
 }
 

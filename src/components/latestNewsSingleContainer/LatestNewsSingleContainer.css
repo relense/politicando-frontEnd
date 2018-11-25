@@ -16,11 +16,22 @@
   cursor: pointer;
 }
 
+.commentIcons {
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.commentContainer {
+  padding-left: 10px; 
+  cursor: pointer;
+}
+
 .newsTitle {
   text-decoration: none;
   color: black;
   text-transform: uppercase;
   font-size: 12px;
+  padding: 0 100px 0 100px;
 }
 
 .latestNewsContentContainer {
@@ -30,17 +41,15 @@
   line-height: 25px;
   margin: 0 0 15px 0;
   overflow: hidden;
-  padding: 0 100px 0 100px;
+  padding: 0 200px 0 200px;
   text-align: justify;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .latestNewsDiscussionContainer {
   display: flex;
-  flex-direction: row;
-  margin: 0 100px 0 100px;
+  margin: 0 200px 0 200px;
   font-size: 12px;
-  justify-content: center;
 }
 
 .latestNewsDiscussionContainerLinkContainer {
@@ -48,7 +57,6 @@
   display: flex;
   justify-content: flex-end;
   text-decoration: none;
-
 }
 
 .latestNewsDiscussionContainerLink {
@@ -71,6 +79,26 @@
   width: 15%;
   height: auto;
   margin: 0 20px 5px 0;
+}
+
+.fadeout {
+    position: sticky;
+    bottom: 0em;
+    width:100%;
+    height: 2em;
+    background: -webkit-linear-gradient(
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 1) 100%
+    );
+}
+
+.selectForbiden {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 }
 
 @media only screen and (max-width: 1280px) {
@@ -101,29 +129,4 @@
   .lastestNewsSingleContainerTitle {
     padding: 0 10px 0 10px;
   }
-}
-
-.fadeout {
-    position: sticky;
-    bottom: 0em;
-    width:100%;
-    height: 2em;
-    background: -webkit-linear-gradient(
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 1) 100%
-    );
-}
-
-.blur {
-   color: transparent;
-   text-shadow: 0 0 6px rgba(0, 0, 0, 0.95);
-}
-
-.selectForbiden {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none;
 }

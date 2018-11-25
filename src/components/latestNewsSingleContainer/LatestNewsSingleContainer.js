@@ -6,9 +6,11 @@ import { asyncChangeView } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
 
 class LatestNewsSingleContainer extends Component {
-
-  state = {
-    size: true
+  constructor(props) {
+    super(props);
+    this.state = {
+      size: true
+    }
   }
 
   onLoadImage = ({target: img}) => {
@@ -44,30 +46,29 @@ class LatestNewsSingleContainer extends Component {
   }
 
   render() {
+    const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden">{this.props.article.title}</h1>;
+    const time = moment(this.props.article.published_time).format('DD-MM-YYYY | HH:mm');
+    const news_url = <a href={"https://" +this.props.article.source} className="latestNewsDiscussionSource" target="_blank" rel="noopener noreferrer">{this.props.article.source}</a>;
     const tags = this.getTags(this.props.article.tags);
-    const news_url = <a href={"https://" +this.props.article.source} className="latestNewsDiscussionSource" target="_blank" rel="noopener noreferrer">{this.props.article.source}</a>
-    const title = <a href={this.props.article.news_url} className="newsTitle" target="_blank" rel="noopener noreferrer"><h1 className="lastestNewsSingleContainerTitle selectForbiden">{this.props.article.title}</h1></a>
+    const image = this.props.article.image_url ? <img onLoad={this.onLoadImage} src={this.props.article.image_url} className={ this.state.size ? "newsImage" : "newsImageSmaller"} alt="Article" title={this.props.article.title} /> : "";
+    const content = this.props.article.content;
+    const comments = "382 Comentários";
 
     return (
       <div className="latestNewsSingleContainer">
         {title}
         <div className="latestNewsContentContainer">
-          {this.props.article.image_url &&
-            <img onLoad={this.onLoadImage} src={this.props.article.image_url} className={ this.state.size ? "newsImage" : "newsImageSmaller"} alt="Article" title={this.props.article.title} />
-          }
+          {image}
           <div className="selectForbiden">
-            {this.props.article.content}
+            {content}
             <div className="fadeout"></div>
           </div>
         </div>
         <div className="latestNewsDiscussionContainer">
-          {moment(this.props.article.published_time).format('DD-MM-YYYY | HH:mm')} | {news_url} | {tags}
+          {time} | {news_url} | {tags}
           <div className="latestNewsDiscussionContainerLinkContainer">
-            <i className="material-icons icons" style={{fontSize: '16px'}}>comment</i>
-            <div style={{paddingLeft: '10px', cursor: 'pointer'}}>382 Comentários </div>
-            {/* <a href={this.props.article.news_url} className="latestNewsDiscussionContainerLink" target="_blank" rel="noopener noreferrer">
-              Visitar notícia
-            </a> */}
+            <i className="material-icons commentIcons">comment</i>
+            <div className="commentContainer">{comments}</div>
           </div>
         </div>
       </div>

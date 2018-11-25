@@ -8,15 +8,14 @@ class Header extends Component {
     return (
       <div className={this.props.scroll ? "header sticky" : "header"}>
         <div className="headerMenuBar" onClick={() => {this.props.drawer ? this.props.closeDrawer() : this.props.openDrawer()}}>
-          <i className="material-icons icons" style={{fontSize: '36px'}}>menu</i>
+          <i className="material-icons headerIcons">menu</i>
         </div>
         <div className="title">
           <a href="http://localhost:3000" className="siteTitleLink"><h1>POLITICANDO</h1></a>
         </div>
         <div className="headerMenuBar">
           <div className="iconsContainer">
-            <i className="material-icons icons">calendar_today</i>
-            <i className="material-icons icons">whatshot</i>
+            <i className="material-icons iconsMenuBoard">brightness_7</i>
           </div>
         </div>
       </div>
