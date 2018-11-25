@@ -1,6 +1,8 @@
 export const apiUrls = { }
 
-const baseUrl = "http://localhost:4000/api"
+// const isMobile = window.innerWidth <= 500
+
+const baseUrl = false ? "http://0.0.0.0:4000/api" : "http://localhost:4000/api" 
 const apiVersion = "/v1"
 
 apiUrls.getParties =  `${baseUrl}${apiVersion}/partidos`

@@ -5,37 +5,3 @@
   background-color: white;
   width: inherit;
 }
-
-.partieLogoContainer {
-  display: flex;
-  width: 10%;
-  justify-content: center;
-}
-
-.partieLogo {
-  max-width: 50px;
-  max-height: 50px;
-}
-
-.partieElems {
-  cursor: pointer;
-  font-size: 20px;
-  color: #988282;
-}
-
-.partieElemsSelected {
-  cursor: pointer;
-  font-size: 20px;
-  color: black;
-}
-
-.partieInformationContent {
-  display: flex;
-  flex-direction: row;
-  height: 30px;
-  margin-bottom: 20px;
-  align-items: center;
-  padding: 0 200px 0 200px;
-  justify-content: space-around;
-}
-

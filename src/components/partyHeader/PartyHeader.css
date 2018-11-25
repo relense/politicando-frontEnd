@@ -1,6 +1,6 @@
 .partyHeaderLogoContainer {
   display: flex;
-  width: 25%;
+  width: 35%;
   justify-content: center;
 }
 
@@ -21,6 +21,7 @@
   flex-direction: row;
   height: 30px;
   margin-bottom: 20px;
+  margin-top: 10px;
   align-items: center;
   padding: 0 200px 0 200px;
   justify-content: center;

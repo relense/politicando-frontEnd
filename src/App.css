@@ -1,3 +1,13 @@
-.adjustContent {
-  padding-top: 150px;
+.appMainContainer {
+  overflow: hidden;
+}
+.appMainContent {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    position: relative;
+}
+
+.adjustContentDrawer {
+  padding-top: 90px;
 }

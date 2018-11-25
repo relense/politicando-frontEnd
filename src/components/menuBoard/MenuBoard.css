@@ -1,0 +1,84 @@
+.menuBoardContainer {
+  height: 85%;
+  width: 18%;
+  position: fixed;
+  top: 95px;
+  background-color: white;
+  padding-left: 20px;
+  z-index: 2;
+  padding-bottom: 40px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mainButtons {
+  font-size: 16px !important;
+}
+
+.partieButtons {
+  font-size: 14px !important;
+} 
+
+@media only screen and (max-width: 1280px) {
+  .menuBoardContainer {
+    height: 85%;
+    width: 30%;
+    position: fixed;
+    top: 95px;
+    background-color: white;
+    z-index: 2;
+    padding-bottom: 40px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+@media only screen and (max-width: 830px) {
+  .menuBoardContainer {
+    height: 85%;
+    width: 70%;
+    position: fixed;
+    top: 95px;
+    background-color: white;
+    z-index: 2;
+    padding-bottom: 40px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+.menuBoardnavElems {
+  margin: 0 90px 20px 15px;
+  font-size: 12px;
+  color: #988282;
+  cursor: pointer;
+  width: 100%;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+  supported by Chrome and Opera */
+}
+
+.menuBoardselectedElem {
+  color: black;
+}
+
+.menuBoardPartieElem {
+  padding-left: 20px;
+}
+
+.menuBoardmenuBar {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding-left: 20px;
+  cursor: pointer;
+}
+
+.menuBoardSticky {
+  position: fixed;
+  top: 90px;
+}

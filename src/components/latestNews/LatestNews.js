@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import './LatestNews.css';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer';
 
 export default class LatestNews extends Component {

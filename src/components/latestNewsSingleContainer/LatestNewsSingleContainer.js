@@ -63,10 +63,11 @@ class LatestNewsSingleContainer extends Component {
         <div className="latestNewsDiscussionContainer">
           {moment(this.props.article.published_time).format('DD-MM-YYYY | HH:mm')} | {news_url} | {tags}
           <div className="latestNewsDiscussionContainerLinkContainer">
-            <div style={{paddingRight: '10px', cursor: 'pointer'}}>382 Comentários </div>
-            <a href={this.props.article.news_url} className="latestNewsDiscussionContainerLink" target="_blank" rel="noopener noreferrer">
+            <i className="material-icons icons" style={{fontSize: '16px'}}>comment</i>
+            <div style={{paddingLeft: '10px', cursor: 'pointer'}}>382 Comentários </div>
+            {/* <a href={this.props.article.news_url} className="latestNewsDiscussionContainerLink" target="_blank" rel="noopener noreferrer">
               Visitar notícia
-            </a>
+            </a> */}
           </div>
         </div>
       </div>
@@ -76,7 +77,7 @@ class LatestNewsSingleContainer extends Component {
 
 function mapStateToProps(state) {
   return {
-    parties: state.parties.partieList,
+    parties: state.parties.partieList
   };
 }
 
