@@ -3,17 +3,15 @@
   flex-direction: row;
   justify-content: center;
   height: 90px;
-  background-color: #fff;
+}
+
+.noSelect {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none; 
-}
-
-.headerDark {
-  background-color: #17181c;
 }
 
 /* sticky has a width of 85% because the width of the drawer is 15%. Keep in mind if you change this one you should change the other.
@@ -46,13 +44,6 @@
 .siteTitleLink {
   text-decoration: none;
   cursor: pointer;
-  color: black;
-}
-
-.siteTitleLinkDark {
-  text-decoration: none;
-  cursor: pointer;
-  color: #e8e7e3;
 }
 
 .headerIcons {
@@ -62,14 +53,9 @@
 .iconDarkMode {
   color: #b6b1aa;
 }
+
 .iconsContainerHeader {
   display: flex;
   justify-content: flex-end;
   padding-right: 20px;
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; 
 }

@@ -2,10 +2,5 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  background-color: white;
   width: inherit;
-}
-
-.partieInformationMainContainerDakMode {
-  background-color: #17181c;
 }

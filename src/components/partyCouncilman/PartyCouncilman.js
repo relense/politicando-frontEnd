@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './PartyCouncilman.css';
 import PartyHeader from '../partyHeader/PartyHeader.js';
+import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class PartyCouncilman extends Component {
   render() {
     return (
-      <div className={this.props.darkMode ? "partieCouncilmenInformationMainContainerDarkMode" : "partieCouncilmenInformationMainContainer"}>
+      <div className={'partieCouncilmenInformationMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
         <PartyHeader />
         <div>
-
         </div>
       </div>
   

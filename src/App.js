@@ -5,8 +5,8 @@ import MainContent from './components/mainContent/MainContent.js';
 import MenuBoard from './components/menuBoard/MenuBoard.js';
 import { loadParties, loadNextTenPartyArticles } from './actions/partiesActions.js';
 import { loadArticles, loadNextTenArticles } from './actions/articlesActions.js';
-
 import './App.css';
+import './utils/Colors.css';
 
 class App extends Component {
   constructor(props){
@@ -57,16 +57,12 @@ class App extends Component {
 
   render() {
     return (
-      <div style={{width: '100%', height: '100%'}}>
-        <div style={{display: 'flex', flexDirection: 'row'}}>
-          <div className="appMainContent">
-            <Header scroll={this.state.scroll} />
-            <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
-              {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
-            </div>
-              <MainContent onScroll={this.handleContentScroll}/>
-          </div>
+      <div className="appMainContent">
+        <Header scroll={this.state.scroll} />
+        <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
+          {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
         </div>
+          <MainContent onScroll={this.handleContentScroll}/>
       </div>
     );
   }

@@ -7,17 +7,6 @@
 .partieElems {
   cursor: pointer;
   font-size: 20px;
-  color: #b6b1aa;
-}
-
-.partieElemsSelected {
-  cursor: pointer;
-  font-size: 20px;
-  color: black;
-}
-
-.partieElemsSelectedDarkMode {
-  color: #e8e7e3;
 }
 
 .partieHeaderContent {

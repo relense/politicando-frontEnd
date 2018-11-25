@@ -4,6 +4,7 @@ import moment from 'moment'
 import './LatestNewsSingleContainer.css';
 import { asyncChangeView } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
+import { checkDarkMode } from '../../utils/CheckDarkMode.js';
 
 class LatestNewsSingleContainer extends Component {
   constructor(props) {
@@ -55,7 +56,7 @@ class LatestNewsSingleContainer extends Component {
     const comments = "382 Comentários";
 
     return (
-      <div className={this.props.darkMode ? "latestNewsSingleContainer latestNewstSingleContainerDarkMode" : "latestNewsSingleContainer"}>
+      <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
         {title}
         <div className="latestNewsContentContainer">
           {image}

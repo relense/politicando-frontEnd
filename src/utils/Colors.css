@@ -1,0 +1,31 @@
+.contentLightMode {
+    color: #b6b1aa;
+}
+
+.contentDarkMode {
+    color: #b6b1aa;
+}
+
+.backgroundLightMode {
+    background-color: white;
+}
+
+.backgroundDarkMode {
+  background-color: #17181c;
+}
+
+.buttonsLightMode {
+    color: #b6b1aa
+}
+
+.buttonsDarkMode {
+    color: #b6b1aa
+}
+
+.buttonsSelectedLightMode {
+    color: black;
+}
+
+.buttonsSelectedDarkMode {
+    color: white;
+}

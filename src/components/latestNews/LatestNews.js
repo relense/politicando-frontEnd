@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './LatestNews.css';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer';
+import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
+
 
 class LatestNews extends Component {
 
@@ -22,7 +24,7 @@ class LatestNews extends Component {
 
   render() {
     return (
-      <div className={this.props.darkMode ? 'latestNewsMainContainer latestNewsMainContainerDarkMode' : 'latestNewsMainContainer'}>
+      <div className={'latestNewsMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
         {this.renderItem()}
       </div>
     );

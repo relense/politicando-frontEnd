@@ -66,6 +66,27 @@ class PartyHeader extends Component {
       </div>
     );
   }
+  
+  checkDarkMode(partyView){
+    let classNameString = "";
+    let selected = "";
+    let notSelected = "";
+
+    if(this.props.darkMode) {
+      selected = 'buttonsSelectedDarkMode';
+      notSelected = 'buttonsDarkMode';
+    } else {
+      selected = 'buttonsSelectedLightMode';
+      notSelected = 'buttonsLightMode';
+    }
+
+    if(this.props.partyView === partyView)
+      classNameString = selected + ' partieElems';    
+    else 
+      classNameString = notSelected + ' partieElems';
+    
+    return classNameString;
+  }
 
   render() {
     let condition = this.props.partieNews !== null ? this.props.currentPartie.party_name !== undefined : false;
@@ -75,11 +96,11 @@ class PartyHeader extends Component {
         <div className="partieHeaderContent">
         {condition &&
           <Fragment>
-            <div className={this.props.partyView === "NOTICIAS" ? this.props.darkMode ? 'partieElemsSelected partieElemsSelectedDarkMode' : 'partieElemsSelected partieElems' : 'partieElems'} onClick={() => this.props.setPartyView("NOTICIAS")}>
+            <div className={this.checkDarkMode('NOTICIAS')} onClick={() => this.props.setPartyView("NOTICIAS")}>
               Notícias
             </div>
             {logo}
-            <div className={this.props.partyView === "DEPUTADOS" ? this.props.darkMode ? 'partieElemsSelected partieElemsSelectedDarkMode' : 'partieElemsSelected partieElems' : 'partieElems'} onClick={() => this.props.setPartyView("DEPUTADOS")}>
+            <div className={this.checkDarkMode('DEPUTADOS')} onClick={() => this.props.setPartyView("DEPUTADOS")}>
               Deputados
             </div>
           </Fragment>

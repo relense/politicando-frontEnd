@@ -2,20 +2,21 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './Header.css';
 import { asyncOpenDrawer, asyncCloseDrawer, asyncChangeDarkMode } from '../../actions/viewActions';
+import { checkDarkMode, checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class Header extends Component {
   render() {
     return (
-      <div className={this.props.darkMode ? this.props.scroll  ? 'header sticky headerDark' : 'header headerDark' : 'header'}>
+      <div className={this.props.scroll ? ('header sticky noSelect' + checkDarkModeBackground(this.props.darkMode)) : ('header' + checkDarkModeBackground(this.props.darkMode))}>
         <div className="headerMenuBar" onClick={() => {this.props.drawer ? this.props.closeDrawer() : this.props.openDrawer()}}>
-          <i className={this.props.darkMode ? 'material-icons headerIcons iconDarkMode' : 'material-icons headerIcons'}>menu</i>
+          <i className={'material-icons headerIcons' + checkDarkMode(this.props.darkMode, true)}>menu</i>
         </div>
         <div className="title">
-          <a href="http://localhost:3000" className={this.props.darkMode ? ' siteTitleLinkDark' : 'siteTitleLink'}><h1>POLITICANDO</h1></a>
+          <a href="http://localhost:3000" className={'siteTitleLink' + checkDarkMode(this.props.darkMode, true)}><h1>POLITICANDO</h1></a>
         </div>
         <div className="headerMenuBar">
-          <div className="iconsContainerHeader" onClick={() => this.props.changeDarkMode()}>
-            <i className={this.props.darkMode ? 'material-icons headerIcons iconDarkMode' : 'material-icons headerIcons'}>brightness_7</i>
+          <div className="iconsContainerHeader noSelect" onClick={() => this.props.changeDarkMode()}>
+            <i className={'material-icons headerIcons' + checkDarkMode(this.props.darkMode, true)}>brightness_7</i>
           </div>
         </div>
       </div>

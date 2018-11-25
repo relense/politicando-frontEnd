@@ -5,6 +5,7 @@ import PartieInformation from '../partieInformation/PartieInformation';
 import PartyCouncilman from '../partyCouncilman/PartyCouncilman';
 import LatestNews from '../latestNews/LatestNews';
 import { asyncCloseDrawer } from '../../actions/viewActions';
+import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class MainContent extends Component {
   getView = () => {
@@ -28,7 +29,7 @@ class MainContent extends Component {
 
   setView = (component = null, adjust = false) => {
       return (
-        <div className={this.props.darkMode ? this.props.drawer ? 'mainContainerDark mainContentDarkMode' : 'mainContentDarkMode' : ''} onClick={() => this.props.closeDrawer()}>
+        <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
           {adjust && <div className="spacingAdjustment"></div>}
           <div className={this.props.drawer ? 'removeLinks' : ''}>
             {component}
