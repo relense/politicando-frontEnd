@@ -52,22 +52,22 @@ class MenuBoard extends Component {
     let data = [];
 
     if(this.props.current === HOME)
-      data.push(<div key={HOME} className="menuBoardnavElems menuBoardselectedElem" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
+      data.push(<div key={HOME} className={this.props.darkMode ? 'menuBoardnavElems menuBoardselectedElemDark menuBoardnavElemsDark' : 'menuBoardnavElems menuBoardselectedElem'} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
     else
-      data.push(<div key={HOME} className="menuBoardnavElems" onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
+      data.push(<div key={HOME} className={this.props.darkMode ? 'menuBoardnavElems menuBoardnavElemsDark' : 'menuBoardnavElems'} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
 
     if(this.props.current  === PARTIES)
-      data.push(<div key={PARTIES} className="menuBoardnavElems menuBoardselectedElem" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
+      data.push(<div key={PARTIES} className={this.props.darkMode ? 'menuBoardnavElems menuBoardselectedElemDark menuBoardnavElemsDark' : 'menuBoardnavElems menuBoardselectedElem'} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
     else
-      data.push(<div key={PARTIES} className="menuBoardnavElems" onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
+      data.push(<div key={PARTIES} className={this.props.darkMode ? 'menuBoardnavElems menuBoardnavElemsDark' : 'menuBoardnavElems'} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
 
     if(this.state.opened === true)
         data.push(this.renderPartieRow())
 
     // if(this.props.current  === ABOUT)
-    //   data.push(<div key={ABOUT} className="menuBoardnavElems menuBoardselectedElem" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>);
+    //   data.push(<div key={ABOUT} className={this.props.darkMode ? 'menuBoardnavElems menuBoardselectedElem menuBoardnavElemsDark' : 'menuBoardnavElems menuBoardselectedElem'} onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>);
     // else
-    //   data.push(<div key={ABOUT} className="menuBoardnavElems" onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>);
+    //   data.push(<div key={ABOUT} className={this.props.darkMode ? 'menuBoardnavElems menuBoardnavElemsDark' : 'menuBaordnavElems'}onClick={() => this.elemFuncs(ABOUT)}>SOBRE</div>);
 
     return data;
   }
@@ -79,13 +79,13 @@ class MenuBoard extends Component {
       for(let i = 0; i < this.props.parties.length; i++) {
         if(this.props.currentPartie.party_name === this.props.parties[i].party_name) {
           data.push(
-              <div key={i} className="menuBoardnavElems menuBoardselectedElem menuBoardPartieElem partieButtons" onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+              <div key={i} className={this.props.darkMode ? "menuBoardnavElems menuBoardPartieElemSelectedDark menuBoardselectedElem menuBoardPartieElem partieButtons" : "menuBoardnavElems menuBoardselectedElem menuBoardPartieElem partieButtons"} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                   { this.props.parties[i].party_name} : {this.props.parties[i].description }
               </div>
           );
         } else {
           data.push(
-              <div key={i} className="menuBoardnavElems menuBoardPartieElem partieButtons" onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+              <div key={i} className={this.props.darkMode ? "menuBoardnavElems menuBoardPartieElemDark menuBoardPartieElem partieButtons" : "menuBoardnavElems menuBoardPartieElem partieButtons"} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                  { this.props.parties[i].party_name} : { this.props.parties[i].description }
               </div>
           );
@@ -97,9 +97,9 @@ class MenuBoard extends Component {
 
   render() {
     return (
-      <div className={this.props.scroll ? 'menuBoardContainer menuBoardSticky' : 'menuBoardContainer'}>
+      <div className={this.props.darkMode ? this.props.scroll ? 'menuBoardDark menuBoardContainer menuBoardSticky' : 'menuBoardContainer menuBoardDark' : 'menuBoardContainer'}>
         <div className="iconsContainer">
-          <i className="material-icons iconsMenuBoard">whatshot</i>
+          <i className={this.props.darkMode ? 'material-icons iconsMenuBoard iconsMenuBoardSelectedDarkMode' : 'material-icons iconsMenuBoard' }>whatshot</i>
         </div>
         {this.renderMainRow(this.props.current, this.props.currentPartie)}
       </div>
@@ -113,6 +113,7 @@ function mapStateToProps(state) {
     parties: state.parties.partieList,
     currentPartie: state.parties.currentPartie,
     partyView: state.view.partyView,
+    darkMode: state.view.darkMode
   };
 }
 

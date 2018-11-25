@@ -6,6 +6,10 @@
   width: inherit;
 }
 
+.latestNewsMainContainerDarkMode {
+  background-color: #17181c;
+}
+
 .latestNewsDoubleContainer {
   display: flex;
   justify-content: center;

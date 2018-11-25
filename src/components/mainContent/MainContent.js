@@ -28,7 +28,7 @@ class MainContent extends Component {
 
   setView = (component = null, adjust = false) => {
       return (
-        <div className={this.props.drawer ? 'mainContainerDark' : ''} onClick={() => this.props.closeDrawer()}>
+        <div className={this.props.darkMode ? this.props.drawer ? 'mainContainerDark mainContentDarkMode' : 'mainContentDarkMode' : ''} onClick={() => this.props.closeDrawer()}>
           {adjust && <div className="spacingAdjustment"></div>}
           <div className={this.props.drawer ? 'removeLinks' : ''}>
             {component}
@@ -47,7 +47,8 @@ function mapStateToProps(state) {
     currentView: state.view.currentView,
     articles: state.articles.all_articles,
     partyView: state.view.partyView,
-    drawer: state.view.drawer
+    drawer: state.view.drawer,
+    darkMode: state.view.darkMode
   };
 }
 

@@ -6,4 +6,10 @@
   width: inherit;
 }
 
-  
+.partieCouncilmenInformationMainContainerDarkMode {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: inherit;
+  background-color: #17181c;
+}

@@ -1,5 +1,5 @@
 .menuBoardContainer {
-  height: 85%;
+  height: 90%;
   width: 18%;
   position: fixed;
   background-color: white;
@@ -8,6 +8,10 @@
   padding-bottom: 40px;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.menuBoardDark {
+  background-color: #17181c;
 }
 
 .partieButtons {
@@ -28,12 +32,28 @@
   supported by Chrome and Opera */
 }
 
+.menuBoardnavElemsDark {
+  color: #b6b1aa
+}
+
 .menuBoardselectedElem {
   color: black;
 }
 
+.menuBoardselectedElemDark {
+  color: white;
+}
+
 .menuBoardPartieElem {
   padding-left: 20px;
+}
+
+.menuBoardPartieElemDark {
+  color: #b6b1aa
+}
+
+.menuBoardPartieElemSelectedDark {
+  color: white;
 }
 
 .menuBoardSticky {
@@ -61,6 +81,11 @@
 .iconsMenuBoardSelected {
   cursor: pointer;
   color: black; 
+}
+
+.iconsMenuBoardSelectedDarkMode {
+  cursor: pointer;
+  color: white; 
 }
 
 @media only screen and (max-width: 1280px) {

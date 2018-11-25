@@ -16,7 +16,7 @@ class PartieInformation extends Component {
     let articles = condition ? <LatestNews articles={this.props.partieNews} /> : <LatestNews articles={this.props.articles} />;
 
     return (
-      <div className="partieInformationMainContainer">
+      <div className={this.props.darkMode ? "partieInformationMainContainer partieInformationMainContainerDakMode" : "partieInformationMainContainer"}>
         <PartyHeader />
         <div>
           {articles}
@@ -31,6 +31,7 @@ function mapStateToProps(state) {
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
     articles: state.articles.all_articles,
+    darkMode: state.view.darkMode
   };
 }
 

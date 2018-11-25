@@ -28,6 +28,12 @@ export function closeDrawer() {
   }
 }
 
+export function darkMode() {
+  return {
+    type: types.DARK_MODE
+  }
+}
+
 export const asyncChangeView = (view) => {
   return async function(dispatch) {
     try {
@@ -62,6 +68,16 @@ export const asyncCloseDrawer = () => {
   return async function(dispatch) {
     try {
       dispatch(closeDrawer())
+    } catch(error) {
+      console.log(error)
+    }
+  }
+}
+
+export const asyncChangeDarkMode = () => {
+  return async function(dispatch) {
+    try {
+      dispatch(darkMode())
     } catch(error) {
       console.log(error)
     }

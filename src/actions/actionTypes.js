@@ -9,3 +9,4 @@ export const FETCH_NEXT_TEN = 'FETCH_NEXT_TEN';
 export const FETCH_NEXT_TEN_PARTY_NEWS = 'FETCH_NEXT_TEN_PARTY_NEWS';
 export const OPEN_DRAWER = 'OPEN_DRAWER';
 export const CLOSE_DRAWER = 'CLOSE_DRAWER';
+export const DARK_MODE = 'DARK_MODE';

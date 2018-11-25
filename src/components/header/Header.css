@@ -3,13 +3,17 @@
   flex-direction: row;
   justify-content: center;
   height: 90px;
-  background-color: white;
+  background-color: #fff;
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none; 
+}
+
+.headerDark {
+  background-color: #17181c;
 }
 
 /* sticky has a width of 85% because the width of the drawer is 15%. Keep in mind if you change this one you should change the other.
@@ -45,6 +49,16 @@
   color: black;
 }
 
+.siteTitleLinkDark {
+  text-decoration: none;
+  cursor: pointer;
+  color: #e8e7e3;
+}
+
 .headerIcons {
   font-size: 36px;
+}
+
+.iconDarkMode {
+  color: #e8e7e3;
 }

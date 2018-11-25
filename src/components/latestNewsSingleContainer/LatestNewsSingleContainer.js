@@ -55,13 +55,13 @@ class LatestNewsSingleContainer extends Component {
     const comments = "382 Comentários";
 
     return (
-      <div className="latestNewsSingleContainer">
+      <div className={this.props.darkMode ? "latestNewsSingleContainer latestNewstSingleContainerDarkMode" : "latestNewsSingleContainer"}>
         {title}
         <div className="latestNewsContentContainer">
           {image}
           <div className="selectForbiden">
             {content}
-            <div className="fadeout"></div>
+            <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
           </div>
         </div>
         <div className="latestNewsDiscussionContainer">
@@ -78,7 +78,8 @@ class LatestNewsSingleContainer extends Component {
 
 function mapStateToProps(state) {
   return {
-    parties: state.parties.partieList
+    parties: state.parties.partieList,
+    darkMode: state.view.darkMode
   };
 }
 

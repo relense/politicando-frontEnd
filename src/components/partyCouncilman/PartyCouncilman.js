@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import './PartyCouncilman.css';
 import PartyHeader from '../partyHeader/PartyHeader.js';
 
-export default class PartyCouncilman extends Component {
+class PartyCouncilman extends Component {
   render() {
     return (
-      <div className="partieCouncilmenInformationMainContainer">
+      <div className={this.props.darkMode ? "partieCouncilmenInformationMainContainerDarkMode" : "partieCouncilmenInformationMainContainer"}>
         <PartyHeader />
         <div>
 
@@ -15,3 +16,18 @@ export default class PartyCouncilman extends Component {
     );
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    darkMode: state.view.darkMode
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return { };
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(PartyCouncilman);

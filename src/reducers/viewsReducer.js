@@ -1,9 +1,10 @@
-import { SET_VIEW, SET_PARTY_VIEW, OPEN_DRAWER, CLOSE_DRAWER } from '../actions/actionTypes';
+import { SET_VIEW, SET_PARTY_VIEW, OPEN_DRAWER, CLOSE_DRAWER, DARK_MODE } from '../actions/actionTypes';
 
 const initialState = {
     currentView: "HOME",
     partyView: "NOTICIAS",
-    drawer: false
+    drawer: false,
+    darkMode: false
 }
 
 export default function view(state = initialState, action) {
@@ -31,6 +32,12 @@ export default function view(state = initialState, action) {
         ...state,
         drawer: true
       }
+    
+      case DARK_MODE:
+        return {
+          ...state,
+          darkMode: !state.darkMode
+        }
 
     default:
       return state;

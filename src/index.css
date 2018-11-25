@@ -10,6 +10,24 @@ html, body {
   height: 100%;
   width: 100%;
 }
+/* 
+html, body, input, textarea, select, button {
+  border-color: #575757;
+  color: #e8e7e3;
+}
+
+
+html, body, input, textarea, select, button {
+  background-color: #17181c !important;
+}
+
+html {
+  background-color: #17181c !important;
+}
+
+html {
+  background-color: #17181c !important;
+} */
 
 #root {
   height: 100%;

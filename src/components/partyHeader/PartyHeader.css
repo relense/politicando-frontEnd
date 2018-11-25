@@ -16,6 +16,10 @@
   color: black;
 }
 
+.partieElemsSelectedDarkMode {
+  color: #e8e7e3;
+}
+
 .partieHeaderContent {
   display: flex;
   flex-direction: row;
@@ -25,4 +29,3 @@
   align-items: center;
   justify-content: center;
 }
-
