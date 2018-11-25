@@ -16,8 +16,16 @@ export const checkDarkMode = (darkMode, selectedElem = false) => {
 }
 
 export const checkDarkModeBackground = (darkMode) => {
-    if (darkMode)
+    let element = null;
+    
+    if (darkMode){
+        element = document.getElementById("root")
+        element.classList.remove('backgroundLightMode');
+        element.classList.add('backgroundDarkMode');
         return ' backgroundDarkMode'
-    else
+    } else
+        element = document.getElementById("root")
+        element.classList.add('backgroundLightMode');
+        element.classList.remove('backgroundDarkMode')
         return ' backgroundLightMode'
 }
