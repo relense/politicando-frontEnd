@@ -1,10 +1,9 @@
 .menuBoardContainer {
-  height: 90%;
+  height: 85%;
   width: 18%;
   position: fixed;
   padding-left: 20px;
   z-index: 2;
-  padding-bottom: 40px;
   overflow-y: auto;
   overflow-x: hidden;
   font-size: 14px;

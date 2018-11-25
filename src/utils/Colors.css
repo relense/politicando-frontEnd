@@ -29,3 +29,11 @@
 .buttonsSelectedDarkMode {
     color: white;
 }
+
+.linksDarkMode {
+    color: rgb(0, 119, 255);
+}
+
+.linksLightMode {
+    color: blue;
+}

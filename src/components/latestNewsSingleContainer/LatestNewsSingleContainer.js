@@ -4,7 +4,7 @@ import moment from 'moment'
 import './LatestNewsSingleContainer.css';
 import { asyncChangeView } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
-import { checkDarkMode } from '../../utils/CheckDarkMode.js';
+import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 
 class LatestNewsSingleContainer extends Component {
   constructor(props) {
@@ -49,7 +49,7 @@ class LatestNewsSingleContainer extends Component {
   render() {
     const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden">{this.props.article.title}</h1>;
     const time = moment(this.props.article.published_time).format('DD-MM-YYYY | HH:mm');
-    const news_url = <a href={"https://" +this.props.article.source} className="latestNewsDiscussionSource" target="_blank" rel="noopener noreferrer">{this.props.article.source}</a>;
+    const news_url = <a href={"https://" +this.props.article.source} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{this.props.article.source}</a>;
     const tags = this.getTags(this.props.article.tags);
     const image = this.props.article.image_url ? <img onLoad={this.onLoadImage} src={this.props.article.image_url} className={ this.state.size ? "newsImage" : "newsImageSmaller"} alt="Article" title={this.props.article.title} /> : "";
     const content = this.props.article.content;
@@ -57,7 +57,7 @@ class LatestNewsSingleContainer extends Component {
 
     return (
       <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-        {title}
+        <a href={this.props.article.news_url} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
         <div className="latestNewsContentContainer">
           {image}
           <div className="selectForbiden">
