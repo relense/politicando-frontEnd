@@ -1,42 +1,61 @@
 .header {
-  height: 145px;
-  margin-bottom: 20px;
-  background-color: white;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  height: 90px;
 }
 
+.noSelect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; 
+}
+
+/* sticky has a width of 85% because the width of the drawer is 15%. Keep in mind if you change this one you should change the other.
+  if you don't change the MenuBoard width, the header will not be centered on scroll
+*/
 .sticky {
-  position: fixed;
   width: 100%;
+  position: fixed;
   top: 0;
   z-index: 2;
 }
 
-.title {
+.headerMenuBar {
   display: flex;
   justify-content: center;
+  flex-direction: column;
+  padding-left: 30px;
+  cursor: pointer;
+  flex: 2;
+}
+
+.title {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
 }
 
 .siteTitleLink {
   text-decoration: none;
   cursor: pointer;
-  color: black;
 }
 
-.nav {
+.headerIcons {
+  font-size: 36px;
+}
+
+.iconDarkMode {
+  color: #b6b1aa;
+}
+
+.iconsContainerHeader {
   display: flex;
-  justify-content: center;
-  padding-bottom: 10px;
-}
-
-.navElems {
-  margin: 0 10px 0 10px;
-  font-size: 16px;
-  color: #988282;
-  cursor: pointer;
-}
-
-.selectedElem {
-  margin: 0 10px 0 10px;
-  font-size: 16px;
-  color: black;
+  justify-content: flex-end;
+  padding-right: 20px;
 }

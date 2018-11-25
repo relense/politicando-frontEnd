@@ -1,19 +1,12 @@
 .partyHeaderLogoContainer {
   display: flex;
-  width: 25%;
+  width: 30%;
   justify-content: center;
 }
 
 .partieElems {
   cursor: pointer;
   font-size: 20px;
-  color: #988282;
-}
-
-.partieElemsSelected {
-  cursor: pointer;
-  font-size: 20px;
-  color: black;
 }
 
 .partieHeaderContent {
@@ -21,8 +14,7 @@
   flex-direction: row;
   height: 30px;
   margin-bottom: 20px;
+  margin-top: 10px;
   align-items: center;
-  padding: 0 200px 0 200px;
   justify-content: center;
 }
-

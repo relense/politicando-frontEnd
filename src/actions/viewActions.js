@@ -14,6 +14,26 @@ export function changePartyView(view) {
   };
 }
 
+export function openDrawer() {
+  return {
+    type: types.OPEN_DRAWER,
+    drawer: false
+  }
+}
+
+export function closeDrawer() {
+  return {
+    type: types.CLOSE_DRAWER,
+    drawer: true
+  }
+}
+
+export function darkMode() {
+  return {
+    type: types.DARK_MODE
+  }
+}
+
 export const asyncChangeView = (view) => {
   return async function(dispatch) {
     try {
@@ -28,6 +48,36 @@ export const asyncChangePartyView = (view) => {
   return async function(dispatch) {
     try {
       dispatch(changePartyView(view))
+    } catch(error) {
+      console.log(error)
+    }
+  }
+}
+
+export const asyncOpenDrawer = () => {
+  return async function(dispatch) {
+    try {
+      dispatch(openDrawer())
+    } catch(error) {
+      console.log(error)
+    }
+  }
+}
+
+export const asyncCloseDrawer = () => {
+  return async function(dispatch) {
+    try {
+      dispatch(closeDrawer())
+    } catch(error) {
+      console.log(error)
+    }
+  }
+}
+
+export const asyncChangeDarkMode = () => {
+  return async function(dispatch) {
+    try {
+      dispatch(darkMode())
     } catch(error) {
       console.log(error)
     }

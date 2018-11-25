@@ -1,3 +1,10 @@
-.adjustContent {
-  padding-top: 150px;
+.appMainContent {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    position: relative;
+}
+
+.adjustContentDrawer {
+  padding-top: 90px;
 }

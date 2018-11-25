@@ -1,12 +1,18 @@
-.mainContainer {
-  display: flex;
-  flex-direction: column;
+.mainContainerDark {
+  overflow: hidden;
+  filter: blur(2px); 
+  -webkit-filter: blur(2px);
+  -moz-filter: blur(2px);
+  -o-filter: blur(2px); 
+  -ms-filter: blur(2px);
 }
 
 .spacingAdjustment {
-  display: flex;
-  flex-direction: row;
   height: 30px;
   margin-bottom: 20px;
-  align-items: center;
+  margin-top: 10px;
+}
+
+.removeLinks {
+  pointer-events: none;
 }
