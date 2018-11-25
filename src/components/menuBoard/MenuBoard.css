@@ -63,8 +63,9 @@
 
 .iconsContainer {
   display: flex;
-  justify-content: flex-end;
-  padding-right: 20px;
+  justify-content: flex-start;
+  padding-left: 10px;
+  margin-bottom: 20px;
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */

@@ -30,7 +30,7 @@
   display: flex;
   justify-content: center;
   flex-direction: column;
-  padding-left: 20px;
+  padding-left: 30px;
   cursor: pointer;
   flex: 2;
 }
@@ -61,4 +61,15 @@
 
 .iconDarkMode {
   color: #b6b1aa;
+}
+.iconsContainerHeader {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 20px;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; 
 }

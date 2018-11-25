@@ -14,7 +14,7 @@ class Header extends Component {
           <a href="http://localhost:3000" className={this.props.darkMode ? ' siteTitleLinkDark' : 'siteTitleLink'}><h1>POLITICANDO</h1></a>
         </div>
         <div className="headerMenuBar">
-          <div className="iconsContainer" onClick={() => this.props.changeDarkMode()}>
+          <div className="iconsContainerHeader" onClick={() => this.props.changeDarkMode()}>
             <i className={this.props.darkMode ? 'material-icons headerIcons iconDarkMode' : 'material-icons headerIcons'}>brightness_7</i>
           </div>
         </div>
