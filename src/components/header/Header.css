@@ -28,7 +28,7 @@
   display: flex;
   justify-content: center;
   flex-direction: column;
-  padding-left: 30px;
+  padding-left: 20px;
   cursor: pointer;
   flex: 2;
 }
@@ -47,7 +47,7 @@
 }
 
 .headerIcons {
-  font-size: 36px;
+  font-size: 26px;
 }
 
 .iconDarkMode {
@@ -58,4 +58,27 @@
   display: flex;
   justify-content: flex-end;
   padding-right: 20px;
+}
+
+@media only screen and (max-width: 830px) {
+  .header {
+    height: 50px;
+  }
+
+  .headerMenuBar {
+    padding-left: 10px;
+  }
+  
+  .title {
+    font-size: 10px;
+  }
+
+  .headerIcons {
+    font-size: 18px;
+  }
+  
+  .iconsContainerHeader {
+    padding-right: 10px;
+  }
+  
 }

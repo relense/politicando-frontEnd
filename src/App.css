@@ -8,3 +8,9 @@
 .adjustContentDrawer {
   padding-top: 90px;
 }
+
+@media only screen and (max-width: 830px) {
+  .adjustContentDrawer {
+    padding-top: 50px;
+  }
+}

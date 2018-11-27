@@ -1,8 +1,7 @@
 .menuBoardContainer {
-  height: 85%;
-  width: 18%;
+  height: 95%;
+  width: 25%;
   position: fixed;
-  padding-left: 20px;
   z-index: 2;
   overflow-y: auto;
   overflow-x: hidden;
@@ -10,9 +9,13 @@
 }
 
 .menuBoardnavElems {
-  margin: 0 90px 20px 15px;
+  padding: 10px 0 10px 20px;
   font-size: 16px;
   cursor: pointer;
+}
+
+.menuBoardnavElems:hover {
+  background-color: rgba(60, 60, 228, 0.1);
 }
 
 .noSelect {
@@ -25,7 +28,7 @@
 }
 
 .menuBoardPartieElem {
-  padding-left: 20px;
+  padding-left: 40px;
 }
 
 .menuBoardSticky {
@@ -36,20 +39,46 @@
 .iconsContainer {
   display: flex;
   justify-content: flex-start;
-  padding-left: 10px;
   margin-bottom: 20px;
   cursor: pointer;
+  padding-left: 20px;
 }
 
 @media only screen and (max-width: 1280px) {
   .menuBoardContainer {
-    width: 30%;
+    width: 35%;
+    height: 86%;
   }
 }
 
 @media only screen and (max-width: 830px) {
   .menuBoardContainer {
-    width: 70%;
+    width: 75%;
+    height: 95%;
+    padding-left: 10px;
+  }
+
+  .menuBoardnavElems {
+    font-size: 12px;
+    padding-left: 10px;
+  }
+
+  .menuBoardIcons {
+    font-size: 18px;
+  }
+
+  .menuBoardSticky {
+    top: 50px;
+  } 
+
+  .iconsContainer {
+    padding-left: 10px;
+  }
+}
+
+@media only screen and (max-width: 570px) {
+  .menuBoardContainer {
+    width: 80%;
   }
 }
 
