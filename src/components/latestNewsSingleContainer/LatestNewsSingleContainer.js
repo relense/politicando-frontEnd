@@ -57,7 +57,7 @@ class LatestNewsSingleContainer extends Component {
 
     return (
       <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-        <a href={this.props.article.news_url} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
+        <a href={this.props.article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
         <div className="latestNewsContentContainer">
           {image}
           <div className="selectForbiden">
