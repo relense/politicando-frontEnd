@@ -16,6 +16,13 @@ export function receiveNext10Articles(articles) {
   }
 }
 
+export function reveiveArticle(article) {
+    return {
+        type: types.GET_ARTICLE,
+        current_article: article
+    }
+}
+
 export const loadArticles = () => {
     return async function(dispatch){
         try {
@@ -36,4 +43,15 @@ export const loadNextTenArticles = (article_id) => {
           console.log(error)
       }
   }
+}
+
+export const asyncLoadArticle = (article_id) => {
+    return async function(dispatch){
+        try {
+            const response = await get(apiUrls.getArticle.replace('{article_id}', article_id))
+            dispatch(reveiveArticle(response))
+        } catch (error) {
+            console.log(error)
+        }
+    }
 }

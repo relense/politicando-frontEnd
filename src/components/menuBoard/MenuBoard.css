@@ -1,6 +1,6 @@
 .menuBoardContainer {
   height: 95%;
-  width: 25%;
+  width: 20%;
   position: fixed;
   z-index: 2;
   overflow-y: auto;
@@ -46,21 +46,24 @@
 
 @media only screen and (max-width: 1280px) {
   .menuBoardContainer {
-    width: 35%;
+    width: 30%;
     height: 86%;
   }
 }
 
 @media only screen and (max-width: 830px) {
   .menuBoardContainer {
-    width: 75%;
-    height: 95%;
-    padding-left: 10px;
+    width: 40%;
+    height: 93%;
   }
 
   .menuBoardnavElems {
     font-size: 12px;
     padding-left: 10px;
+  }
+
+  .menuBoardPartieElem {
+    padding-left: 40px;
   }
 
   .menuBoardIcons {

@@ -96,13 +96,13 @@ class PartyHeader extends Component {
         <div className="partieHeaderContent">
         {condition &&
           <Fragment>
-            <div className={this.checkDarkMode('NOTICIAS')} onClick={() => this.props.setPartyView("NOTICIAS")}>
+            {/* <div className={this.checkDarkMode('NOTICIAS')} onClick={() => this.props.setPartyView("NOTICIAS")}>
               Notícias
-            </div>
+            </div> */}
             {logo}
-            <div className={this.checkDarkMode('DEPUTADOS')} onClick={() => this.props.setPartyView("DEPUTADOS")}>
+            {/* <div className={this.checkDarkMode('DEPUTADOS')} onClick={() => this.props.setPartyView("DEPUTADOS")}>
               Deputados
-            </div>
+            </div> */}
           </Fragment>
         }
         </div>

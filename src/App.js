@@ -16,12 +16,10 @@ class App extends Component {
     })
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.props.fetchParties();
     this.props.fetchArticles();
-  }
-
-  componentDidMount(e) {
+    
     window.addEventListener('scroll', (e) => {
       this.handleScroll();
       this.handleScrollMainContent(e, this.props.articles, this.props.fetchNextTenArticles)
@@ -57,7 +55,7 @@ class App extends Component {
 
   render() {
     return (
-      <div className="appMainContent">
+      <div>
         <Header scroll={this.state.scroll} />
         <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
           {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }

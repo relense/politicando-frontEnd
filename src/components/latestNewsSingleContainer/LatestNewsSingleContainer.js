@@ -4,6 +4,7 @@ import moment from 'moment'
 import './LatestNewsSingleContainer.css';
 import { asyncChangeView } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
+import { asyncLoadArticle } from '../../actions/articlesActions';
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 
 class LatestNewsSingleContainer extends Component {
@@ -46,6 +47,10 @@ class LatestNewsSingleContainer extends Component {
     ));
   }
 
+  getArticle() {
+    this.props.getArticle(this.props.article.id)
+  }
+
   render() {
     const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden">{this.props.article.title}</h1>;
     const time = moment(this.props.article.published_time).format('DD-MM-YYYY | HH:mm');
@@ -53,7 +58,7 @@ class LatestNewsSingleContainer extends Component {
     const tags = this.getTags(this.props.article.tags);
     const image = this.props.article.image_url ? <img onLoad={this.onLoadImage} src={this.props.article.image_url} className={ this.state.size ? "newsImage" : "newsImageSmaller"} alt="Article" title={this.props.article.title} /> : "";
     const content = this.props.article.content;
-    const comments = "382 Comentários";
+    const comments = <div onClick={() => this.getArticle()}>382 Comentários</div>;
 
     return (
       <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
@@ -80,7 +85,8 @@ class LatestNewsSingleContainer extends Component {
 function mapStateToProps(state) {
   return {
     parties: state.parties.partieList,
-    darkMode: state.view.darkMode
+    darkMode: state.view.darkMode,
+    currentArticle: state.articles.current_article
   };
 }
 
@@ -94,6 +100,9 @@ function mapDispatchToProps(dispatch) {
     },
     getPartieNews: (partie_id) => {
       dispatch(asyncGetPartieNews(partie_id))
+    },
+    getArticle: (article_id) => {
+      dispatch(asyncLoadArticle(article_id))
     }
   };
 }

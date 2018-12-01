@@ -24,7 +24,7 @@ class PartieInformation extends Component {
 
     return (
       <div className={'partieInformationMainContainer ' + this.checkDarkMode()}>
-        <PartyHeader />
+       {condition && <PartyHeader />}
         <div>
           {articles}
         </div>

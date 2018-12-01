@@ -6,7 +6,6 @@
 }
 
 .latestNewsDoubleContainer {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 35px;
+  text-align: center;
+  margin-bottom: 30px;
 }

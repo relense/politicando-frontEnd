@@ -16,9 +16,10 @@ class MainContent extends Component {
       case "PARTIES":
           if (this.props.partyView === "NOTICIAS") 
             return (this.setView(<PartieInformation />));
-          else 
+          else
             return (this.setView(<PartyCouncilman />));
           
+
       case "ABOUT":
           return (this.setView());
 
@@ -30,7 +31,6 @@ class MainContent extends Component {
   setView = (component = null, adjust = false) => {
       return (
         <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
-          {adjust && <div className="spacingAdjustment"></div>}
           <div className={this.props.drawer ? 'removeLinks' : ''}>
             {component}
           </div>

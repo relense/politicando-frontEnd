@@ -88,9 +88,6 @@ class MenuBoard extends Component {
   render() {
     return (
       <div className={(this.props.scroll ? 'menuBoardContainer menuBoardSticky' : 'menuBoardContainer') + checkDarkModeBackground(this.props.darkMode)}>
-        <div className="iconsContainer noSelect">
-          <i className={'material-icons menuBoardIcons' + checkDarkMode(this.props.DarkMode) }>whatshot</i>
-        </div>
         {this.renderMainRow()}
       </div>
     );
