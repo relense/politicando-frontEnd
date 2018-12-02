@@ -1,11 +1,11 @@
-.latestNewsMainContainer {
+.articleDiscussionMainContainer {
   display: flex;
   flex-direction: column;
   flex: 1;
   width: inherit;
 }
 
-.latestNewsDoubleContainer {
+.articleContainer {
   text-align: center;
   margin-bottom: 30px;
 }

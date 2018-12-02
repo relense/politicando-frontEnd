@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import './LatestNews.css';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer';
+import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
-export default class LatestNews extends Component {
+
+class LatestNews extends Component {
 
   renderItem = () => {
     var data = [];
@@ -20,9 +24,24 @@ export default class LatestNews extends Component {
 
   render() {
     return (
-      <div className="latestNewsMainContainer">
+      <div className={'latestNewsMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
         {this.renderItem()}
       </div>
     );
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    darkMode: state.view.darkMode
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return { };
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(LatestNews);

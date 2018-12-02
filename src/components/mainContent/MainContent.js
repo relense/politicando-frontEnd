@@ -4,64 +4,61 @@ import './MainContent.css';
 import PartieInformation from '../partieInformation/PartieInformation';
 import PartyCouncilman from '../partyCouncilman/PartyCouncilman';
 import LatestNews from '../latestNews/LatestNews';
+import { asyncCloseDrawer } from '../../actions/viewActions';
+import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class MainContent extends Component {
   getView = () => {
     switch(this.props.currentView) {
       case "HOME":
-        return (
-          <div className="mainContainer">
-            <div className="spacingAdjustment"></div>
-            <LatestNews articles={this.props.articles} />
-          </div>
-        )
+        return (this.setView(<LatestNews articles={this.props.articles} />, true));
 
       case "PARTIES":
-          if (this.props.partyView === "NOTICIAS") {
-            return (
-              <div className="mainContainer">
-                <PartieInformation />
-              </div>
-            )
-          } else {
-            return (
-              <div className="mainContainer">
-                <PartyCouncilman />
-              </div>
-            )
-          }
+          if (this.props.partyView === "NOTICIAS") 
+            return (this.setView(<PartieInformation />));
+          else
+            return (this.setView(<PartyCouncilman />));
+          
+
       case "ABOUT":
-          return (
-            <div className="mainContainer">
-            </div>
-          )
+          return (this.setView());
+
       default:
-        return (
-          <div className="mainContainer">
-            <div className="spacingAdjustment"></div>
-            <LatestNews articles={this.props.articles} />
-          </div>
-        )
+        return (this.setView(<LatestNews articles={this.props.articles} />, true));
     }
   }
 
+  setView = (component = null) => {
+      return (
+        <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
+          <div className={this.props.drawer ? 'removeLinks' : ''}>
+            {component}
+          </div>
+        </div>
+      )
+  }
+
   render() {
-    return (
-        this.getView()
-    );
+    return (this.getView());
   }
 }
 
 function mapStateToProps(state) {
   return {
     currentView: state.view.currentView,
-    articles: state.articles.all_articles,
-    partyView: state.view.partyView
+    articles: state.articles.allArticles,
+    partyView: state.view.partyView,
+    drawer: state.view.drawer,
+    darkMode: state.view.darkMode
   };
 }
 
 function mapDispatchToProps(dispatch) {
-  return { }
+  return { 
+    closeDrawer: () => {
+      dispatch(asyncCloseDrawer());
+    }
+  }
 }
 
 export default connect(

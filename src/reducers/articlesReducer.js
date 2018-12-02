@@ -1,29 +1,39 @@
-import { FETCH_ARTICLES, FETCH_NEXT_TEN } from '../actions/actionTypes';
+import { FETCH_ARTICLES, FETCH_NEXT_TEN, GET_ARTICLE } from '../actions/actionTypes';
 
 const initialState = {
-    all_articles: [],
-    ten_articles: []
+    allArticles: [],
+    tenArticles: [],
+    currentArticle: null
 }
 
 export default function articles(state = initialState, action) {
   switch (action.type) {
     case FETCH_ARTICLES:
-      return action;
-
-    case FETCH_NEXT_TEN:
-      let all_articles = []
-
-      for(let j = 0; j < state.all_articles.length; j++) {
-        all_articles.push(state.all_articles[j])
+      return {
+        ...state,
+        allArticles: action.allArticles
       }
 
-      for(let i = 0; i < action.ten_articles.length; i++) {
-        all_articles.push(action.ten_articles[i])
+    case FETCH_NEXT_TEN:
+      let allArticles = []
+
+      for(let j = 0; j < state.allArticles.length; j++) {
+        allArticles.push(state.allArticles[j])
+      }
+
+      for(let i = 0; i < action.tenArticles.length; i++) {
+        allArticles.push(action.tenArticles[i])
       }
 
       return {
         ...state,
-        all_articles: all_articles
+        allArticles: allArticles
+      }
+    
+    case GET_ARTICLE:
+      return {
+        ...state,
+        currentArticle: action.currentArticle
       }
 
     default:

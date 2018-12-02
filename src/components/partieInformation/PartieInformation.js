@@ -11,13 +11,20 @@ class PartieInformation extends Component {
     this.props.getPartieNews(this.props.currentPartie.id)
   }
 
+  checkDarkMode(){
+    if(this.props.darkMode) 
+      return 'backgroundDarkMode';
+    else 
+      return 'backgroundLightMode';
+  }
+
   render() {
     let condition = this.props.partieNews !== null ? this.props.currentPartie.party_name !== undefined : false;
     let articles = condition ? <LatestNews articles={this.props.partieNews} /> : <LatestNews articles={this.props.articles} />;
 
     return (
-      <div className="partieInformationMainContainer">
-        <PartyHeader />
+      <div className={'partieInformationMainContainer ' + this.checkDarkMode()}>
+       {condition && <PartyHeader />}
         <div>
           {articles}
         </div>
@@ -30,7 +37,8 @@ function mapStateToProps(state) {
   return {
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
-    articles: state.articles.all_articles,
+    articles: state.articles.allArticles,
+    darkMode: state.view.darkMode
   };
 }
 

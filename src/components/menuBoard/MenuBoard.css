@@ -1,0 +1,91 @@
+.menuBoardContainer {
+  height: 95%;
+  width: 20%;
+  position: fixed;
+  z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+.menuBoardnavElems {
+  padding: 10px 0 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.menuBoardnavElems:hover {
+  background-color: rgba(60, 60, 228, 0.1);
+}
+
+.noSelect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
+}
+
+.menuBoardPartieElem {
+  padding-left: 40px;
+}
+
+.menuBoardSticky {
+  position: fixed;
+  top: 60px;
+}
+
+.iconsContainer {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  cursor: pointer;
+  padding-left: 20px;
+}
+
+.menuBoardNavlink {
+  text-decoration: none;
+}
+
+@media only screen and (max-width: 1280px) {
+  .menuBoardContainer {
+    width: 30%;
+    height: 86%;
+  }
+}
+
+@media only screen and (max-width: 830px) {
+  .menuBoardContainer {
+    width: 40%;
+    height: 93%;
+  }
+
+  .menuBoardnavElems {
+    font-size: 12px;
+    padding-left: 10px;
+  }
+
+  .menuBoardPartieElem {
+    padding-left: 40px;
+  }
+
+  .menuBoardIcons {
+    font-size: 18px;
+  }
+
+  .menuBoardSticky {
+    top: 50px;
+  } 
+
+  .iconsContainer {
+    padding-left: 10px;
+  }
+}
+
+@media only screen and (max-width: 570px) {
+  .menuBoardContainer {
+    width: 80%;
+  }
+}
+

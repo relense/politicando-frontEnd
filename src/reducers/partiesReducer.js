@@ -29,19 +29,19 @@ export default function parties(state = initialState, action) {
       }
 
     case FETCH_NEXT_TEN_PARTY_NEWS:
-      let all_articles = []
+      let allArticles = []
 
       for(let j = 0; j < state.partieNews.length; j++) {
-        all_articles.push(state.partieNews[j])
+        allArticles.push(state.partieNews[j])
       }
 
-      for(let i = 0; i < action.ten_articles.length; i++) {
-        all_articles.push(action.ten_articles[i])
+      for(let i = 0; i < action.tenArticles.length; i++) {
+        allArticles.push(action.tenArticles[i])
       }
 
       return {
         ...state,
-        partieNews: all_articles
+        partieNews: allArticles
       }
 
     default:

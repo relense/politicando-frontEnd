@@ -23,7 +23,7 @@ class PartyHeader extends Component {
       case "BE":
         imageName = "be_logo.jpg";
         break;
-      case "CDS":
+      case "CDS-PP":
         imageName = "cds-pp_logo.png";
         break;
       case "PCP":
@@ -66,6 +66,27 @@ class PartyHeader extends Component {
       </div>
     );
   }
+  
+  checkDarkMode(partyView){
+    let classNameString = "";
+    let selected = "";
+    let notSelected = "";
+
+    if(this.props.darkMode) {
+      selected = 'buttonsSelectedDarkMode';
+      notSelected = 'buttonsDarkMode';
+    } else {
+      selected = 'buttonsSelectedLightMode';
+      notSelected = 'buttonsLightMode';
+    }
+
+    if(this.props.partyView === partyView)
+      classNameString = selected + ' partieElems';    
+    else 
+      classNameString = notSelected + ' partieElems';
+    
+    return classNameString;
+  }
 
   render() {
     let condition = this.props.partieNews !== null ? this.props.currentPartie.party_name !== undefined : false;
@@ -75,13 +96,13 @@ class PartyHeader extends Component {
         <div className="partieHeaderContent">
         {condition &&
           <Fragment>
-            <div className={this.props.partyView === "NOTICIAS" ? 'partieElemsSelected' : 'partieElems'} onClick={() => this.props.setPartyView("NOTICIAS")}>
+            {/* <div className={this.checkDarkMode('NOTICIAS')} onClick={() => this.props.setPartyView("NOTICIAS")}>
               Notícias
-            </div>
+            </div> */}
             {logo}
-            <div className={this.props.partyView === "DEPUTADOS" ? 'partieElemsSelected' : 'partieElems'} onClick={() => this.props.setPartyView("DEPUTADOS")}>
+            {/* <div className={this.checkDarkMode('DEPUTADOS')} onClick={() => this.props.setPartyView("DEPUTADOS")}>
               Deputados
-            </div>
+            </div> */}
           </Fragment>
         }
         </div>
@@ -92,7 +113,8 @@ class PartyHeader extends Component {
 function mapStateToProps(state) {
   return {
     currentPartie: state.parties.currentPartie,
-    partyView: state.view.partyView
+    partyView: state.view.partyView,
+    darkMode: state.view.darkMode
   };
 }
 
