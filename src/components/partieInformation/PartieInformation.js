@@ -37,7 +37,7 @@ function mapStateToProps(state) {
   return {
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
-    articles: state.articles.all_articles,
+    articles: state.articles.allArticles,
     darkMode: state.view.darkMode
   };
 }

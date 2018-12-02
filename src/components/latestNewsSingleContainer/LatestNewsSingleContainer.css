@@ -12,6 +12,10 @@
   cursor: pointer;
 }
 
+.latestNewsNavLink {
+  text-decoration: none;
+}
+
 .commentContainer {
   padding-left: 10px; 
   cursor: pointer;

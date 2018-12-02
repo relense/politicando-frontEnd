@@ -5,21 +5,21 @@ import { get } from '../api/Api';
 export function receivedArticles(articles) {
     return {
         type: types.FETCH_ARTICLES,
-        all_articles: articles
+        allArticles: articles
     }
 }
 
 export function receiveNext10Articles(articles) {
-  return {
-    type: types.FETCH_NEXT_TEN,
-    ten_articles: articles
-  }
+    return {
+        type: types.FETCH_NEXT_TEN,
+        tenArticles: articles
+    }
 }
 
 export function reveiveArticle(article) {
     return {
         type: types.GET_ARTICLE,
-        current_article: article
+        currentArticle: article
     }
 }
 

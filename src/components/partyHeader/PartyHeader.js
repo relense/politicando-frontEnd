@@ -23,7 +23,7 @@ class PartyHeader extends Component {
       case "BE":
         imageName = "be_logo.jpg";
         break;
-      case "CDS":
+      case "CDS-PP":
         imageName = "cds-pp_logo.png";
         break;
       case "PCP":
