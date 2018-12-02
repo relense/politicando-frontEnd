@@ -28,7 +28,7 @@ class MainContent extends Component {
     }
   }
 
-  setView = (component = null, adjust = false) => {
+  setView = (component = null) => {
       return (
         <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
           <div className={this.props.drawer ? 'removeLinks' : ''}>
@@ -46,7 +46,7 @@ class MainContent extends Component {
 function mapStateToProps(state) {
   return {
     currentView: state.view.currentView,
-    articles: state.articles.all_articles,
+    articles: state.articles.allArticles,
     partyView: state.view.partyView,
     drawer: state.view.drawer,
     darkMode: state.view.darkMode

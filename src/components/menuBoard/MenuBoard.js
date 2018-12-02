@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from "react-router-dom";
 import './MenuBoard.css';
 import { asyncChangeView, asyncChangePartyView, asyncCloseDrawer } from '../../actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
@@ -47,9 +48,9 @@ class MenuBoard extends Component {
     let data = [];
 
     if(this.props.current === HOME)
-      data.push(<div key={HOME} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
+      data.push(<Link to="/" key={HOME} className={"menuBoardNavlink"}><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div></Link>);
     else
-      data.push(<div key={HOME} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div>);
+      data.push(<Link to="/" key={HOME} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div></Link>);
 
     if(this.props.current  === PARTIES)
       data.push(<div key={PARTIES} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
@@ -69,15 +70,15 @@ class MenuBoard extends Component {
       for(let i = 0; i < this.props.parties.length; i++) {
         if(this.props.currentPartie.party_name === this.props.parties[i].party_name) {
           data.push(
-              <div key={i} className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                   { this.props.parties[i].party_name} : {this.props.parties[i].description }
-              </div>
+              </div></Link>
           );
         } else {
           data.push(
-              <div key={i} className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                  { this.props.parties[i].party_name} : { this.props.parties[i].description }
-              </div>
+              </div></Link>
           );
         }
       }

@@ -1,12 +1,17 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
 import MenuBoard from './components/menuBoard/MenuBoard.js';
+import ArticleDiscussion from './components/articleDiscussion/ArticleDiscussion.js';
 import { loadParties, loadNextTenPartyArticles } from './actions/partiesActions.js';
 import { loadArticles, loadNextTenArticles } from './actions/articlesActions.js';
 import './App.css';
 import './utils/Colors.css';
+
+const Home = () => <MainContent />
+const Article = ({match}) => <ArticleDiscussion id={match.params.id}/>;
 
 class App extends Component {
   constructor(props){
@@ -55,13 +60,18 @@ class App extends Component {
 
   render() {
     return (
-      <div>
-        <Header scroll={this.state.scroll} />
-        <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
-          {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
+      <Router>
+        <div>
+            <Header scroll={this.state.scroll} />
+            <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
+              {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
+            </div>
+            <Switch>
+              <Route exact path={"/"} component={Home} />
+              <Route path={"/article/:id"} component={Article} />
+            </Switch>
         </div>
-          <MainContent onScroll={this.handleContentScroll}/>
-      </div>
+      </Router>
     );
   }
 }
@@ -71,8 +81,9 @@ function mapStateToProps(state) {
     currentView: state.view.currentView,
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
-    articles: state.articles.all_articles,
-    drawer: state.view.drawer
+    articles: state.articles.allArticles,
+    drawer: state.view.drawer,
+    currentArticle: state.articles.currentArticle
   }
 }
 

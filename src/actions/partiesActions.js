@@ -26,7 +26,7 @@ export function receivePartieNews(response) {
 export function receiveNext10Articles(articles) {
   return {
     type: types.FETCH_NEXT_TEN_PARTY_NEWS,
-    ten_articles: articles
+    tenArticles: articles
   }
 }
 

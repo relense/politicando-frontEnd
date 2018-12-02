@@ -33,7 +33,7 @@
 
 .menuBoardSticky {
   position: fixed;
-  top: 90px;
+  top: 60px;
 }
 
 .iconsContainer {
@@ -42,6 +42,10 @@
   margin-bottom: 20px;
   cursor: pointer;
   padding-left: 20px;
+}
+
+.menuBoardNavlink {
+  text-decoration: none;
 }
 
 @media only screen and (max-width: 1280px) {

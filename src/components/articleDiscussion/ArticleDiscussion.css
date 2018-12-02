@@ -1,0 +1,11 @@
+.articleDiscussionMainContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: inherit;
+}
+
+.articleContainer {
+  text-align: center;
+  margin-bottom: 30px;
+}

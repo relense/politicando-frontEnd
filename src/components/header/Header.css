@@ -1,8 +1,11 @@
 .header {
   display: flex;
   flex-direction: row;
-  justify-content: center;
-  height: 90px;
+  flex: 1;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  height: 60px;
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05)
 }
 
 .noSelect {
@@ -20,25 +23,31 @@
 .sticky {
   width: 100%;
   position: fixed;
-  top: 0;
   z-index: 2;
+  top: 0;
 }
 
 .headerMenuBar {
   display: flex;
   justify-content: center;
   flex-direction: column;
-  padding-left: 20px;
   cursor: pointer;
-  flex: 2;
+}
+
+.barIcon {
+  padding-left: 20px;
+}
+
+.brighIcon{
+  padding-right: 20px;
 }
 
 .title {
   display: flex;
-  flex: 1;
   justify-content: center;
   flex-direction: column;
   text-align: center;
+
 }
 
 .siteTitleLink {
@@ -50,25 +59,24 @@
   font-size: 26px;
 }
 
-.iconDarkMode {
-  color: #b6b1aa;
-}
-
 .iconsContainerHeader {
   display: flex;
   justify-content: flex-end;
-  padding-right: 20px;
 }
 
 @media only screen and (max-width: 830px) {
   .header {
-    height: 50px;
+    height: 30px;
   }
 
-  .headerMenuBar {
+  .barIcon {
     padding-left: 10px;
   }
-  
+
+  .brighIcon{
+    padding-right: 10px;
+  }
+
   .title {
     font-size: 10px;
   }
@@ -76,9 +84,4 @@
   .headerIcons {
     font-size: 18px;
   }
-  
-  .iconsContainerHeader {
-    padding-right: 10px;
-  }
-  
 }
