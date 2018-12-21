@@ -1,0 +1,55 @@
+.createPostContainer {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding: 0 200px 0 200px;
+}
+
+.postUsernameContainer {
+  display: flex;
+  width: 20%;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  border: 1px solid rgb(223, 221, 221);
+}
+
+.postUsername {
+  display: flex;
+  flex: 1;
+  padding: 5px;
+}
+
+.toolbarContainer {
+  border: 1px solid rgb(223, 221, 221);
+  border-radius: 5px;
+  background-color: cadetblue;
+}
+
+.editorWrapperContainer {
+  flex-direction: column;
+  height: 100%;
+}
+
+.editorContainer {
+  padding-left: 10px;
+  border: 1px solid rgb(223, 221, 221);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  height: 100px;
+}
+
+
+.postCommentContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.commentSubmitButton {
+  width: 10%;
+  border-radius: 5px;
+  background-color: cadetblue;
+  padding: 5px;
+  margin-bottom: 10px;
+}

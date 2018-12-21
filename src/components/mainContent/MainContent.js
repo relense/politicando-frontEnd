@@ -4,14 +4,14 @@ import './MainContent.css';
 import PartieInformation from '../partieInformation/PartieInformation';
 import PartyCouncilman from '../partyCouncilman/PartyCouncilman';
 import LatestNews from '../latestNews/LatestNews';
-import { asyncCloseDrawer } from '../../actions/viewActions';
+import { asyncCloseDrawer } from '../../redux/actions/viewActions';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class MainContent extends Component {
   getView = () => {
     switch(this.props.currentView) {
       case "HOME":
-        return (this.setView(<LatestNews articles={this.props.articles} />, true));
+        return (this.setView(<LatestNews articles={this.props.articles} />));
 
       case "PARTIES":
           if (this.props.partyView === "NOTICIAS") 
@@ -24,7 +24,7 @@ class MainContent extends Component {
           return (this.setView());
 
       default:
-        return (this.setView(<LatestNews articles={this.props.articles} />, true));
+        return (this.setView(<LatestNews articles={this.props.articles} />));
     }
   }
 

@@ -1,0 +1,58 @@
+.commentParentContainer {
+  border: 1px solid rgb(189, 188, 188);
+  border-radius: 3px;
+  margin-bottom: 5px;
+}
+
+.commentHeader {
+  display: flex;
+  flex-direction: row;
+  padding: 5px 0 0 20px;
+  margin-bottom: 15px;
+  font-size: 12px;
+}
+
+.commentTime {
+  padding-left: 5px;
+}
+
+.commentContent {
+  padding: 0 20px 0 20px;
+  margin-bottom: 10px;
+}
+
+.commentFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 10px 5px 0;
+}
+
+.replyButton {
+  font-size: 12px;
+}
+
+.commentPointer {
+  cursor: pointer;
+}
+.commentUsernameContainer {
+  padding-left: 5px;
+}
+
+.childrenContainer {
+  display: flex;
+  flex-direction: row;
+  padding-left: 5px;
+  text-decoration: none;
+}
+
+.answer {
+  padding-left: 5px;
+  display: flex;
+  flex-direction: row;
+}
+
+.answerUsername {
+  padding-left: 5px;
+  padding-right: 5px;
+  text-decoration: none;
+}

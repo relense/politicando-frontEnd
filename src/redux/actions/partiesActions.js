@@ -1,6 +1,6 @@
 import * as types from './actionTypes';
-import { apiUrls } from '../api/apiUrls';
-import { get } from '../api/Api';
+import { apiUrls } from '../../api/apiUrls';
+import { get } from '../../api/Api';
 
 export function receiveParties(parties) {
   return {

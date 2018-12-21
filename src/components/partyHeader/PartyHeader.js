@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
 import './PartyHeader.css';
-import { asyncChangePartyView } from '../../actions/viewActions.js';
+import { asyncChangePartyView } from '../../redux/actions/viewActions.js';
 
 class PartyHeader extends Component {
 
