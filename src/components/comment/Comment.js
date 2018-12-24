@@ -65,7 +65,7 @@ class Comment extends Component {
   setChildren = () => {
     if(this.props.comment.children !== undefined && this.props.comment.children !== null) {
      return this.props.comment.children.map((item) => 
-      <div className={'childrenContainer commentPointer' + checkDarkModeLinks(this.props.darkMode)} key={item.id} onClick={() => this.onChildrenClick(item)}>
+      <div className={'childrenContainer commentPointer' + checkDarkModeLinks(this.props.darkMode, true) + (this.state.child !== null ? (this.state.child.id === item.id ? " hilighlightChild" : "") : "")} key={item.id} onClick={() => this.onChildrenClick(item)}>
         {(item.username !== null ? item.username : 'anon') + item.id}
       </div>
       )
@@ -84,7 +84,7 @@ class Comment extends Component {
       <div className="commentHeader">
         <div onClick={this.opened}>{this.props.opened !== undefined ? this.props.opened ? "[-]" : "[+]" : this.state.opened ? "[-]" : "[+]"}</div>
         
-        <div className={'commentPointer commentUsernameContainer' + checkDarkModeLinks(this.props.darkMode)} onClick={this.reply}>
+        <div className={'commentPointer commentUsernameContainer' + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>
           {this.props.comment.username ? this.props.comment.username + this.props.comment.id : "anon" + this.props.comment.id}
         </div>
 
@@ -112,7 +112,7 @@ class Comment extends Component {
   commentFooter = () => {
     return (
       <div className="commentFooter">
-        <div className="commentPointer replyButton" onClick={this.reply} >responder</div>
+        <div className={"commentPointer replyButton" + checkDarkMode(this.props.darkMode, true)} onClick={this.reply} >responder</div>
       </div>
     )
   }
@@ -122,7 +122,7 @@ class Comment extends Component {
    */
   commentContent = () => {
     return (
-      <div className="commentContent">
+      <div className={"commentContent" + checkDarkMode(this.props.darkMode, true)}>
         {this.props.comment.comment}
       </div>
     )
@@ -155,6 +155,7 @@ class Comment extends Component {
                       changeEditorIndex={this.props.changeEditorIndex} 
                       editorIndex={this.props.editorIndexState === this.state.child.id ? true : false } 
                       editorIndexState={this.props.editorIndexState} 
+                      darkMode={this.props.darkMode}
             />}
         </div>
       </div>
