@@ -11,7 +11,8 @@ class CustomEditor extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      editorState: EditorState.createEmpty()
+      editorState: EditorState.createEmpty(),
+      username: ""
     }
   }
 
@@ -34,14 +35,20 @@ class CustomEditor extends Component {
     })
   }
 
-  addCommentPost = (e) => {
+  /**
+   * Function to add a comment after the user hits submit.
+   * This will set the comments int he database.
+   * This will also close the reply box after submit.
+   * This will also focus on the new comment that was added.
+   */
+  addComment = (e) => {
     e.preventDefault();
     
     let comment = {};
     comment = this.props.comment;
     
     if(comment !== "" && this.props.loading === false){
-      comment.username = e.target.username.value;
+      comment.username = e.target.username.value.replace(/ +/g, "");
       const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-range');
 
       this.setState({ 
@@ -49,32 +56,26 @@ class CustomEditor extends Component {
       });  
 
       this.props.setComments(comment, this.props.articleId);
+
+      if(this.props.reply) {
+        this.props.closeReplyBox();
+        this.props.focusReply(comment);
+      }
     }
   }
 
-  addCommentReply = (e) => {
-    e.preventDefault();
-    
-    let comment = {};
-    comment = this.props.comment;
-    
-    if(comment !== "" && this.props.loading === false){
-      comment.username = e.target.username.value;
-      const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-range');
-
-      this.setState({ 
-        editorState: editorState,
-      });  
-
-      this.props.setComments(comment, this.props.articleId);
-    }
+  handleUsernameChange = (e) => {
+    var username = e.target.value.replace(/ +/g, "");
+    this.setState({
+      username: username
+    })
   }
 
   render() {
     return (
-      <form className="createPostContainer" onSubmit={(e) => this.addCommentPost(e)}>
+      <form className="createPostContainer" onSubmit={(e) => this.addComment(e)}>
         <div className="postUsernameContainer">
-          <input type="text" name="username" className="postUsername" placeholder="username || anon"/>
+          <input type="text" name="username" className="postUsername" value={this.state.username} placeholder="username || anon" onChange={(e) => this.handleUsernameChange(e)}/>
         </div>
         <Editor
           editorState={this.state.editorState}

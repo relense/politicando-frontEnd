@@ -56,7 +56,7 @@ class LatestNewsSingleContainer extends Component {
       const time = <div className="selectForbiden singleNewsTime">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
       const news_url = <a href={"https://" + article.source} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{article.source}</a>;
       const tags = this.getTags(article.tags);
-      const image = article.image_url ? <img onLoad={this.onLoadImage} src={article.image_url} className={ this.state.size ? "newsImage" : "newsImageSmaller"} alt="Article" title={article.title} /> : "";
+      const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="Article" title={article.title} /> : "";
       const content = article.content;
       const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count} Comentários</p></Link>;
         
@@ -64,11 +64,13 @@ class LatestNewsSingleContainer extends Component {
         <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
           <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
           <div className="latestNewsContentContainer">
-            {image}
-            <div className="selectForbiden">
-              {content}
-              <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
-            </div>
+            <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
+            <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+              <div className="selectForbiden">
+                {content}
+                <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
+              </div>
+            </a>
           </div>
           <div className="latestNewsDiscussionContainer">
             {time} | {news_url} | {tags}

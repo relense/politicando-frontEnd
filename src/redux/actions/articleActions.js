@@ -36,15 +36,11 @@ export function asyncSetComments(comment, articleId, child = false) {
             
         try {
             dispatch(loading(true))
-            if(child) {
-                dispatch(asyncPostComment(articleId, comment));
-            } else {
-                dispatch(asyncPostComment(articleId, comment));
-            }
+            
+            await dispatch(asyncPostComment(articleId, comment));
             let newComment = comment.comment = "";
-            dispatch(asyncLoadArticle(articleId));
-            dispatch(setComment(newComment));
-
+            await dispatch(asyncLoadArticle(articleId));
+            await dispatch(setComment(newComment));
         } catch (error) {
             console.log(error);
         } finally {

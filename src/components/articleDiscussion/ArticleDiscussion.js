@@ -12,6 +12,12 @@ import CustomEditor from '../customEditor/CustomEditor.js';
 
 
 class ArticleDiscussion extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      editorIndex: null
+    }
+  }
   componentDidMount() {
     if(this.props.currentArticle === null)
       this.props.getArticle(this.props.id)
@@ -25,13 +31,28 @@ class ArticleDiscussion extends Component {
     }
   }
 
+  changeEditorIndex = (index) => {
+    this.setState({
+      editorIndex: index
+    });
+  }
+
   setArticleContainer = () => {
     return this.props.currentArticle !== null ? <LatestNewsSingleContainer  article={this.props.currentArticle}/> : <LatestNewsSingleContainer />
   }
 
   setArticleComments = (comments) => {
     if(comments !== null) 
-      return comments.map((item) => (<Comment comment={item} key={item.id} commentId={item.id} id={this.props.id} />))
+      return comments.map((item) => (
+          <Comment comment={item} 
+                    key={item.id}  
+                    commentId={item.id} 
+                    id={this.props.id} 
+                    changeEditorIndex={this.changeEditorIndex} 
+                    editorIndex={this.state.editorIndex === item.id ? true : false }
+                    editorIndexState={this.state.editorIndex}
+          />
+        ))
     else 
       return null
     
