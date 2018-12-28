@@ -59,17 +59,18 @@ class Comment extends Component {
   setChildren = () => {
     let renderer;
     if(this.props.loading === false) {
-      renderer = (this.props.comment.children.map((item) => 
-        <div 
-          className={'childrenContainer commentPointer selectForbiden' 
+      renderer = (
+        this.props.comment.children.map((item) => 
+          <div className={'childrenContainer commentPointer selectForbiden' 
             + (this.state.child !== null ? (this.state.child.id === item.id ? " hilighlightChild" : "") : "")
-            + checkDarkModeLinks(this.props.darkMode, true)
-          } 
-          key={item.id} 
-          onClick={() => this.onChildrenClick(item)}>
-          {(item.username !== null ? item.username : 'anon') + item.id}
-        </div>
-      ));
+            + checkDarkModeLinks(this.props.darkMode, true)} 
+            key={item.id} 
+            onClick={() => this.onChildrenClick(item)}
+          >
+            {(item.username !== null ? item.username : 'anon') + item.id}
+          </div>
+        )
+      );
     } else {
       renderer = null;
     }
@@ -82,7 +83,6 @@ class Comment extends Component {
    * Includes the usernameId of the poster. The time it was posted. The replys associated with the comment if they exist.
    */
   commentHeader = () => {
-
     let sign = this.state.opened ? "[-]" : "[+]";
     let username = this.props.comment.username ? this.props.comment.username + this.props.comment.id : "anon" + this.props.comment.id;
     let time = moment(this.props.comment.created_at).format('DD-MM-YYYY | HH:mm');
@@ -113,6 +113,9 @@ class Comment extends Component {
     )
   }
 
+  /**
+   * Function to render the reply box
+   */
   renderEditor = () => {
     if(this.props.reply && this.state.opened && this.props.editorIndexState) 
       return <CustomEditor commentType={"reply"} commentId={this.props.commentId} closeReplyBox={this.reply} />
@@ -120,6 +123,9 @@ class Comment extends Component {
       return null
   }
 
+  /**
+   * Function to render the child comment when it is clicked
+   */
   renderChildComment = () => {
     if(this.state.child !== null) { 
       return (
@@ -127,9 +133,8 @@ class Comment extends Component {
           editorIndexState={this.props.editorIndex === this.state.child.id ? true : false } 
         />
       )
-    } else {
+    } else 
       return null
-    }
   }
 
   render() {

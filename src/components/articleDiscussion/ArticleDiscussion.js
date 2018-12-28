@@ -10,7 +10,6 @@ import { asyncChangeCurrentPartie } from '../../redux/actions/partiesActions';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
 
-
 class ArticleDiscussion extends Component {
   componentDidMount() {
     if(this.props.currentArticle === null)
@@ -31,12 +30,8 @@ class ArticleDiscussion extends Component {
   setArticleComments = (comments) => {
     if(comments !== null) 
       return comments.map((item) => (
-          <ConnectedComment comment={item} 
-                    key={item.id}  
-                    commentId={item.id} 
-                    editorIndexState={this.props.editorIndex === item.id ? true : false }
-          />
-        ))
+          <ConnectedComment comment={item} key={item.id} commentId={item.id} editorIndexState={this.props.editorIndex === item.id ? true : false } />
+        ));
     else 
       return null
   }
@@ -68,7 +63,6 @@ class ArticleDiscussion extends Component {
     }
 
     return renderer
- 
   }
 }
 
