@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import './Comment.css';
-import { setEditorIndex } from '../../redux/actions/articleActions';
+import { setEditorIndex, asyncSetReply } from '../../redux/actions/articleActions';
 import moment from 'moment'
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
@@ -10,7 +10,6 @@ class Comment extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      reply: false,
       opened: this.props.opened ? this.props.opened : true,
       child: null
     }
@@ -20,10 +19,7 @@ class Comment extends Component {
    * Function to change if the edit box is opened or not. If the reply state is true or false
    */
   reply = () => {
-    this.setState({ reply: !this.state.reply }, () => {
-      if(this.state.reply) 
-        this.props.changeEditorIndex(this.props.commentId)
-    })
+    this.props.changeReplyAndEditor(this.props.commentId, this.props.editorIndex);
   }
 
   /**
@@ -32,13 +28,10 @@ class Comment extends Component {
    * It will also close all the child that the comment may have open inside.
    */
   opened = () => {
-    this.setState({
-      reply: this.state.opened ? true : false,
-      opened: !this.state.opened
-    })
-
-    if(this.state.child !== null)
-      this.setState({ child: null })
+    this.setState({ 
+      opened: !this.state.opened,
+      child: this.state.child !== null ? null : this.state.child 
+    });
   }
 
   /**
@@ -64,17 +57,24 @@ class Comment extends Component {
    * Function to draw in the header the replys to a comment. This will help to navigate throught the comments.
    */
   setChildren = () => {
-    return this.props.comment.children.map((item) => 
-      <div 
-        className={'childrenContainer commentPointer selectForbiden' 
-          + (this.state.child !== null ? (this.state.child.id === item.id ? " hilighlightChild" : "") : "")
-          + checkDarkModeLinks(this.props.darkMode, true)
-        } 
-        key={item.id} 
-        onClick={() => this.onChildrenClick(item)}>
-        {(item.username !== null ? item.username : 'anon') + item.id}
-      </div>
-    )
+    let renderer;
+    if(this.props.loading === false) {
+      renderer = (this.props.comment.children.map((item) => 
+        <div 
+          className={'childrenContainer commentPointer selectForbiden' 
+            + (this.state.child !== null ? (this.state.child.id === item.id ? " hilighlightChild" : "") : "")
+            + checkDarkModeLinks(this.props.darkMode, true)
+          } 
+          key={item.id} 
+          onClick={() => this.onChildrenClick(item)}>
+          {(item.username !== null ? item.username : 'anon') + item.id}
+        </div>
+      ));
+    } else {
+      renderer = null;
+    }
+
+    return renderer
   }
 
   /**
@@ -114,8 +114,8 @@ class Comment extends Component {
   }
 
   renderEditor = () => {
-    if(this.state.reply && this.state.opened && this.props.editorIndexState) 
-      return <CustomEditor commentType={"reply"} commentId={this.props.commentId} closeReplyBox={this.reply} reply={this.state.reply}/>
+    if(this.props.reply && this.state.opened && this.props.editorIndexState) 
+      return <CustomEditor commentType={"reply"} commentId={this.props.commentId} closeReplyBox={this.reply} />
     else 
       return null
   }
@@ -143,11 +143,11 @@ class Comment extends Component {
             <div className={"commentContent" + checkDarkMode(this.props.darkMode, true)}>
               {this.props.comment.comment}
             </div>
+            {this.renderEditor()}
             <div className="commentFooter">
               <div className={"commentPointer replyButton" + checkDarkMode(this.props.darkMode, true)} onClick={this.reply}>responder</div>
             </div>
           </div>        
-          {this.renderEditor()}
           {this.renderChildComment()}
         </div>
       );
@@ -163,7 +163,8 @@ function mapStateToProps(state) {
     darkMode: state.view.darkMode,
     currentArticle: state.article.currentArticle,
     loading: state.article.loading,
-    editorIndex: state.article.editorIndex
+    editorIndex: state.article.editorIndex,
+    reply: state.article.reply
   };
 }
 
@@ -171,6 +172,9 @@ function mapDispatchToProps(dispatch) {
   return { 
     changeEditorIndex: (index) => {
       dispatch(setEditorIndex(index));
+    },
+    changeReplyAndEditor: (commentId, editorIndex) => {
+      dispatch(asyncSetReply(commentId, editorIndex))
     }
   };
 }

@@ -38,6 +38,13 @@ export function setEditorIndex(editorIndex) {
     }
 }
 
+export function setReply(value) {
+    return {
+        type: types.SET_REPLY,
+        reply: value
+    }
+}
+
 export function asyncSetComments(comment, articleId, child = false) {
     return async function(dispatch){
         try {
@@ -105,5 +112,21 @@ export const asyncPostComment = (articleId, comment) => {
         } catch (error) {
             console.log(error);
         }
+    }
+}
+
+export const asyncSetReply = (commentId, currentEditorIndex) => {
+    return function(dispatch) {
+        try {
+            if(currentEditorIndex !== commentId || currentEditorIndex === null) {
+                dispatch(setReply(true))
+                dispatch(setEditorIndex(commentId));
+            } else {
+                dispatch(setReply(false))
+                dispatch(setEditorIndex(null));
+            }
+        } catch (error) {
+            console.log(error);
+        }        
     }
 }

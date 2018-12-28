@@ -1,4 +1,4 @@
-import { GET_ARTICLE, GET_ARTICLE_COMMENTS, LOADING, SET_COMMENT, SET_EDITOR_INDEX } from '../actions/actionTypes';
+import { GET_ARTICLE, GET_ARTICLE_COMMENTS, LOADING, SET_COMMENT, SET_EDITOR_INDEX, SET_REPLY } from '../actions/actionTypes';
 
 const initialState = {
   currentArticle: null,
@@ -8,7 +8,8 @@ const initialState = {
   max: 300,
   comment: {},
   loading: false,
-  editorIndex: null
+  editorIndex: null,
+  reply: false
 }
 
 export default function article(state = initialState, action) {
@@ -42,6 +43,12 @@ export default function article(state = initialState, action) {
       return {
         ...state,
         editorIndex: action.editorIndex
+      }
+
+    case SET_REPLY:
+      return {
+        ...state,
+        reply: action.reply
       }
 
     default:

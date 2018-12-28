@@ -17,3 +17,4 @@ export const LOADING = 'LOADING';
 export const SET_COMMENT = 'SET_COMMENT';
 export const SET_COMMENTS = 'SET_COMMENTS';
 export const SET_EDITOR_INDEX = 'SET_EDITOR_INDEX';
+export const SET_REPLY = 'SET_REPLY';

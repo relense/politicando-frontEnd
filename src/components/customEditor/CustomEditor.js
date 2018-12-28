@@ -106,7 +106,8 @@ function mapStateToProps(state) {
     comment: state.article.comment,
     comments: state.article.comments,
     darkMode: state.view.darkMode,
-    currentArticle: state.article.currentArticle
+    currentArticle: state.article.currentArticle,
+    reply: state.article.reply
   };
 }
 
