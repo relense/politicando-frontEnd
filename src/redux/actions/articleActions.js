@@ -23,7 +23,7 @@ export function loading(loading) {
     }
 }
 
-export function setComment(comment, characters = 0){
+export function setComment(comment, characters = 0) {
     return {
         type: types.SET_COMMENT,
         comment: comment,
@@ -31,9 +31,15 @@ export function setComment(comment, characters = 0){
     }
 }
 
+export function setEditorIndex(editorIndex) {
+    return {
+        type: types.SET_EDITOR_INDEX,
+        editorIndex: editorIndex
+    }
+}
+
 export function asyncSetComments(comment, articleId, child = false) {
     return async function(dispatch){
-            
         try {
             dispatch(loading(true))
             

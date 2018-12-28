@@ -55,11 +55,10 @@ class CustomEditor extends Component {
         editorState: editorState,
       });  
 
-      this.props.setComments(comment, this.props.articleId);
+      this.props.setComments(comment, this.props.currentArticle.id);
 
       if(this.props.reply) {
         this.props.closeReplyBox();
-        this.props.focusReply(comment);
       }
     }
   }
@@ -107,6 +106,7 @@ function mapStateToProps(state) {
     comment: state.article.comment,
     comments: state.article.comments,
     darkMode: state.view.darkMode,
+    currentArticle: state.article.currentArticle
   };
 }
 
