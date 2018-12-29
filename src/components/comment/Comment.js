@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import './Comment.css';
-import { setEditorIndex, asyncSetReply } from '../../redux/actions/articleActions';
+import { setEditorIndex, asyncSetReply, removeAddedComment, loading } from '../../redux/actions/articleActions';
 import moment from 'moment'
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
@@ -11,7 +11,7 @@ class Comment extends Component {
     super(props);
     this.state = {
       opened: this.props.opened ? this.props.opened : true,
-      child: null
+      child: null,
     }
   }
 
@@ -32,6 +32,22 @@ class Comment extends Component {
       opened: !this.state.opened,
       child: this.state.child !== null ? null : this.state.child 
     });
+  }
+
+  changeChild = () => {
+    if(this.props.addedComment.comments_id !== null) {
+      if(this.props.addedComment.comments_id === this.props.commentId) {
+        this.setState({
+          child: null,
+        }, () => {
+          this.setState({
+            child: this.props.addedComment,
+          }, () => {
+            this.props.clearAddedComment();
+          })
+        })
+      }
+    }
   }
 
   /**
@@ -169,7 +185,8 @@ function mapStateToProps(state) {
     currentArticle: state.article.currentArticle,
     loading: state.article.loading,
     editorIndex: state.article.editorIndex,
-    reply: state.article.reply
+    reply: state.article.reply,
+    addedComment: state.article.addedComment
   };
 }
 
@@ -180,6 +197,12 @@ function mapDispatchToProps(dispatch) {
     },
     changeReplyAndEditor: (commentId, editorIndex) => {
       dispatch(asyncSetReply(commentId, editorIndex))
+    },
+    clearAddedComment: () => {
+      dispatch(removeAddedComment())
+    },
+    setLoading: (value) => {
+      dispatch(loading(value))
     }
   };
 }

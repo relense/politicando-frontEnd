@@ -35,6 +35,13 @@ class CustomEditor extends Component {
     })
   }
 
+  handleUsernameChange = (e) => {
+    var username = e.target.value.replace(/ +/g, "");
+    this.setState({
+      username: username
+    })
+  }
+
   /**
    * Function to add a comment after the user hits submit.
    * This will set the comments int he database.
@@ -61,13 +68,6 @@ class CustomEditor extends Component {
         this.props.closeReplyBox();
       }
     }
-  }
-
-  handleUsernameChange = (e) => {
-    var username = e.target.value.replace(/ +/g, "");
-    this.setState({
-      username: username
-    })
   }
 
   render() {

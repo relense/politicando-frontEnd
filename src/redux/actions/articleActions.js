@@ -45,7 +45,21 @@ export function setReply(value) {
     }
 }
 
-export function asyncSetComments(comment, articleId, child = false) {
+export function setAddedComment(comment) {
+    return {
+        type: types.SET_ADDED_COMMENT,
+        addedComment: comment
+    }
+}
+
+export function removeAddedComment() {
+    return {
+        type: types.REMOVE_ADDED_COMMENT,
+        addedComment: null
+    }
+}
+
+export function asyncSetComments(comment, articleId) {
     return async function(dispatch){
         try {
             dispatch(loading(true))
@@ -91,6 +105,7 @@ export const asyncLoadArticleComments = (article_id) => {
 export const asyncPostComment = (articleId, comment) => {
     return async function(dispatch) {
         try {
+            dispatch(loading(true));
             let user = comment.username ? comment.username : null;
             let content = comment.comment;
             let commentType = comment.commentType;
@@ -106,11 +121,14 @@ export const asyncPostComment = (articleId, comment) => {
                 }
             }
 
-            return await post(apiUrls.createComment, payload).then(() => {
+            return await post(apiUrls.createComment, payload).then((response) => {
+                dispatch(setAddedComment(response))
                 dispatch(asyncLoadArticleComments(articleId));
             });
         } catch (error) {
             console.log(error);
+        } finally {
+            dispatch(loading(false))
         }
     }
 }
