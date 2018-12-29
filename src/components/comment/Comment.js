@@ -1,20 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import './Comment.css';
-import { setEditorIndex, asyncSetReply, removeAddedComment, loading } from '../../redux/actions/articleActions';
+import { setEditorIndex, asyncSetReply, removeAddedComment, openCommentBox } from '../../redux/actions/articleActions';
 import moment from 'moment'
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
 
 class Comment extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      opened: this.props.opened ? this.props.opened : true,
-      child: null,
-    }
-  }
-
   /**
    * Function to change if the edit box is opened or not. If the reply state is true or false
    */
@@ -28,10 +20,7 @@ class Comment extends Component {
    * It will also close all the child that the comment may have open inside.
    */
   opened = () => {
-    this.setState({ 
-      opened: !this.state.opened,
-      child: this.state.child !== null ? null : this.state.child 
-    });
+    this.props.setCommentBoxState(this.props.currentArticleComments, !this.props.comment.opened, this.props.comment.id)
   }
 
   changeChild = () => {
@@ -60,8 +49,8 @@ class Comment extends Component {
    * If the child that is beign cliked isn't the child. We first remove the child and then set the new child.
    */
   onChildrenClick = (comment) => {
-    if(this.state.child !== null) {
-      if(comment.id !== this.state.child.id) 
+    if(this.props.comment.child !== null) {
+      if(comment.id !== this.props.comment.child.id) 
         this.setState({ child: null }, () => { this.setState({ child: comment }) })
       else 
         this.setState({ child: null })
@@ -78,7 +67,7 @@ class Comment extends Component {
       renderer = (
         this.props.comment.children.map((item) => 
           <div className={'childrenContainer commentPointer selectForbiden' 
-            + (this.state.child !== null ? (this.state.child.id === item.id ? " hilighlightChild" : "") : "")
+            + (this.props.comment.child !== null ? (this.props.comment.child.id === item.id ? " hilighlightChild" : "") : "")
             + checkDarkModeLinks(this.props.darkMode, true)} 
             key={item.id} 
             onClick={() => this.onChildrenClick(item)}
@@ -99,7 +88,7 @@ class Comment extends Component {
    * Includes the usernameId of the poster. The time it was posted. The replys associated with the comment if they exist.
    */
   commentHeader = () => {
-    let sign = this.state.opened ? "[-]" : "[+]";
+    let sign = this.props.comment.opened ? "[-]" : "[+]";
     let username = this.props.comment.username ? this.props.comment.username + this.props.comment.id : "anon" + this.props.comment.id;
     let time = moment(this.props.comment.created_at).format('DD-MM-YYYY | HH:mm');
     let children = this.props.comment.children !== undefined && this.props.comment.children !== null ? true : false;
@@ -116,7 +105,7 @@ class Comment extends Component {
         <div className="selectForbiden commentTime">
           {time}
         </div>
-        {this.state.opened ? 
+        {this.props.comment.opened ? 
           <div className="childrenMainContainer">
            {children ? this.setChildren() : null}
           </div>
@@ -133,7 +122,7 @@ class Comment extends Component {
    * Function to render the reply box
    */
   renderEditor = () => {
-    if(this.props.reply && this.state.opened && this.props.editorIndexState) 
+    if(this.props.reply && this.props.comment.opened && this.props.editorIndexState) 
       return <CustomEditor commentType={"reply"} commentId={this.props.commentId} closeReplyBox={this.reply} />
     else 
       return null
@@ -143,10 +132,10 @@ class Comment extends Component {
    * Function to render the child comment when it is clicked
    */
   renderChildComment = () => {
-    if(this.state.child !== null) { 
+    if( this.props.comment.child!== null) { 
       return (
-        <ConnectedComment comment={this.state.child} commentId={this.state.child.id} opened={this.state.opened} 
-          editorIndexState={this.props.editorIndex === this.state.child.id ? true : false } 
+        <ConnectedComment comment={this.props.comment.child} commentId={this.props.comment.child.id} opened={this.props.comment.opened} 
+          editorIndexState={this.props.editorIndex === this.props.comment.child.id ? true : false } 
         />
       )
     } else 
@@ -156,11 +145,11 @@ class Comment extends Component {
   render() {
     let renderer;
 
-    if(!this.state.loading && this.props.currentArticle !== null && this.props.currentArticle !== undefined) {
+    if(this.props.currentArticle !== null && this.props.currentArticle !== undefined) {
       renderer = (
         <div id={this.props.comment.id} className={'commentParentContainer' + checkDarkMode(this.props.darkMode, true)}>
           {this.commentHeader()} 
-          <div style={{display: this.state.opened ? '' : 'none'}}>
+          <div style={{display: this.props.comment.opened ? '' : 'none'}}>
             <div className={"commentContent" + checkDarkMode(this.props.darkMode, true)}>
               {this.props.comment.comment}
             </div>
@@ -183,6 +172,7 @@ function mapStateToProps(state) {
   return {
     darkMode: state.view.darkMode,
     currentArticle: state.article.currentArticle,
+    currentArticleComments: state.article.currentArticleComments,
     loading: state.article.loading,
     editorIndex: state.article.editorIndex,
     reply: state.article.reply,
@@ -201,8 +191,8 @@ function mapDispatchToProps(dispatch) {
     clearAddedComment: () => {
       dispatch(removeAddedComment())
     },
-    setLoading: (value) => {
-      dispatch(loading(value))
+    setCommentBoxState: (comments, opened, commentId) => {
+      dispatch(openCommentBox(comments, opened, commentId))
     }
   };
 }

@@ -1,6 +1,7 @@
 import * as types from './actionTypes';
 import { apiUrls } from '../../api/apiUrls';
 import { get, post } from '../../api/Api';
+import { addToChildren, changeOneChildren } from '../../utils/UtilFunctions';
 
 export function reveiveArticle(article) {
     return {
@@ -10,9 +11,11 @@ export function reveiveArticle(article) {
 }
 
 export function receiveArticleComments(comments) {
+    let newComments = addToChildren(comments);
+
     return {
         type: types.GET_ARTICLE_COMMENTS,
-        comments: comments
+        comments: newComments
     }
 }
 
@@ -56,6 +59,13 @@ export function removeAddedComment() {
     return {
         type: types.REMOVE_ADDED_COMMENT,
         addedComment: null
+    }
+}
+
+export function openComment(comments) {
+    return {
+        type: types.OPEN_COMMENT,
+        comments: comments
     }
 }
 
@@ -146,5 +156,17 @@ export const asyncSetReply = (commentId, currentEditorIndex) => {
         } catch (error) {
             console.log(error);
         }        
+    }
+}
+
+export const openCommentBox = (comments, opened, commentId) => {
+    return function(dispatch) {
+        try {
+
+            let newComments = changeOneChildren(comments, opened, commentId);
+            dispatch(openComment(newComments));
+        } catch (error) {
+            console.log(error)
+        }
     }
 }

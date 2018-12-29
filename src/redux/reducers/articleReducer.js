@@ -1,4 +1,5 @@
-import { GET_ARTICLE, GET_ARTICLE_COMMENTS, LOADING, SET_COMMENT, SET_EDITOR_INDEX, SET_REPLY, SET_ADDED_COMMENT, REMOVE_ADDED_COMMENT } from '../actions/actionTypes';
+import { GET_ARTICLE, GET_ARTICLE_COMMENTS, LOADING, SET_COMMENT, SET_EDITOR_INDEX, 
+  SET_REPLY, SET_ADDED_COMMENT, REMOVE_ADDED_COMMENT, OPEN_COMMENT } from '../actions/actionTypes';
 
 const initialState = {
   currentArticle: null,
@@ -62,6 +63,12 @@ export default function article(state = initialState, action) {
       return {
         ...state,
         addedComment: action.addedComment
+      }
+
+    case OPEN_COMMENT:
+      return {
+        ...state,
+        currentArticleComments: action.comments
       }
 
     default:
