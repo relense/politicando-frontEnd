@@ -159,8 +159,7 @@ export const openCloseCommentBox = (comments, opened, commentId) => {
 export const setChildComments = (comments, child) => {
     return function(dispatch) {
         try {
-            let setChilds = changeCommentChild(comments, child);
-            dispatch(receiveArticleComments(setChilds));
+            dispatch(receiveArticleComments(changeCommentChild(comments, child)));
         } catch (error) {
             console.log(error)
         }

@@ -25,30 +25,27 @@ export const openCloseComment = (comments, opened, commentId) => {
 }
 
 export const changeCommentChild = (comments, child) => {
-  return comments.map((comment) => {
-    
-    let childComment = null;
-
-    for(var i = 0; i < comments.length; i++) {
-      if (comments[i].id === child.id) {
-        childComment = comments[i];
-      }
-    }
-
+  let changedComments = comments.map((comment) => {
     if(comment.id === child.comments_id) {
       if(comment.child === null) {
-        comment.child = childComment;
+        comment.child = child;
       } else {
         if(comment.child.id === child.id) {
           comment.child = null;
         } else {
-          comment.child = childComment;
+          comment.child = child;
         }
       }
     }
 
+    if(comment.children !== null) {
+      comment.children = changeCommentChild(comment.children, child);
+    }
+
     return comment;
   })
+
+  return changedComments;
 }
 
 export const organizeComments = (comments, oldComments = null, newChild = null) => {
@@ -58,8 +55,8 @@ export const organizeComments = (comments, oldComments = null, newChild = null) 
     commentsWithAttributes = calculateChildren(comments);
   else {
     let commentsActualState = calculateOldState(comments, oldComments);
-    let commentsWithNewChild = calculateChildren(commentsActualState);
-    commentsWithAttributes = addNewChildren(commentsWithNewChild, newChild);
+    let commentsWithChild = addNewChildren(commentsActualState, newChild);
+    commentsWithAttributes = calculateChildren(commentsWithChild)
   }
 
   return commentsWithAttributes;
@@ -69,11 +66,11 @@ const calculateChildren = (comments) => {
   return comments.map((comment) => {
     let postComment = null;
     comment.children = []
-    for(var i = 0; i < comments.length; i++) {
-      if(comments[i].comments_id !== null && comment.id === comments[i].comments_id) { //this means the comment[i] is a son of commentc
-        comment.children.push(comments[i]);
+    comments.forEach((elem) => {
+      if(elem.comments_id !== null && comment.id === elem.comments_id) { //this means the comment[i] is a son of comment
+        comment.children.push(elem);
       }
-    }
+    })
 
     postComment = { ...comment }
     return postComment;
@@ -84,12 +81,11 @@ const calculateOldState = (comments, oldComments) => {
   return comments.map((item, i) => {
     if(oldComments[i] !== undefined && oldComments[i] !== null) { //oldComments is not null or undefined means there was a previous state;
       if(oldComments[i].child !== null) { // if oldcomments has a child we need to find which child is this in the new tree;
-        for(var j = 0; j < comments.length; j++) {
-          if(comments[j].id === oldComments[i].child.id) { //if the comment child exists in the new tree then stiore it;
-            item.child = comments[j];
-            break;
+        comments.forEach((elem) => {
+          if(elem.id === oldComments[i].child.id) { //if the comment child exists in the new tree then stiore it;
+            item.child = elem;
           }
-        }
+        })
       }
 
       item.opened = oldComments[i].opened;
@@ -100,18 +96,19 @@ const calculateOldState = (comments, oldComments) => {
   })
 }
 
-const addNewChildren = (comments, newChild) => {
+export const addNewChildren = (comments, newChild) => {
   let actualChild = null;
   
-  for(var i = 0; i < comments.length; i++) {
-    if(comments[i].id === newChild.id) {
-      actualChild = comments[i];
+  comments.forEach((elem) => {
+    if(elem.id === newChild.id) {
+      actualChild = elem;
     }
-  }
+  })
 
   return comments.map((item) => {
     if(item.id === actualChild.comments_id) {
       item.child = actualChild;
+      return item;
     }
 
     return item;
