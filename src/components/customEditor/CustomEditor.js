@@ -102,7 +102,6 @@ class CustomEditor extends Component {
 
 function mapStateToProps(state) {
   return {
-    loading: state.article.loading,
     comment: state.article.comment,
     comments: state.article.currentArticleComments,
     darkMode: state.view.darkMode,
