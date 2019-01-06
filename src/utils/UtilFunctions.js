@@ -19,6 +19,10 @@ export const openCloseComment = (comments, opened, commentId) => {
       comment.opened = !opened
       comment.child = null
     }
+
+    if(comment.children !== null) {
+      comment.children = openCloseComment(comment.children, opened, commentId);
+    }
      
      return comment
   })

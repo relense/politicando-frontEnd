@@ -39,20 +39,6 @@ export function setReply(value) {
     }
 }
 
-export function setAddedComment(comment) {
-    return {
-        type: types.SET_ADDED_COMMENT,
-        addedComment: comment
-    }
-}
-
-export function removeAddedComment() {
-    return {
-        type: types.REMOVE_ADDED_COMMENT,
-        addedComment: null
-    }
-}
-
 export const asyncLoadArticle = (articleId) => {
     return async function(dispatch){
         try {
@@ -121,7 +107,6 @@ export const asyncPostComment = (articleId, comment, oldComments) => {
             }
             
             return await post(apiUrls.createComment, payload).then((newComment) => {
-                dispatch(setAddedComment(newComment))
                 dispatch(asyncLoadNewArticleComments(articleId, oldComments, newComment));
             });
         } catch (error) {

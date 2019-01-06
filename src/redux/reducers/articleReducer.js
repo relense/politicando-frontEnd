@@ -1,5 +1,5 @@
 import { GET_ARTICLE, GET_ARTICLE_COMMENTS, SET_COMMENT, SET_EDITOR_INDEX, 
-  SET_REPLY, SET_ADDED_COMMENT, REMOVE_ADDED_COMMENT } from '../actions/actionTypes';
+  SET_REPLY } from '../actions/actionTypes';
 
 const initialState = {
   currentArticle: null,
@@ -10,7 +10,6 @@ const initialState = {
   comment: {},
   editorIndex: null,
   reply: false,
-  addedComment: null,
 }
 
 export default function article(state = initialState, action) {
@@ -44,18 +43,6 @@ export default function article(state = initialState, action) {
       return {
         ...state,
         reply: action.reply
-      }
-
-    case SET_ADDED_COMMENT:
-      return {
-        ...state,
-        addedComment: action.addedComment
-      }
-
-    case REMOVE_ADDED_COMMENT:
-      return {
-        ...state,
-        addedComment: action.addedComment
       }
     
     default:

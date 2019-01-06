@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import './Comment.css';
-import { setEditorIndex, asyncSetReply, removeAddedComment, openCloseCommentBox, setChildComments } from '../../redux/actions/articleActions';
+import { asyncSetReply, openCloseCommentBox, setChildComments } from '../../redux/actions/articleActions';
 import moment from 'moment'
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
@@ -86,13 +86,9 @@ class Comment extends Component {
    * Function to render the child comment when it is clicked
    */
   renderChildComment = () => {
-    if(this.props.comment.child !== null && this.props.comment.child !== undefined) { 
-      return (
-        <ConnectedComment comment={this.props.comment.child} commentId={this.props.comment.child.id} 
-          editorIndexState={this.props.editorIndex === this.props.comment.child.id ? true : false }
-        />
-      )
-    } else 
+    if(this.props.comment.child !== null && this.props.comment.child !== undefined)
+      return <ConnectedComment comment={this.props.comment.child} commentId={this.props.comment.child.id} editorIndexState={this.props.editorIndex === this.props.comment.child.id ? true : false } />
+    else 
       return null
   }
 
@@ -122,27 +118,20 @@ class Comment extends Component {
   }
 }
 
-function mapStateToProps(state, ownProps) {
+function mapStateToProps(state) {
   return {
     darkMode: state.view.darkMode,
     currentArticle: state.article.currentArticle,
     currentArticleComments: state.article.currentArticleComments,
     editorIndex: state.article.editorIndex,
     reply: state.article.reply,
-    addedComment: state.article.addedComment,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return { 
-    changeEditorIndex: (index) => {
-      dispatch(setEditorIndex(index));
-    },
     changeReplyAndEditor: (commentId, editorIndex) => {
       dispatch(asyncSetReply(commentId, editorIndex))
-    },
-    clearAddedComment: () => {
-      dispatch(removeAddedComment())
     },
     setCommentBoxState: (comments, opened, commentId) => {
       dispatch(openCloseCommentBox(comments, opened, commentId))
