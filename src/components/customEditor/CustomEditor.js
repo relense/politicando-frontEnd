@@ -37,6 +37,9 @@ class CustomEditor extends Component {
 
   handleUsernameChange = (e) => {
     var username = e.target.value.replace(/ +/g, "");
+    if(username.length >= 10) {
+      username = username.substring(0, 20);
+    }
     this.setState({
       username: username
     })
