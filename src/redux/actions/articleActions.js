@@ -1,7 +1,7 @@
 import * as types from './actionTypes';
 import { apiUrls } from '../../api/apiUrls';
 import { get, post } from '../../api/Api';
-import { addToChildren, changeOneChildren } from '../../utils/UtilFunctions';
+import { openCloseComment, changeCommentChild, organizeComments, addAttributesToComments } from '../../utils/UtilFunctions';
 
 export function reveiveArticle(article) {
     return {
@@ -11,18 +11,9 @@ export function reveiveArticle(article) {
 }
 
 export function receiveArticleComments(comments) {
-    let newComments = addToChildren(comments);
-
     return {
         type: types.GET_ARTICLE_COMMENTS,
-        comments: newComments
-    }
-}
-
-export function loading(loading) {
-    return {
-        type: types.LOADING,
-        loading: loading
+        comments: comments
     }
 }
 
@@ -62,60 +53,58 @@ export function removeAddedComment() {
     }
 }
 
-export function openComment(comments) {
-    return {
-        type: types.OPEN_COMMENT,
-        comments: comments
+export const asyncLoadArticle = (articleId) => {
+    return async function(dispatch){
+        try {
+            await get(apiUrls.getArticle.replace('{article_id}', articleId)).then((article) => {
+                dispatch(reveiveArticle(article))
+            })
+        } catch (error) {
+            console.log(error);
+        }
     }
 }
 
-export function asyncSetComments(comment, articleId) {
+export const asyncLoadArticleComments = (articleId) => {
     return async function(dispatch){
         try {
-            dispatch(loading(true))
-            
-            await dispatch(asyncPostComment(articleId, comment));
+            await get(apiUrls.getArticleComments.replace('{article_id}', articleId)).then((comments) => {
+                dispatch(receiveArticleComments(organizeComments(addAttributesToComments(comments), null, null)));
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    }
+}
+
+export const asyncLoadNewArticleComments = (articleId, oldComments, newComment) => {
+    return async function(dispatch){
+        try {
+            await get(apiUrls.getArticleComments.replace('{article_id}', articleId)).then((newComments) => {
+                dispatch(receiveArticleComments(organizeComments(addAttributesToComments(newComments), oldComments, newComment)));
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    }
+}
+
+export function asyncSetComments(comment, articleId, comments) {
+    return async function(dispatch){
+        try {            
+            await dispatch(asyncPostComment(articleId, comment, comments));
             let newComment = comment.comment = "";
             await dispatch(asyncLoadArticle(articleId));
             await dispatch(setComment(newComment));
         } catch (error) {
             console.log(error);
-        } finally {
-            dispatch(loading(false))
         }
     }
 }
 
-export const asyncLoadArticle = (article_id) => {
-    return async function(dispatch){
-        try {
-            const response = await get(apiUrls.getArticle.replace('{article_id}', article_id))
-            dispatch(reveiveArticle(response))
-        } catch (error) {
-            console.log(error);
-        }
-    }
-}
-
-export const asyncLoadArticleComments = (article_id) => {
-    return async function(dispatch){
-        try {
-            dispatch(loading(true))
-            const response = await get(apiUrls.getArticleComments.replace('{article_id}', article_id))
-            dispatch(receiveArticleComments(response))
-            return response;
-        } catch (error) {
-            console.log(error);
-        } finally {
-            dispatch(loading(false));
-        }
-    }
-}
-
-export const asyncPostComment = (articleId, comment) => {
+export const asyncPostComment = (articleId, comment, oldComments) => {
     return async function(dispatch) {
         try {
-            dispatch(loading(true));
             let user = comment.username ? comment.username : null;
             let content = comment.comment;
             let commentType = comment.commentType;
@@ -130,15 +119,13 @@ export const asyncPostComment = (articleId, comment) => {
                     comments_id: commentId
                 }
             }
-
-            return await post(apiUrls.createComment, payload).then((response) => {
-                dispatch(setAddedComment(response))
-                dispatch(asyncLoadArticleComments(articleId));
+            
+            return await post(apiUrls.createComment, payload).then((newComment) => {
+                dispatch(setAddedComment(newComment))
+                dispatch(asyncLoadNewArticleComments(articleId, oldComments, newComment));
             });
         } catch (error) {
             console.log(error);
-        } finally {
-            dispatch(loading(false))
         }
     }
 }
@@ -159,12 +146,21 @@ export const asyncSetReply = (commentId, currentEditorIndex) => {
     }
 }
 
-export const openCommentBox = (comments, opened, commentId) => {
+export const openCloseCommentBox = (comments, opened, commentId) => {
     return function(dispatch) {
         try {
+            dispatch(receiveArticleComments(openCloseComment(comments, opened, commentId)));
+        } catch (error) {
+            console.log(error)
+        }
+    }
+}
 
-            let newComments = changeOneChildren(comments, opened, commentId);
-            dispatch(openComment(newComments));
+export const setChildComments = (comments, child) => {
+    return function(dispatch) {
+        try {
+            let setChilds = changeCommentChild(comments, child);
+            dispatch(receiveArticleComments(setChilds));
         } catch (error) {
             console.log(error)
         }

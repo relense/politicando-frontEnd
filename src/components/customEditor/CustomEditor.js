@@ -54,7 +54,7 @@ class CustomEditor extends Component {
     let comment = {};
     comment = this.props.comment;
     
-    if(comment !== "" && this.props.loading === false){
+    if(comment !== ""){
       comment.username = e.target.username.value.replace(/ +/g, "");
       const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-range');
 
@@ -62,7 +62,7 @@ class CustomEditor extends Component {
         editorState: editorState,
       });  
 
-      this.props.setComments(comment, this.props.currentArticle.id);
+      this.props.setComments(comment, this.props.currentArticle.id, this.props.comments);
 
       if(this.props.reply) {
         this.props.closeReplyBox();
@@ -104,7 +104,7 @@ function mapStateToProps(state) {
   return {
     loading: state.article.loading,
     comment: state.article.comment,
-    comments: state.article.comments,
+    comments: state.article.currentArticleComments,
     darkMode: state.view.darkMode,
     currentArticle: state.article.currentArticle,
     reply: state.article.reply
@@ -113,8 +113,8 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    setComments: (comment, articleId) =>  {
-      dispatch(asyncSetComments(comment, articleId));
+    setComments: (comment, articleId, comments) =>  {
+      dispatch(asyncSetComments(comment, articleId, comments));
     },
     setComment: (comment, characters) => {
       dispatch(setComment(comment, characters))

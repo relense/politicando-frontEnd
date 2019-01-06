@@ -28,24 +28,30 @@ class ArticleDiscussion extends Component {
   }
 
   setArticleComments = (comments) => {
-    if(comments !== null) 
-      return comments.map((item) => (
-          <ConnectedComment comment={item} key={item.id} commentId={item.id} editorIndexState={this.props.editorIndex === item.id ? true : false } />
-        ));
-    else 
-      return null
+    let newComments = null;
+    if(comments !== null && comments !== undefined) {
+       newComments = this.props.comments.filter(item => {
+          if(item.commentType === "post") 
+            return item;
+        
+          return null;
+       }).map(item => {
+        return <ConnectedComment key={item.id} comment={item} commentId={item.id} editorIndexState={this.props.editorIndex === item.id ? true : false } />
+       });
+    } 
+
+    return newComments;
   }
 
   render() {
-    let renderer;
+    let renderer = null
 
     if(this.props.currentArticle !== null && this.props.currentArticle !== undefined) {
-      const articleContainer = this.setArticleContainer();
       renderer = (
         <div className={'articleDiscussionMainContainer' + checkDarkModeBackground(this.props.darkMode)} onClick={this.props.drawer ? this.props.closeDrawer : null}>
           <div className={(this.props.drawer ? ' mainContainerDark removeLinks' : '')}>
             <div className={'articleContainer'}>
-              {articleContainer}
+              {this.setArticleContainer()}
             </div>
             <CustomEditor 
               articleId={this.props.currentArticle.id}
@@ -58,8 +64,6 @@ class ArticleDiscussion extends Component {
           </div>         
         </div>
       )
-    } else {
-      renderer = null;
     }
 
     return renderer
@@ -73,7 +77,7 @@ function mapStateToProps(state) {
     comments: state.article.currentArticleComments,
     currentView: state.view.currentView,
     drawer: state.view.drawer,
-    editorIndex: state.article.editorIndex,
+    editorIndex: state.article.editorIndex
   };
 }
 

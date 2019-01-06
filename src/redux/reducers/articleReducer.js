@@ -1,5 +1,5 @@
-import { GET_ARTICLE, GET_ARTICLE_COMMENTS, LOADING, SET_COMMENT, SET_EDITOR_INDEX, 
-  SET_REPLY, SET_ADDED_COMMENT, REMOVE_ADDED_COMMENT, OPEN_COMMENT } from '../actions/actionTypes';
+import { GET_ARTICLE, GET_ARTICLE_COMMENTS, SET_COMMENT, SET_EDITOR_INDEX, 
+  SET_REPLY, SET_ADDED_COMMENT, REMOVE_ADDED_COMMENT } from '../actions/actionTypes';
 
 const initialState = {
   currentArticle: null,
@@ -8,10 +8,9 @@ const initialState = {
   characters: 0,
   max: 300,
   comment: {},
-  loading: false,
   editorIndex: null,
   reply: false,
-  addedComment: null
+  addedComment: null,
 }
 
 export default function article(state = initialState, action) {
@@ -33,12 +32,6 @@ export default function article(state = initialState, action) {
         ...state,
         comment: action.comment,
         characters: action.characters
-      }
-
-    case LOADING:
-      return {
-        ...state,
-        loading: action.loading
       }
 
     case SET_EDITOR_INDEX:
@@ -64,13 +57,7 @@ export default function article(state = initialState, action) {
         ...state,
         addedComment: action.addedComment
       }
-
-    case OPEN_COMMENT:
-      return {
-        ...state,
-        currentArticleComments: action.comments
-      }
-
+    
     default:
       return state;
   }

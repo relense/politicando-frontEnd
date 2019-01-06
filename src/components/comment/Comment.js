@@ -1,86 +1,40 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import './Comment.css';
-import { setEditorIndex, asyncSetReply, removeAddedComment, openCommentBox } from '../../redux/actions/articleActions';
+import { setEditorIndex, asyncSetReply, removeAddedComment, openCloseCommentBox, setChildComments } from '../../redux/actions/articleActions';
 import moment from 'moment'
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
 import CustomEditor from '../customEditor/CustomEditor.js';
 
 class Comment extends Component {
-  /**
-   * Function to change if the edit box is opened or not. If the reply state is true or false
-   */
   reply = () => {
     this.props.changeReplyAndEditor(this.props.commentId, this.props.editorIndex);
   }
 
-  /**
-   * Function used to know if a comment is opened or closed.
-   * This will also be used to verify if a reply editor is opened and it will close it.
-   * It will also close all the child that the comment may have open inside.
-   */
   opened = () => {
-    this.props.setCommentBoxState(this.props.currentArticleComments, !this.props.comment.opened, this.props.comment.id)
+    this.props.setCommentBoxState(this.props.currentArticleComments, this.props.comment.opened, this.props.comment.id);
   }
 
-  changeChild = () => {
-    if(this.props.addedComment.comments_id !== null) {
-      if(this.props.addedComment.comments_id === this.props.commentId) {
-        this.setState({
-          child: null,
-        }, () => {
-          this.setState({
-            child: this.props.addedComment,
-          }, () => {
-            this.props.clearAddedComment();
-          })
-        })
-      }
-    }
+  onChildrenClick = (child) => {
+    this.props.setChildComments(this.props.currentArticleComments, child);
   }
-
-  /**
-   * Function that is passed to the editor. The point is to help the user and show where his reply his and change between child replys
-   * 
-   * This will check if the comment already has an opned child, only one can be open at a time.
-   * 
-   * If there is no child we add the new clicked child.
-   * If the child that is beign clicked is already the child then it is removed.
-   * If the child that is beign cliked isn't the child. We first remove the child and then set the new child.
-   */
-  onChildrenClick = (comment) => {
-    if(this.props.comment.child !== null) {
-      if(comment.id !== this.props.comment.child.id) 
-        this.setState({ child: null }, () => { this.setState({ child: comment }) })
-      else 
-        this.setState({ child: null })
-    } else 
-      this.setState({ child: comment })
-  }
-
+  
   /**
    * Function to draw in the header the replys to a comment. This will help to navigate throught the comments.
    */
   setChildren = () => {
-    let renderer;
-    if(this.props.loading === false) {
-      renderer = (
-        this.props.comment.children.map((item) => 
-          <div className={'childrenContainer commentPointer selectForbiden' 
-            + (this.props.comment.child !== null ? (this.props.comment.child.id === item.id ? " hilighlightChild" : "") : "")
-            + checkDarkModeLinks(this.props.darkMode, true)} 
-            key={item.id} 
-            onClick={() => this.onChildrenClick(item)}
-          >
-            {(item.username !== null ? item.username : 'anon') + item.id}
-          </div>
-        )
-      );
-    } else {
-      renderer = null;
-    }
-
-    return renderer
+    return (
+      this.props.comment.children.map((item) => 
+        <div className={'childrenContainer commentPointer selectForbiden' 
+          + (this.props.comment.child !== null ? (this.props.comment.child.id === item.id ? " hilighlightChild" : "") : "")
+          + checkDarkModeLinks(this.props.darkMode, true)} 
+          key={item.id} 
+          onClick={() => this.onChildrenClick(item)}
+        >
+          {(item.username !== null ? item.username : 'anon') + item.id}
+        </div>
+      )
+    );
   }
 
   /**
@@ -95,7 +49,7 @@ class Comment extends Component {
 
     return(
       <div className="commentHeader">
-        <div onClick={this.opened}>
+        <div className="sign" onClick={this.opened}>
           {sign}
         </div>
         <div className={'commentPointer commentUsernameContainer' + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>
@@ -132,10 +86,10 @@ class Comment extends Component {
    * Function to render the child comment when it is clicked
    */
   renderChildComment = () => {
-    if( this.props.comment.child!== null) { 
+    if(this.props.comment.child !== null && this.props.comment.child !== undefined) { 
       return (
-        <ConnectedComment comment={this.props.comment.child} commentId={this.props.comment.child.id} opened={this.props.comment.opened} 
-          editorIndexState={this.props.editorIndex === this.props.comment.child.id ? true : false } 
+        <ConnectedComment comment={this.props.comment.child} commentId={this.props.comment.child.id} 
+          editorIndexState={this.props.editorIndex === this.props.comment.child.id ? true : false }
         />
       )
     } else 
@@ -145,7 +99,7 @@ class Comment extends Component {
   render() {
     let renderer;
 
-    if(this.props.currentArticle !== null && this.props.currentArticle !== undefined) {
+    if(this.props.currentArticle !== null && this.props.currentArticle !== undefined && this.props.comment !== null) {
       renderer = (
         <div id={this.props.comment.id} className={'commentParentContainer' + checkDarkMode(this.props.darkMode, true)}>
           {this.commentHeader()} 
@@ -168,15 +122,14 @@ class Comment extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
   return {
     darkMode: state.view.darkMode,
     currentArticle: state.article.currentArticle,
     currentArticleComments: state.article.currentArticleComments,
-    loading: state.article.loading,
     editorIndex: state.article.editorIndex,
     reply: state.article.reply,
-    addedComment: state.article.addedComment
+    addedComment: state.article.addedComment,
   };
 }
 
@@ -192,7 +145,10 @@ function mapDispatchToProps(dispatch) {
       dispatch(removeAddedComment())
     },
     setCommentBoxState: (comments, opened, commentId) => {
-      dispatch(openCommentBox(comments, opened, commentId))
+      dispatch(openCloseCommentBox(comments, opened, commentId))
+    },
+    setChildComments: (comments, child) => {
+      dispatch(setChildComments(comments, child))
     }
   };
 }
