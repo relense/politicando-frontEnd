@@ -15,7 +15,7 @@ class Comment extends Component {
     };
 }
 
-handleHover = (itemId = null) => {
+handleHover = (itemId) => {
   this.setState({
       isHovered: !this.state.isHovered,
       itemId: itemId
@@ -40,7 +40,7 @@ handleHover = (itemId = null) => {
   setChildren = () => {
     return (
       this.props.comment.children.map((item) => 
-        <div onMouseEnter={() => this.handleHover(item.id)} onMouseLeave={() => this.handleHover} className={'childrenContainer commentPointer selectForbiden' 
+        <div onMouseEnter={() => this.handleHover(item.id)} onMouseLeave={() => this.handleHover(null)} className={'childrenContainer commentPointer selectForbiden' 
           + (this.props.comment.child !== null ? (this.props.comment.child.id === item.id ? " hilighlightChild" : "") : "")
           + checkDarkModeLinks(this.props.darkMode, true)} 
           key={item.id} 
@@ -48,7 +48,21 @@ handleHover = (itemId = null) => {
         >
           {(item.username !== null ? item.username : 'anon') + item.id}
           <div className={this.state.isHovered && this.state.hoveredItem !== null && item.id === this.state.itemId ? "commentSpy" : "noDisplay"}>
-            {item.comment}
+            <div className="commentHeader">
+              <div className={'commentPointer' + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>
+                {item.username ? item.username + item.id : "anon" + item.id}
+              </div>
+              <div className="answer"> | </div>
+              <div className="selectForbiden commentTime">
+                {moment(item.created_at).format('DD-MM-YYYY | HH:mm')}
+              </div>
+              <div>
+                {item.children !== undefined && item.children !== null ? item.children.length + ' respostas' : ""}
+              </div>
+            </div>
+            <div className={"commentContent" + checkDarkMode(this.props.darkMode, true)}>
+              {item.comment}
+            </div>
           </div>
         </div>
       )
