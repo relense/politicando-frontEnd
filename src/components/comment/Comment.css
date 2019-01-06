@@ -67,3 +67,18 @@
 .hilighlightChild {
   font-weight: 900;
 }
+
+.noDisplay {
+  display: none;
+}
+
+.commentSpy {
+  position: absolute;
+  border: 1px solid rgb(189, 188, 188);
+  border-radius: 3px;
+  margin-bottom: 5px;  
+  width: 350px;
+  height: 100px;
+  z-index: 10;
+  background-color: white;
+}

@@ -7,6 +7,21 @@ import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js'
 import CustomEditor from '../customEditor/CustomEditor.js';
 
 class Comment extends Component {
+  constructor(props){
+    super(props);
+    this.state = {
+        isHovered: false,
+        itemId: null 
+    };
+}
+
+handleHover = (itemId = null) => {
+  this.setState({
+      isHovered: !this.state.isHovered,
+      itemId: itemId
+  });
+}
+
   reply = () => {
     this.props.changeReplyAndEditor(this.props.commentId, this.props.editorIndex);
   }
@@ -25,13 +40,16 @@ class Comment extends Component {
   setChildren = () => {
     return (
       this.props.comment.children.map((item) => 
-        <div className={'childrenContainer commentPointer selectForbiden' 
+        <div onMouseEnter={() => this.handleHover(item.id)} onMouseLeave={() => this.handleHover} className={'childrenContainer commentPointer selectForbiden' 
           + (this.props.comment.child !== null ? (this.props.comment.child.id === item.id ? " hilighlightChild" : "") : "")
           + checkDarkModeLinks(this.props.darkMode, true)} 
           key={item.id} 
           onClick={() => this.onChildrenClick(item)}
         >
           {(item.username !== null ? item.username : 'anon') + item.id}
+          <div className={this.state.isHovered && this.state.hoveredItem !== null && item.id === this.state.itemId ? "commentSpy" : "noDisplay"}>
+            {item.comment}
+          </div>
         </div>
       )
     );
