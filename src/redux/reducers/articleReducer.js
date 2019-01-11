@@ -23,7 +23,7 @@ export default function article(state = initialState, action) {
     case GET_ARTICLE_COMMENTS:
       return {
         ...state,
-        currentArticleComments: action.comments
+        currentArticleComments: action.currentArticleComments
       }
 
     case SET_COMMENT:

@@ -5,7 +5,7 @@ export const addAttributesToComments = (comments) => {
 
     elem.child = null;
     elem.opened = true;
-    elem.children = null;
+    elem.children = 0;
     
     newElem = { ...elem };
 
@@ -20,36 +20,35 @@ export const openCloseComment = (comments, opened, commentId) => {
       comment.child = null
     }
 
-    if(comment.children !== null) {
-      comment.children = openCloseComment(comment.children, opened, commentId);
-    }
-     
      return comment
   })
 }
 
 export const changeCommentChild = (comments, child) => {
-  let changedComments = comments.map((comment) => {
+
+  let actualChild = null;
+
+  comments.forEach((elem) => {
+    if(elem.id === child.id) {
+      actualChild = elem;
+    }
+  })
+
+  var stuff = comments.map((comment) => {
     if(comment.id === child.comments_id) {
       if(comment.child === null) {
-        comment.child = child;
-      } else {
-        if(comment.child.id === child.id) {
-          comment.child = null;
-        } else {
-          comment.child = child;
-        }
+        comment.child = actualChild;
+      } else if(comment.child.id !== actualChild.id) {
+        comment.child = actualChild;
+      } else if (comment.child.id === actualChild.id) {
+        comment.child = null;
       }
     }
 
-    if(comment.children !== null) {
-      comment.children = changeCommentChild(comment.children, child);
-    }
-
     return comment;
-  })
+  });
 
-  return changedComments;
+  return stuff;
 }
 
 export const organizeComments = (comments, oldComments = null, newChild = null) => {
@@ -60,7 +59,7 @@ export const organizeComments = (comments, oldComments = null, newChild = null) 
   else {
     let commentsActualState = calculateOldState(comments, oldComments);
     let commentsWithChild = addNewChildren(commentsActualState, newChild);
-    commentsWithAttributes = calculateChildren(commentsWithChild)
+    commentsWithAttributes = calculateChildren(commentsWithChild);
   }
 
   return commentsWithAttributes;
@@ -69,10 +68,9 @@ export const organizeComments = (comments, oldComments = null, newChild = null) 
 const calculateChildren = (comments) => {
   return comments.map((comment) => {
     let postComment = null;
-    comment.children = []
     comments.forEach((elem) => {
       if(elem.comments_id !== null && comment.id === elem.comments_id) { //this means the comment[i] is a son of comment
-        comment.children.push(elem);
+        comment.children += 1;
       }
     })
 

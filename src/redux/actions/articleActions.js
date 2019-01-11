@@ -13,7 +13,7 @@ export function reveiveArticle(article) {
 export function receiveArticleComments(comments) {
     return {
         type: types.GET_ARTICLE_COMMENTS,
-        comments: comments
+        currentArticleComments: comments
     }
 }
 
