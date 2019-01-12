@@ -68,6 +68,8 @@ handleHover = (itemId) => {
           </div>
         )
       }
+
+      return null;
     }));
   }
 
