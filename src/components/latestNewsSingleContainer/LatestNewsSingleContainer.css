@@ -1,5 +1,5 @@
 .latestNewsSingleContainer {
-  padding: 0 400px 0 400px;
+  padding: 0 200px 0 200px;
 }
 
 .tags {
@@ -44,6 +44,7 @@
 .latestNewsDiscussionContainer {
   display: flex;
   font-size: 12px;
+  align-items: center;
 }
 
 .latestNewsDiscussionContainerLinkContainer {

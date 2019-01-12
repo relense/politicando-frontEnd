@@ -79,23 +79,28 @@ handleHover = (itemId) => {
     let sign = this.props.comment.opened ? "[-]" : "[+]";
     let username = this.props.comment.username ? this.props.comment.username + this.props.comment.id : "anon" + this.props.comment.id;
     let time = moment(this.props.comment.created_at).format('DD-MM-YYYY | HH:mm');
+    let parentName = this.props.comment.parent_username !== null ? this.props.comment.parent_username + this.props.comment.comments_id : this.props.comment.comments_id !== null ? "anon" + this.props.comment.comments_id : "";
 
     return(
       <div className="commentHeader">
         <div className="sign" onClick={this.opened}>
           {sign}
         </div>
-        <div className={'commentPointer commentUsernameContainer' + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>
+        <div className={'commentUsernameContainer' + checkDarkModeLinks(this.props.darkMode, true)}>
           {username}
         </div>
+        {parentName !== "" && "resposta a"}
+        {parentName !== "" && 
+          <div className={'commentParentUsernameContainer' + checkDarkModeLinks(this.props.darkMode, true)}>
+            {parentName}
+          </div>
+        }
         <div className="answer"> | </div>
         <div className="selectForbiden commentTime">
           {time}
         </div>
         {this.props.comment.opened ? 
-          <div className="childrenMainContainer">
-           {this.setChildren()}
-          </div>
+           this.setChildren()
           : 
           <div className="childrenContainer">
             {this.props.comment.children + ' respostas'}
@@ -130,7 +135,7 @@ handleHover = (itemId) => {
 
     if(this.props.currentArticle !== null && this.props.currentArticle !== undefined && this.props.comment !== null) {
       renderer = (
-        <div id={this.props.comment.id} className={'commentParentContainer' + checkDarkMode(this.props.darkMode, true)}>
+        <div id={this.props.comment.id} className={this.props.comment.comments_id !== null ? 'replyCommentPadding commentParentContainer' : 'commentParentContainer'  + checkDarkMode(this.props.darkMode, true)}>
           {this.commentHeader()} 
           <div style={{display: this.props.comment.opened ? '' : 'none'}}>
             <div className={"commentContent" + checkDarkMode(this.props.darkMode, true)}>
@@ -141,7 +146,7 @@ handleHover = (itemId) => {
               <div className={"commentPointer replyButton" + checkDarkMode(this.props.darkMode, true)} onClick={this.reply}>responder</div>
             </div>
           </div>        
-          {this.renderChildComment()}
+         {this.renderChildComment()} 
         </div>
       );
     } else 
