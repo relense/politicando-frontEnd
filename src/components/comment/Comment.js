@@ -143,10 +143,10 @@ handleHover = (itemId) => {
             </div>
             {this.renderEditor()}
             <div className="commentFooter">
-              <div className={"commentPointer replyButton" + checkDarkMode(this.props.darkMode, true)} onClick={this.reply}>responder</div>
+              <div className={"commentPointer replyButton" + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>responder</div>
             </div>
           </div>        
-         {this.renderChildComment()} 
+         {this.renderChildComment()}
         </div>
       );
     } else 

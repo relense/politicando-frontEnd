@@ -30,7 +30,6 @@ export default function article(state = initialState, action) {
       return {
         ...state,
         comment: action.comment,
-        characters: action.characters
       }
 
     case SET_EDITOR_INDEX:

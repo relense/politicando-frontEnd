@@ -12,27 +12,18 @@ class CustomEditor extends Component {
     super(props);
     this.state = {
       editorState: EditorState.createEmpty(),
-      username: ""
+      username: "",
     }
   }
 
-  onContentStateChange = (editorState) => {
-    let size = 0;
-
-    if (editorState.blocks.length === 1) 
-      size = 0
-    else 
-      size = (editorState.blocks.length - 1) * 100;
-
-    let characters = editorState.blocks[0].text.length;
-
-    this.props.setComment({id: this.props.commentId, username: null, commentType: this.props.commentType, comment: editorState.blocks[0].text}, (size + characters)); 
+  onContentChange = (editorState) => {
+    this.props.setComment({id: this.props.commentId, username: null, commentType: this.props.commentType, comment: editorState.blocks[0].text}); 
   }
 
   onEditorStateChange = (editorState) => {
     this.setState({
       editorState
-    })
+    });
   }
 
   handleUsernameChange = (e) => {
@@ -92,7 +83,7 @@ class CustomEditor extends Component {
             link: { inDropdown: true },
             history: { inDropdown: true },
           }}
-          onChange={this.onContentStateChange}
+          onChange={this.onContentChange}
           onEditorStateChange={this.onEditorStateChange}
         />
         <div className="postCommentContainer">

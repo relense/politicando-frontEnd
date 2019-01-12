@@ -24,12 +24,12 @@
 
 .commentContent {
   /* padding: 0 20px 0 20px; */
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .commentFooter {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 0 10px 5px 0;
 }
 

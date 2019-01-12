@@ -17,11 +17,10 @@ export function receiveArticleComments(comments) {
     }
 }
 
-export function setComment(comment, characters = 0) {
+export function setComment(comment) {
     return {
         type: types.SET_COMMENT,
         comment: comment,
-        characters: characters
     }
 }
 
