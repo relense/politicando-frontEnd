@@ -1,8 +1,5 @@
 export const apiUrls = { }
-
-// const isMobile = window.innerWidth <= 500
-
-const baseUrl = false ? "http://192.168.1.6:4000/api" : "http://localhost:4000/api" 
+const baseUrl = true ? "http://localhost:4000/api" : "https://politicando-backend.herokuapp.com/api" 
 const apiVersion = "/v1"
 
 apiUrls.getParties =  `${baseUrl}${apiVersion}/partidos`
