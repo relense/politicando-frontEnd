@@ -23,4 +23,17 @@
     padding-right: 10px;
     font-size: 12px;
   }
+
+  .commentsContainer {
+
+    margin: 0 100px 0 100px;
+  }
+}
+
+
+@media only screen and (max-width: 600px) {
+  .commentsContainer {
+    flex: 1;
+    margin: 0 15px 0 15px;
+  }
 }
