@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from "react-router-dom";
 import './MenuBoard.css';
-import { asyncChangeView, asyncChangePartyView, asyncCloseDrawer } from '../../actions/viewActions';
-import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../actions/partiesActions';
+import { asyncChangeView, asyncChangePartyView, asyncCloseDrawer } from '../../redux/actions/viewActions';
+import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 import { checkDarkMode, checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 const HOME = 'HOME';

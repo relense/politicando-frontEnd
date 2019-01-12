@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from "react-router-dom";
 import './Header.css';
-import { asyncOpenDrawer, asyncCloseDrawer, asyncChangeDarkMode } from '../../actions/viewActions';
+import { asyncOpenDrawer, asyncCloseDrawer, asyncChangeDarkMode } from '../../redux/actions/viewActions';
 import { checkDarkMode, checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class Header extends Component {

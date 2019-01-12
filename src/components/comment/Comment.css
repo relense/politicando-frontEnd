@@ -1,0 +1,93 @@
+.commentParentContainer {
+  border-bottom: 1px solid rgb(189, 188, 188);
+  border-radius: 3px;
+  margin-bottom: 5px;
+}
+
+.commentHeader {
+  display: flex;
+  flex-direction: row;
+  padding: 5px 0 0 0;
+  margin-bottom: 15px;
+  font-size: 12px;
+  flex-wrap: wrap
+}
+
+.sign {
+  cursor: pointer;
+}
+
+.commentTime {
+  padding-left: 5px;
+  min-width: 120px;
+}
+
+.commentContent {
+  /* padding: 0 20px 0 20px; */
+  margin-bottom: 20px;
+}
+
+.commentFooter {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 10px 5px 0;
+}
+
+.replyButton {
+  font-size: 12px;
+}
+
+.commentPointer {
+  cursor: pointer;
+}
+.commentUsernameContainer {
+  padding: 0 5px 0 5px;
+}
+
+.commentParentUsernameContainer {
+  padding: 0 5px 0 5px;
+}
+
+.childrenContainer {
+  display: inline-block;
+  margin:  2px 5px 0 5px;
+  text-decoration: none;
+}
+
+.answer {
+  padding-left: 5px;
+  display: flex;
+  flex-direction: row;
+}
+
+.answerUsername {
+  padding-left: 5px;
+  padding-right: 5px;
+  text-decoration: none;
+}
+
+.hilighlightChild {
+  font-weight: 900;
+}
+
+.noDisplay {
+  display: none;
+}
+
+.commentSpy {
+  position: absolute;
+  border: 1px solid rgb(189, 188, 188);
+  border-radius: 3px;
+  margin-bottom: 5px;  
+  width: auto;
+  height: auto;
+  z-index: 10;
+  background-color: white;
+  color: black;
+  padding: 0 20px;
+}
+
+.replyCommentPadding {
+  margin: 0 0 5px 30px;
+  padding: 0 0 0 10px;
+}

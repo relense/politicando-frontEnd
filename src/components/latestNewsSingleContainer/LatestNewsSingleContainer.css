@@ -1,5 +1,5 @@
 .latestNewsSingleContainer {
-  padding: 0 400px 0 400px;
+  padding: 0 200px 0 200px;
 }
 
 .tags {
@@ -8,7 +8,7 @@
 }
 
 .commentIcons {
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -27,12 +27,15 @@
   font-size: 12px;
 }
 
+.newsComment {
+  text-decoration: none;
+}
+
 .latestNewsContentContainer {
   display: flex;
   flex-direction: row;
   height: 120px;
   line-height: 25px;
-  margin: 0 0 15px 0;
   overflow: hidden;
   text-align: justify;
   font-size: 14px;
@@ -41,13 +44,15 @@
 .latestNewsDiscussionContainer {
   display: flex;
   font-size: 12px;
+  align-items: center;
 }
 
 .latestNewsDiscussionContainerLinkContainer {
-  flex: 1;
   display: flex;
+  flex: 1;
   justify-content: flex-end;
   text-decoration: none;
+  align-items: center;
 }
 
 .latestNewsDiscussionContainerLink {
@@ -60,16 +65,18 @@
   padding-right: 5px;
 }
 
-.newsImage {
-  width: 15%;
-  height: auto;
+.newsImageContainer {
+  min-width: 250px;
+  max-width: 250px;
   margin: 0 20px 5px 0;
 }
 
+.newsImage {
+  width: inherit;
+}
+
 .newsImageSmaller {
-  width: 15%;
-  height: auto;
-  margin: 0 20px 5px 0;
+  width: inherit;
 }
 
 .fadeout {
@@ -88,15 +95,6 @@
   background-color: initial;
 }
 
-.selectForbiden {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none;
-}
-
 @media only screen and (max-width: 1280px) {
   .latestNewsSingleContainer {
     padding: 0 200px 0 200px;
@@ -111,7 +109,7 @@
   }
   
   .commentIcons {
-    font-size: 16px;
+    font-size: 14px;
   }
   
   .commentContainer {
@@ -125,26 +123,26 @@
   .latestNewsContentContainer {
     height: 120px;
     line-height: 25px;
-    margin: 0 0 15px 0;
     font-size: 14px;
   }
   
   .latestNewsDiscussionContainer {
     font-size: 12px;
+    align-items: center;
   }
 
   .latestNewsDiscussionSource {
     padding-left: 5px;
     padding-right: 5px;
   }
-  
-  .newsImage {
-    width: 25%;
-    margin: 0 20px 5px 0;
+
+  .singleNewsTime {
+    padding-right: 5px;
   }
-  
-  .newsImageSmaller {
-    width: 15%;
+
+  .newsImageContainer {
+    min-width: 250px;
+    max-width: 250px;
     margin: 0 20px 5px 0;
   }
 }
@@ -159,7 +157,7 @@
   }
   
   .commentIcons {
-    font-size: 16px;
+    font-size: 14px;
   }
   
   .commentContainer {
@@ -185,12 +183,9 @@
     padding-right: 5px;
   }
 
-  .newsImage {
-    width: 50%;
-  }
-
-  .newsImageSmaller {
-    width: 15%;
+  .newsImageContainer {
+    min-width: 250px;
+    max-width: 250px;
     margin: 0 20px 5px 0;
   }
 }
@@ -205,7 +200,7 @@
   }
   
   .commentIcons {
-    font-size: 16px;
+    font-size: 14px;
   }
   
   .commentContainer {
@@ -231,12 +226,9 @@
     padding-right: 5px;
   }
 
-  .newsImage {
-    width: 50%;
-  }
-
-  .newsImageSmaller {
-    width: 15%;
+  .newsImageContainer {
+    min-width: 150px;
+    max-width: 150px;
     margin: 0 20px 5px 0;
   }
 }

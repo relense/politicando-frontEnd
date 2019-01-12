@@ -5,8 +5,8 @@ import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
 import MenuBoard from './components/menuBoard/MenuBoard.js';
 import ArticleDiscussion from './components/articleDiscussion/ArticleDiscussion.js';
-import { loadParties, loadNextTenPartyArticles } from './actions/partiesActions.js';
-import { loadArticles, loadNextTenArticles } from './actions/articlesActions.js';
+import { loadParties, loadNextTenPartyArticles } from './redux/actions/partiesActions.js';
+import { loadArticles, loadNextTenArticles } from './redux/actions/articlesActions.js';
 import './App.css';
 import './utils/Colors.css';
 

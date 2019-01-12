@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './PartieInformation.css';
-import { asyncGetPartieNews } from '../../actions/partiesActions.js';
+import { asyncGetPartieNews } from '../../redux/actions/partiesActions.js';
 import LatestNews from '../latestNews/LatestNews.js';
 import PartyHeader from '../partyHeader/PartyHeader.js';
 

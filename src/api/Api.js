@@ -58,10 +58,12 @@ async function doRequest(url, payload, method = 'POST') {
 }
 
 export function buildJsonPayload (type, attributes, id=null) {
-    let payload = { data: {} };
-    payload.data.type = type;
-    payload.data.attributes = attributes;
-    if (id) payload.data.id = id;
+    // let payload = { data: {} };
+    // payload.data.type = type;
+    // payload.data.attributes = attributes;
+    // if (id) payload.data.id = id;
+
+    let payload = { attributes }
 
     return payload;
 }
