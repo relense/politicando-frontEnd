@@ -20,6 +20,7 @@
 }
 
 .toolbarContainer {
+  display: none;
   border: 1px solid rgb(223, 221, 221);
   border-radius: 5px;
   background-color: cadetblue;
@@ -57,7 +58,17 @@
 
 
 @media only screen and (max-width: 800px) {
- 
+  .commentSubmitButton {
+    width: 20%;
+  }
+
+  .editorContainer {
+    padding-left: 0;
+  }
+
+  .editorWrapperContainer {
+    align-self: center;
+  }
 }
 
 

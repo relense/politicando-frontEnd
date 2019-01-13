@@ -10,7 +10,8 @@
   padding: 5px 0 0 0;
   margin-bottom: 15px;
   font-size: 12px;
-  flex-wrap: wrap
+  flex-wrap: wrap;
+  align-items: baseline;
 }
 
 .sign {
@@ -23,13 +24,12 @@
 }
 
 .commentContent {
-  /* padding: 0 20px 0 20px; */
   margin-bottom: 20px;
 }
 
 .commentFooter {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   padding: 0 10px 5px 0;
 }
 
@@ -89,14 +89,29 @@
 
 .replyCommentPadding {
   margin: 0 0 5px 30px;
-  /* padding: 0 0 0 10px; */
 }
 
 @media only screen and (max-width: 800px) {
- 
+  .commentSpy {
+    display: none;
+  }
+
+  .commentContent {
+    font-size: 12px;
+  }
+
+  .commentHeader {
+    font-size: 10px;
+  }
+
+  .commentTime {
+    min-width: 50px;
+  }
 }
 
 
 @media only screen and (max-width: 600px) {
- 
+  .commentSpy {
+    display: none;
+  }
 }
