@@ -76,7 +76,7 @@ class CustomEditor extends Component {
           wrapperClassName="editorWrapperContainer"
           editorClassName={'editorContainer' + checkDarkMode(this.props.darkMode, true)}
           toolbar={{
-            options: ['inline', 'list', 'colorPicker', 'link', 'remove', 'history'],
+            options: [],
             inline: { inDropdown: true },
             list: { inDropdown: true },
             textAlign: { inDropdown: true },
