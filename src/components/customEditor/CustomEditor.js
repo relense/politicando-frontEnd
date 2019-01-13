@@ -5,7 +5,7 @@ import { asyncSetComments, setComment } from '../../redux/actions/articleActions
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './CustomEditor.css';
-import { checkDarkMode } from '../../utils/CheckDarkMode.js';
+import { checkDarkMode, checkDarkModeEditor } from '../../utils/CheckDarkMode.js';
 import ReCAPTCHA from "react-google-recaptcha";
 
 const recaptchaRef = React.createRef();
@@ -94,7 +94,7 @@ class CustomEditor extends Component {
           editorState={this.state.editorState}
           toolbarClassName="toolbarContainer"
           wrapperClassName="editorWrapperContainer"
-          editorClassName={'editorContainer' + checkDarkMode(this.props.darkMode, true)}
+          editorClassName={'editorContainer' + checkDarkModeEditor(this.props.darkMode, true)}
           toolbar={{
             options: [],
             inline: { inDropdown: true },
