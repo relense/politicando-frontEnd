@@ -51,9 +51,16 @@
 .commentSubmitButton {
   width: 10%;
   border-radius: 5px;
-  background-color: cadetblue;
+  background-color: rgb(120, 164, 214);
+  color: white;
   padding: 5px;
   margin-bottom: 10px;
+}
+
+.reCaptcha {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
 }
 
 
