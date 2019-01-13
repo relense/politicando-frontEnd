@@ -50,7 +50,7 @@ handleHover = (itemId) => {
             {(item.username !== null ? item.username : 'anon') + item.id}
             <div className={this.state.isHovered && this.state.hoveredItem !== null && item.id === this.state.itemId ? "commentSpy" : "noDisplay"}>
               <div className="commentHeader">
-                <div className={'commentPointer' + checkDarkModeLinks(this.props.darkMode, true)} onClick={this.reply}>
+                <div className={'commentPointer' + checkDarkModeLinks(this.props.darkMode, true)}>
                   {item.username ? item.username + item.id : "anon" + item.id}
                 </div>
                 <div className="answer"> | </div>
