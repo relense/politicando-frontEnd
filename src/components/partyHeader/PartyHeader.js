@@ -8,9 +8,9 @@ class PartyHeader extends Component {
   renderLogo = () => {
     let imageName = "";
 
-    const partieLogo = {
+    let partieLogo = {
         maxWidth: '200px',
-        maxHeight: '50px'
+        maxHeight: '70px'
     }
 
     switch(this.props.currentPartie.party_name) {
@@ -18,43 +18,67 @@ class PartyHeader extends Component {
         imageName = "ps_logo.png";
         break;
       case "PSD":
-        imageName = "psd_logo.jpeg";
+        imageName = "psd_logo.png";
         break;
       case "BE":
-        imageName = "be_logo.jpg";
+        imageName = "be_logo.png";
         break;
       case "CDS-PP":
-        imageName = "cds-pp_logo.png";
+        imageName = "cds_logo.png";
         break;
       case "PCP":
         imageName = "pcp_logo.png";
         break;
       case "PEV":
-        imageName = "pev_logo.gif";
+        imageName = "pev_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '100px'
+        }
         break;
       case "PAN":
-        imageName = "pan_logo.jpeg";
+        imageName = "pan_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '100px'
+        }
         break;
       case "JPP":
         imageName = "jpp_logo.png";
         break;
       case "PPM":
-        imageName = "ppm_logo.jpeg";
+        imageName = "ppm_logo.png";
         break;
       case "PTP":
-        imageName = "ptp_logo.jpg";
+        imageName = "ptp_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '100px'
+        }
         break;
       case "MPT":
-        imageName = "mpt_logo.jpg";
+        imageName = "mpt_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '100px'
+        }
         break;
       case "PDR":
         imageName = "pdr_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '100px'
+        }
         break;
       case "L":
         imageName = "l_logo.png";
         break;
       case "NC":
-        imageName = "nc_logo.jpeg";
+        imageName = "nc_logo.png";
+        partieLogo = {
+          maxWidth: '200px',
+          maxHeight: '90px'
+        }
         break;
       default:
         imageName= "ps_logo.png"
@@ -96,13 +120,7 @@ class PartyHeader extends Component {
         <div className="partieHeaderContent">
         {condition &&
           <Fragment>
-            {/* <div className={this.checkDarkMode('NOTICIAS')} onClick={() => this.props.setPartyView("NOTICIAS")}>
-              Notícias
-            </div> */}
             {logo}
-            {/* <div className={this.checkDarkMode('DEPUTADOS')} onClick={() => this.props.setPartyView("DEPUTADOS")}>
-              Deputados
-            </div> */}
           </Fragment>
         }
         </div>
