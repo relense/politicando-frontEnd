@@ -8,6 +8,8 @@ import './CustomEditor.css';
 import { checkDarkMode } from '../../utils/CheckDarkMode.js';
 import ReCAPTCHA from "react-google-recaptcha";
 
+const recaptchaRef = React.createRef();
+
 class CustomEditor extends Component {
   constructor(props) {
     super(props);
@@ -69,10 +71,8 @@ class CustomEditor extends Component {
       submit: false,
       event: null
     })
-  }
 
-  callCaptch = () => {
-    this.addComment()
+    recaptchaRef.reset();
   }
 
   changeSubmit = (e) => {
@@ -110,7 +110,8 @@ class CustomEditor extends Component {
         />
         {this.state.submit && 
           <ReCAPTCHA
-            sitekey="6LcwLIkUAAAAACZq2tTZHrpWA8uQeeapbaMpXP8n"
+            ref={recaptchaRef}
+            sitekey="6LeEVYkUAAAAAEGkI1okLmQqpOXHuQXYzrFj3mmV"
             onChange={this.addComment}
           />
         }
