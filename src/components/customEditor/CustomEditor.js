@@ -6,6 +6,7 @@ import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './CustomEditor.css';
 import { checkDarkMode } from '../../utils/CheckDarkMode.js';
+import ReCAPTCHA from "react-google-recaptcha";
 
 class CustomEditor extends Component {
   constructor(props) {
@@ -13,6 +14,8 @@ class CustomEditor extends Component {
     this.state = {
       editorState: EditorState.createEmpty(),
       username: "",
+      submit: false,
+      event: null
     }
   }
 
@@ -42,9 +45,8 @@ class CustomEditor extends Component {
    * This will also close the reply box after submit.
    * This will also focus on the new comment that was added.
    */
-  addComment = (e) => {
-    e.preventDefault();
-    
+  addComment = () => { 
+    var e = this.state.event   
     let comment = {};
     comment = this.props.comment;
     
@@ -62,11 +64,31 @@ class CustomEditor extends Component {
         this.props.closeReplyBox();
       }
     }
+
+    this.setState({
+      submit: false,
+      event: null
+    })
+  }
+
+  callCaptch = () => {
+    this.addComment()
+  }
+
+  changeSubmit = (e) => {
+    e.preventDefault();
+
+    if(this.state.submit === false) {
+      this.setState({
+        submit: true,
+        event: e
+      })
+    }
   }
 
   render() {
     return (
-      <form className="createPostContainer" onSubmit={(e) => this.addComment(e)}>
+      <form className="createPostContainer" onSubmit={(e) => this.changeSubmit(e)}>
         <div className="postUsernameContainer">
           <input type="text" name="username" className="postUsername" value={this.state.username} placeholder="username || anon" onChange={(e) => this.handleUsernameChange(e)}/>
         </div>
@@ -86,8 +108,14 @@ class CustomEditor extends Component {
           onChange={this.onContentChange}
           onEditorStateChange={this.onEditorStateChange}
         />
+        {this.state.submit && 
+          <ReCAPTCHA
+            sitekey="6LcwLIkUAAAAACZq2tTZHrpWA8uQeeapbaMpXP8n"
+            onChange={this.addComment}
+          />
+        }
         <div className="postCommentContainer">
-          <input className={'commentSubmitButton' + checkDarkMode(this.props.darkMode, true)} type="submit" value="Submit" />
+          <input name="submitButton" className={'commentSubmitButton' + checkDarkMode(this.props.darkMode, true)} type="submit" value="Submit" />
         </div>
       </form>
     )
