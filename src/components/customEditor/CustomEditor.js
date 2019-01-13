@@ -16,8 +16,7 @@ class CustomEditor extends Component {
     this.state = {
       editorState: EditorState.createEmpty(),
       username: "",
-      submit: false,
-      event: null
+      submit: false    
     }
   }
 
@@ -47,48 +46,47 @@ class CustomEditor extends Component {
    * This will also close the reply box after submit.
    * This will also focus on the new comment that was added.
    */
-  addComment = () => { 
-    var e = this.state.event   
-    let comment = {};
-    comment = this.props.comment;
-    
-    if(comment !== ""){
-      comment.username = e.target.username.value.replace(/ +/g, "");
-      const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-range');
+  onSubmit = (e) => { 
+    e.preventDefault();
 
-      this.setState({ 
-        editorState: editorState,
-      });  
+    if(this.state.submit) {
+      let comment = {};
+      comment = this.props.comment;
+      
+      if(comment !== ""){
+        comment.username = e.target.username.value.replace(/ +/g, "");
+        const editorState = EditorState.push(this.state.editorState, ContentState.createFromText(''), 'remove-range');
 
-      this.props.setComments(comment, this.props.currentArticle.id, this.props.comments);
+        this.setState({ 
+          editorState: editorState,
+        });  
 
-      if(this.props.closeReplyBox !== null && this.props.closeReplyBox !== undefined && this.props.reply) {
-        this.props.closeReplyBox();
+        this.props.setComments(comment, this.props.currentArticle.id, this.props.comments);
+
+        if(this.props.closeReplyBox !== null && this.props.closeReplyBox !== undefined && this.props.reply) {
+          this.props.closeReplyBox();
+        }
       }
+
+      this.setState({
+        submit: false
+      })
+
+      window.grecaptcha.reset();
     }
-
-    this.setState({
-      submit: false,
-      event: null
-    })
-
-    recaptchaRef.reset();
   }
 
   changeSubmit = (e) => {
-    e.preventDefault();
-
     if(this.state.submit === false) {
       this.setState({
         submit: true,
-        event: e
-      })
+      });
     }
   }
 
   render() {
     return (
-      <form className="createPostContainer" onSubmit={(e) => this.changeSubmit(e)}>
+      <form className="createPostContainer" onSubmit={this.onSubmit}>
         <div className="postUsernameContainer">
           <input type="text" name="username" className="postUsername" value={this.state.username} placeholder="username || anon" onChange={(e) => this.handleUsernameChange(e)}/>
         </div>
@@ -108,13 +106,11 @@ class CustomEditor extends Component {
           onChange={this.onContentChange}
           onEditorStateChange={this.onEditorStateChange}
         />
-        {this.state.submit && 
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey="6LeEVYkUAAAAAEGkI1okLmQqpOXHuQXYzrFj3mmV"
-            onChange={this.addComment}
-          />
-        }
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          sitekey="6LeEVYkUAAAAAEGkI1okLmQqpOXHuQXYzrFj3mmV"
+          onChange={this.changeSubmit}
+        />
         <div className="postCommentContainer">
           <input name="submitButton" className={'commentSubmitButton' + checkDarkMode(this.props.darkMode, true)} type="submit" value="Submit" />
         </div>
