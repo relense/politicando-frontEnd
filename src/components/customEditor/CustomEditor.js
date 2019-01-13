@@ -58,7 +58,7 @@ class CustomEditor extends Component {
 
       this.props.setComments(comment, this.props.currentArticle.id, this.props.comments);
 
-      if(this.props.reply) {
+      if(this.props.closeReplyBox !== null && this.props.closeReplyBox !== undefined && this.props.reply) {
         this.props.closeReplyBox();
       }
     }
