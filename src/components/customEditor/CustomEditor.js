@@ -5,7 +5,7 @@ import { asyncSetComments, setComment } from '../../redux/actions/articleActions
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './CustomEditor.css';
-import { checkDarkMode, checkDarkModeEditor } from '../../utils/CheckDarkMode.js';
+import { checkDarkModeEditor } from '../../utils/CheckDarkMode.js';
 import ReCAPTCHA from "react-google-recaptcha";
 
 const recaptchaRef = React.createRef();
@@ -106,13 +106,15 @@ class CustomEditor extends Component {
           onChange={this.onContentChange}
           onEditorStateChange={this.onEditorStateChange}
         />
-        <ReCAPTCHA
-          ref={recaptchaRef}
-          sitekey="6LeEVYkUAAAAAEGkI1okLmQqpOXHuQXYzrFj3mmV"
-          onChange={this.changeSubmit}
-        />
+        <div className="reCaptcha">
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            sitekey="6LeEVYkUAAAAAEGkI1okLmQqpOXHuQXYzrFj3mmV"
+            onChange={this.changeSubmit}
+          /> 
+        </div>
         <div className="postCommentContainer">
-          <input name="submitButton" className={'commentSubmitButton' + checkDarkMode(this.props.darkMode, true)} type="submit" value="Submit" />
+          <input name="submitButton" className={'commentSubmitButton'} type="submit" value="Submit" />
         </div>
       </form>
     )
