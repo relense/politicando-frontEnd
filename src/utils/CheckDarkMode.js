@@ -15,6 +15,14 @@ export const checkDarkMode = (darkMode, selectedElem = false) => {
     return selectedElem ? selected : notSelected;
 }
 
+export const checkDarkModeEditor = () => {
+    let selected = "";
+
+    selected = ' backgroundLightMode buttonsSelectedLightMode';
+    
+    return selected;
+}
+
 export const checkDarkModeLinks = (darkMode) => {
     if(darkMode) 
         return ' linksDarkMode';

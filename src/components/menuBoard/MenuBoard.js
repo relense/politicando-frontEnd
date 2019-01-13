@@ -50,12 +50,12 @@ class MenuBoard extends Component {
     if(this.props.current === HOME)
       data.push(<Link to="/" key={HOME} className={"menuBoardNavlink"}><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div></Link>);
     else
-      data.push(<Link to="/" key={HOME} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div></Link>);
+      data.push(<Link to="/" key={HOME} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(HOME)}>ÚLTIMAS NOTÍCIAS</div></Link>);
 
     if(this.props.current  === PARTIES)
       data.push(<div key={PARTIES} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
     else
-      data.push(<div key={PARTIES} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
+      data.push(<div key={PARTIES} className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(PARTIES)}>PARTIDOS</div>);
 
     if(this.state.opened === true)
         data.push(this.renderPartieRow())
@@ -76,7 +76,7 @@ class MenuBoard extends Component {
           );
         } else {
           data.push(
-              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems menuBoardPartieElem noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                  { this.props.parties[i].party_name} : { this.props.parties[i].description }
               </div></Link>
           );
