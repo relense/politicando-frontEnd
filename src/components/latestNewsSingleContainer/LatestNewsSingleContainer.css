@@ -1,5 +1,5 @@
 .latestNewsSingleContainer {
-  padding: 0 200px 0 200px;
+  padding: 0 450px 0 450px;
 }
 
 .tags {
@@ -95,6 +95,18 @@
   background-color: initial;
 }
 
+@media only screen and (max-width: 1680px) {
+  .latestNewsSingleContainer {
+    padding: 0 400px 0 400px;
+  }
+}
+
+@media only screen and (max-width: 1480px) {
+  .latestNewsSingleContainer {
+    padding: 0 300px 0 300px;
+  }
+}
+
 @media only screen and (max-width: 1280px) {
   .latestNewsSingleContainer {
     padding: 0 200px 0 200px;
@@ -147,7 +159,7 @@
   }
 }
 
-@media only screen and (max-width: 830px) {
+@media only screen and (max-width: 1000px) {
   .latestNewsSingleContainer {
     padding: 0 150px 0 150px;
   }
