@@ -74,7 +74,8 @@ class CustomEditor extends Component {
       }
 
       this.setState({
-        submit: false
+        submit: false,
+        commentContent: ""
       })
 
       window.grecaptcha.reset();
