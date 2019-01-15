@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { EditorState, ContentState } from 'draft-js';
 import { asyncSetComments, setComment } from '../../redux/actions/articleActions';
-import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import './CustomEditor.css';
 import { checkDarkModeEditor } from '../../utils/CheckDarkMode.js';
@@ -16,12 +15,18 @@ class CustomEditor extends Component {
     this.state = {
       editorState: EditorState.createEmpty(),
       username: "",
-      submit: false    
+      submit: false,
+      commentContent: ""    
     }
   }
 
-  onContentChange = (editorState) => {
-    this.props.setComment({id: this.props.commentId, username: null, commentType: this.props.commentType, comment: editorState.blocks[0].text}); 
+  onContentChange = (e) => {
+    if(e.target.rows <= 5) {
+      this.props.setComment({id: this.props.commentId, username: null, commentType: this.props.commentType, comment: e.target.value}); 
+      this.setState({
+        commentContent: e.target.value
+      })
+    }
   }
 
   onEditorStateChange = (editorState) => {
@@ -88,24 +93,11 @@ class CustomEditor extends Component {
     return (
       <form className="createPostContainer" onSubmit={this.onSubmit}>
         <div className="postUsernameContainer">
-          <input type="text" name="username" className="postUsername" value={this.state.username} placeholder="username || anon" onChange={(e) => this.handleUsernameChange(e)}/>
+          <input autoComplete="off" autoCorrect="off" type="text" name="username" className="postUsername" value={this.state.username} placeholder="username || anon" onChange={(e) => this.handleUsernameChange(e)}/>
         </div>
-        <Editor
-          editorState={this.state.editorState}
-          toolbarClassName="toolbarContainer"
-          wrapperClassName="editorWrapperContainer"
-          editorClassName={'editorContainer' + checkDarkModeEditor(this.props.darkMode, true)}
-          toolbar={{
-            options: [],
-            inline: { inDropdown: true },
-            list: { inDropdown: true },
-            textAlign: { inDropdown: true },
-            link: { inDropdown: true },
-            history: { inDropdown: true },
-          }}
-          onChange={this.onContentChange}
-          onEditorStateChange={this.onEditorStateChange}
-        />
+        <div className="editorWrapperContainer">
+          <textarea autoComplete="off" autoCorrect="off" maxLength="500" type="text" name="commentContent" className={"editorContainer" + checkDarkModeEditor(this.props.darkMode, true)} value={this.state.commentContent} onChange={(e) => this.onContentChange(e)}/>
+        </div>
         <div className="reCaptcha">
           <ReCAPTCHA
             ref={recaptchaRef}
