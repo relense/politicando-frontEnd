@@ -52,9 +52,6 @@ class App extends Component {
   }
 
   handleScrollPartieInfo = (e, party, articles, fetchTen) => {
-    console.log(e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop))
-    console.log(e.target.documentElement.clientHeight + 100)
-
     if (party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
       if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
         || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
