@@ -1,1 +1,3 @@
-/articles/* /article/:article_id
+/* /index.html 200
+
+/article/* /article/:article_id
