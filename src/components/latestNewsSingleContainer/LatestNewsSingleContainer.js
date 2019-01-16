@@ -44,7 +44,7 @@ class LatestNewsSingleContainer extends Component {
     let divided_tags = tags.split(",")
 
     return divided_tags.map((item, index) => (
-      <Link to={"/"} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><div className="tags" onClick={() => this.elemFuncs(item)}>{item} |</div></Link>
+      <Link to={"/"} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><div className="tags" onClick={() => this.elemFuncs(item)}>{item}<div className="separator">|</div></div></Link>
     ));
   }
 
@@ -53,7 +53,7 @@ class LatestNewsSingleContainer extends Component {
   
     if(article) { 
       const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden">{article.title}</h1>;
-      const time = <div className="selectForbiden singleNewsTime">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
+      const time = <div className="selectForbiden">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
       const news_url = <a href={"https://" + article.source} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{article.source}</a>;
       const tags = this.getTags(article.tags);
       const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="Article" title={article.title} /> : "";
@@ -73,7 +73,14 @@ class LatestNewsSingleContainer extends Component {
             </a>
           </div>
           <div className="latestNewsDiscussionContainer">
-            {time} | {news_url} | {tags}
+            <div className="newsTimeStamp">
+              <div className="newsTimeUrl">
+              {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
+              </div>
+              <div className="tagList">
+                {tags}
+              </div>
+            </div>
             <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
               <i className="material-icons commentIcons">comment</i>
               <div className="commentContainer">{comments}</div>

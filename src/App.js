@@ -17,7 +17,7 @@ class App extends Component {
   constructor(props){
     super(props);
     this.state=({
-      scroll: false
+      scroll: false,
     })
   }
 
@@ -38,8 +38,8 @@ class App extends Component {
         || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
         || e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
         || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight) {
-        fetchTen(articles[articles.length - 1].id)
-      }
+        fetchTen(articles[articles.length - 1].id);
+      } 
     }
   }
 
