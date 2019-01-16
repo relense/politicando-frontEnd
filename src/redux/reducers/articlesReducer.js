@@ -1,7 +1,7 @@
 import { FETCH_ARTICLES, FETCH_NEXT_TEN } from '../actions/actionTypes';
 
 const initialState = {
-    allArticles: [],
+    allArticles: null,
     tenArticles: []
 }
 
