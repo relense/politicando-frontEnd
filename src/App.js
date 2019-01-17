@@ -33,10 +33,8 @@ class App extends Component {
   }
 
   handleScrollMainContent = (e, articles, fetchTen) => {
-    if (this.props.currentView === 'HOME' && this.props.drawer === false) {
-      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
-        || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
-        || e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
+    if (this.props.loading === false && this.props.currentView === 'HOME' && this.props.drawer === false) {
+      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
         || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight) {
         fetchTen(articles[articles.length - 1].id);
       } 
@@ -52,10 +50,8 @@ class App extends Component {
   }
 
   handleScrollPartieInfo = (e, party, articles, fetchTen) => {
-    if (party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
-      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
-        || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight + 100
-        || e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
+    if (this.props.loading === false && party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
+      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
         || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight) {
         fetchTen(party.id, articles[articles.length - 1].id)
       }
@@ -87,7 +83,8 @@ function mapStateToProps(state) {
     partieNews: state.parties.partieNews,
     articles: state.articles.allArticles,
     drawer: state.view.drawer,
-    currentArticle: state.articles.currentArticle
+    currentArticle: state.articles.currentArticle,
+    loading: state.articles.loading
   }
 }
 

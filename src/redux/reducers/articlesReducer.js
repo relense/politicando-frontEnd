@@ -1,8 +1,9 @@
-import { FETCH_ARTICLES, FETCH_NEXT_TEN } from '../actions/actionTypes';
+import { FETCH_ARTICLES, FETCH_NEXT_TEN, LOADING } from '../actions/actionTypes';
 
 const initialState = {
-    allArticles: null,
-    tenArticles: []
+    allArticles: [],
+    tenArticles: [],
+    loading: false
 }
 
 export default function articles(state = initialState, action) {
@@ -27,6 +28,12 @@ export default function articles(state = initialState, action) {
       return {
         ...state,
         allArticles: allArticles
+      }
+    
+    case LOADING:
+      return {
+        ...state,
+        loading: action.loading
       }
     
     default:
