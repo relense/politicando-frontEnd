@@ -64,7 +64,7 @@ class App extends Component {
         <div>
             <Header scroll={this.state.scroll} />
             <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
-              {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
+              {this.props.drawer && <MenuBoard scroll={this.state.scroll}/>}
             </div>
             <Switch>
               <Route exact path={"/"} component={Home} />
