@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import './LatestNews.css';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
-
+import { ClipLoader } from 'react-spinners';
 
 class LatestNews extends Component {
 
@@ -25,7 +25,17 @@ class LatestNews extends Component {
   render() {
     return (
       <div className={'latestNewsMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
-        {this.renderItem()}
+      {this.renderItem()}
+      {this.props.loading === true &&
+        <div className="centerLoader">
+          <ClipLoader
+            css={`display: block; justify-content: center; border-color: red;`}
+            sizeUnit={"px"}
+            size={30}
+            color={'#123abc'} 
+          />
+        </div>
+        }
       </div>
     );
   }
@@ -33,7 +43,8 @@ class LatestNews extends Component {
 
 function mapStateToProps(state) {
   return {
-    darkMode: state.view.darkMode
+    darkMode: state.view.darkMode,
+    loading: state.articles.loading
   };
 }
 

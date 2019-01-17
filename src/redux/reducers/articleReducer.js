@@ -1,5 +1,4 @@
-import { GET_ARTICLE, GET_ARTICLE_COMMENTS, SET_COMMENT, SET_EDITOR_INDEX, 
-  SET_REPLY } from '../actions/actionTypes';
+import { GET_ARTICLE, GET_ARTICLE_COMMENTS, SET_COMMENT, SET_EDITOR_INDEX, SET_REPLY } from '../actions/actionTypes';
 
 const initialState = {
   currentArticle: null,

@@ -16,13 +16,23 @@ export function receiveNext10Articles(articles) {
     }
 }
 
+export function setLoading(loading) {
+    return {
+        type: types.LOADING,
+        loading: loading
+    }
+}
+
 export const loadArticles = () => {
     return async function(dispatch){
         try {
-            const response = await get(apiUrls.getNews)
-            dispatch(receivedArticles(response))
+            dispatch(setLoading(true));
+            const response = await get(apiUrls.getNews);
+            dispatch(receivedArticles(response));
         } catch (error) {
             console.log(error)
+        } finally {
+            dispatch(setLoading(false));
         }
     }
 }
@@ -30,10 +40,13 @@ export const loadArticles = () => {
 export const loadNextTenArticles = (article_id) => {
   return async function(dispatch){
       try {
-          const response = await get(apiUrls.getNextTenNews.replace('{article_id}', article_id))
-          dispatch(receiveNext10Articles(response))
+          dispatch(setLoading(true));
+          const response = await get(apiUrls.getNextTenNews.replace('{article_id}', article_id));
+          dispatch(receiveNext10Articles(response));
       } catch (error) {
           console.log(error)
+      } finally {
+          dispatch(setLoading(false));
       }
   }
 }

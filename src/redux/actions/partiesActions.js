@@ -1,6 +1,7 @@
 import * as types from './actionTypes';
 import { apiUrls } from '../../api/apiUrls';
 import { get } from '../../api/Api';
+import { setLoading } from './articlesActions';
 
 export function receiveParties(parties) {
   return {
@@ -30,14 +31,13 @@ export function receiveNext10Articles(articles) {
   }
 }
 
-
 export const loadParties = () => {
   return async function(dispatch) {
     try {
       const response = await get(apiUrls.getParties);
-      dispatch(receiveParties(response))
+      dispatch(receiveParties(response));
     } catch(error) {
-      console.log(error)
+      console.log(error);
     }
   }
 }
@@ -45,9 +45,12 @@ export const loadParties = () => {
 export const asyncChangeCurrentPartie = (partie) => {
   return async function(dispatch) {
     try {
-      dispatch(changeCurentPartie(partie))
+      dispatch(setLoading(true));
+      dispatch(changeCurentPartie(partie));
     } catch(error) {
-      console.log(error)
+      console.log(error);
+    } finally {
+      dispatch(setLoading(false));
     }
   }
 }
@@ -55,10 +58,13 @@ export const asyncChangeCurrentPartie = (partie) => {
 export const asyncGetPartieNews = (partie_id) => {
   return async function(dispatch) {
     try {
-      const response = await get(apiUrls.getPartieNews.replace('{partie_id}', partie_id))
-      dispatch(receivePartieNews(response))
+      dispatch(setLoading(true));
+      const response = await get(apiUrls.getPartieNews.replace('{partie_id}', partie_id));
+      dispatch(receivePartieNews(response));
     } catch(error) {
-      console.log(error)
+      console.log(error);
+    } finally {
+      dispatch(setLoading(false));
     }
   }
 }
@@ -66,10 +72,13 @@ export const asyncGetPartieNews = (partie_id) => {
 export const loadNextTenPartyArticles = (party_id, article_id) => {
   return async function(dispatch){
       try {
-          const response = await get(apiUrls.getNextTenPartieNews.replace('{article_id}', article_id).replace('{party_id}', party_id))
-          dispatch(receiveNext10Articles(response))
+          dispatch(setLoading(true));
+          const response = await get(apiUrls.getNextTenPartieNews.replace('{article_id}', article_id).replace('{party_id}', party_id));
+          dispatch(receiveNext10Articles(response));
       } catch (error) {
-          console.log(error)
+          console.log(error);
+      } finally {
+        dispatch(setLoading(false));
       }
   }
 }
