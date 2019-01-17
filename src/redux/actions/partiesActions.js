@@ -45,9 +45,12 @@ export const loadParties = () => {
 export const asyncChangeCurrentPartie = (partie) => {
   return async function(dispatch) {
     try {
+      dispatch(setLoading(true));
       dispatch(changeCurentPartie(partie));
     } catch(error) {
       console.log(error);
+    } finally {
+      dispatch(setLoading(false));
     }
   }
 }
