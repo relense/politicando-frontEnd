@@ -31,6 +31,13 @@ export function receiveNext10Articles(articles) {
   }
 }
 
+export function setAvailableNews(valid) {
+  return {
+    type: types.SET_AVAILABLE_NEWS_PARTIES,
+    valid: valid
+  }
+}
+
 export const loadParties = () => {
   return async function(dispatch) {
     try {
@@ -46,6 +53,7 @@ export const asyncChangeCurrentPartie = (partie) => {
   return async function(dispatch) {
     try {
       dispatch(setLoading(true));
+      dispatch(setAvailableNews(true));
       dispatch(changeCurentPartie(partie));
     } catch(error) {
       console.log(error);
@@ -61,6 +69,8 @@ export const asyncGetPartieNews = (partie_id) => {
       dispatch(setLoading(true));
       const response = await get(apiUrls.getPartieNews.replace('{partie_id}', partie_id));
       dispatch(receivePartieNews(response));
+      if(response.length === 0) 
+        dispatch(setAvailableNews(false));
     } catch(error) {
       console.log(error);
     } finally {
@@ -75,6 +85,8 @@ export const loadNextTenPartyArticles = (party_id, article_id) => {
           dispatch(setLoading(true));
           const response = await get(apiUrls.getNextTenPartieNews.replace('{article_id}', article_id).replace('{party_id}', party_id));
           dispatch(receiveNext10Articles(response));
+          if(response.length === 0)
+            dispatch(setAvailableNews(false));
       } catch (error) {
           console.log(error);
       } finally {
