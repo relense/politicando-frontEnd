@@ -14,3 +14,10 @@
   justify-content: center;
   display: flex;
 }
+
+
+@media only screen and (max-width: 600px) {
+  .latestNewsDoubleContainer {
+    margin-bottom: 10px;
+  }  
+}

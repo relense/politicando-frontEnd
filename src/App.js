@@ -25,17 +25,19 @@ class App extends Component {
     this.props.fetchParties();
     this.props.fetchArticles();
     
-    window.addEventListener('scroll', (e) => {
+    document.addEventListener('scroll', () => {
       this.handleScroll();
-      this.handleScrollMainContent(e, this.props.articles, this.props.fetchNextTenArticles)
-      this.handleScrollPartieInfo(e, this.props.currentPartie, this.props.partieNews, this.props.getNextTenPartieNews)
+      this.handleScrollMainContent(this.props.articles, this.props.fetchNextTenArticles)
+      this.handleScrollPartieInfo(this.props.currentPartie, this.props.partieNews, this.props.getNextTenPartieNews)
     }, true);
   }
 
-  handleScrollMainContent = (e, articles, fetchTen) => {
+  handleScrollMainContent = (articles, fetchTen) => {
+    let scrollTop = Math.max(window.pageYOffset, document.documentElement.scrollTop, document.body.scrollTop)
+
     if (this.props.moreNewsAll && this.props.loading === false && this.props.currentView === 'HOME' && this.props.drawer === false) {
-      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
-        || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight) {
+      if (Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight
+        || Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight + 100) {
         fetchTen(articles[articles.length - 1].id);
       } 
     }
@@ -49,10 +51,12 @@ class App extends Component {
     }
   }
 
-  handleScrollPartieInfo = (e, party, articles, fetchTen) => {
+  handleScrollPartieInfo = (party, articles, fetchTen) => {
+    let scrollTop = Math.max(window.pageYOffset, document.documentElement.scrollTop, document.body.scrollTop)
+
     if (this.props.moreNewsParties && this.props.loading === false && party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
-      if (e.target.documentElement.scrollHeight - Math.round(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight
-        || e.target.documentElement.scrollHeight - Math.floor(e.target.documentElement.scrollTop) === e.target.documentElement.clientHeight) {
+      if (Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight
+        || Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight + 100) {
         fetchTen(party.id, articles[articles.length - 1].id)
       }
     }
@@ -61,10 +65,10 @@ class App extends Component {
   render() {
     return (
       <Router>
-        <div>
+        <div className="mainApp">
             <Header scroll={this.state.scroll} />
             <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
-              {this.props.drawer && <MenuBoard  scroll={this.state.scroll}/> }
+              {this.props.drawer && <MenuBoard scroll={this.state.scroll}/>}
             </div>
             <Switch>
               <Route exact path={"/"} component={Home} />
