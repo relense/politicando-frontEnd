@@ -25,16 +25,16 @@ class LatestNews extends Component {
   render() {
     return (
       <div className={'latestNewsMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
-      {this.renderItem()}
-      {this.props.loading === true &&
-        <div className="centerLoader">
-          <ClipLoader
-            css={`display: block; justify-content: center; border-color: red;`}
-            sizeUnit={"px"}
-            size={30}
-            color={'#123abc'} 
-          />
-        </div>
+        {this.renderItem()}
+        {this.props.loading === true &&
+          <div className="centerLoader">
+            <ClipLoader
+              css={`display: block; justify-content: center; border-color: red;`}
+              sizeUnit={"px"}
+              size={30}
+              color={'#123abc'} 
+            />
+          </div>
         }
       </div>
     );
