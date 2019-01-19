@@ -1,4 +1,4 @@
-import { SET_VIEW, SET_PARTY_VIEW, OPEN_DRAWER, CLOSE_DRAWER, DARK_MODE } from '../actions/actionTypes';
+import { SET_VIEW, SET_PARTY_VIEW, OPEN_DRAWER, CLOSE_DRAWER, SET_DARK_MODE, DARK_MODE } from '../actions/actionTypes';
 
 const initialState = {
     currentView: "HOME",
@@ -32,12 +32,20 @@ export default function view(state = initialState, action) {
         ...state,
         drawer: true
       }
+
+    case SET_DARK_MODE:
+      localStorage.setItem('darkMode', action.darkMode);
+      return {
+        ...state,
+        darkMode: action.darkMode
+      }
     
-      case DARK_MODE:
-        return {
-          ...state,
-          darkMode: !state.darkMode
-        }
+    case DARK_MODE:
+      localStorage.setItem('darkMode', !state.darkMode);
+      return {
+        ...state,
+        darkMode: !state.darkMode
+      }
 
     default:
       return state;
