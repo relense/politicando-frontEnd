@@ -8,6 +8,7 @@ import ArticleDiscussion from './components/articleDiscussion/ArticleDiscussion.
 import { loadParties, loadNextTenPartyArticles } from './redux/actions/partiesActions.js';
 import { loadArticles, loadNextTenArticles } from './redux/actions/articlesActions.js';
 import { setDarkMode } from './redux/actions/viewActions.js';
+import { Helmet } from "react-helmet";
 import './App.css';
 import './utils/Colors.css';
 
@@ -66,18 +67,23 @@ class App extends Component {
 
   render() {
     return (
-      <Router>
-        <div className="mainApp">
-            <Header scroll={this.state.scroll} />
-            <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
-              {this.props.drawer && <MenuBoard scroll={this.state.scroll}/>}
-            </div>
-            <Switch>
-              <Route exact path={"/"} component={Home} />
-              <Route path={"/article/:id"} component={Article} />
-            </Switch>
-        </div>
-      </Router>
+      <div>
+        <Helmet>
+          <meta name="description" content="Politicando, para encontrar as notíticas sobre os partidos politícos em portugal. Noticias divididas por partido politico. Politica em Portugal." />
+        </Helmet>
+        <Router>
+          <div className="mainApp">
+              <Header scroll={this.state.scroll} />
+              <div className={this.state.scroll ? 'adjustContentDrawer' : ''}>
+                {this.props.drawer && <MenuBoard scroll={this.state.scroll}/>}
+              </div>
+              <Switch>
+                <Route exact path={"/"} component={Home} />
+                <Route path={"/article/:id"} component={Article} />
+              </Switch>
+          </div>
+        </Router>
+      </div>
     );
   }
 }
