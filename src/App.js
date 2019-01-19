@@ -7,6 +7,7 @@ import MenuBoard from './components/menuBoard/MenuBoard.js';
 import ArticleDiscussion from './components/articleDiscussion/ArticleDiscussion.js';
 import { loadParties, loadNextTenPartyArticles } from './redux/actions/partiesActions.js';
 import { loadArticles, loadNextTenArticles } from './redux/actions/articlesActions.js';
+import { setDarkMode } from './redux/actions/viewActions.js';
 import './App.css';
 import './utils/Colors.css';
 
@@ -24,6 +25,7 @@ class App extends Component {
   componentDidMount() {
     this.props.fetchParties();
     this.props.fetchArticles();
+    this.props.setUpDarkMode(localStorage['darkMode'] || 'false');
     
     document.addEventListener('scroll', () => {
       this.handleScroll();
@@ -107,6 +109,9 @@ function mapDispatchToProps(dispatch) {
     },
     getNextTenPartieNews: (party_id, article_id) => {
       dispatch(loadNextTenPartyArticles(party_id, article_id))
+    },
+    setUpDarkMode: (darkMode) => {
+      dispatch(setDarkMode(darkMode))
     }
   };
 }

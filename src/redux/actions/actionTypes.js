@@ -9,6 +9,7 @@ export const FETCH_NEXT_TEN = 'FETCH_NEXT_TEN';
 export const FETCH_NEXT_TEN_PARTY_NEWS = 'FETCH_NEXT_TEN_PARTY_NEWS';
 export const OPEN_DRAWER = 'OPEN_DRAWER';
 export const CLOSE_DRAWER = 'CLOSE_DRAWER';
+export const SET_DARK_MODE = 'SET_DARK_MODE';
 export const DARK_MODE = 'DARK_MODE';
 export const GET_ARTICLE = 'GET_ARTICLE';
 export const GET_ARTICLE_COMMENTS = 'GET_ARTICLE_COMMENTS';

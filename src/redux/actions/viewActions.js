@@ -28,6 +28,13 @@ export function closeDrawer() {
   }
 }
 
+export function setDarkMode(darkMode) {
+  return {
+    type: types.SET_DARK_MODE,
+    darkMode: darkMode === "false" ? false : true
+  }
+}
+
 export function darkMode() {
   return {
     type: types.DARK_MODE
