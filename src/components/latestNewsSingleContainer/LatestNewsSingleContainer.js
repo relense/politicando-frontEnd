@@ -7,6 +7,7 @@ import { asyncChangeView } from '../../redux/actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 import { asyncLoadArticle } from '../../redux/actions/articleActions';
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
+import MediaQuery from 'react-responsive';
 
 class LatestNewsSingleContainer extends Component {
   constructor(props) {
@@ -50,43 +51,84 @@ class LatestNewsSingleContainer extends Component {
 
   render() {
     const article = this.props.article ? this.props.article : this.props.currentArticle;
-  
+
     if(article) { 
-      const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden">{article.title}</h1>;
+      const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden" dangerouslySetInnerHTML={{__html: article.title}}></h1>;
       const time = <div className="selectForbiden">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
       const news_url = <a href={"https://" + article.source} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{article.source}</a>;
       const tags = this.getTags(article.tags);
       const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="politicando noticia imagem" title={article.title} /> : "";
-      const content = article.content;
+      const content = article.content.substring(0, 210) + "...";
       const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count} Comentários</p></Link>;
-        
-      return (
-        <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-          <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
-          <div className="latestNewsContentContainer">
-            <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
-            <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
-              <div className="selectForbiden">
-                {content}
-                <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
-              </div>
-            </a>
-          </div>
-          <div className="latestNewsDiscussionContainer">
-            <div className="newsTimeStamp">
-              <div className="newsTimeUrl">
-              {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
-              </div>
-              <div className="tagList">
-                {tags}
-              </div>
-            </div>
-            <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
-              <i className="material-icons commentIcons">comment</i>
-              <div className="commentContainer">{comments}</div>
-            </div>
-          </div>
-        </div>
+    
+    return (
+        <MediaQuery maxWidth={1140}>
+          {(matches) => {
+            if (matches) {
+              return (
+                <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
+                  <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
+                  <div className="latestNewsContentContainer">
+                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
+                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                      <div className="selectForbiden">
+                        {content}
+                        <div className={this.props.darkMode ? "fadeoutMobile fadeoutDarkMode" : "fadeoutMobile"}></div>
+                      </div>
+                    </a>
+                  </div>
+                  <div className="latestNewsDiscussionContainer">
+                    <div className="newsTimeStamp">
+                      <div className="newsTimeUrl">
+                      {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
+                      </div>
+                      <div className="tagList">
+                        {tags}
+                      </div>
+                    </div>
+                    <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
+                      <i className="material-icons commentIcons">comment</i>
+                      <div className="commentContainer">{comments}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else {
+              return (
+                <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
+                  <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
+                  <div className="latestNewsContentContainer">
+                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
+                    <div>
+                      <div className="contentFade">
+                        <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                          <div className="selectForbiden">
+                            {content}
+                          </div>
+                          <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
+                        </a>
+                      </div>
+                      <div className="latestNewsDiscussionContainer">
+                        <div className="newsTimeStamp">
+                          <div className="newsTimeUrl">
+                          {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
+                          </div>
+                          <div className="tagList">
+                            {tags}
+                          </div>
+                        </div>
+                        <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
+                          <i className="material-icons commentIcons">comment</i>
+                          <div className="commentContainer">{comments}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+          }}
+        </MediaQuery>
       );
     } else {
       return null
