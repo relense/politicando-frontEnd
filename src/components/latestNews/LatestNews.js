@@ -15,7 +15,7 @@ class LatestNews extends Component {
     for(let i = 0; i < this.props.articles.length; i++){
       data.push(
         <div key={"doubleContainer" + i} className="latestNewsDoubleContainer">
-          <LatestNewsSingleContainer key={"newsContainer" + i} article={this.props.articles[i]}/>
+          <LatestNewsSingleContainer key={"newsContainer" + i} article={this.props.articles[i]} />
         </div>
       )
     }

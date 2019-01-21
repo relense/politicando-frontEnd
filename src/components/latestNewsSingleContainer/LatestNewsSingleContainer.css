@@ -78,15 +78,31 @@
   width: inherit;
 }
 
-.fadeout {
+.fadeoutMobile {
     position: sticky;
     bottom: 0em;
-    width:100%;
-    height: 2em;
+    width: 100%;
+    height: 11em;
     background: -webkit-linear-gradient(
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 1) 100%
+        rgba(255, 255, 255, 1) 48%
     );
+}
+
+.fadeout {
+  position: sticky;
+  bottom: 0em;
+  width:100%;
+  height: 2em;
+  background: -webkit-linear-gradient(
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 1) 85%
+  );
+}
+
+.contentFade {
+  overflow: hidden;
+  max-height: 85px;
 }
 
 .fadeoutDarkMode {
@@ -113,15 +129,45 @@
   padding: 0 5px;
 }
 
-@media only screen and (max-width: 1680px) {
+@media only screen and (max-width: 4000px) {
+  .latestNewsSingleContainer {
+    padding: 0 700px 0 700px;
+  }
+
+  .fadeout {
+    height: 5em;
+  }
+}
+
+@media only screen and (max-width: 2200px) {
+  .latestNewsSingleContainer {
+    padding: 0 500px 0 500px;
+  }
+
+  .fadeout {
+    height: 5em;
+  }
+}
+
+@media only screen and (max-width: 1900px) {
   .latestNewsSingleContainer {
     padding: 0 400px 0 400px;
+  }
+
+  .fadeout {
+    height: 4em;
+  }
+}
+
+@media only screen and (max-width: 1680px) {
+  .latestNewsSingleContainer {
+    padding: 0 300px 0 300px;
   }
 }
 
 @media only screen and (max-width: 1480px) {
   .latestNewsSingleContainer {
-    padding: 0 300px 0 300px;
+    padding: 0 250px 0 250px;
   }
 }
 
@@ -147,7 +193,7 @@
   }
   
   .latestNewsContentContainer {
-    height: 120px;
+    height: 110px;
     line-height: 25px;
     font-size: 14px;
   }
@@ -161,6 +207,11 @@
     min-width: 250px;
     max-width: 250px;
     margin: 0 20px 5px 0;
+  }
+  
+  .contentFade {
+    overflow: hidden;
+    max-height: 75px;
   }
 }
 
@@ -213,6 +264,17 @@
     flex-direction: column;
     padding-top: 5px;
   }
+
+  .fadeoutMobile {
+    position: sticky;
+    bottom: 0em;
+    width: 100%;
+    height: 14em;
+    background: -webkit-linear-gradient(
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 1) 48%
+    );
+  }
 }
 
 @media only screen and (max-width: 600px) {
@@ -254,5 +316,16 @@
     min-width: 150px;
     max-width: 150px;
     margin: 0 20px 5px 0;
+  }
+
+  .fadeoutMobile {
+    position: sticky;
+    bottom: 0em;
+    width: 100%;
+    height: 18em;
+    background: -webkit-linear-gradient(
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 1) 48%
+    );
   }
 }
