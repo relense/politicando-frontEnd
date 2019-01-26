@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './MainContent.css';
 import PartieInformation from '../partieInformation/PartieInformation';
-import PartyCouncilman from '../partyCouncilman/PartyCouncilman';
 import LatestNews from '../latestNews/LatestNews';
 import { asyncCloseDrawer } from '../../redux/actions/viewActions';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
@@ -14,8 +13,7 @@ class MainContent extends Component {
         return (this.setView(<LatestNews articles={this.props.articles} />));
 
       case "PARTIES":
-        if (this.props.partyView === "NOTICIAS") 
-          return (this.setView(<PartieInformation />));
+        return (this.setView(<PartieInformation />));
 
       default:
         return (this.setView(<LatestNews articles={this.props.articles} />));
