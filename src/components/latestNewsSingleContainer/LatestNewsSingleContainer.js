@@ -63,7 +63,7 @@ class LatestNewsSingleContainer extends Component {
       const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count} Comentários</p></Link>;
     
     return (
-        <MediaQuery maxWidth={1140}>
+        <MediaQuery maxWidth={1280}>
           {(matches) => {
             if (matches) {
               return (
