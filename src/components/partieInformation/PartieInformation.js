@@ -24,10 +24,8 @@ class PartieInformation extends Component {
 
     return (
       <div className={'partieInformationMainContainer ' + this.checkDarkMode()}>
-       {condition && <PartyHeader />}
-        <div>
-          {articles}
-        </div>
+        {condition && <PartyHeader />}
+        {articles}
       </div>
     );
   }
@@ -38,7 +36,7 @@ function mapStateToProps(state) {
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
     articles: state.articles.allArticles,
-    darkMode: state.view.darkMode
+    darkMode: state.view.darkMode,
   };
 }
 

@@ -1,10 +1,12 @@
-import { FETCH_PARTIES, RECEIVE_PARTIES, CHANGE_CURRENT_PARTIE, FETCH_PARTIE_ARTICLES, FETCH_NEXT_TEN_PARTY_NEWS, SET_AVAILABLE_NEWS_PARTIES } from '../actions/actionTypes';
+import { FETCH_PARTIES, RECEIVE_PARTIES, CHANGE_CURRENT_PARTIE, FETCH_PARTIE_ARTICLES,
+   FETCH_NEXT_TEN_PARTY_NEWS, SET_AVAILABLE_NEWS_PARTIES, LOADING_PARTIE_NEWS } from '../actions/actionTypes';
 
 const initialState = {
     partieList: [],
     currentPartie: "",
     partieNews: null,
-    moreNews: true
+    moreNews: true,
+    partieLoading: false
 }
 
 export default function parties(state = initialState, action) {
@@ -49,6 +51,12 @@ export default function parties(state = initialState, action) {
       return {
         ...state,
         moreNews: action.valid
+      }
+
+    case LOADING_PARTIE_NEWS:
+      return {
+        ...state,
+        partieLoading: action.valid
       }
 
     default:

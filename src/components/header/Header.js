@@ -17,7 +17,7 @@ class Header extends Component {
         </div>
         <div className="headerMenuBar brighIcon">
           <div className="iconsContainerHeader noSelect" onClick={() => this.props.changeDarkMode()}>
-            <i className={'material-icons headerIcons' + checkDarkMode(this.props.darkMode, true)}>brightness_7</i>
+            <i className={'material-icons headerIcons' + checkDarkMode(this.props.darkMode, true)}>wb_sunny</i>
           </div>
         </div>
       </div>
