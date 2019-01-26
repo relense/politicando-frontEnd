@@ -26,7 +26,7 @@ class LatestNews extends Component {
     return (
       <div className={'latestNewsMainContainer' + checkDarkModeBackground(this.props.darkMode)}>
         {this.renderItem()}
-        {this.props.loading === true &&
+        {(this.props.loading === true || this.props.partieLoading === true) &&
           <div className="centerLoader">
             <ClipLoader
               css={`display: block; justify-content: center; border-color: red;`}
@@ -44,7 +44,8 @@ class LatestNews extends Component {
 function mapStateToProps(state) {
   return {
     darkMode: state.view.darkMode,
-    loading: state.articles.loading
+    loading: state.articles.loading,
+    partieLoading: state.parties.partieLoading
   };
 }
 

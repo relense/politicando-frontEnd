@@ -21,8 +21,6 @@ class MenuBoard extends Component {
       this.props.changeView("PARTIES");
       this.props.changeCurrentPartie(this.props.parties[i]);
       this.props.getPartieNews(this.props.parties[i].id);
-      window.scrollTo(0, 0);
-      this.props.setPartyView("NOTICIAS"); 
     } else {
       if(currentElem === PARTIES) {
         this.props.changeView(currentElem);

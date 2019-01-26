@@ -1,4 +1,5 @@
 import * as types from './actionTypes';
+import { setPartieLoading } from './partiesActions';
 
 export function changeView(view) {
   return {
@@ -44,9 +45,12 @@ export function darkMode() {
 export const asyncChangeView = (view) => {
   return async function(dispatch) {
     try {
+      dispatch(setPartieLoading(true));
       dispatch(changeView(view))
     } catch(error) {
       console.log(error)
+    } finally {
+      dispatch(setPartieLoading(false));
     }
   }
 }
@@ -54,9 +58,12 @@ export const asyncChangeView = (view) => {
 export const asyncChangePartyView = (view) => {
   return async function(dispatch) {
     try {
-      dispatch(changePartyView(view))
+      dispatch(setPartieLoading(true));
+      dispatch(changePartyView(view));
     } catch(error) {
-      console.log(error)
+      console.log(error);
+    } finally {
+      dispatch(setPartieLoading(false));
     }
   }
 }
@@ -64,9 +71,9 @@ export const asyncChangePartyView = (view) => {
 export const asyncOpenDrawer = () => {
   return async function(dispatch) {
     try {
-      dispatch(openDrawer())
+      dispatch(openDrawer());
     } catch(error) {
-      console.log(error)
+      console.log(error);
     }
   }
 }

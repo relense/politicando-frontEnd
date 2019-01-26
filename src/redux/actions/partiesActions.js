@@ -1,7 +1,6 @@
 import * as types from './actionTypes';
 import { apiUrls } from '../../api/apiUrls';
 import { get } from '../../api/Api';
-import { setLoading } from './articlesActions';
 
 export function receiveParties(parties) {
   return {
@@ -38,6 +37,13 @@ export function setAvailableNews(valid) {
   }
 }
 
+export function setPartieLoading(valid) {
+  return {
+    type: types.LOADING_PARTIE_NEWS,
+    valid: valid
+  }
+}
+
 export const loadParties = () => {
   return async function(dispatch) {
     try {
@@ -52,13 +58,14 @@ export const loadParties = () => {
 export const asyncChangeCurrentPartie = (partie) => {
   return async function(dispatch) {
     try {
-      dispatch(setLoading(true));
+      dispatch(setPartieLoading(true));
       dispatch(setAvailableNews(true));
+      dispatch(receivePartieNews([]))
       dispatch(changeCurentPartie(partie));
     } catch(error) {
       console.log(error);
     } finally {
-      dispatch(setLoading(false));
+      dispatch(setPartieLoading(false));
     }
   }
 }
@@ -66,7 +73,7 @@ export const asyncChangeCurrentPartie = (partie) => {
 export const asyncGetPartieNews = (partie_id) => {
   return async function(dispatch) {
     try {
-      dispatch(setLoading(true));
+      dispatch(setPartieLoading(true));
       const response = await get(apiUrls.getPartieNews.replace('{partie_id}', partie_id));
       dispatch(receivePartieNews(response));
       if(response.length === 0) 
@@ -74,7 +81,7 @@ export const asyncGetPartieNews = (partie_id) => {
     } catch(error) {
       console.log(error);
     } finally {
-      dispatch(setLoading(false));
+      dispatch(setPartieLoading(false));
     }
   }
 }
@@ -82,7 +89,7 @@ export const asyncGetPartieNews = (partie_id) => {
 export const loadNextTenPartyArticles = (party_id, article_id) => {
   return async function(dispatch){
       try {
-          dispatch(setLoading(true));
+          dispatch(setPartieLoading(true));
           const response = await get(apiUrls.getNextTenPartieNews.replace('{article_id}', article_id).replace('{party_id}', party_id));
           dispatch(receiveNext10Articles(response));
           if(response.length === 0)
@@ -90,7 +97,7 @@ export const loadNextTenPartyArticles = (party_id, article_id) => {
       } catch (error) {
           console.log(error);
       } finally {
-        dispatch(setLoading(false));
+        dispatch(setPartieLoading(false));
       }
   }
 }

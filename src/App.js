@@ -57,7 +57,7 @@ class App extends Component {
   handleScrollPartieInfo = (party, articles, fetchTen) => {
     let scrollTop = Math.max(window.pageYOffset, document.documentElement.scrollTop, document.body.scrollTop)
 
-    if (this.props.moreNewsParties && this.props.loading === false && party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
+    if (this.props.moreNewsParties && this.props.partieLoading === false && party !== null && articles !== null && articles.length > 0 && this.props.currentPartie !== "" && this.props.currentView === 'PARTIES' && this.props.drawer === false) {
       if (Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight
         || Math.round(document.documentElement.scrollHeight - scrollTop) <= document.documentElement.clientHeight + 100) {
         fetchTen(party.id, articles[articles.length - 1].id)
@@ -97,6 +97,7 @@ function mapStateToProps(state) {
     drawer: state.view.drawer,
     currentArticle: state.articles.currentArticle,
     loading: state.articles.loading,
+    partieLoading: state.parties.partieLoading,
     moreNewsParties: state.parties.moreNews,
     moreNewsAll: state.articles.moreNews
   }
