@@ -63,7 +63,7 @@ class LatestNewsSingleContainer extends Component {
       const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count} Comentários</p></Link>;
     
     return (
-        <MediaQuery maxWidth={1140}>
+        <MediaQuery maxWidth={1280}>
           {(matches) => {
             if (matches) {
               return (
@@ -84,15 +84,15 @@ class LatestNewsSingleContainer extends Component {
                   <div className="latestNewsDiscussionContainer">
                     <div className="newsTimeStamp">
                       <div className="newsTimeUrl">
-                      {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
+                        {time}<div className="separator">|</div>{news_url}<div className="separator">|</div>
                       </div>
-                      <div className="tagList">
-                        {tags}
-                      </div>
+                      <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
+                        <i className="material-icons commentIcons">comment</i>
+                        <div className="commentContainer">{comments}</div>
+                      </div>                    
                     </div>
-                    <div className="latestNewsDiscussionContainerLinkContainer" onClick={() => this.props.getArticle(article.id)}>
-                      <i className="material-icons commentIcons">comment</i>
-                      <div className="commentContainer">{comments}</div>
+                    <div className="tagList">
+                      {tags}
                     </div>
                   </div>
                 </div>
