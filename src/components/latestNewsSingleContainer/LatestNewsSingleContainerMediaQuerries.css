@@ -1,0 +1,164 @@
+
+@media only screen and (max-width: 4000px) {
+  .latestNewsSingleContainer {
+    padding: 0 700px 0 700px;
+  }
+
+  .fadeout {
+    height: 5em;
+  }
+}
+
+@media only screen and (max-width: 2200px) {
+  .latestNewsSingleContainer {
+    padding: 0 500px 0 500px;
+  }
+}
+
+@media only screen and (max-width: 1900px) {
+  .latestNewsSingleContainer {
+    padding: 0 400px 0 400px;
+  }
+
+  .fadeout {
+    height: 4em;
+  }
+}
+
+@media only screen and (max-width: 1680px) {
+  .latestNewsSingleContainer {
+    padding: 0 300px 0 300px;
+  }
+}
+
+@media only screen and (max-width: 1480px) {
+  .latestNewsSingleContainer {
+    padding: 0 250px 0 250px;
+  }
+}
+
+@media only screen and (max-width: 1280px) {
+  .latestNewsSingleContainer {
+    padding: 0 200px 0 200px;
+  }
+  
+  .lastestNewsSingleContainerTitle {
+    padding: 0;
+  }
+  
+  .commentContainer {
+    padding-left: 10px; 
+  }
+
+  .newsTitle {
+    font-size: 10px;
+  }
+
+  
+  .latestNewsContentContainer {
+    height: 110px;
+  }
+  
+  .latestNewsDiscussionContainer {
+    font-size: 12px;
+  }
+  
+  .contentFade {
+    max-height: 75px;
+  }
+}
+
+@media only screen and (max-width: 950px) {
+  .latestNewsSingleContainer {
+    padding: 0 150px 0 150px;
+  }
+
+  .tags {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .latestNewsContentContainer {
+    height: 80px;
+    line-height: 15px;
+    font-size: 12px;
+  }
+
+  .latestNewsDiscussionContainer {
+    font-size: 10px;
+  }
+
+  .newsImageContainer {
+    min-width: 150px;
+    max-width: 150px;
+  }
+
+  .newsTimeStamp {
+    flex-direction: column;
+    padding-top: 5px;
+  }
+
+  .newsTitle {
+    font-size: 6px;
+  }
+
+  .fadeoutMobile {
+    height: 8em;
+    background: -webkit-linear-gradient(
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 1) 99%
+    );
+  }
+
+  .fadeoutDarkMode {
+    background-image: -webkit-linear-gradient(top, rgba(23,24,28,0), #17181c);
+    background: -webkit-linear-gradient(hsla(0,0%,0,100%),#fff 99%);
+  }
+
+  .urlOverImage {
+    height: 15px;
+    width: 150px;
+    font-size: 10px;
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  .fadeoutMobile {
+    height: 7em;
+  }
+}
+
+@media only screen and (max-width: 600px) {
+  .latestNewsSingleContainer {
+    padding: 0 10px 0 10px;
+  }
+
+  .tags {
+    padding-left: 1px;
+  }
+
+  .commentContainer {
+    padding-left: 10px; 
+  }
+  
+  .newsTitle {
+    font-size: 6px;
+  }
+
+  .latestNewsNavLink {
+    padding: 5px 0;
+  }
+
+  .latestNewsContentContainer {
+    height: 75px;
+    font-size: 10px;
+  }
+
+  .latestNewsDiscussionContainer {
+    font-size: 10px;
+  }
+
+  .fadeoutMobile {
+    height: 5em;
+  }
+}

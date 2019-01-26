@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { Link } from "react-router-dom";
 import moment from 'moment'
 import './LatestNewsSingleContainer.css';
+import './LatestNewsSingleContainerMediaQuerries.css';
 import { asyncChangeView } from '../../redux/actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 import { asyncLoadArticle } from '../../redux/actions/articleActions';
@@ -55,7 +56,7 @@ class LatestNewsSingleContainer extends Component {
     if(article) { 
       const title = <h1 className="lastestNewsSingleContainerTitle selectForbiden" dangerouslySetInnerHTML={{__html: article.title}}></h1>;
       const time = <div className="selectForbiden">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
-      const news_url = <a href={"https://" + article.source} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{article.source}</a>;
+      const news_url = <a href={article.news_url} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} target="_blank" rel="noopener noreferrer">{article.source}</a>;
       const tags = this.getTags(article.tags);
       const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="politicando noticia imagem" title={article.title} /> : "";
       const content = article.content.substring(0, 210) + "...";
@@ -67,15 +68,18 @@ class LatestNewsSingleContainer extends Component {
             if (matches) {
               return (
                 <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-                  <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
+                  <Link to={`/article/${article.id}`} target="_blank" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
                   <div className="latestNewsContentContainer">
-                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
-                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">
+                      {image}
+                      <div className={"urlOverImage" + checkDarkMode(this.props.darkMode)}>{article.news_url}</div>
+                    </a>
+                    <Link to={`/article/${article.id}`} target="_blank" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
                       <div className="selectForbiden">
                         {content}
                         <div className={this.props.darkMode ? "fadeoutMobile fadeoutDarkMode" : "fadeoutMobile"}></div>
                       </div>
-                    </a>
+                    </Link>
                   </div>
                   <div className="latestNewsDiscussionContainer">
                     <div className="newsTimeStamp">
@@ -96,17 +100,20 @@ class LatestNewsSingleContainer extends Component {
             } else {
               return (
                 <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-                  <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</a>
+                  <Link to={`/article/${article.id}`} target="_blank" className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
                   <div className="latestNewsContentContainer">
-                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">{image}</a>
+                    <a href={article.news_url} target="_blank" rel="noopener noreferrer" className="newsImageContainer">
+                      {image}
+                      <div className={"urlOverImage" + checkDarkMode(this.props.darkMode)}>{article.news_url}</div>
+                    </a>
                     <div>
                       <div className="contentFade">
-                        <a href={article.news_url} target="_blank" rel="noopener noreferrer" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                      <Link to={`/article/${article.id}`} target="_blank" className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
                           <div className="selectForbiden">
                             {content}
                           </div>
                           <div className={this.props.darkMode ? "fadeout fadeoutDarkMode" : "fadeout"}></div>
-                        </a>
+                        </Link>
                       </div>
                       <div className="latestNewsDiscussionContainer">
                         <div className="newsTimeStamp">
