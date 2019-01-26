@@ -4,6 +4,7 @@ import './PartieInformation.css';
 import { asyncGetPartieNews } from '../../redux/actions/partiesActions.js';
 import LatestNews from '../latestNews/LatestNews.js';
 import PartyHeader from '../partyHeader/PartyHeader.js';
+import { ClipLoader } from 'react-spinners';
 
 class PartieInformation extends Component {
 
@@ -26,7 +27,17 @@ class PartieInformation extends Component {
       <div className={'partieInformationMainContainer ' + this.checkDarkMode()}>
        {condition && <PartyHeader />}
         <div>
-          {articles}
+          {this.props.loading === false && articles}
+          {this.props.loading === true &&
+          <div className="centerLoader">
+            <ClipLoader
+              css={`display: block; justify-content: center; border-color: red;`}
+              sizeUnit={"px"}
+              size={30}
+              color={'#123abc'} 
+            />
+          </div>
+        }
         </div>
       </div>
     );
@@ -38,7 +49,8 @@ function mapStateToProps(state) {
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
     articles: state.articles.allArticles,
-    darkMode: state.view.darkMode
+    darkMode: state.view.darkMode,
+    loading: state.articles.loading
   };
 }
 

@@ -4,3 +4,8 @@
   flex: 1;
   width: inherit;
 }
+
+.centerLoader {
+  justify-content: center;
+  display: flex;
+}
