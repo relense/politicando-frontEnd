@@ -27,7 +27,7 @@
 }
 
 .latestNewsDiscussionSource {
-  text-decoration: none;
+  text-decoration-line: none;
 }
 
 .tags {
@@ -67,7 +67,8 @@
   max-width: 250px;
   max-height: -webkit-fill-available;
   margin: 0 20px 5px 0;
-  text-decoration: none;
+  border-radius: 5px;
+  text-decoration-color: purple;
 }
 
 .newsImage {
@@ -85,7 +86,7 @@
     height: 11em;
     background: -webkit-linear-gradient(
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 1) 48%
+        rgba(255, 255, 255, 1) 99%
     );
 }
 
@@ -128,10 +129,17 @@
 
 .urlOverImage {
   position: sticky;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0);
   height: 25px;
   width: 250px;
   font-size: 10px;
-  bottom: 4%;
+  bottom: 82%;
   word-wrap: break-word;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  color: white;
+}
+
+.commentIconsLink {
+  padding-left: 5px;
 }

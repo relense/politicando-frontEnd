@@ -115,4 +115,62 @@ export const addNewChildren = (comments, newChild) => {
   })
 }
 
+export const renderLogo = (partyName, mobile = false) => {
+  let imageName = "";
 
+  let partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '70px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px'}
+
+  switch(partyName) {
+    case "PS":
+      imageName = "ps_logo.png";
+      break;
+    case "PSD":
+      imageName = "psd_logo.png";
+      break;
+    case "BE":
+      imageName = "be_logo.png";
+      break;
+    case "CDS-PP":
+      imageName = "cds_logo.png";
+      break;
+    case "PCP":
+      imageName = "pcp_logo.png";
+      break;
+    case "PEV":
+      imageName = "pev_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    case "PAN":
+      imageName = "pan_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    case "JPP":
+      imageName = "jpp_logo.png";
+      break;
+    case "PPM":
+      imageName = "ppm_logo.png";
+      break;
+    case "PTP":
+      imageName = "ptp_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    case "MPT":
+      imageName = "mpt_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    case "PDR":
+      imageName = "pdr_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    case "L":
+      imageName = "l_logo.png";
+      break;
+    case "NC":
+      imageName = "nc_logo.png";
+      partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '90px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+      break;
+    default:
+      imageName= "ps_logo.png"
+  }
+  return { imageName: imageName, partieLogo: partieLogo}
+}

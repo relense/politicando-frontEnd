@@ -5,6 +5,7 @@ import './MenuBoard.css';
 import { asyncChangeView, asyncChangePartyView, asyncCloseDrawer } from '../../redux/actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 import { checkDarkMode, checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
+import { renderLogo } from '../../utils/UtilFunctions.js';
 
 const PARTIES = 'PARTIES';
 
@@ -44,16 +45,19 @@ class MenuBoard extends Component {
 
     if (this.props.parties.length !== 0) {
       for(let i = 0; i < this.props.parties.length; i++) {
+        let logo = renderLogo(this.props.parties[i].party_name, true);
         if(this.props.currentPartie.party_name === this.props.parties[i].party_name) {
           data.push(
               <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
-                  { this.props.parties[i].party_name} : {this.props.parties[i].description }
+                <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.parties[i].description} />
+                { this.props.parties[i].party_name} : {this.props.parties[i].description }
               </div></Link>
           );
         } else {
           data.push(
               <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
-                 { this.props.parties[i].party_name} : { this.props.parties[i].description }
+                <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.parties[i].description} />
+                { this.props.parties[i].party_name} : { this.props.parties[i].description }
               </div></Link>
           );
         }
