@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { ClipLoader } from 'react-spinners';
+
 import './ArticleDiscussion.css';
 import { asyncLoadArticle, asyncLoadArticleComments, setEditorIndex } from '../../redux/actions/articleActions';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer.js';
@@ -64,6 +66,17 @@ class ArticleDiscussion extends Component {
           </div>         
         </div>
       )
+    } else {
+      renderer = (
+        <div className="centerLoader">
+          <ClipLoader
+            css={`display: block; justify-content: center; border-color: red;`}
+            sizeUnit={"px"}
+            size={30}
+            color={'#123abc'} 
+          />
+        </div>
+      );
     }
 
     return renderer
