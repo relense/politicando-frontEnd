@@ -68,18 +68,22 @@ class LatestNewsSingleContainer extends Component {
             if (matches) {  
               return (
                 <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-                  <Link to={`/article/${article.id}`} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
+                  <div onClick={() => this.props.getArticle(article.id)}>
+                    <Link to={`/article/${article.id}`} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
+                  </div>
                   <div className="latestNewsContentContainer">
                     <a href={article.news_url} rel="noopener noreferrer" className="newsImageContainer">
                       {image}
                       <div className={"urlOverImage" + checkDarkMode(this.props.darkMode)}><i className="material-icons commentIconsLink">link</i></div>
                     </a>
-                    <Link to={`/article/${article.id}`} className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
-                      <div className="selectForbiden">
-                        {content}
-                        <div className={this.props.darkMode ? "fadeoutMobile fadeoutDarkMode" : "fadeoutMobile"}></div>
-                      </div>
-                    </Link>
+                    <div className="contentFade" onClick={() => this.props.getArticle(article.id)}>
+                      <Link to={`/article/${article.id}`} className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                        <div className="selectForbiden">
+                          {content}
+                          <div className={this.props.darkMode ? "fadeoutMobile fadeoutDarkMode" : "fadeoutMobile"}></div>
+                        </div>
+                      </Link>
+                    </div>
                   </div>
                   <div className="latestNewsDiscussionContainer">
                     <div className="newsTimeStamp">
@@ -100,15 +104,17 @@ class LatestNewsSingleContainer extends Component {
             } else {
               return (
                 <div className={'latestNewsSingleContainer' + checkDarkMode(this.props.darkMode, true)}>
-                  <Link to={`/article/${article.id}`} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
+                  <div onClick={() => this.props.getArticle(article.id)}>
+                    <Link to={`/article/${article.id}`} className={'newsTitle' + checkDarkMode(this.props.darkMode, true)}>{title}</Link>
+                  </div>
                   <div className="latestNewsContentContainer">
                     <a href={article.news_url} rel="noopener noreferrer" className="newsImageContainer">
                       {image}
                       <div className={"urlOverImage" + checkDarkMode(this.props.darkMode)}><i className="material-icons commentIconsLink">link</i></div>
                     </a>
                     <div>
-                      <div className="contentFade">
-                      <Link to={`/article/${article.id}`} className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
+                      <div className="contentFade" onClick={() => this.props.getArticle(article.id)}>
+                        <Link to={`/article/${article.id}`} className={"newsComment" + checkDarkMode(this.props.darkMode, true)}>
                           <div className="selectForbiden">
                             {content}
                           </div>
