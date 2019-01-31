@@ -41,6 +41,7 @@ export function setReply(value) {
 export const asyncLoadArticle = (articleId) => {
     return async function(dispatch){
         try {
+            dispatch(reveiveArticle(null))
             await get(apiUrls.getArticle.replace('{article_id}', articleId)).then((article) => {
                 dispatch(reveiveArticle(article))
             })
