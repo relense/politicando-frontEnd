@@ -169,6 +169,33 @@ export const renderLogo = (partyName, mobile = false) => {
       imageName = "nc_logo.png";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '90px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
+    case "PCTP":
+      imageName = "pctp_logo.png";
+      break;
+    case "POUS":
+      imageName = "pous_logo.png";
+      break;
+    case "PNR":
+      imageName = "pnr_logo.png";
+      break;
+    case "PLD":
+      imageName = "pld_logo.png";
+      break;
+    case "PPV":
+      imageName = "ppv_cdc_logo.png";
+      break;
+    case "MAS":
+      imageName = "mas_logo.png";
+      break;
+    case "PURP":
+      imageName = "purp_logo.png";
+      break;
+    case "IL":
+      imageName = "il_logo.png";
+      break;
+    case "A":
+      imageName = "alianca_logo.png";
+      break;
     default:
       imageName= "ps_logo.png"
   }
