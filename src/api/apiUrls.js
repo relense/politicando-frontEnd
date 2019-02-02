@@ -1,5 +1,5 @@
 export const apiUrls = { }
-const baseUrl = false ? "http://localhost:4000/api" : "https://politicando-backend.herokuapp.com/api" 
+const baseUrl = true ? "http://localhost:4000/api" : "https://politicando-backend.herokuapp.com/api" 
 const apiVersion = "/v1"
 
 apiUrls.getParties =  `${baseUrl}${apiVersion}/partidos`
