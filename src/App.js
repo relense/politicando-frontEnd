@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import ReactGA from 'react-ga';
 import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
 import MenuBoard from './components/menuBoard/MenuBoard.js';
@@ -63,6 +64,10 @@ class App extends Component {
         fetchTen(party.id, articles[articles.length - 1].id)
       }
     }
+  }
+
+  initializeReactGA = () => {
+    ReactGA.initialize('UA-133652354-1');
   }
 
   render() {

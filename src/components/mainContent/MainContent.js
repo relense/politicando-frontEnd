@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import ReactGA from 'react-ga';
 import './MainContent.css';
 import PartieInformation from '../partieInformation/PartieInformation';
 import LatestNews from '../latestNews/LatestNews';
@@ -7,6 +8,11 @@ import { asyncCloseDrawer } from '../../redux/actions/viewActions';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 
 class MainContent extends Component {
+
+  componentDidMount() {
+    ReactGA.pageview("/home");
+  }
+
   getView = () => {
     switch(this.props.currentView) {
       case "HOME":
