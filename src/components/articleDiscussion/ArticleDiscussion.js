@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 import { ClipLoader } from 'react-spinners';
-
 import './ArticleDiscussion.css';
 import { asyncLoadArticle, asyncLoadArticleComments, setEditorIndex } from '../../redux/actions/articleActions';
 import LatestNewsSingleContainer from '../latestNewsSingleContainer/LatestNewsSingleContainer.js';
