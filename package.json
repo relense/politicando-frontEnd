@@ -12,6 +12,7 @@
     "react": "^16.6.3",
     "react-dom": "^16.5.2",
     "react-draft-wysiwyg": "^1.12.13",
+    "react-ga": "^2.5.7",
     "react-google-recaptcha": "^1.0.5",
     "react-helmet": "^5.2.0",
     "react-measure": "^2.1.2",
