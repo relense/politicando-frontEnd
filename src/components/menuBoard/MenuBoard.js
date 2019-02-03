@@ -48,17 +48,21 @@ class MenuBoard extends Component {
         let logo = renderLogo(this.props.parties[i].party_name, true);
         if(this.props.currentPartie.party_name === this.props.parties[i].party_name) {
           data.push(
-              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+            <Link to={"/partido/" +  this.props.parties[i].party_name.toLowerCase()} key={i} className="menuBoardNavlink">
+              <div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                 <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.parties[i].description} />
                 { this.props.parties[i].party_name} : {this.props.parties[i].description }
-              </div></Link>
+              </div>
+            </Link>
           );
         } else {
           data.push(
-              <Link to="/" key={i} className="menuBoardNavlink"><div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
+            <Link to={"/partido/" +  this.props.parties[i].party_name.toLowerCase()} key={i} className="menuBoardNavlink">
+              <div className={'menuBoardnavElems noSelect' + checkDarkMode(this.props.darkMode, true)} onClick={() => this.elemFuncs(this.props.parties[i], i)}>
                 <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.parties[i].description} />
                 { this.props.parties[i].party_name} : { this.props.parties[i].description }
-              </div></Link>
+              </div>
+            </Link>
           );
         }
       }

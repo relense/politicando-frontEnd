@@ -1,14 +1,16 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import './PartieInformation.css';
-import { asyncGetPartieNews } from '../../redux/actions/partiesActions.js';
 import LatestNews from '../latestNews/LatestNews.js';
 import PartyHeader from '../partyHeader/PartyHeader.js';
+import { asyncChangeView } from '../../redux/actions/viewActions';
+import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
+import { asyncLoadArticle } from '../../redux/actions/articleActions';
 
 class PartieInformation extends Component {
 
   componentWillMount() {
-    this.props.getPartieNews(this.props.currentPartie.id)
+    this.props.getPartieNews(this.props.currentPartie.id);
   }
 
   checkDarkMode(){
@@ -33,6 +35,7 @@ class PartieInformation extends Component {
 
 function mapStateToProps(state) {
   return {
+    parties: state.parties.partieList,
     currentPartie: state.parties.currentPartie,
     partieNews: state.parties.partieNews,
     articles: state.articles.allArticles,
@@ -44,7 +47,16 @@ function mapDispatchToProps(dispatch) {
   return {
     getPartieNews: (partie_id) => {
       dispatch(asyncGetPartieNews(partie_id))
-    }
+    },
+    changeView: (view) => {
+      dispatch(asyncChangeView(view))
+    },
+    changeCurrentPartie: (partie) => {
+      dispatch(asyncChangeCurrentPartie(partie))
+    },
+    getArticle: (article_id) => {
+      dispatch(asyncLoadArticle(article_id))
+    },
   };
 }
 

@@ -46,7 +46,7 @@ class LatestNewsSingleContainer extends Component {
     let divided_tags = tags.split(",")
 
     return divided_tags.map((item, index) => (
-      <Link to={"/"} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><div className="tags" onClick={() => this.elemFuncs(item)}>{item}<div className="separator">|</div></div></Link>
+      <Link to={"/partido/" + item.toLowerCase()} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><div className="tags" onClick={() => this.elemFuncs(item)}>{item}<div className="separator">|</div></div></Link>
     ));
   }
 
