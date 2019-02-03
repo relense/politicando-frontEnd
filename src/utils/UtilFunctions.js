@@ -117,87 +117,110 @@ export const addNewChildren = (comments, newChild) => {
 
 export const renderLogo = (partyName, mobile = false) => {
   let imageName = "";
-
+  let partyUrl = "";
   let partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '70px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px'}
 
   switch(partyName) {
     case "PS":
       imageName = "ps_logo.png";
+      partyUrl = "https://ps.pt/";
       break;
     case "PSD":
       imageName = "psd_logo.png";
+      partyUrl = "https://www.psd.pt/";
       break;
     case "BE":
       imageName = "be_logo.png";
+      partyUrl = "https://www.bloco.org/";
       break;
     case "CDS-PP":
       imageName = "cds_logo.png";
+      partyUrl = "http://www.cds.pt/";
       break;
     case "PCP":
       imageName = "pcp_logo.png";
+      partyUrl = "http://www.pcp.pt/";
       break;
     case "PEV":
       imageName = "pev_logo.png";
+      partyUrl = "http://www.osverdes.pt/";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "PAN":
       imageName = "pan_logo.png";
+      partyUrl = "https://www.pan.com.pt/";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "JPP":
       imageName = "jpp_logo.png";
+      partyUrl = "http://juntospelopovo.pt/";
       break;
     case "PPM":
       imageName = "ppm_logo.png";
+      partyUrl = "http://www.ppm.pt/";
       break;
     case "PTP":
       imageName = "ptp_logo.png";
+      partyUrl = "";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "MPT":
       imageName = "mpt_logo.png";
+      partyUrl = "http://mpt.pt/";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "PDR":
       imageName = "pdr_logo.png";
+      partyUrl = "https://pdr.pt/";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '100px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "L":
       imageName = "l_logo.png";
+      partyUrl = "https://partidolivre.pt/";
       break;
     case "NC":
       imageName = "nc_logo.png";
+      partyUrl = "http://noscidadaos.pt/";
       partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '90px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
       break;
     case "PCTP":
       imageName = "pctp_logo.png";
+      partyUrl = "http://lutapopularonline.org/index.php/editorial";
       break;
     case "POUS":
       imageName = "pous_logo.png";
+      partyUrl = "https://pous4.wordpress.com/";
       break;
     case "PNR":
       imageName = "pnr_logo.png";
+      partyUrl = "http://www.pnr.pt/";
       break;
     case "PLD":
       imageName = "pld_logo.png";
+      partyUrl = "https://mudarportugal.pt/";
       break;
     case "PPV":
       imageName = "ppv_cdc_logo.png";
+      partyUrl = "http://portugalprovida.blogspot.com/";
       break;
     case "MAS":
       imageName = "mas_logo.png";
+      partyUrl = "http://www.mas.org.pt/";
       break;
     case "PURP":
       imageName = "purp_logo.png";
+      partyUrl = "https://www.purp.pt/";
       break;
     case "IL":
       imageName = "il_logo.png";
+      partyUrl = "https://iniciativaliberal.pt/";
       break;
     case "A":
       imageName = "alianca_logo.png";
+      partyUrl = "https://alianca.com.pt/";
       break;
     default:
       imageName= "ps_logo.png"
   }
-  return { imageName: imageName, partieLogo: partieLogo}
+  return { imageName: imageName, partieLogo: partieLogo, partyUrl: partyUrl}
 }

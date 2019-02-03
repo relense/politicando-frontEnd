@@ -33,7 +33,9 @@ class PartyHeader extends Component {
 
     let logo2 = (
       <div className="partyHeaderLogoContainer">
-        <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.currentPartie.description} />
+        <a href={logo.partyUrl} target="_blank" rel="noopener noreferrer">
+          <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={this.props.currentPartie.description} />
+        </a>
       </div>
     );
 

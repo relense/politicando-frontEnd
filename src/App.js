@@ -22,6 +22,9 @@ class App extends Component {
     this.state=({
       scroll: false,
     })
+
+    ReactGA.initialize('UA-133652354-1');
+    ReactGA.pageview(window.location.pathname);
   }
 
   componentDidMount() {
@@ -64,10 +67,6 @@ class App extends Component {
         fetchTen(party.id, articles[articles.length - 1].id)
       }
     }
-  }
-
-  initializeReactGA = () => {
-    ReactGA.initialize('UA-133652354-1');
   }
 
   render() {
