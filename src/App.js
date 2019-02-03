@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import ReactGA from 'react-ga';
 import Header from './components/header/Header.js';
 import MainContent from './components/mainContent/MainContent.js';
+import PartiesContent from './components/partiesContent/PartiesContent.js'
 import MenuBoard from './components/menuBoard/MenuBoard.js';
 import ArticleDiscussion from './components/articleDiscussion/ArticleDiscussion.js';
 import { loadParties, loadNextTenPartyArticles } from './redux/actions/partiesActions.js';
@@ -15,6 +16,7 @@ import './utils/Colors.css';
 
 const Home = () => <MainContent />
 const Article = ({match}) => <ArticleDiscussion id={match.params.id}/>;
+const Partie = ({match}) => <PartiesContent name={match.params.name} />
 
 class App extends Component {
   constructor(props){
@@ -27,9 +29,12 @@ class App extends Component {
     ReactGA.pageview(window.location.pathname);
   }
 
-  componentDidMount() {
+  componentWillMount(){
     this.props.fetchParties();
     this.props.fetchArticles();
+  }
+
+  componentDidMount() {
     this.props.setUpDarkMode(localStorage['darkMode'] || 'false');
     
     document.addEventListener('scroll', () => {
@@ -84,6 +89,7 @@ class App extends Component {
               <Switch>
                 <Route exact path={"/"} component={Home} />
                 <Route path={"/article/:id"} component={Article} />
+                <Route path={"/partido/:name"} component={Partie} />}
               </Switch>
           </div>
         </Router>
