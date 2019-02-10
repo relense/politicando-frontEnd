@@ -9,9 +9,13 @@ import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/action
 import { asyncLoadArticle } from '../../redux/actions/articleActions';
 
 class PartiesContent extends Component {
+  componentDidMount() {
+    this.selectPartie(this.props.name);
+  }
+
   selectPartie = (currentElem) => {
     for(var i = 0; i < this.props.parties.length; i++) {
-      if (currentElem === this.props.parties[i].party_name) {
+      if (currentElem.toUpperCase() === this.props.parties[i].party_name) {
         this.props.changeView("PARTIES");
         this.props.changeCurrentPartie(this.props.parties[i]);
         this.props.getPartieNews(this.props.parties[i].id)
@@ -25,7 +29,6 @@ class PartiesContent extends Component {
     return (
       <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
         <div className={this.props.drawer ? 'removeLinks' : ''}>
-          {this.props.parties.length > 0 && this.selectPartie(this.props.name)}
           <PartieInformation />
         </div>
       </div>
