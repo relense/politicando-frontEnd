@@ -60,7 +60,7 @@ class LatestNewsSingleContainer extends Component {
       const tags = this.getTags(article.tags);
       const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="politicando noticia imagem" title={article.title} /> : "";
       const content = article.content.substring(0, 210) + "...";
-      const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>Comentários</p></Link>;
+      const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count === 0 ? "Comentários" : article.comments_count === 1 ? "1 Comentário" : article.comments_count + " Comentários"}</p></Link>;
     
     return (
         <MediaQuery maxWidth={1280}>

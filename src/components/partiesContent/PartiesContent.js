@@ -5,8 +5,7 @@ import PartieInformation from '../partieInformation/PartieInformation';
 import { asyncCloseDrawer } from '../../redux/actions/viewActions';
 import { checkDarkModeBackground } from '../../utils/CheckDarkMode.js';
 import { asyncChangeView } from '../../redux/actions/viewActions';
-import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
-import { asyncLoadArticle } from '../../redux/actions/articleActions';
+import { loadParties, asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 
 class PartiesContent extends Component {
   componentDidMount() {
@@ -26,7 +25,7 @@ class PartiesContent extends Component {
   }
 
   render() {
-    return (
+    return(
       <div className={(this.props.drawer ? 'mainContainerDark' : '') + checkDarkModeBackground(this.props.darkMode)} onClick={() => this.props.closeDrawer()}>
         <div className={this.props.drawer ? 'removeLinks' : ''}>
           <PartieInformation />
@@ -41,12 +40,14 @@ function mapStateToProps(state) {
     parties: state.parties.partieList,
     drawer: state.view.drawer,
     darkMode: state.view.darkMode,
-    currentArticle: state.articles.currentArticle
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
+    fetchParties: () => {
+      dispatch(loadParties())
+    },
     changeView: (view) => {
       dispatch(asyncChangeView(view))
     },
@@ -55,9 +56,6 @@ function mapDispatchToProps(dispatch) {
     },
     getPartieNews: (partie_id) => {
       dispatch(asyncGetPartieNews(partie_id))
-    },
-    getArticle: (article_id) => {
-      dispatch(asyncLoadArticle(article_id))
     },
     closeDrawer: () => {
       dispatch(asyncCloseDrawer());
