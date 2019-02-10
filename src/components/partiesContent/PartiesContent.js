@@ -8,22 +8,18 @@ import { asyncChangeView } from '../../redux/actions/viewActions';
 import { loadParties, asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 
 class PartiesContent extends Component {
-  componentWillMount() {
-    if(this.props.parties.length === 0){
-      this.props.fetchParties();
-    }  
+  componentDidMount() {
+    this.selectPartie(this.props.name);
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.parties !== prevProps.parties) {
-      for(var i = 0; i < this.props.parties.length; i++) {
-        if (this.props.name.toUpperCase() === this.props.parties[i].party_name) {
-          this.props.changeView("PARTIES");
-          this.props.changeCurrentPartie(this.props.parties[i]);
-          this.props.getPartieNews(this.props.parties[i].id)
-          window.scrollTo(0, 0)
-          return;
-        }
+  selectPartie = (currentElem) => {
+    for(var i = 0; i < this.props.parties.length; i++) {
+      if (currentElem.toUpperCase() === this.props.parties[i].party_name) {
+        this.props.changeView("PARTIES");
+        this.props.changeCurrentPartie(this.props.parties[i]);
+        this.props.getPartieNews(this.props.parties[i].id)
+        window.scrollTo(0, 0)
+        return;
       }
     }
   }

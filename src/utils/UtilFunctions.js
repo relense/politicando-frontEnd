@@ -219,6 +219,10 @@ export const renderLogo = (partyName, mobile = false) => {
       imageName = "alianca_logo.png";
       partyUrl = "https://alianca.com.pt/";
       break;
+    case "RIR":
+      imageName = "progress.png";
+      partyUrl = "";
+      break;
     default:
       imageName= "ps_logo.png"
   }
