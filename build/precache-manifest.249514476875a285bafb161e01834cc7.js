@@ -1,19 +1,19 @@
 self.__precacheManifest = [
   {
-    "revision": "971d086db6d7dbec8a20",
-    "url": "/static/css/main.14673d40.chunk.css"
+    "revision": "19835810ffc362f1c4a1",
+    "url": "/static/css/main.2f37d438.chunk.css"
   },
   {
-    "revision": "971d086db6d7dbec8a20",
-    "url": "/static/js/main.971d086d.chunk.js"
+    "revision": "19835810ffc362f1c4a1",
+    "url": "/static/js/main.19835810.chunk.js"
   },
   {
-    "revision": "847836dee81812c34c9f",
-    "url": "/static/css/1.7d574cae.chunk.css"
+    "revision": "6368e9693f0c1b6cbf13",
+    "url": "/static/css/1.ab60c30d.chunk.css"
   },
   {
-    "revision": "847836dee81812c34c9f",
-    "url": "/static/js/1.847836de.chunk.js"
+    "revision": "6368e9693f0c1b6cbf13",
+    "url": "/static/js/1.6368e969.chunk.js"
   },
   {
     "revision": "229c360febb4351a89df",
@@ -96,6 +96,10 @@ self.__precacheManifest = [
     "url": "/static/media/ppv_cdc_logo.5353606a.png"
   },
   {
+    "revision": "f84f41d7f256ab7db3dfa17b21c50383",
+    "url": "/static/media/progress.f84f41d7.png"
+  },
+  {
     "revision": "71115ff24487ef530cbb2293893d9b95",
     "url": "/static/media/ps_logo.71115ff2.png"
   },
@@ -108,7 +112,7 @@ self.__precacheManifest = [
     "url": "/static/media/purp_logo.b7469a54.png"
   },
   {
-    "revision": "4a2ba6bcd17faaf6a8a2e4d8866fabf1",
+    "revision": "9e38919cf4ec6c47c75fa969e7dbcdf2",
     "url": "/index.html"
   }
 ];
