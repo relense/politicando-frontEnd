@@ -2,13 +2,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from "react-router-dom";
 import moment from 'moment'
+import MediaQuery from 'react-responsive';
 import './LatestNewsSingleContainer.css';
 import './LatestNewsSingleContainerMediaQuerries.css';
 import { asyncChangeView } from '../../redux/actions/viewActions';
 import { asyncChangeCurrentPartie, asyncGetPartieNews } from '../../redux/actions/partiesActions';
 import { asyncLoadArticle } from '../../redux/actions/articleActions';
 import { checkDarkMode, checkDarkModeLinks } from '../../utils/CheckDarkMode.js';
-import MediaQuery from 'react-responsive';
+import { renderLogo } from '../../utils/UtilFunctions.js';
 
 class LatestNewsSingleContainer extends Component {
   constructor(props) {
@@ -43,11 +44,22 @@ class LatestNewsSingleContainer extends Component {
   }
 
   getTags = (tags) => {
-    let divided_tags = tags.split(",")
+    let divided_tags = tags.split(",");
 
-    return divided_tags.map((item, index) => (
-      <Link to={"/partido/" + item.toLowerCase()} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><div className="tags" onClick={() => this.elemFuncs(item)}>{item}<div className="separator">|</div></div></Link>
-    ));
+
+    return divided_tags.map((item, index) => {
+      let logo = renderLogo(item, false, true);
+
+      return (
+        <Link to={"/partido/" + item.toLowerCase()} key={item + index} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}>
+          <div className="tags" onClick={() => this.elemFuncs(item)}>
+            <img src={ require(`../../images/${logo.imageName}`)} style={logo.partieLogo} alt={item} />
+            {item}
+            <div className="separator">|</div>
+          </div>
+        </Link>
+      );
+    });
   }
 
   render() {
@@ -58,7 +70,7 @@ class LatestNewsSingleContainer extends Component {
       const time = <div className="selectForbiden">{moment(article.published_time).format('DD-MM-YYYY | HH:mm')}</div>
       const news_url = <a href={article.news_url} className={"latestNewsDiscussionSource" + checkDarkModeLinks(this.props.darkMode)} rel="noopener noreferrer">{article.source}</a>;
       const tags = this.getTags(article.tags);
-      const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} src={article.image_url}  alt="politicando noticia imagem" title={article.title} /> : "";
+      const image = article.image_url ? <img onLoad={this.onLoadImage} className={this.state.size ? "newsImageContainer" : "newsImageContainer"} style={{ backgroundImage: `url(${article.image_url})` }}  alt="" title={article.title} /> : "";
       const content = article.content.substring(0, 210) + "...";
       const comments = <Link to={`/article/${article.id}`} className={'latestNewsNavLink' + checkDarkMode(this.props.darkMode, true)}><p>{article.comments_count === 0 ? "Comentários" : article.comments_count === 1 ? "1 Comentário" : article.comments_count + " Comentários"}</p></Link>;
     

@@ -115,10 +115,11 @@ export const addNewChildren = (comments, newChild) => {
   })
 }
 
-export const renderLogo = (partyName, mobile = false) => {
+export const renderLogo = (partyName, mobile = false, tags = false) => {
   let imageName = "";
   let partyUrl = "";
-  let partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '70px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px'}
+  let partieLogo = !mobile ? { maxWidth: '200px', maxHeight: '70px' } : { maxWidth: '35px', maxHeight: '35px', paddingRight: '10px' }
+
 
   switch(partyName) {
     case "PS":
@@ -226,5 +227,9 @@ export const renderLogo = (partyName, mobile = false) => {
     default:
       imageName= "ps_logo.png"
   }
+
+  if(tags)
+    partieLogo = { maxWidth: '20px', maxHeight: '20px', paddingRight: '2px' }
+
   return { imageName: imageName, partieLogo: partieLogo, partyUrl: partyUrl}
 }
