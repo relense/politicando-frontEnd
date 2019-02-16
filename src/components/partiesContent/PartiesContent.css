@@ -1,10 +1,10 @@
 .mainContainerDark {
   overflow: hidden;
-  filter: blur(2px); 
-  -webkit-filter: blur(2px);
-  -moz-filter: blur(2px);
-  -o-filter: blur(2px); 
-  -ms-filter: blur(2px);
+  filter: contrast(45%);
+  -webkit-filter: contrast(45%);
+  -moz-filter: contrast(45%);
+  -o-filter: contrast(45%); 
+  -ms-filter: contrast(45%);
 }
 
 .removeLinks {

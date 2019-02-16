@@ -6,15 +6,20 @@
   overflow-y: auto;
   overflow-x: hidden;
   font-size: 14px;
+  box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.35);
+  -webkit-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.35);
+  -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.35);
+  -o-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.35);
+  -ms-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.35);
 }
 
 .menuBoardnavElems {
-  padding: 10px 0 10px 20px;
-  font-size: 16px;
+  padding: 10px 30px 10px 30px;  font-size: 16px;
   cursor: pointer;
   display: flex;
   flex-direction: row;
   align-items: center;
+  border-right: solid 1px #eee;
 
 }
 
