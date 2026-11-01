@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Article, ArticlePage, Comment, NewComment, Party } from "@/lib/types";
 import { mapArticle, mapComment, mapParty } from "./mappers";
-import { articleDetailSchema, articlePageSchema, commentSchema, errorSchema, partySchema } from "./schemas";
+import { articlePageSchema, articleSchema, commentSchema, errorSchema, partySchema } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
 const REVALIDATE_SECONDS = 60;
@@ -60,7 +60,7 @@ export async function getFeedPage({ party, cursor, limit }: FeedQuery = {}): Pro
 }
 
 export async function getArticle(id: number): Promise<Article> {
-  return mapArticle(await request(`/articles/${id}`, articleDetailSchema, cached));
+  return mapArticle(await request(`/articles/${id}`, articleSchema, cached));
 }
 
 export async function getComments(articleId: number): Promise<Comment[]> {

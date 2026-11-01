@@ -19,7 +19,8 @@ export function ArticleCard({ article, headingLevel = 2, linkTitle = true }: Pro
   const Heading = `h${headingLevel}` as const;
   const articlePath = `/article/${article.id}`;
   const date = formatDateTime(article.publishedAt);
-  const text = excerpt(article.content);
+  // Lists use a shorter teaser; the article page shows everything the API has.
+  const text = linkTitle ? excerpt(article.excerpt) : article.excerpt;
   const showImage = article.imageUrl && !imageFailed;
 
   return (
@@ -62,15 +63,14 @@ export function ArticleCard({ article, headingLevel = 2, linkTitle = true }: Pro
           )}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
             {date && <time dateTime={article.publishedAt}>{date}</time>}
-            {article.source &&
-              (article.url ? (
-                <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-link underline">
-                  {article.source}
-                  <span className="sr-only"> (abre num novo separador)</span>
-                </a>
-              ) : (
-                <span>{article.source}</span>
-              ))}
+            {linkTitle && article.url ? (
+              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-link underline">
+                {article.source}
+                <span className="sr-only"> (abre num novo separador)</span>
+              </a>
+            ) : (
+              <span>{article.source}</span>
+            )}
             {linkTitle && (
               <Link href={articlePath} className="text-link underline">
                 {commentsLabel(article.commentsCount)}
@@ -79,6 +79,18 @@ export function ArticleCard({ article, headingLevel = 2, linkTitle = true }: Pro
           </div>
         </div>
       </div>
+
+      {!linkTitle && article.url && (
+        <a
+          href={article.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-block rounded bg-ink px-4 py-2 font-mono text-sm font-bold text-paper hover:opacity-90"
+        >
+          Ler o artigo completo em {article.source}
+          <span className="sr-only"> (abre num novo separador)</span>
+        </a>
+      )}
 
       {article.parties.length > 0 && (
         <ul aria-label="Partidos mencionados" className="mt-3 flex flex-wrap gap-2">

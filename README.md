@@ -10,6 +10,8 @@ npm run dev:mock   # site on :3000, mock API on :4000
 ```
 Use `npm run dev` instead to run against a real API set in `NEXT_PUBLIC_API_URL`, including `/api/v2`.
 
+If you switch between the mock and the real API on port 4000, delete `.next` first: Next caches API responses by URL, so mock data can otherwise reappear.
+
 ## Checks
 ```sh
 npm run lint

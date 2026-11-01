@@ -1,6 +1,7 @@
 import { decode } from "he";
 import type { Article, Comment, Party } from "@/lib/types";
-import type { ApiArticleDetail, ApiArticleListItem, ApiComment, ApiParty } from "./schemas";
+import { sourceName } from "@/lib/sources";
+import type { ApiArticle, ApiComment, ApiParty } from "./schemas";
 
 /** External URLs reach the page as href/src, so only http(s) may pass. */
 export function safeHttpUrl(value: string | null | undefined): string | null {
@@ -13,19 +14,24 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
   }
 }
 
+/** Some sources put markup in their summaries. Decoding first also catches encoded tags. */
+function plainText(value: string): string {
+  return decode(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export function mapParty(party: ApiParty): Party {
   return { slug: party.slug, acronym: party.acronym, name: party.name, website: safeHttpUrl(party.website) };
 }
 
-export function mapArticle(article: ApiArticleListItem | ApiArticleDetail): Article {
+export function mapArticle(article: ApiArticle): Article {
   return {
     id: article.id,
-    // Titles come from outside sources. Decode entities and always render as text, never as HTML.
+    // Text comes from outside sources. Decode entities and always render as text, never as HTML.
     title: decode(article.title),
-    content: "content" in article ? article.content : article.excerpt,
+    excerpt: plainText(article.excerpt),
     publishedAt: article.publishedAt,
     url: safeHttpUrl(article.url),
-    source: article.source,
+    source: sourceName(article.source),
     imageUrl: safeHttpUrl(article.imageUrl),
     parties: article.parties,
     commentsCount: article.commentCount,
