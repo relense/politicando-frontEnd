@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --paper: #ffffff;
+  --surface: #f6f4f0;
+  --ink: #191919;
+  --muted: #625d56;
+  --line: #dcd8d1;
+  --link: #0b4fd6;
+  --danger: #b3261e;
+}
+
+.dark {
+  --paper: #17181c;
+  --surface: #212228;
+  --ink: #f0ede8;
+  --muted: #b6b1aa;
+  --line: #3a3b43;
+  --link: #6db1ff;
+  --danger: #ff8a80;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-link: var(--link);
+  --color-danger: var(--danger);
+  --font-serif: var(--font-domine), Georgia, serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: light;
+  scroll-padding-top: 5rem;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif);
+}
+
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
