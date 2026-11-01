@@ -5,8 +5,8 @@ export type Party = ArticleParty & { website: string | null };
 export type Article = {
   id: number;
   title: string;
-  /** The excerpt in lists, the full text on the article page. Only an excerpt is ever displayed. */
-  content: string;
+  /** About 300 characters at most, and possibly empty. The API never has the full text. */
+  excerpt: string;
   publishedAt: string;
   url: string | null;
   source: string;

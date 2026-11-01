@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { ArticleCard } from "@/components/ArticleCard";
 import { CommentSection } from "@/components/CommentSection";
 import { mapArticle } from "@/lib/api/mappers";
-import type { ApiArticleListItem } from "@/lib/api/schemas";
+import type { ApiArticle } from "@/lib/api/schemas";
 import { API, handlers } from "@/mocks/handlers";
 
 vi.mock("next/link", () => ({
@@ -31,7 +31,7 @@ afterAll(() => server.close());
 const withQuery = (ui: ReactNode) =>
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })}>{ui}</QueryClientProvider>);
 
-const article = (overrides: Partial<ApiArticleListItem> = {}) =>
+const article = (overrides: Partial<ApiArticle> = {}) =>
   mapArticle({
     id: 1,
     title: "T",
@@ -72,9 +72,30 @@ describe("ArticleCard", () => {
 
   it("opens the source safely in a new tab", () => {
     render(<ArticleCard article={article()} />);
-    const link = screen.getByRole("link", { name: /rtp\.pt/ });
+    const link = screen.getByRole("link", { name: /RTP/ });
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("shortens the excerpt in lists and shows all of it on the article page", () => {
+    const long = "a".repeat(300);
+    const { unmount } = render(<ArticleCard article={article({ excerpt: long })} />);
+    expect(screen.getByText(/^a+…$/).textContent).toHaveLength(211);
+    unmount();
+    render(<ArticleCard article={article({ excerpt: long })} headingLevel={1} linkTitle={false} />);
+    expect(screen.getByText(long)).toBeInTheDocument();
+  });
+
+  it("links clearly to the original on the article page", () => {
+    render(<ArticleCard article={article()} headingLevel={1} linkTitle={false} />);
+    const link = screen.getByRole("link", { name: /Ler o artigo completo em RTP/ });
+    expect(link).toHaveAttribute("href", "https://rtp.pt/a");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("hides the original link when the url is unsafe", () => {
+    render(<ArticleCard article={article({ url: "javascript:alert(1)" })} headingLevel={1} linkTitle={false} />);
+    expect(screen.queryByRole("link", { name: /Ler o artigo/ })).toBeNull();
   });
 
   it("drops a javascript: source link", () => {
