@@ -40,7 +40,7 @@
     "@types/react-google-recaptcha": "^2.1.9",
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
-    "eslint": "^9.39.5",
+    "eslint": "^10.14.0",
     "eslint-config-next": "^16.4.3",
     "jsdom": "^29.1.1",
     "msw": "^3.0.3",
@@ -48,5 +48,24 @@
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "minimatch": "^11.0.3",
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-import": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-jsx-a11y": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-react-hooks": {
+      "eslint": "$eslint"
+    }
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "fsevents": false
   }
 }
