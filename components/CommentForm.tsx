@@ -21,9 +21,10 @@ type Props = {
   articleId: number;
   parentId: number | null;
   onPosted?: (comment: Comment) => void;
+  onCancel?: () => void;
 };
 
-export function CommentForm({ articleId, parentId, onPosted }: Props) {
+export function CommentForm({ articleId, parentId, onPosted, onCancel }: Props) {
   const id = useId();
   const queryClient = useQueryClient();
   const queryKey = ["comments", articleId];
@@ -32,6 +33,8 @@ export function CommentForm({ articleId, parentId, onPosted }: Props) {
   const [text, setText] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The captcha appears once someone starts writing, so it does not crowd an idle form.
+  const [captchaShown, setCaptchaShown] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (input: NewComment) => createComment(input),
@@ -101,20 +104,23 @@ export function CommentForm({ articleId, parentId, onPosted }: Props) {
           rows={4}
           maxLength={MAX_LENGTH}
           aria-describedby={`${id}-count`}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setText(event.target.value);
+            if (event.target.value.trim()) setCaptchaShown(true);
+          }}
           className={fieldClass}
         />
         <p id={`${id}-count`} className="text-right font-mono text-xs text-muted">
           {text.length}/{MAX_LENGTH}
         </p>
       </div>
-      <Captcha ref={captcha} onToken={setToken} />
+      {captchaShown && <Captcha ref={captcha} onToken={setToken} />}
       {error && (
         <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
-      <div>
+      <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={mutation.isPending}
@@ -122,6 +128,11 @@ export function CommentForm({ articleId, parentId, onPosted }: Props) {
         >
           {mutation.isPending ? "A publicar…" : "Publicar"}
         </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="font-mono text-sm text-muted hover:text-ink hover:underline">
+            Cancelar
+          </button>
+        )}
       </div>
     </form>
   );

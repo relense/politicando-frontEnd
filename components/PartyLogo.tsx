@@ -24,7 +24,8 @@ export function PartyLogo({ slug, acronym, size }: { slug: string; acronym: stri
       alt=""
       width={size}
       height={size}
-      className="shrink-0 object-contain"
+      // Many logos are dark text on transparency; a white tile keeps them legible in the dark theme.
+      className="shrink-0 object-contain dark:rounded-sm dark:bg-white dark:p-0.5"
       style={{ width: size, height: size }}
     />
   );

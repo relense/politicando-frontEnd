@@ -17,3 +17,4 @@ The frontend targets the rewritten API at `/api/v2`. Only `lib/api/` knows its s
 ## Nice to have
 - An admin way to hide comments. It currently needs SQL.
 - A dedicated sitemap list. The sitemap currently walks up to 10 pages of 50 articles.
+- Story grouping. When several outlets cover the same event, the feed shows one card per article. The scanner could cluster them (for example by title similarity and publish time) and return a `storyId`, so the frontend can show one card with "3 fontes".

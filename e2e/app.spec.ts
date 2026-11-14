@@ -28,6 +28,8 @@ test("direct party URL works, and unknown party is a real 404", async ({ page })
   await page.goto("/partido/cds-pp");
   await expect(page.getByRole("heading", { level: 1, name: "CDS-PP" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("CDS-PP");
+  await expect(page.getByRole("region", { name: "Sobre o partido" })).toContainText("humanismo personalista");
+  await expect(page.getByRole("link", { name: /apresentação do próprio partido/ })).toHaveAttribute("href", "https://www.cds.pt/principios.html");
 
   const response = await page.goto("/partido/nao-existe");
   expect(response?.status()).toBe(404);
@@ -86,9 +88,10 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "responder" }).last().click();
-  await page.getByRole("textbox", { name: "Resposta" }).fill(`Resposta a ${unique}`);
-  await page.locator("main form").last().getByRole("checkbox").check();
-  await page.locator("main form").last().getByRole("button", { name: "Publicar" }).click();
+  const replyForm = page.locator("main form", { has: page.getByRole("textbox", { name: "Resposta" }) });
+  await replyForm.getByRole("textbox", { name: "Resposta" }).fill(`Resposta a ${unique}`);
+  await replyForm.getByRole("checkbox").check();
+  await replyForm.getByRole("button", { name: "Publicar" }).click();
   await expect(page.locator("p", { hasText: `Resposta a ${unique}` })).toBeVisible();
 
   await page.reload();
@@ -109,7 +112,15 @@ test("theme persists across reload without a flash", async ({ page }) => {
   expect(await page.evaluate(() => (window as unknown as { __firstClass: string }).__firstClass)).toContain("dark");
 });
 
-test("drawer works by keyboard", async ({ page }) => {
+test("party navigation is always on screen and marks the current party", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Partidos" }).getByRole("link", { name: /PSD/ }).click();
+  await expect(page).toHaveURL(/\/partido\/psd$/);
+  await expect(page.getByRole("navigation", { name: "Partidos" }).getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
+});
+
+test("drawer works by keyboard", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop shows the party sidebar instead of the drawer.");
   await page.goto("/");
   const trigger = page.getByRole("button", { name: "Abrir lista de partidos" });
   await trigger.focus();
@@ -143,6 +154,14 @@ test("article page shows the excerpt and links to the original", async ({ page }
   await expect(link).toHaveAttribute("href", "https://example.com/noticia/100");
   await expect(link).toHaveAttribute("target", "_blank");
   await expect(page.locator("article p").first()).toContainText("…");
+  await expect(page.getByRole("heading", { name: "Mais sobre PS" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Partilhar" })).toBeVisible();
+});
+
+test("feed images and titles open our article page", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("article").first().getByRole("heading").getByRole("link").click();
+  await expect(page).toHaveURL(/\/article\/100$/);
 });
 
 test("article without an excerpt still renders", async ({ page }) => {

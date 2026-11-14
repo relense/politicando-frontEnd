@@ -43,7 +43,9 @@ async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit
 const cached = { next: { revalidate: REVALIDATE_SECONDS } };
 
 export async function getParties(): Promise<Party[]> {
-  return (await request("/parties", z.array(partySchema), cached)).map(mapParty);
+  const parties = (await request("/parties", z.array(partySchema), cached)).map(mapParty);
+  // Alphabetical on purpose: the order must not suggest any ranking between parties.
+  return parties.sort((a, b) => a.acronym.localeCompare(b.acronym, "pt", { sensitivity: "base" }));
 }
 
 export type FeedQuery = { party?: string; cursor?: string; limit?: number };

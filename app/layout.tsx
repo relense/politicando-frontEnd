@@ -3,6 +3,8 @@ import { Domine, Space_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import { Header } from "@/components/Header";
+import { NavigationProgress } from "@/components/NavigationProgress";
+import { PartySidebar } from "@/components/PartyNav";
 import { Providers } from "@/components/Providers";
 import { getParties } from "@/lib/api/client";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
@@ -35,13 +37,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <Providers>
+          <NavigationProgress />
           <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-paper focus:p-3">
             Saltar para o conteúdo
           </a>
           <Header parties={parties} />
-          <main id="conteudo" className="mx-auto w-full max-w-4xl px-4 py-6">
-            {children}
-          </main>
+          <div className="mx-auto flex w-full max-w-6xl gap-10 px-4 py-6">
+            <PartySidebar parties={parties} />
+            <main id="conteudo" className="min-w-0 max-w-3xl flex-1">
+              {children}
+            </main>
+          </div>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}
       </body>

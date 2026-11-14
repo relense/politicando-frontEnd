@@ -18,6 +18,14 @@ const PARTY_LOGOS: Record<string, string> = {
   "pctp-mrpp": "pctp_logo.png",
   mas: "mas_logo.png",
   il: "il_logo.png",
+  atua: "atua_logo.png",
+  adn: "adn_logo.png",
+  chega: "chega_logo.png",
+  "nova-direita": "nova-direita_logo.png",
+  pls: "pls_logo.png",
+  rir: "rir_logo.png",
+  tu: "tu_logo.png",
+  volt: "volt_logo.png",
 };
 
 /** Old URLs that match neither the current slug nor the current acronym. */
