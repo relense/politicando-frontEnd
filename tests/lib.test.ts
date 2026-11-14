@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mapArticle, safeHttpUrl } from "@/lib/api/mappers";
 import { articleSchema, type ApiArticle } from "@/lib/api/schemas";
 import { buildCommentTree, countReplies, displayName } from "@/lib/comments";
-import { commentsLabel, excerpt, formatDateTime } from "@/lib/format";
+import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatRelative } from "@/lib/format";
 import { findPartyByParam, getPartyLogo, partyPath } from "@/lib/parties";
+import { getPartyProfile } from "@/lib/partyProfiles";
 import type { Comment } from "@/lib/types";
 
 const comment = (id: number, parentId: number | null = null, username: string | null = null): Comment => ({
@@ -78,6 +79,22 @@ describe("parties", () => {
   });
 });
 
+describe("party profiles", () => {
+  const slugs = ["atua", "adn", "be", "cds-pp", "chega", "il", "jpp", "livre", "mas", "nova-direita", "nc", "pcp",
+    "pctp-mrpp", "pev", "pls", "ppm", "psd", "ps", "ptp", "mpt", "pan", "rir", "tu", "volt"];
+
+  it("has a short, sourced summary and a logo for every party", () => {
+    for (const slug of slugs) {
+      const profile = getPartyProfile(slug);
+      expect(profile, slug).toBeDefined();
+      expect(profile!.summary.length, slug).toBeGreaterThan(200);
+      expect(profile!.summary.length, slug).toBeLessThan(420);
+      expect(profile!.sourceUrl, slug).toMatch(/^https:\/\//);
+      expect(getPartyLogo(slug), slug).toBeDefined();
+    }
+  });
+});
+
 describe("comments", () => {
   it("builds a tree without changing the input", () => {
     const input = Object.freeze([comment(1), comment(2, 1), comment(3, 2), comment(4)]) as readonly Comment[];
@@ -91,10 +108,9 @@ describe("comments", () => {
     expect(buildCommentTree([comment(2, 99), comment(3, 3)]).map((node) => node.id)).toEqual([2, 3]);
   });
 
-  it("names the parent and falls back to anon", () => {
-    const [root] = buildCommentTree([comment(1, null, "ana"), comment(2, 1)]);
-    expect(root!.replies[0]!.parentName).toBe("ana1");
-    expect(displayName(comment(2))).toBe("anon2");
+  it("falls back to anon and keeps the post number out of the name", () => {
+    expect(displayName(comment(2))).toBe("anon");
+    expect(displayName(comment(12, null, "joao7"))).toBe("joao7");
   });
 });
 
@@ -112,5 +128,19 @@ describe("format", () => {
 
   it("labels comments in Portuguese", () => {
     expect([0, 1, 2].map(commentsLabel)).toEqual(["Comentários", "1 Comentário", "2 Comentários"]);
+    expect([0, 3].map(commentLinkLabel)).toEqual(["Comentar", "3 Comentários"]);
+  });
+
+  it("shows recent dates relative to now, and older ones as a date", () => {
+    const now = Date.parse("2026-07-10T12:00:00Z");
+    const ago = (ms: number) => new Date(now - ms).toISOString();
+    expect(formatRelative(ago(20_000), now)).toBe("agora");
+    expect(formatRelative(ago(5 * 60_000), now)).toBe("há 5 min");
+    expect(formatRelative(ago(3 * 3_600_000), now)).toBe("há 3 h");
+    expect(formatRelative(ago(30 * 3_600_000), now)).toBe("há 1 dia");
+    expect(formatRelative(ago(3 * 86_400_000), now)).toBe("há 3 dias");
+    expect(formatRelative("2026-07-01T12:05:00Z", now)).toBe("01-07-2026");
+    expect(formatRelative(ago(-60_000), now)).toBe("agora");
+    expect(formatRelative(null, now)).toBeNull();
   });
 });

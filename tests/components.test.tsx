@@ -6,6 +6,7 @@ import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ArticleCard } from "@/components/ArticleCard";
+import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
 import { mapArticle } from "@/lib/api/mappers";
 import type { ApiArticle } from "@/lib/api/schemas";
@@ -82,20 +83,36 @@ describe("ArticleCard", () => {
     const { unmount } = render(<ArticleCard article={article({ excerpt: long })} />);
     expect(screen.getByText(/^a+…$/).textContent).toHaveLength(211);
     unmount();
-    render(<ArticleCard article={article({ excerpt: long })} headingLevel={1} linkTitle={false} />);
+    render(<ArticleDetail article={article({ excerpt: long })} />);
     expect(screen.getByText(long)).toBeInTheDocument();
   });
 
   it("links clearly to the original on the article page", () => {
-    render(<ArticleCard article={article()} headingLevel={1} linkTitle={false} />);
+    render(<ArticleDetail article={article()} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("T");
     const link = screen.getByRole("link", { name: /Ler o artigo completo em RTP/ });
     expect(link).toHaveAttribute("href", "https://rtp.pt/a");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("hides the original link when the url is unsafe", () => {
-    render(<ArticleCard article={article({ url: "javascript:alert(1)" })} headingLevel={1} linkTitle={false} />);
+    render(<ArticleDetail article={article({ url: "javascript:alert(1)" })} />);
     expect(screen.queryByRole("link", { name: /Ler o artigo/ })).toBeNull();
+  });
+
+  it("sends the image to our article page, keeping it out of the tab order", () => {
+    render(<ArticleCard article={article({ id: 7, imageUrl: "https://rtp.pt/i.jpg" })} />);
+    const image = document.querySelector('img[src="https://rtp.pt/i.jpg"]')!;
+    expect(image).toHaveAttribute("alt", "");
+    const link = image.closest("a")!;
+    expect(link).toHaveAttribute("href", "/article/7");
+    expect(link).not.toHaveAttribute("target");
+    expect(link).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("invites the first comment", () => {
+    render(<ArticleCard article={article({ id: 7 })} />);
+    expect(screen.getByRole("link", { name: "Comentar" })).toHaveAttribute("href", "/article/7#comentarios");
   });
 
   it("drops a javascript: source link", () => {
@@ -160,34 +177,53 @@ describe("comments", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("depressa demais");
   });
 
+  it("shows the captcha only once something is written", async () => {
+    const user = userEvent.setup();
+    withQuery(<CommentSection articleId={55} initialComments={[]} />);
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    await user.type(screen.getByLabelText("Comentário"), "a");
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
   it("resets only the captcha of the form that posted", async () => {
     const user = userEvent.setup();
     withQuery(<CommentSection articleId={52} initialComments={initial} />);
-    await user.click(screen.getByRole("button", { name: "responder" }));
+    await user.click(screen.getAllByRole("button", { name: "responder" })[0]!);
 
-    const [mainCaptcha, replyCaptcha] = screen.getAllByRole("checkbox");
-    await user.click(mainCaptcha!);
-    await user.click(replyCaptcha!);
+    await user.type(screen.getByLabelText("Comentário"), "Principal");
     await user.type(screen.getByLabelText("Resposta"), "Resposta nova");
-    await user.click(screen.getAllByRole("button", { name: "Publicar" })[1]!);
+    const mainForm = screen.getByLabelText("Comentário").closest("form")!;
+    const replyForm = screen.getByLabelText("Resposta").closest("form")!;
+    await user.click(within(mainForm).getByRole("checkbox"));
+    await user.click(within(replyForm).getByRole("checkbox"));
+    await user.click(within(replyForm).getByRole("button", { name: "Publicar" }));
 
     await waitFor(() => expect(screen.queryByLabelText("Resposta")).toBeNull());
-    expect(screen.getAllByRole("checkbox")[0]).toBeChecked();
+    expect(within(mainForm).getByRole("checkbox")).toBeChecked();
+    expect(await screen.findByText("Resposta nova")).toBeInTheDocument();
   });
 
-  it("expands a reply without needing hover, and collapses by keyboard-usable buttons", async () => {
+  it("closes a reply form with Cancelar", async () => {
+    const user = userEvent.setup();
+    withQuery(<CommentSection articleId={56} initialComments={initial} />);
+    await user.click(screen.getAllByRole("button", { name: "responder" })[0]!);
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByLabelText("Resposta")).toBeNull();
+  });
+
+  it("shows replies nested under their parent, with anonymous names and post numbers", async () => {
     const user = userEvent.setup();
     withQuery(<CommentSection articleId={53} initialComments={initial} />);
 
-    const chip = screen.getByRole("button", { name: "Ver resposta de anon2" });
-    expect(chip).toHaveAttribute("aria-expanded", "false");
-    await user.click(chip);
-    const reply = document.getElementById("comentario-2")!;
-    expect(within(reply).getByText("Filho")).toBeInTheDocument();
-    expect(within(reply).getByText(/resposta a ana1/)).toBeInTheDocument();
+    const root = document.getElementById("comentario-1")!;
+    const reply = within(root).getByText("Filho").closest<HTMLElement>("[id^=comentario-]")!;
+    expect(reply.id).toBe("comentario-2");
+    expect(within(reply).getByText("anon")).toBeInTheDocument();
+    expect(within(reply).getByText("#2")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Recolher comentário de ana1" }));
+    await user.click(screen.getByRole("button", { name: "Recolher comentário de ana" }));
     expect(screen.queryByText("Raiz")).toBeNull();
-    expect(screen.getByText("1 resposta")).toBeInTheDocument();
+    expect(screen.queryByText("Filho")).toBeNull();
+    expect(screen.getByText("(1 resposta)")).toBeInTheDocument();
   });
 });

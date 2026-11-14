@@ -1,9 +1,10 @@
 import type { Comment } from "@/lib/types";
 
-export type CommentNode = Comment & { replies: CommentNode[]; parentName: string | null };
+export type CommentNode = Comment & { replies: CommentNode[] };
 
-export function displayName(comment: Pick<Comment, "id" | "username">): string {
-  return `${comment.username || "anon"}${comment.id}`;
+/** Anonymous by default. The post number is shown separately, so "joao7" never reads as "joao712". */
+export function displayName(comment: Pick<Comment, "username">): string {
+  return comment.username || "anon";
 }
 
 /**
@@ -11,13 +12,7 @@ export function displayName(comment: Pick<Comment, "id" | "username">): string {
  * parent is missing are shown at the top level so they are never lost.
  */
 export function buildCommentTree(comments: readonly Comment[]): CommentNode[] {
-  const byId = new Map(comments.map((comment) => [comment.id, comment]));
-  const nodes = new Map<number, CommentNode>(
-    comments.map((comment) => {
-      const parent = comment.parentId === null ? undefined : byId.get(comment.parentId);
-      return [comment.id, { ...comment, replies: [], parentName: parent ? displayName(parent) : null }];
-    }),
-  );
+  const nodes = new Map<number, CommentNode>(comments.map((comment) => [comment.id, { ...comment, replies: [] }]));
 
   const roots: CommentNode[] = [];
   for (const comment of comments) {
