@@ -3,7 +3,6 @@ import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
 
 export const API = "*/api/v2";
-const EXCERPT_LENGTH = 300;
 const store = new Map(Object.entries(seedComments).map(([id, list]) => [Number(id), [...list]]));
 let nextCommentId = 1000;
 
@@ -32,7 +31,7 @@ export const handlers = [
       .filter((article) => !cursor || article.id < Number(cursor.slice(1)));
     const page = matching.slice(0, limit);
     return HttpResponse.json({
-      items: page.map(({ content, ...article }) => ({ ...article, excerpt: content.slice(0, EXCERPT_LENGTH) })),
+      items: page,
       nextCursor: matching.length > limit ? `c${page.at(-1)!.id}` : null,
     });
   }),

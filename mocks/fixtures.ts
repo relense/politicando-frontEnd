@@ -1,4 +1,4 @@
-import type { ApiArticleDetail, ApiComment, ApiParty } from "@/lib/api/schemas";
+import type { ApiArticle, ApiComment, ApiParty } from "@/lib/api/schemas";
 
 const party = (slug: string, acronym: string, name: string, website: string | null = null): ApiParty => ({ slug, acronym, name, website });
 
@@ -13,7 +13,7 @@ export const parties: ApiParty[] = [
   party("psd", "PSD", "Partido Social Democrata", "https://www.psd.pt/"),
 ];
 
-const SOURCES = ["publico.pt", "observador.pt", "expresso.sapo.pt", "rtp.pt"];
+const SOURCES = ["publico.pt", "observador.pt", "expresso.pt", "rtp.pt"];
 const TAGS = [["ps"], ["psd"], ["ps", "psd"], ["be"], ["cds-pp"], ["il"], ["chega"]];
 const tagged = (slugs: string[]) =>
   slugs.map((slug) => {
@@ -22,12 +22,12 @@ const tagged = (slugs: string[]) =>
   });
 
 /** Newest first, as the API returns them. */
-export const articles: ApiArticleDetail[] = Array.from({ length: 35 }, (_, index) => {
+export const articles: ApiArticle[] = Array.from({ length: 35 }, (_, index) => {
   const id = 100 - index;
   return {
     id,
     title: `Notícia de teste número ${id}: Parlamento debate o orçamento &amp; a saúde`,
-    content: `Este é o texto de exemplo da notícia ${id}. `.repeat(12),
+    excerpt: `${`Este é o texto de exemplo da notícia ${id}. `.repeat(12).slice(0, 299)}…`,
     publishedAt: new Date(Date.UTC(2026, 9, 30, 12, 0) - index * 3_600_000).toISOString(),
     url: `https://example.com/noticia/${id}`,
     source: SOURCES[index % SOURCES.length]!,
@@ -38,7 +38,7 @@ export const articles: ApiArticleDetail[] = Array.from({ length: 35 }, (_, index
 });
 
 // Hostile and sparse records the UI has to survive.
-articles[1] = { ...articles[1]!, title: `<script>window.__xss = true</script>Título com código`, content: "", parties: [] };
+articles[1] = { ...articles[1]!, title: `<script>window.__xss = true</script>Título com código`, excerpt: "", parties: [] };
 
 export const comments: Record<number, ApiComment[]> = {
   100: [

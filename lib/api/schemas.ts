@@ -9,9 +9,10 @@ export const partySchema = z.object({
 
 const articlePartySchema = partySchema.pick({ slug: true, acronym: true, name: true });
 
-const articleBaseSchema = z.object({
+export const articleSchema = z.object({
   id: z.number(),
   title: z.string(),
+  excerpt: z.string(),
   url: z.string(),
   source: z.string(),
   imageUrl: z.string().nullable(),
@@ -20,11 +21,8 @@ const articleBaseSchema = z.object({
   parties: z.array(articlePartySchema),
 });
 
-export const articleListItemSchema = articleBaseSchema.extend({ excerpt: z.string() });
-export const articleDetailSchema = articleBaseSchema.extend({ content: z.string() });
-
 export const articlePageSchema = z.object({
-  items: z.array(articleListItemSchema),
+  items: z.array(articleSchema),
   nextCursor: z.string().nullable(),
 });
 
@@ -41,6 +39,5 @@ export const errorSchema = z.object({
 });
 
 export type ApiParty = z.infer<typeof partySchema>;
-export type ApiArticleListItem = z.infer<typeof articleListItemSchema>;
-export type ApiArticleDetail = z.infer<typeof articleDetailSchema>;
+export type ApiArticle = z.infer<typeof articleSchema>;
 export type ApiComment = z.infer<typeof commentSchema>;

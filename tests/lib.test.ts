@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mapArticle, safeHttpUrl } from "@/lib/api/mappers";
-import type { ApiArticleDetail, ApiArticleListItem } from "@/lib/api/schemas";
+import { articleSchema, type ApiArticle } from "@/lib/api/schemas";
 import { buildCommentTree, countReplies, displayName } from "@/lib/comments";
 import { commentsLabel, excerpt, formatDateTime } from "@/lib/format";
 import { findPartyByParam, getPartyLogo, partyPath } from "@/lib/parties";
@@ -14,7 +14,7 @@ const comment = (id: number, parentId: number | null = null, username: string | 
   createdAt: null,
 });
 
-const apiArticle = (overrides: Partial<ApiArticleListItem> = {}): ApiArticleListItem => ({
+const apiArticle = (overrides: Partial<ApiArticle> = {}): ApiArticle => ({
   id: 1,
   title: "T",
   url: "https://example.com/a",
@@ -28,14 +28,23 @@ const apiArticle = (overrides: Partial<ApiArticleListItem> = {}): ApiArticleList
 });
 
 describe("mappers", () => {
-  it("uses the excerpt in lists and the content on detail", () => {
-    expect(mapArticle(apiArticle()).content).toBe("Resumo");
-    const detail = { ...apiArticle(), excerpt: undefined, content: "Texto completo" };
-    expect(mapArticle(detail as unknown as ApiArticleDetail).content).toBe("Texto completo");
+  it("decodes entities in titles and excerpts", () => {
+    const article = mapArticle(apiArticle({ title: "A &amp; B", excerpt: "C &amp; D" }));
+    expect(article).toMatchObject({ title: "A & B", excerpt: "C & D" });
   });
 
-  it("decodes entities in titles", () => {
-    expect(mapArticle(apiArticle({ title: "A &amp; B" })).title).toBe("A & B");
+  it("strips markup from excerpts, encoded or not", () => {
+    expect(mapArticle(apiArticle({ excerpt: "<p>Um <b>texto</b></p> &lt;i&gt;aqui&lt;/i&gt;" })).excerpt).toBe("Um texto aqui");
+  });
+
+  it("names known outlets and falls back to the domain", () => {
+    expect(mapArticle(apiArticle({ source: "cmjornal.pt" })).source).toBe("Correio da Manhã");
+    expect(mapArticle(apiArticle({ source: "novo.pt" })).source).toBe("novo.pt");
+  });
+
+  it("rejects an API response with no excerpt", () => {
+    expect(articleSchema.safeParse({ ...apiArticle(), excerpt: undefined }).success).toBe(false);
+    expect(articleSchema.safeParse(apiArticle()).success).toBe(true);
   });
 
   it("rejects non-http urls", () => {

@@ -21,7 +21,7 @@ async function loadArticle(param: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await loadArticle((await params).id);
-  const description = excerpt(article.content, 160) || undefined;
+  const description = excerpt(article.excerpt, 160) || undefined;
   const path = `/article/${article.id}`;
   return {
     title: article.title,
@@ -48,7 +48,7 @@ export default async function ArticlePage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: article.title,
-    description: excerpt(article.content, 160) || undefined,
+    description: excerpt(article.excerpt, 160) || undefined,
     datePublished: article.publishedAt,
     image: article.imageUrl ?? undefined,
     url: `${SITE_URL}/article/${article.id}`,
@@ -63,8 +63,7 @@ export default async function ArticlePage({ params }: Props) {
         // "<" is escaped so a hostile title cannot close this script tag.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      {/* Client component props reach the browser, so never pass it the publisher's full text. */}
-      <ArticleCard article={{ ...article, content: excerpt(article.content) }} headingLevel={1} linkTitle={false} />
+      <ArticleCard article={article} headingLevel={1} linkTitle={false} />
       <CommentSection articleId={article.id} initialComments={comments} />
     </>
   );

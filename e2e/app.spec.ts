@@ -137,10 +137,18 @@ test("article HTML carries SEO data without JavaScript", async ({ request }) => 
   expect(html).toContain("Este é o texto de exemplo");
 });
 
-test("article page never sends the publisher's full text", async ({ request }) => {
-  const html = await (await request.get("/article/100")).text();
-  expect(html).toContain("Este é o texto de exemplo da notícia 100.");
-  expect(html).not.toContain("Este é o texto de exemplo da notícia 100. ".repeat(6));
+test("article page shows the excerpt and links to the original", async ({ page }) => {
+  await page.goto("/article/100");
+  const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
+  await expect(link).toHaveAttribute("href", "https://example.com/noticia/100");
+  await expect(link).toHaveAttribute("target", "_blank");
+  await expect(page.locator("article p").first()).toContainText("…");
+});
+
+test("article without an excerpt still renders", async ({ page }) => {
+  await page.goto("/article/99");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Título com código");
+  await expect(page.getByRole("link", { name: /Ler o artigo completo/ })).toBeVisible();
 });
 
 test("hostile title cannot break out of JSON-LD", async ({ request }) => {
