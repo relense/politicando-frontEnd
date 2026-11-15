@@ -112,7 +112,7 @@ export default async function ContractsPage({ searchParams }: Props) {
   const updated = years ?? entities;
 
   return (
-    <div data-wide className="max-w-5xl">
+    <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Dinheiro público</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos{where}</h1>
@@ -339,7 +339,7 @@ export default async function ContractsPage({ searchParams }: Props) {
 
 function ComingSoon() {
   return (
-    <div data-wide className="max-w-5xl">
+    <div data-wide>
       <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos</h1>
       <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
         Os contratos estarão disponíveis em breve.

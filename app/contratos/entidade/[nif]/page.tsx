@@ -71,7 +71,7 @@ export default async function ContractPartyPage({ params }: Props) {
   const role = buyer && supplier ? "Entidade pública e fornecedor" : buyer ? "Entidade pública" : "Fornecedor do Estado";
 
   return (
-    <div data-wide className="max-w-5xl pb-4">
+    <div data-wide className="pb-4">
       <Link href="/contratos" className="mb-6 inline-block font-mono text-sm text-muted hover:text-ink hover:underline">
         ← Contratos públicos
       </Link>

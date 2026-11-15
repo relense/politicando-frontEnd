@@ -181,12 +181,12 @@ export default async function PartyPage({ params, searchParams }: Props) {
         )}
         {tab === "deputados" && <DeputyGrid deputies={deputies} party={party} />}
         {tab === "iniciativas" && (
-          <section aria-label={`Iniciativas do ${party.acronym}`} className="max-w-3xl">
+          <section aria-label={`Iniciativas do ${party.acronym}`}>
             <PartyInitiatives slug={party.slug} acronym={party.acronym} initialPage={initiatives} />
           </section>
         )}
         {tab === "votacoes" && (
-          <section aria-label={`Votações do ${party.acronym}`} className="max-w-3xl">
+          <section aria-label={`Votações do ${party.acronym}`}>
             <p className="mb-4 text-sm text-muted">
               O Parlamento regista os votos por bancada: aqui está o sentido de voto da bancada do {party.acronym} nas votações que decidem
               uma iniciativa (na generalidade e votação final global). Quando parte da bancada votou de outra forma, é assinalado.

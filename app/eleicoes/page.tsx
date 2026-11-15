@@ -56,7 +56,7 @@ export default async function ElectionsPage() {
     ?.date.slice(0, 4);
 
   return (
-    <div data-wide className="max-w-5xl">
+    <div data-wide>
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Resultados oficiais</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Eleições</h1>

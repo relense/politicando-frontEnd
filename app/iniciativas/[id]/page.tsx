@@ -54,7 +54,7 @@ export default async function InitiativePage({ params }: Props) {
   const { plain, presidency, authors } = initiative;
 
   return (
-    <article className="max-w-3xl">
+    <article>
       <p className="mb-3 font-mono text-xs">
         <Link href="/iniciativas" className="text-muted underline hover:text-ink">
           Iniciativas

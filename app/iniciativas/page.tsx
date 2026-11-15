@@ -147,7 +147,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
   ].filter((card) => card.value !== undefined);
 
   return (
-    <div data-wide className="max-w-6xl">
+    <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Assembleia da República{parliament ? ` · ${parliament.legislature} Legislatura` : ""}

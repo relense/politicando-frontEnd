@@ -74,7 +74,7 @@ export default async function EditorialPostPage({ params }: Props) {
   const date = formatLongDate(post.publishedAt);
 
   return (
-    <article className="max-w-3xl">
+    <article>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(post) }} />
       <p className="mb-3 font-mono text-xs">
         <Link href="/editorial" className="text-muted underline hover:text-ink">

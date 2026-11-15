@@ -135,7 +135,7 @@ export default async function PlacePage({ params }: Props) {
   const district = districtName(place);
 
   return (
-    <div data-wide className="max-w-5xl">
+    <div data-wide>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(place, trail) }} />
       <nav aria-label="Caminho" className="mb-4 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
         <Link href="/sitios" className="underline hover:text-ink">
