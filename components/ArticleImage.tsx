@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 
-type Props = { src: string; href?: string; className?: string; imageClassName?: string };
+type Props = { src: string; href?: string; caption?: string; className?: string; imageClassName?: string };
 
 /** Article images come from each outlet's server and may fail; then the image and its link disappear. */
-export function ArticleImage({ src, href, className, imageClassName }: Props) {
+export function ArticleImage({ src, href, caption, className, imageClassName }: Props) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
 
@@ -23,11 +23,22 @@ export function ArticleImage({ src, href, className, imageClassName }: Props) {
     />
   );
 
-  if (!href) return <div className={className}>{image}</div>;
+  const content = (
+    <>
+      {image}
+      {caption && (
+        <span className="absolute bottom-2 left-2 rounded bg-paper/85 px-1.5 py-0.5 font-mono text-[11px] text-muted">
+          {caption}
+        </span>
+      )}
+    </>
+  );
+
+  if (!href) return <div className={`relative ${className ?? ""}`}>{content}</div>;
   // The title already links here, so this duplicate stays out of the tab order and screen readers.
   return (
-    <Link href={href} tabIndex={-1} aria-hidden="true" className={className}>
-      {image}
+    <Link href={href} tabIndex={-1} aria-hidden="true" className={`relative ${className ?? ""}`}>
+      {content}
     </Link>
   );
 }

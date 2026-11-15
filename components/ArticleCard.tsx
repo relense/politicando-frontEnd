@@ -2,6 +2,7 @@ import Link from "next/link";
 import { commentLinkLabel, excerpt } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
+import { CommentIcon } from "./icons";
 import { PartyChips } from "./PartyChips";
 import { RelativeTime } from "./RelativeTime";
 
@@ -11,42 +12,51 @@ export function ArticleCard({ article }: { article: Article }) {
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="border-b border-line pb-6">
-      <h2 className="mb-3 text-xl font-bold leading-snug sm:text-2xl">
-        <Link href={articlePath} className="hover:underline">
-          {article.title}
-        </Link>
-      </h2>
+    <article className="grid gap-x-8 gap-y-4 border-b border-line py-8 first:pt-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
+          {article.url ? (
+            <a href={article.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink hover:underline">
+              {article.source}
+              <span aria-hidden="true"> ↗</span>
+              <span className="sr-only"> (abre num novo separador)</span>
+            </a>
+          ) : (
+            <span className="font-bold text-ink">{article.source}</span>
+          )}
+          <span aria-hidden="true">·</span>
+          <RelativeTime value={article.publishedAt} />
+        </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        {article.imageUrl && (
-          <ArticleImage
-            src={article.imageUrl}
-            href={articlePath}
-            className="block shrink-0 sm:w-56"
-            imageClassName="aspect-video w-full rounded object-cover"
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          {text && <p className="mb-3 leading-relaxed text-muted">{text}</p>}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
-            <RelativeTime value={article.publishedAt} />
-            {article.url ? (
-              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-link underline">
-                {article.source}
-                <span className="sr-only"> (abre num novo separador)</span>
-              </a>
-            ) : (
-              <span>{article.source}</span>
-            )}
-            <Link href={`${articlePath}#comentarios`} className="hover:text-ink hover:underline">
-              {commentLinkLabel(article.commentsCount)}
-            </Link>
-          </div>
+        <h2 className="mb-3 text-2xl font-bold leading-tight sm:text-[1.7rem]">
+          <Link href={articlePath} className="hover:underline">
+            {article.title}
+          </Link>
+        </h2>
+
+        {text && <p className="mb-5 leading-relaxed text-ink/80">{text}</p>}
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PartyChips parties={article.parties} />
+          <Link
+            href={`${articlePath}#comentarios`}
+            className="ml-auto flex items-center gap-1.5 font-mono text-sm text-muted hover:text-ink hover:underline"
+          >
+            <CommentIcon />
+            {commentLinkLabel(article.commentsCount)}
+          </Link>
         </div>
       </div>
 
-      <PartyChips parties={article.parties} className="mt-3" />
+      {article.imageUrl && (
+        <ArticleImage
+          src={article.imageUrl}
+          href={articlePath}
+          caption={`Imagem · ${article.source}`}
+          className="order-first block self-start overflow-hidden rounded-lg sm:order-none"
+          imageClassName="aspect-[3/2] w-full object-cover"
+        />
+      )}
     </article>
   );
 }

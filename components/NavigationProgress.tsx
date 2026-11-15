@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { recordNavigation } from "@/lib/navigationHistory";
 
 /**
  * A thin bar at the top while the next page loads. Pages that can 404 cannot use loading.tsx
@@ -16,6 +17,13 @@ export function NavigationProgress() {
     setShownPath(pathname);
     setPending(false);
   }
+
+  // Lets the article page's back link know the previous page is ours.
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== lastPath.current) recordNavigation(lastPath.current);
+    lastPath.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     function onClick(event: MouseEvent) {

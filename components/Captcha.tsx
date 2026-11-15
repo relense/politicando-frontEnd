@@ -12,8 +12,14 @@ export type CaptchaHandle = { reset: () => void };
 
 type Props = { onToken: (token: string | null) => void; ref: Ref<CaptchaHandle> };
 
+/**
+ * "off" hides the captcha completely, for testing on develop; the API must then accept any token,
+ * as it does with Google's test secret. Never set it in production.
+ */
+export const isCaptchaOff = () => process.env.NEXT_PUBLIC_CAPTCHA_MODE === "off";
+
 export const isCaptchaConfigured = () =>
-  process.env.NEXT_PUBLIC_CAPTCHA_MODE === "mock" || Boolean(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
+  isCaptchaOff() || process.env.NEXT_PUBLIC_CAPTCHA_MODE === "mock" || Boolean(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
 
 /** The only component that knows the captcha provider. Each instance resets only its own widget. */
 export function Captcha({ onToken, ref }: Props) {

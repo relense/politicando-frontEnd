@@ -1,13 +1,15 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { ApiError, createComment } from "@/lib/api/client";
 import type { Comment, NewComment } from "@/lib/types";
-import { Captcha, isCaptchaConfigured, type CaptchaHandle } from "./Captcha";
+import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 
 const MAX_LENGTH = 500;
 const MAX_USERNAME = 20;
+/** Sent when the captcha is switched off for testing. The API decides whether it is accepted. */
+const CAPTCHA_OFF_TOKEN = "captcha-disabled";
 
 const ERROR_MESSAGES: Record<string, string> = {
   recaptcha_failed: "A verificação anti-robô falhou. O teu texto foi mantido; confirma novamente e publica.",
@@ -17,24 +19,47 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 const DEFAULT_ERROR = "Não foi possível publicar o comentário. O teu texto foi mantido; tenta novamente.";
 
+export type CommentFormHandle = { insert: (text: string) => void };
+
 type Props = {
   articleId: number;
   parentId: number | null;
+  initialText?: string;
+  autoFocus?: boolean;
   onPosted?: (comment: Comment) => void;
   onCancel?: () => void;
+  ref?: Ref<CommentFormHandle>;
 };
 
-export function CommentForm({ articleId, parentId, onPosted, onCancel }: Props) {
+export function CommentForm({ articleId, parentId, initialText = "", autoFocus, onPosted, onCancel, ref }: Props) {
   const id = useId();
   const queryClient = useQueryClient();
   const queryKey = ["comments", articleId];
   const captcha = useRef<CaptchaHandle>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
   const [username, setUsername] = useState("");
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The captcha appears once someone starts writing, so it does not crowd an idle form.
-  const [captchaShown, setCaptchaShown] = useState(false);
+  const [captchaShown, setCaptchaShown] = useState(Boolean(initialText.trim()));
+  const captchaOff = isCaptchaOff();
+
+  // Puts the cursor at the end, after any ">>123" the form opened with.
+  useEffect(() => {
+    if (!autoFocus || !textarea.current) return;
+    const field = textarea.current;
+    field.focus();
+    field.setSelectionRange(field.value.length, field.value.length);
+  }, [autoFocus]);
+
+  useImperativeHandle(ref, () => ({
+    insert: (addition) => {
+      setText((current) => (current && !current.endsWith("\n") ? `${current}\n${addition}` : current + addition));
+      setCaptchaShown(true);
+      textarea.current?.focus();
+    },
+  }));
 
   const mutation = useMutation({
     mutationFn: (input: NewComment) => createComment(input),
@@ -71,17 +96,45 @@ export function CommentForm({ articleId, parentId, onPosted, onCancel }: Props) 
     event.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return setError("Escreve um comentário antes de publicar.");
-    if (!token) return setError("Confirma que não és um robô antes de publicar.");
+    const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
+    if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
-    mutation.mutate({ articleId, parentId, username, text: trimmed, captchaToken: token });
+    mutation.mutate({ articleId, parentId, username, text: trimmed, captchaToken });
   }
 
-  const fieldClass = "w-full rounded border border-line bg-paper p-2 text-ink placeholder:text-muted";
+  const label = parentId === null ? "Comentário" : "Resposta";
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3 rounded border border-line bg-surface p-3">
-      <div>
-        <label htmlFor={`${id}-username`} className="mb-1 block font-mono text-xs text-muted">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="flex flex-col gap-3 rounded-2xl border border-line bg-paper p-3 focus-within:border-muted"
+    >
+      <label htmlFor={`${id}-comment`} className="sr-only">
+        {label}
+      </label>
+      <textarea
+        id={`${id}-comment`}
+        ref={textarea}
+        value={text}
+        rows={parentId === null ? 4 : 3}
+        maxLength={MAX_LENGTH}
+        placeholder={parentId === null ? "Escreve o teu comentário. Usa >>número para citar outro comentário." : "Escreve a tua resposta…"}
+        aria-describedby={`${id}-count`}
+        onChange={(event) => {
+          setText(event.target.value);
+          if (event.target.value.trim()) setCaptchaShown(true);
+        }}
+        className="w-full resize-y bg-transparent px-1 text-ink placeholder:text-muted focus:outline-none"
+      />
+      {captchaShown && !captchaOff && <Captcha ref={captcha} onToken={setToken} />}
+      {error && (
+        <p role="alert" className="px-1 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={`${id}-username`} className="sr-only">
           Nome (opcional)
         </label>
         <input
@@ -89,50 +142,31 @@ export function CommentForm({ articleId, parentId, onPosted, onCancel }: Props) 
           value={username}
           maxLength={MAX_USERNAME}
           autoComplete="off"
-          placeholder="anon"
+          placeholder="Nome (opcional): anon"
           onChange={(event) => setUsername(event.target.value.replace(/\s+/g, ""))}
-          className={`${fieldClass} font-mono text-sm`}
+          className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
         />
-      </div>
-      <div>
-        <label htmlFor={`${id}-comment`} className="mb-1 block font-mono text-xs text-muted">
-          {parentId === null ? "Comentário" : "Resposta"}
-        </label>
-        <textarea
-          id={`${id}-comment`}
-          value={text}
-          rows={4}
-          maxLength={MAX_LENGTH}
-          aria-describedby={`${id}-count`}
-          onChange={(event) => {
-            setText(event.target.value);
-            if (event.target.value.trim()) setCaptchaShown(true);
-          }}
-          className={fieldClass}
-        />
-        <p id={`${id}-count`} className="text-right font-mono text-xs text-muted">
+        <span id={`${id}-count`} className="font-mono text-xs text-muted">
           {text.length}/{MAX_LENGTH}
-        </p>
-      </div>
-      {captchaShown && <Captcha ref={captcha} onToken={setToken} />}
-      {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="rounded bg-ink px-4 py-2 font-mono text-sm font-bold text-paper hover:opacity-90 disabled:opacity-60"
-        >
-          {mutation.isPending ? "A publicar…" : "Publicar"}
-        </button>
-        {onCancel && (
-          <button type="button" onClick={onCancel} className="font-mono text-sm text-muted hover:text-ink hover:underline">
-            Cancelar
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-full px-4 py-1.5 font-mono text-sm font-bold text-muted hover:bg-surface hover:text-ink"
+            >
+              Cancelar
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={mutation.isPending}
+            className="rounded-full bg-ink px-4 py-1.5 font-mono text-sm font-bold text-paper hover:opacity-90 disabled:opacity-60"
+          >
+            {mutation.isPending ? "A publicar…" : "Publicar"}
           </button>
-        )}
+        </div>
       </div>
     </form>
   );

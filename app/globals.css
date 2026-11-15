@@ -66,3 +66,10 @@ dialog::backdrop {
     transform: translateX(300%);
   }
 }
+
+/* The post a ">>123" link jumps to stays highlighted, as on 4chan. */
+article[id^="comentario-"]:target {
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--link) 9%, transparent);
+  box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--link) 9%, transparent);
+}

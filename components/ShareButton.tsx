@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ShareIcon } from "./icons";
 
 /** The phone's share sheet where there is one, otherwise copies the link. */
 export function ShareButton({ title }: { title: string }) {
@@ -30,8 +31,9 @@ export function ShareButton({ title }: { title: string }) {
       <button
         type="button"
         onClick={() => void share()}
-        className="rounded border border-line px-4 py-2 font-mono text-sm font-bold hover:bg-surface"
+        className="inline-flex items-center gap-1.5 font-mono text-sm text-muted hover:text-ink hover:underline"
       >
+        <ShareIcon />
         {copied ? "Ligação copiada" : "Partilhar"}
       </button>
       <span aria-live="polite" className="sr-only">
