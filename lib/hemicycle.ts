@@ -75,18 +75,19 @@ export function neighbourSeat<T extends Point>(
 export const OUTER_RADIUS = 400;
 
 /**
- * A regular hemicycle: concentric rows with evenly spaced seats, each party a contiguous sector. The official
- * floor plan has aisles and uneven rows that read as scattered dots at this size. Parties go left to right in
- * `order`; any party not in it takes its place from the official plan. Each official seat keeps its number and
- * its rank within the party: front-row seats near the middle of the party's block stay at the front, near the
- * middle of its sector, so whoever sits there (the party's leaders, in the backend's estimate) stays there too.
+ * A regular hemicycle drawn from the official seating plan. The plan has six rows shaped like a horseshoe, up
+ * to 56 seats long, which at this size leaves seats too small to recognise anyone. So the drawing uses concentric
+ * rows with evenly spaced seats, about as many rows as fit seats this big, and each official seat goes to the
+ * drawn place that sits where it does in the plan: the same depth from the front and the same point from left to
+ * right, chosen for all seats at once so none is pushed far out of place. Along each drawn row the seats then keep
+ * the plan's left-to-right order, so their numbers rise steadily. `order` only breaks ties between parties.
  * Returns positions in a box `width` × `height` whose bottom centre is the Mesa.
  */
 export function arrangeSeats<T extends Point & { partySlug: string }>(
   seats: readonly T[],
   focus: Point,
   order: readonly string[] = [],
-): { seats: T[]; width: number; height: number } {
+): { seats: T[]; width: number; height: number; rowGap: number } {
   const total = seats.length;
   const rows = Math.max(3, Math.round(Math.sqrt(total / 2.8)));
   // The inner row's share of the outer radius that makes the gap between rows match the gap along a row.
@@ -103,7 +104,7 @@ export function arrangeSeats<T extends Point & { partySlug: string }>(
 
   const spacing = (Math.PI * radiusSum) / total;
   const margin = OUTER_RADIUS + spacing;
-  const places: { x: number; y: number; along: number; radius: number; row: number; angle: number }[] = [];
+  const places: { x: number; y: number; along: number; row: number }[] = [];
   radii.forEach((radius, row) => {
     const count = counts[row]!;
     // Half a seat in from each end, so the ends of every row line up with the floor's edge.
@@ -114,95 +115,136 @@ export function arrangeSeats<T extends Point & { partySlug: string }>(
         x: margin + radius * Math.cos(angle),
         y: margin - radius * Math.sin(angle),
         along: count === 1 ? 0.5 : i / (count - 1),
-        radius,
         row,
-        angle,
       });
     }
   });
-  // Filled left to right by how far along its row each seat is, front row first. Seats at the same point of
-  // every row form a spoke, so a small party is a short line from the front back, not a sliver along the floor.
-  places.sort((a, b) => a.along - b.along || a.radius - b.radius);
 
-  // Parties in their official order, left to right.
-  const officialRow = rowsOf(seats, focus);
-  const official = seats.map((seat, index) => ({ seat, row: officialRow[index]!, ...polar(seat, focus) }));
-  const partyAngle = new Map<string, number[]>();
-  for (const { seat, angle } of official) partyAngle.set(seat.partySlug, [...(partyAngle.get(seat.partySlug) ?? []), angle]);
-  const mean = (angles: number[]) => angles.reduce((a, b) => a + b, 0) / angles.length;
-  // Listed parties come first, in order; the rest follow by their mean angle in the official plan.
-  const rank = (slug: string) => (order.includes(slug) ? 2 * Math.PI + order.length - order.indexOf(slug) : mean(partyAngle.get(slug)!));
-  const parties = [...partyAngle.keys()].sort((a, b) => rank(b) - rank(a));
+  // Where each official seat is in the plan, as a depth (0 front, 1 back) and a point from left (0) to right (1).
+  const plan = officialRows(seats, focus);
+  const planRows = Math.max(...plan.map((item) => item.row));
+  const depth = (row: number, of: number) => (of > 0 ? row / of : 0);
+  const rank = (slug: string) => (order.includes(slug) ? order.indexOf(slug) : order.length);
+  // Depth weighs more: a seat at the front of the plan should stay at the front.
+  const cost = seats.map((seat, a) =>
+    places.map((place) => {
+      const official = plan[a]!;
+      return 3 * (depth(official.row, planRows) - depth(place.row, rows - 1)) ** 2 + (official.along - place.along) ** 2;
+    }),
+  );
+  const chosen = assign(cost);
 
-  // Each party takes the next stretch of places. Within it, seats are matched by rank: front row first, then
-  // nearest the middle of the block, in the official plan and in the drawing alike.
-  const byRank = <P extends { row: number; angle: number }>(items: P[]) => {
-    const centre = mean(items.map((item) => item.angle));
-    return [...items].sort((a, b) => a.row - b.row || Math.abs(a.angle - centre) - Math.abs(b.angle - centre));
-  };
+  // Along each drawn row, the seats it got go left to right in the plan's order.
   const arranged: T[] = [];
-  let start = 0;
-  for (const slug of parties) {
-    const own = official.filter((item) => item.seat.partySlug === slug);
-    const stretch = byRank(places.slice(start, start + own.length));
-    byRank(own).forEach((item, index) => arranged.push({ ...item.seat, x: stretch[index]!.x, y: stretch[index]!.y }));
-    start += own.length;
+  for (let row = 0; row < rows; row++) {
+    const indexes = places.map((place, index) => ({ place, index })).filter((item) => item.place.row === row);
+    const own = indexes
+      .map((item) => chosen.indexOf(item.index))
+      .sort((a, b) => plan[a]!.along - plan[b]!.along || rank(seats[a]!.partySlug) - rank(seats[b]!.partySlug));
+    indexes.sort((a, b) => a.place.along - b.place.along);
+    indexes.forEach((item, k) => arranged.push({ ...seats[own[k]!]!, x: item.place.x, y: item.place.y }));
   }
 
-  return { seats: arranged, width: margin * 2, height: margin };
-}
-
-/** The row of each official seat, counted from the front: seats are in the same row when their distances to the Mesa are close. */
-function rowsOf(seats: readonly Point[], focus: Point): number[] {
-  const gap = seatSpacing(seats) * 0.5;
-  const order = seats.map((seat, index) => ({ index, radius: polar(seat, focus).radius })).sort((a, b) => a.radius - b.radius);
-  const rows = new Array<number>(seats.length);
-  let row = 0;
-  order.forEach((item, i) => {
-    if (i > 0 && item.radius - order[i - 1]!.radius > gap) row++;
-    rows[item.index] = row;
-  });
-  return rows;
+  return { seats: arranged, width: margin * 2, height: margin, rowGap: (OUTER_RADIUS * (1 - innerShare)) / (rows - 1) };
 }
 
 /**
- * The Government's bench: arcs in the open floor between the Mesa and the deputies' front row, facing them.
- * Index 0 (the Prime Minister) takes the middle of the front arc; the rest alternate right and left of it in the
- * order given (protocol order), then fill the arc behind. `front` is the radius of the front arc and `step` the
- * distance between seats and between arcs. A seat never sits on the Mesa: within `mesaHalfWidth` of the centre
- * it must be more than `clear` above it. Positions are relative to the hemicycle's focus, y pointing down.
+ * The cheapest one-to-one assignment of rows to columns in a square cost matrix (the Hungarian method). Returns,
+ * for each row, its column.
  */
-export function governmentBench(
-  count: number,
-  { front, step, clear, mesaHalfWidth }: { front: number; step: number; clear: number; mesaHalfWidth: number },
-): Point[] {
-  const fits = (radius: number, angle: number) =>
-    angle > 0.2 &&
-    angle < Math.PI - 0.2 &&
-    (Math.abs(radius * Math.cos(angle)) > mesaHalfWidth + step / 2 || radius * Math.sin(angle) > clear);
+function assign(cost: number[][]): number[] {
+  const n = cost.length;
+  const u = new Array<number>(n + 1).fill(0);
+  const v = new Array<number>(n + 1).fill(0);
+  const match = new Array<number>(n + 1).fill(0);
+  const way = new Array<number>(n + 1).fill(0);
+  for (let row = 1; row <= n; row++) {
+    match[0] = row;
+    let column = 0;
+    const least = new Array<number>(n + 1).fill(Infinity);
+    const used = new Array<boolean>(n + 1).fill(false);
+    do {
+      used[column] = true;
+      const current = match[column]!;
+      let delta = Infinity;
+      let next = 0;
+      for (let j = 1; j <= n; j++) {
+        if (used[j]) continue;
+        const reduced = cost[current - 1]![j - 1]! - u[current]! - v[j]!;
+        if (reduced < least[j]!) {
+          least[j] = reduced;
+          way[j] = column;
+        }
+        if (least[j]! < delta) {
+          delta = least[j]!;
+          next = j;
+        }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) {
+          u[match[j]!]! += delta;
+          v[j]! -= delta;
+        } else least[j]! -= delta;
+      }
+      column = next;
+    } while (match[column] !== 0);
+    do {
+      const previous = way[column]!;
+      match[column] = match[previous]!;
+      column = previous;
+    } while (column !== 0);
+  }
+  const result = new Array<number>(n);
+  for (let j = 1; j <= n; j++) result[match[j]! - 1] = j - 1;
+  return result;
+}
 
-  // Seats of an arc from the middle out, alternating right and left: offsets 0, -1, +1, -2, +2… in seats.
-  const arc = (radius: number, gap: number, limit: number): Point[] => {
-    const seats: Point[] = [];
-    for (let i = 0; seats.length < limit; i++) {
-      const offset = i === 0 ? 0 : Math.ceil(i / 2) * (i % 2 === 1 ? -1 : 1);
-      const angle = Math.PI / 2 + (offset * gap) / radius;
-      if (!fits(radius, angle)) break;
-      seats.push({ x: radius * Math.cos(angle), y: -radius * Math.sin(angle) });
-    }
-    return seats;
-  };
-  const layout = (gap: number) => {
-    const seats: Point[] = [];
-    for (let radius = front; radius > clear && seats.length < count; radius -= gap * 1.05) {
-      seats.push(...arc(radius, gap, count - seats.length));
-    }
-    return seats;
-  };
+/**
+ * Each official seat's row, counted from the front, and how far along that row it is, from 0 at the left end to 1
+ * at the right. The official rows are a horseshoe: straight up at both ends and round over the top, so the seats
+ * of a row are the same distance from a short upright line above the Mesa. Its height is fitted to the plan.
+ */
+function officialRows(seats: readonly Point[], focus: Point): { row: number; along: number }[] {
+  const spacing = seatSpacing(seats);
+  const relative = seats.map((seat) => ({ x: seat.x - focus.x, y: focus.y - seat.y }));
+  const top = Math.max(...relative.map((point) => point.y));
+  const distance = (point: { x: number; y: number }, height: number) =>
+    point.y < height ? Math.abs(point.x) : Math.hypot(point.x, point.y - height);
 
-  // Squeeze the seats together when there are more members than room.
-  let gap = step;
-  let seats = layout(gap);
-  while (seats.length < count && gap > step * 0.6) seats = layout((gap *= 0.95));
-  return seats;
+  // Rows split where the distance jumps; the right height leaves every row tight.
+  const rowsAt = (height: number) => {
+    const order = relative.map((point, index) => ({ index, d: distance(point, height) })).sort((a, b) => a.d - b.d);
+    const rows = new Array<number>(seats.length);
+    let row = 0;
+    let first = order[0]?.d ?? 0;
+    let spread = 0;
+    order.forEach((item, i) => {
+      if (i > 0 && item.d - order[i - 1]!.d > spacing * 0.4) {
+        row++;
+        first = item.d;
+      }
+      spread = Math.max(spread, item.d - first);
+      rows[item.index] = row;
+    });
+    return { rows, spread };
+  };
+  let height = 0;
+  let best = rowsAt(0);
+  for (let step = 1; step <= 40; step++) {
+    const candidate = rowsAt((top * step) / 40);
+    if (candidate.spread < best.spread - 1e-9) [height, best] = [(top * step) / 40, candidate];
+  }
+
+  return relative.map((point, index) => {
+    const d = distance(point, height);
+    const length = 2 * height + Math.PI * d;
+    // Up the left side, over the top, and down the right side.
+    const travelled =
+      point.y < height && point.x < 0
+        ? point.y
+        : point.y < height
+          ? height + Math.PI * d + (height - point.y)
+          : height + d * (Math.PI - Math.atan2(point.y - height, point.x));
+    return { row: best.rows[index]!, along: length > 0 ? travelled / length : 0.5 };
+  });
 }
