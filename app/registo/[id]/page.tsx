@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
 import { reviewedLabel } from "@/lib/records";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { FEATURES } from "@/lib/features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,7 @@ const loadCase = cache(async (id: string) => {
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  if (!FEATURES.record) notFound();
   const item = await loadCase((await params).id);
   if (!item) return { title: "Processo não encontrado" };
   const names = item.people.map((person) => person.name).join(", ");
@@ -36,6 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const SOURCE_KINDS: Record<CaseSource["kind"], string> = { court: "Tribunal", official: "Fonte oficial", news: "Notícia" };
 
 export default async function CasePage({ params }: Props) {
+  if (!FEATURES.record) notFound();
   await connection();
   const item = await loadCase((await params).id);
   if (!item) notFound();

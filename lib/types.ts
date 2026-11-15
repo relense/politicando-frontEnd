@@ -301,6 +301,16 @@ export type ElectionResult = {
 };
 
 /** How a party did: its seats in Parliament and its votes in the latest legislativas. */
+/** A party on the parties page: who leads it, its seats now and its latest legislativas. */
+export type PartyOverview = Party & {
+  seats: number;
+  /** The latest legislativas; `coalition`: the votes are the coalition's, shared with its partners. */
+  lastElection: { id: string; votes: number; validPct: number | null; mandates: number | null; coalition: boolean } | null;
+  governmentMembers: number;
+  /** `href`: their deputy or Government page, when we have one. */
+  leader: { name: string; title: string | null; href: string | null } | null;
+};
+
 export type PartyStanding = {
   seats: number;
   votes: number;

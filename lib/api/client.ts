@@ -17,6 +17,7 @@ import type {
   NewComment,
   Parliament,
   Party,
+  PartyOverview,
   PartyStanding,
   PresidencyStatus,
   TimelineEvent,
@@ -38,6 +39,7 @@ import {
   mapInitiativeDetail,
   mapParliament,
   mapParty,
+  mapPartyOverview,
   mapPartyStanding,
   mapTimeline,
   mapEditorialDetail,
@@ -216,6 +218,11 @@ export async function getElectionResult(id: string, { place, organ }: { place?: 
  * Each party's seats now and votes in the latest legislativas, from the list of parties ordered by seats.
  * Empty when the API doesn't send them, so the order by name is the only one offered.
  */
+/** Every party with its leader, seats and latest result, most seats first (ties by name). */
+export async function getPartyOverview(): Promise<PartyOverview[]> {
+  return (await request("/parties?sort=seats", z.array(partySchema), cached)).map(mapPartyOverview);
+}
+
 export async function getPartyStandings(): Promise<Record<string, PartyStanding>> {
   try {
     const parties = await request("/parties?sort=seats", z.array(partySchema), cached);

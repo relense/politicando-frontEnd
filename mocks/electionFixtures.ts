@@ -80,6 +80,8 @@ const ELECTIONS = [
   { id: "legislativas-2024", type: "legislativas", name: "Legislativas 2024", date: "2024-03-10", organs: ["AR"], imported: true },
   { id: "legislativas-2019", type: "legislativas", name: "Legislativas 2019", date: "2019-10-06", organs: ["AR"], imported: false },
   { id: "autarquicas-2021", type: "autarquicas", name: "Autárquicas 2021", date: "2021-09-26", organs: ["CM", "AM", "AF"], imported: true },
+  // Already scheduled: shown on the menu by its date.
+  { id: "autarquicas-2029", type: "autarquicas", name: "Autárquicas 2029", date: "2029-10-07", organs: ["CM", "AM", "AF"], imported: false },
 ] as const;
 
 const summary = (election: (typeof ELECTIONS)[number]) => ({

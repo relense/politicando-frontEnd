@@ -42,9 +42,13 @@ export default async function ElectionsPage() {
   const sorted = [...(elections ?? [])].sort(newestFirst);
   const latest = sorted.find((election) => election.imported) ?? null;
   const latestResult = latest ? await getElectionResult(latest.id).catch(() => null) : null;
-  const types = ELECTION_TYPES.map((item) => ({ ...item, elections: sorted.filter((election) => election.type === item.type) })).filter(
-    (item) => item.elections.length > 0,
-  );
+  // Elections dated after today are the next ones: shown by their date, not as results.
+  const today = new Date().toISOString().slice(0, 10);
+  const types = ELECTION_TYPES.map((item) => {
+    const ofType = sorted.filter((election) => election.type === item.type);
+    const next = ofType.filter((election) => election.date > today).at(-1) ?? null;
+    return { ...item, next, elections: ofType.filter((election) => election.date <= today) };
+  }).filter((item) => item.elections.length > 0 || item.next);
 
   return (
     <div data-wide className="mx-auto max-w-5xl">
@@ -77,7 +81,7 @@ export default async function ElectionsPage() {
           {latest && latestResult && <Featured election={latest} result={latestResult} parties={parties} />}
 
           <div className="space-y-14">
-            {types.map(({ type, label, about, elections: ofType }) => (
+            {types.map(({ type, label, about, next, elections: ofType }) => (
               <section key={type} aria-labelledby={`tipo-${type}`}>
                 <div className="flex items-baseline justify-between gap-3 border-b-2 border-ink pb-2">
                   <h2 id={`tipo-${type}`} className="scroll-mt-20 font-mono text-sm font-bold uppercase tracking-widest">
@@ -88,7 +92,15 @@ export default async function ElectionsPage() {
                   </span>
                 </div>
                 <div className="mb-5 mt-3 flex flex-wrap items-end justify-between gap-4">
-                  <p className="max-w-xl text-sm text-muted">{about}</p>
+                  <div className="max-w-xl">
+                    {next && (
+                      <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-ink px-3 py-1 font-mono text-xs">
+                        <span className="font-bold">Próximas eleições</span>
+                        <time dateTime={next.date}>{formatLongDate(next.date)}</time>
+                      </p>
+                    )}
+                    <p className="text-sm text-muted">{about}</p>
+                  </div>
                   <TurnoutBars elections={ofType} />
                 </div>
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

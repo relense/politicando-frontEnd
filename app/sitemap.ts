@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import { getElectionResult, getElections } from "@/lib/api/client";
 import { getSitemapItems, type SitemapItem, type SitemapKind } from "@/lib/api/sitemap";
 import { editorialPath } from "@/lib/editorial";
+import { FEATURES } from "@/lib/features";
+import { LOCAL_POSTS } from "@/lib/localPosts";
 import { electionPath } from "@/lib/elections";
 import { partyPath } from "@/lib/parties";
 import { SITE_URL } from "@/lib/site";
@@ -23,7 +25,7 @@ const ROUTES: Record<SitemapKind, { path: ((id: string) => string) | null; chang
   place: { path: (id) => `/sitios/${id}`, changeFrequency: "monthly" },
   initiative: { path: (id) => `/iniciativas/${id}`, changeFrequency: "weekly" },
   editorial: { path: editorialPath, changeFrequency: "monthly" },
-  case: { path: (id) => `/registo/${id}`, changeFrequency: "monthly" },
+  case: { path: FEATURES.record ? (id) => `/registo/${id}` : null, changeFrequency: "monthly" },
 };
 
 /** Districts and municipalities before parishes, as the backend suggests. */
@@ -89,6 +91,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/", { changeFrequency: "hourly" }),
     at("/parlamento", { changeFrequency: "daily" }),
     at("/deputados", { changeFrequency: "weekly" }),
+    at("/partidos", { changeFrequency: "weekly" }),
     at("/governo", { changeFrequency: "weekly" }),
     at("/presidente", { changeFrequency: "weekly" }),
     at("/iniciativas", { changeFrequency: "daily" }),
@@ -97,12 +100,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/contratos", { changeFrequency: "weekly" }),
     at("/historia", { changeFrequency: "monthly" }),
     at("/percursos", { changeFrequency: "monthly" }),
-    at("/como-ser-deputado", { changeFrequency: "yearly" }),
-    at("/registo", { changeFrequency: "weekly" }),
-    at("/interesses", { changeFrequency: "weekly" }),
     at("/editorial", { changeFrequency: "daily" }),
   ];
+  const own = LOCAL_POSTS.map((post) => at(editorialPath(post.slug), { lastModified: post.publishedAt, changeFrequency: "monthly" }));
   const [data, places] = await Promise.all([section(dataPages), section(latestElectionPlaces)]);
   const seen = new Set<string>();
-  return [...fixed, ...data, ...places].filter((entry) => !seen.has(entry.url) && Boolean(seen.add(entry.url)));
+  return [...fixed, ...own, ...data, ...places].filter((entry) => !seen.has(entry.url) && Boolean(seen.add(entry.url)));
 }

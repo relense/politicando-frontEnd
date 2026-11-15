@@ -6,6 +6,7 @@ import { ArticleImage } from "@/components/ArticleImage";
 import { ApiError, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS } from "@/lib/editorial";
 import { excerpt, formatLongDate } from "@/lib/format";
+import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown } from "@/lib/markdown";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { EditorialDetail } from "@/lib/types";
@@ -13,6 +14,8 @@ import type { EditorialDetail } from "@/lib/types";
 type Props = { params: Promise<{ slug: string }> };
 
 async function loadPost(slug: string): Promise<EditorialDetail> {
+  const own = localPost(decodeURIComponent(slug));
+  if (own) return own;
   try {
     return await getEditorialPost(decodeURIComponent(slug));
   } catch (error) {

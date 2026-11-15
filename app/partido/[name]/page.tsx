@@ -8,7 +8,6 @@ import { Feed } from "@/components/Feed";
 import { PartyHemicycle } from "@/components/PartyHemicycle";
 import { PartyInitiatives } from "@/components/PartyInitiatives";
 import { PartyLogo } from "@/components/PartyLogo";
-import { PartyChipBar } from "@/components/PartyNav";
 import { PartyProfile } from "@/components/PartyProfile";
 import { PartyVotes } from "@/components/PartyVotes";
 import { getElections, getFeedPage, getInitiatives, getParliament, getParties, getPartyStandings } from "@/lib/api/client";
@@ -50,7 +49,7 @@ const tabPath = (slug: string, tab: Tab) => (tab === "noticias" ? partyPath(slug
 export default async function PartyPage({ params, searchParams }: Props) {
   await connection();
   const [{ name }, { ver }] = await Promise.all([params, searchParams]);
-  const { parties, party } = await resolveParty(name);
+  const { party } = await resolveParty(name);
   if (!party) notFound();
   // Old links such as /partido/l keep working and move to the current address.
   if (name !== party.slug) permanentRedirect(partyPath(party.slug));
@@ -84,7 +83,6 @@ export default async function PartyPage({ params, searchParams }: Props) {
 
   return (
     <div data-wide className="@container">
-      <PartyChipBar parties={parties} always />
       <header className="grid items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
           <div className="flex items-center gap-5">

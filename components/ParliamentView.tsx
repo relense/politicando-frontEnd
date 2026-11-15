@@ -1,41 +1,36 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { COALITIONS, majority, partyColor, SEAT_ORDER } from "@/lib/parliament";
-import type { DeputySummary, InitiativePage, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
+import type { DeputySummary, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
 import { DeputyPanel } from "./DeputyPanel";
 import { Hemicycle } from "./Hemicycle";
 import { OrgansExplainer } from "./OrgansExplainer";
-import { InitiativesSection, type InitiativeFilter } from "./InitiativesSection";
 
 export type Selection = { party: string; deputy: number | null } | null;
 
 type Props = {
   parliament: Parliament;
-  initialInitiatives: InitiativePage | null;
   initialSelection: Selection;
   /** The page title, shown above the map so the card beside it starts level with it. */
   header?: ReactNode;
 };
 
-export function ParliamentView({ parliament, initialInitiatives, initialSelection, header }: Props) {
+export function ParliamentView({ parliament, initialSelection, header }: Props) {
   const { deputies, groups, seatMap } = parliament;
   const groupBySlug = useMemo(() => new Map(groups.map((group) => [group.party.slug, group])), [groups]);
   const deputyById = useMemo(() => new Map(deputies.map((deputy) => [deputy.id, deputy])), [deputies]);
 
   const [selection, setSelection] = useState<Selection>(() => valid(initialSelection, groupBySlug, deputyById));
-  const [initiativeParties, setInitiativeParties] = useState<string[] | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const group = selection ? (groupBySlug.get(selection.party) ?? null) : null;
   const deputy = selection?.deputy ? (deputyById.get(selection.deputy) ?? null) : null;
   const bench = useMemo(() => (group ? deputies.filter((item) => item.partySlug === group.party.slug) : []), [deputies, group]);
 
-  // The chosen party stands out; hovering an initiative shows its authors instead.
-  const highlighted = useMemo(() => {
-    if (initiativeParties) return new Set(initiativeParties);
-    return selection ? new Set([selection.party]) : null;
-  }, [initiativeParties, selection]);
+  // The chosen party stands out.
+  const highlighted = useMemo(() => (selection ? new Set([selection.party]) : null), [selection]);
 
   function choose(next: Selection) {
     setSelection(next);
@@ -61,11 +56,6 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
     if (chosen) choose({ party: chosen.partySlug ?? selection?.party ?? "", deputy: id });
   };
 
-  const filter: InitiativeFilter = deputy
-    ? { label: deputy.name, deputy: deputy.id }
-    : group
-      ? { label: `${group.party.acronym}`, party: group.party.slug }
-      : null;
   const total = seatMap.seats.length;
 
   return (
@@ -112,14 +102,48 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
 
       <OrgansExplainer />
 
-      <InitiativesSection
-        initialPage={initialInitiatives}
-        counts={parliament.initiativeCounts}
-        groups={groupBySlug}
-        filter={filter}
-        onHighlight={setInitiativeParties}
-      />
+      <InitiativesLink counts={parliament.initiativeCounts} />
     </>
+  );
+}
+
+/** The initiatives have their own page; here, how many there are and the way there. */
+function InitiativesLink({ counts }: { counts: Parliament["initiativeCounts"] }) {
+  const figures = [
+    { label: "aprovadas", value: counts.approved },
+    { label: "em discussão", value: counts.in_progress },
+    { label: "rejeitadas", value: counts.rejected },
+  ].filter((item) => item.value !== undefined);
+  return (
+    <section
+      aria-labelledby="iniciativas"
+      className="mt-10 rounded-2xl border border-line p-5 sm:flex sm:items-center sm:justify-between sm:gap-6"
+    >
+      <div>
+        <h2 id="iniciativas" className="text-xl font-bold">
+          Iniciativas
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          As leis e propostas que passam pelo Parlamento, explicadas em linguagem simples, com quem as propôs e como votou cada partido.
+        </p>
+        {figures.length > 0 && (
+          <p className="mt-2 font-mono text-xs text-muted">
+            {figures.map((item, index) => (
+              <span key={item.label}>
+                {index > 0 && " · "}
+                <span className="font-bold text-ink">{item.value!.toLocaleString("pt-PT")}</span> {item.label}
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+      <Link
+        href="/iniciativas"
+        className="mt-4 inline-block shrink-0 rounded-full border border-ink px-4 py-2 font-mono text-sm font-bold hover:bg-surface sm:mt-0"
+      >
+        Ver as iniciativas →
+      </Link>
+    </section>
   );
 }
 

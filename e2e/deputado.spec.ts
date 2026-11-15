@@ -1,7 +1,26 @@
 import { expect, test } from "@playwright/test";
+import { FEATURES } from "../lib/features";
 import { noSeriousA11yIssues } from "./helpers";
 
+// The page is switched off (it became a blog post): its own tests wait for it to come back.
+const pageOn = () => test.skip(!FEATURES.becomeDeputyPage, "The page is switched off.");
+
+test("while switched off, the become-a-deputy page sends readers to the blog post", async ({ page }) => {
+  test.skip(FEATURES.becomeDeputyPage, "The page is on.");
+  await page.goto("/como-ser-deputado");
+  await expect(page).toHaveURL(/\/editorial\/como-se-chega-a-deputado$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Como se chega a deputado" })).toBeVisible();
+  await expect(page.getByText("faltaram-lhe 668 votos")).toBeVisible();
+  // Links to our own pages stay on the site.
+  await expect(page.getByRole("link", { name: "Legislativas 2025 em Portalegre" })).toHaveAttribute(
+    "href",
+    "/eleicoes/legislativas-2025/LOCAL-120000",
+  );
+  await noSeriousA11yIssues(page);
+});
+
 test("become a deputy: the rules, the seats per círculo, d'Hondt and the real lists", async ({ page }) => {
+  pageOn();
   await page.goto("/como-ser-deputado");
   await expect(page.getByRole("heading", { level: 1, name: "Como se chega a deputado" })).toBeVisible();
 
@@ -40,11 +59,13 @@ test("become a deputy: the rules, the seats per círculo, d'Hondt and the real l
 });
 
 test("become a deputy: an unknown círculo falls back to Portalegre", async ({ page }) => {
+  pageOn();
   await page.goto("/como-ser-deputado?circulo=nada");
   await expect(page.getByRole("table", { name: /Método de Hondt em Portalegre/ })).toBeVisible();
 });
 
 test("become a deputy is accessible in dark mode", async ({ page }) => {
+  pageOn();
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/como-ser-deputado?circulo=LOCAL-110000");
   await noSeriousA11yIssues(page);

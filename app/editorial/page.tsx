@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { EditorialCard } from "@/components/EditorialCard";
 import { ApiError, getEditorial } from "@/lib/api/client";
 import { EDITORIAL_KINDS, KIND_PLURALS } from "@/lib/editorial";
+import { withLocalPosts } from "@/lib/localPosts";
 import type { EditorialKind, EditorialPage } from "@/lib/types";
 
 const PAGE_SIZE = 12;
@@ -45,7 +46,8 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
   const { tipo, pagina } = await searchParams;
   const kind = kindOf(tipo);
   const page = pageOf(pagina);
-  const { items, total } = await loadPage(kind, page);
+  const fromApi = await loadPage(kind, page);
+  const { items, total } = withLocalPosts(fromApi, { kind, number: page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1 font-mono text-xs font-bold ${active ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
@@ -79,9 +81,9 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
       </nav>
 
       {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-          {kind || page > 1 ? "Não há publicações aqui." : "Ainda não publicámos nada. Volta em breve."}
-        </p>
+        kind || page > 1 ? (
+          <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">Não há publicações aqui.</p>
+        ) : null
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((post) => (
@@ -90,6 +92,13 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {fromApi.total === 0 && page === 1 && (
+        <p className="mt-8 rounded-2xl border border-dashed border-line p-6 text-center text-muted">
+          <span className="block font-bold text-ink">Em breve</span>
+          Artigos, opinião, entrevistas e podcasts da redação e de autores convidados.
+        </p>
       )}
 
       {pages > 1 && (

@@ -17,6 +17,8 @@ import {
 import { ApiError, getParties } from "@/lib/api/client";
 import { formatLongDate } from "@/lib/format";
 import type { Party } from "@/lib/types";
+import { FEATURES } from "@/lib/features";
+import { permanentRedirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Como se chega a deputado",
@@ -42,6 +44,7 @@ async function loadExplainer(): Promise<Explainer | null> {
 }
 
 export default async function BecomeDeputyPage({ searchParams }: Props) {
+  if (!FEATURES.becomeDeputyPage) permanentRedirect("/editorial/como-se-chega-a-deputado");
   await connection();
   const [{ circulo }, explainer, parties, featured] = await Promise.all([
     searchParams,

@@ -10,6 +10,17 @@ export const partySchema = z.object({
   lastElection: z
     .object({ id: z.string(), votes: z.number(), validPct: z.number().nullable(), mandates: z.number().nullable(), coalition: z.boolean() })
     .nullish(),
+  /** People in office whose deputy record belongs to the party: a lower bound. */
+  governmentMembers: z.number().nullish(),
+  /** Curated by hand, for the parties with seats. */
+  leader: z
+    .object({
+      name: z.string(),
+      title: z.string().nullish(),
+      deputyId: z.number().nullish(),
+      governmentMemberId: z.string().nullish(),
+    })
+    .nullish(),
 });
 
 const articlePartySchema = partySchema.pick({ slug: true, acronym: true, name: true });

@@ -1,86 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { partyPath } from "@/lib/parties";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
 import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
 
-/** "" on the home feed, the party slug on a party page, null elsewhere. */
-function useActiveSlug(): string | null {
-  const pathname = usePathname();
-  if (pathname === "/") return "";
-  const match = pathname.match(/^\/partido\/([^/]+)/);
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1]!);
-  } catch {
-    return null;
-  }
-}
-
 const current = (active: boolean) => (active ? ("page" as const) : undefined);
 
-/** On the news pages, from laptop width: what the site is, and every party, in a column on the right as wide as the one on the left. */
-export function PartySidebar({ parties }: { parties: Party[] }) {
-  const active = useActiveSlug();
-  const { ordered, order, standingOf } = useOrderedParties(parties);
-  // Only beside the news: the feed, the party feeds and the articles. The other pages use the width themselves.
-  const pathname = usePathname();
-  // Party pages have their own row of parties at the top instead.
-  if (!(pathname === "/" || pathname.startsWith("/article/"))) return null;
-
-  return (
-    <aside
-      className={`sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start no-scrollbar overflow-y-auto lg:block 2xl:w-[var(--side-column)]`}
-    >
-      <div className="mb-8 rounded-xl border border-line p-4">
-        <p className="text-sm italic leading-relaxed 2xl:text-base">
-          As notícias sobre os partidos políticos portugueses, num só lugar. Lê, compara e comenta.
-        </p>
-      </div>
-      <nav aria-label="Partidos">
-        <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-ink pb-2">
-          <h2 className="font-mono text-xs font-bold uppercase tracking-widest">Partidos</h2>
-          <PartyOrderToggle />
-        </div>
-        <ul className="flex flex-col">
-          {ordered.map((party) => (
-            <li key={party.slug}>
-              <Link
-                href={partyPath(party.slug)}
-                aria-current={current(active === party.slug)}
-                title={party.name}
-                className={`flex items-center gap-2.5 rounded px-1.5 py-1.5 hover:bg-surface ${
-                  active === party.slug ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : ""
-                }`}
-              >
-                <PartyLogo slug={party.slug} acronym={party.acronym} size={24} />
-                {/* One line each. On very wide screens the column fits the longest name; narrower, long names end in "…" (the full name is the title). */}
-                <span className="min-w-0 flex-1 leading-tight">
-                  <span className="block whitespace-nowrap font-mono text-xs font-bold">{party.acronym}</span>
-                  <span className="block truncate text-xs text-muted">{party.name}</span>
-                  {order === "votes" && standingOf(party.slug) && (
-                    <span className="block whitespace-nowrap font-mono text-[0.6875rem] text-muted">{standingOf(party.slug)}</span>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </aside>
-  );
-}
-
 /**
- * A row of party chips that scrolls sideways. Above the feed on phones and tablets, where there is no party column;
- * on party pages at every width (`always`), with arrows on larger screens.
+ * A row of party chips that scrolls sideways, above the feed, to filter the news by party without leaving the page
+ * (`/?partido=ps`). The party's own page is reached from the parties page or the party on each article.
+ * `active`: the chosen party's slug, or null for all.
  */
-export function PartyChipBar({ parties, always = false }: { parties: Party[]; always?: boolean }) {
-  const active = useActiveSlug();
+export function PartyChipBar({ parties, active }: { parties: Party[]; active: string | null }) {
   const { ordered, standingOf } = useOrderedParties(parties);
   const listRef = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
@@ -131,20 +64,21 @@ export function PartyChipBar({ parties, always = false }: { parties: Party[]; al
   );
 
   return (
-    <nav aria-label="Partidos" className={`-mx-4 mb-6 ${always ? "lg:mx-0" : "lg:hidden"}`}>
-      <PartyOrderToggle className={`mb-2 px-4 ${always ? "lg:px-0" : ""}`} />
+    <nav aria-label="Filtrar por partido" className="-mx-4 mb-6 lg:mx-0">
+      <PartyOrderToggle className="mb-2 px-4 lg:px-0" />
       <div className="flex items-center gap-2">
-        {always && arrow(-1)}
-        <ul ref={listRef} className={`no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 ${always ? "lg:px-0" : ""}`}>
+        {arrow(-1)}
+        <ul ref={listRef} className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 lg:px-0">
           <li className="shrink-0">
-            <Link href="/" aria-current={current(active === "")} className={chip(active === "")}>
+            <Link href="/" scroll={false} aria-current={current(active === null)} className={chip(active === null)}>
               Todas
             </Link>
           </li>
           {ordered.map((party) => (
             <li key={party.slug} className="shrink-0">
               <Link
-                href={partyPath(party.slug)}
+                href={`/?partido=${encodeURIComponent(party.slug)}`}
+                scroll={false}
                 aria-current={current(active === party.slug)}
                 title={standingOf(party.slug) ?? undefined}
                 className={`${chip(active === party.slug)} pl-1.5`}
@@ -155,7 +89,7 @@ export function PartyChipBar({ parties, always = false }: { parties: Party[]; al
             </li>
           ))}
         </ul>
-        {always && arrow(1)}
+        {arrow(1)}
       </div>
     </nav>
   );

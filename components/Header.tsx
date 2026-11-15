@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useRef } from "react";
-import type { Party } from "@/lib/types";
 import { PartyDrawer } from "./PartyDrawer";
 import { ThemeToggle } from "./ThemeToggle";
 
-export function Header({ parties }: { parties: Party[] }) {
+export function Header() {
   const drawerRef = useRef<HTMLDialogElement>(null);
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper">
       <div className="mx-auto grid h-14 w-full max-w-[96rem] grid-cols-[1fr_auto_1fr] items-center px-4">
-        {/* Desktop has the party sidebar, so the drawer is only for smaller screens. */}
+        {/* Desktop has the sections column, so the menu is only for smaller screens. */}
         <button
           type="button"
           aria-label="Abrir menu"
@@ -35,7 +34,7 @@ export function Header({ parties }: { parties: Party[] }) {
           <ThemeToggle />
         </div>
       </div>
-      <PartyDrawer ref={drawerRef} parties={parties} />
+      <PartyDrawer ref={drawerRef} />
     </header>
   );
 }

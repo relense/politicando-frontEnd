@@ -6,6 +6,8 @@ import { type Interest, getInterests } from "@/lib/api/cases";
 import { formatDate } from "@/lib/format";
 import { formatEuros } from "@/lib/records";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { FEATURES } from "@/lib/features";
+import { notFound } from "next/navigation";
 
 type Props = { searchParams: Promise<{ deputado?: string | string[]; membro?: string | string[] }> };
 
@@ -18,6 +20,7 @@ function filterOf(search: Awaited<Props["searchParams"]>): Filter {
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  if (!FEATURES.record) notFound();
   const filter = filterOf(await searchParams);
   const personal = filter.deputy !== null || filter.member !== null;
   return {
@@ -104,6 +107,7 @@ function InterestCard({ item }: { item: Interest }) {
 }
 
 export default async function InterestsPage({ searchParams }: Props) {
+  if (!FEATURES.record) notFound();
   await connection();
   const filter = filterOf(await searchParams);
   const personal = filter.deputy !== null || filter.member !== null;

@@ -4,7 +4,8 @@ import { safeHttpUrl } from "./api/mappers";
 /**
  * A small Markdown renderer for our own posts, straight to React elements, so raw HTML in the text is always shown
  * as text, never run. Covers what the editors use: headings, paragraphs, lists, quotes, code, rules, bold, italic,
- * inline code, links and images. Links and images must be http(s); anything else stays plain text.
+ * inline code, links and images. Links must be http(s) or a path on this site ("/deputados"), images http(s);
+ * anything else stays plain text.
  */
 export function renderMarkdown(source: string, top?: number): ReactNode[] {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
@@ -112,6 +113,13 @@ export function renderInline(text: string): ReactNode[] {
       const safe = safeHttpUrl(src);
       // eslint-disable-next-line @next/next/no-img-element -- images from anywhere the editors link to
       out.push(safe ? <img key={at} src={safe} alt={alt ?? ""} loading="lazy" /> : (alt ?? ""));
+    } else if (href !== undefined && /^\/(?!\/)/.test(href)) {
+      // A page of our own: same tab.
+      out.push(
+        <a key={at} href={href}>
+          {renderInline(label!)}
+        </a>,
+      );
     } else if (href !== undefined) {
       const safe = safeHttpUrl(href);
       out.push(

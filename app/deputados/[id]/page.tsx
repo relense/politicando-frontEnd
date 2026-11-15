@@ -11,6 +11,7 @@ import { RecordsBox } from "@/components/Records";
 import { ApiError, getDeputy } from "@/lib/api/client";
 import { tryPersonPath } from "@/lib/api/people";
 import { partyColor } from "@/lib/parliament";
+import { FEATURES } from "@/lib/features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -71,7 +72,7 @@ export default async function DeputyPage({ params }: Props) {
         </Link>
       </header>
 
-      {path && <RecordsBox records={path.records} kind="deputy" id={deputy.id} />}
+      {FEATURES.record && path && <RecordsBox records={path.records} kind="deputy" id={deputy.id} />}
 
       <Section title="Iniciativas que assina">
         <DeputyInitiatives detail={deputy} />

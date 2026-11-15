@@ -31,6 +31,14 @@ const newCommentSchema = z.strictObject({
   recaptchaToken: z.string().min(1),
 });
 
+/** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
+const psLeader = deputies.find((deputy) => deputy.party === "ps")!;
+const leaders: Record<string, { name: string; title: string; deputyId: number | null; governmentMemberId: string | null }> = {
+  psd: { name: government.primeMinister!.name!, title: "Presidente do PSD", deputyId: null, governmentMemberId: government.primeMinister!.id! },
+  ps: { name: psLeader.name, title: "Secretário-geral do PS", deputyId: psLeader.id, governmentMemberId: null },
+  be: { name: "Marta Quintela", title: "Coordenadora do Bloco de Esquerda", deputyId: null, governmentMemberId: null },
+};
+
 const answer = (result: ReturnType<typeof electionResult>) =>
   result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
 
@@ -72,7 +80,7 @@ export const handlers = [
         parties,
         new Map(parliament.groups.map((group) => [group.party.slug, group.seats])),
         new URL(request.url).searchParams.get("sort"),
-      ),
+      ).map((party) => ({ ...party, leader: leaders[party.slug] ?? null })),
     ),
   ),
   http.get(`${API}/articles`, ({ request }) => {

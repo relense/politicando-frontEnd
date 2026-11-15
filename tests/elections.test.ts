@@ -45,7 +45,7 @@ const party = (slug: string, acronym: string, name = acronym): Party => ({ slug,
 
 describe("elections API", () => {
   it("lists elections and filters by type", async () => {
-    expect((await getElections()).length).toBe(4);
+    expect((await getElections()).length).toBe(5);
     const legislativas = await getElections("legislativas");
     expect(legislativas.every((election) => election.type === "legislativas")).toBe(true);
     expect(legislativas.find((election) => !election.imported)?.id).toBe("legislativas-2019");

@@ -47,7 +47,7 @@ const bench = [government.primeMinister!, ...government.ministries.flatMap((m) =
 const renderView = (initialSelection: Selection = null) =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })}>
-      <ParliamentView parliament={parliament} initialInitiatives={null} initialSelection={initialSelection} />
+      <ParliamentView parliament={parliament} initialSelection={initialSelection} />
     </QueryClientProvider>,
   );
 
@@ -130,40 +130,19 @@ describe("ParliamentView", () => {
     expect(screen.getByRole("region", { name: "CHEGA" })).toBeInTheDocument();
   });
 
-  it("tells the Parliament and the Government apart, and marks where each initiative comes from", async () => {
+  it("tells the Parliament and the Government apart, and points to the initiatives page", () => {
     renderView();
     const explainer = screen.getByRole("region", { name: /Parlamento ou Governo/ });
     expect(within(explainer).getByRole("heading", { name: /Assembleia da República/ })).toBeInTheDocument();
     expect(within(explainer).getByRole("heading", { name: /^Governo/ })).toBeInTheDocument();
-
     const section = screen.getByRole("region", { name: "Iniciativas" });
-    const cards = await within(section).findAllByRole("article");
-    const government = cards.find((card) => within(card).queryByText(/Proposta de Lei/));
-    const parliament = cards.find((card) => within(card).queryByText(/Projeto de Lei/));
-    expect(within(government!).getByText("Governo", { selector: "span" })).toBeInTheDocument();
-    expect(within(parliament!).getByText("Parlamento", { selector: "span" })).toBeInTheDocument();
+    expect(within(section).getByRole("link", { name: "Ver as iniciativas →" })).toHaveAttribute("href", "/iniciativas");
   });
 
   it("links a bench to its deputies page", () => {
     renderView({ party: "ps", deputy: null });
     expect(screen.getByRole("link", { name: /bancada com fotografias/ })).toHaveAttribute("href", "/deputados?partido=ps");
     expect(screen.queryByText(/Ver lista de deputados/)).toBeNull();
-  });
-
-  it("switches initiative tabs, shows a party-by-party vote on request and filters by the chosen deputy", async () => {
-    const user = userEvent.setup();
-    renderView({ party: "", deputy: ps.id });
-    const section = screen.getByRole("region", { name: "Iniciativas" });
-    expect(within(section).getByRole("button", { name: /Aprovadas/ })).toHaveTextContent(/\d/);
-
-    await user.click((await within(section).findAllByRole("button", { name: "Ver votação por partido" }))[0]!);
-    expect(await within(section).findByText("A favor")).toBeInTheDocument();
-
-    await user.click(within(section).getByRole("button", { name: /Em discussão/ }));
-    expect((await within(section).findAllByText("Em discussão", { selector: "span" })).length).toBeGreaterThan(0);
-
-    await user.click(within(section).getByRole("checkbox", { name: `Só as de ${ps.name}` }));
-    expect(await within(section).findByText(/Não há iniciativas|Proposta por/)).toBeInTheDocument();
   });
 });
 

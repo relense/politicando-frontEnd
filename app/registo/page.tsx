@@ -6,6 +6,8 @@ import { type CasePage, type Glossary, getCaseGlossary, getCases } from "@/lib/a
 import { getParties } from "@/lib/api/client";
 import { CONTACT_EMAIL } from "@/lib/site";
 import type { Party } from "@/lib/types";
+import { FEATURES } from "@/lib/features";
+import { notFound } from "next/navigation";
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +29,7 @@ function pathOf({ party, status, crime }: Filters, page = 1) {
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  if (!FEATURES.record) notFound();
   const search = await searchParams;
   const filtered = Boolean(one(search.partido) || one(search.fase) || one(search.crime));
   return {
@@ -56,6 +59,7 @@ async function load(filters: Filters, page: number): Promise<[CasePage, Glossary
 }
 
 export default async function RecordPage({ searchParams }: Props) {
+  if (!FEATURES.record) notFound();
   await connection();
   const search = await searchParams;
   const filters: Filters = { party: one(search.partido), status: one(search.fase), crime: one(search.crime) };

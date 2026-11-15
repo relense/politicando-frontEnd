@@ -1,7 +1,21 @@
 import { expect, test } from "@playwright/test";
+import { FEATURES } from "../lib/features";
+import { recordDeputy } from "../mocks/peopleFixtures";
 import { noSeriousA11yIssues } from "./helpers";
 
+// The record (cases and interests) is built but switched off for now: those tests wait for it.
+const recordOn = () => test.skip(!FEATURES.record, "The record is switched off.");
+
+test("while the record is off, its pages are 404 and people's pages show no record box", async ({ page, request }) => {
+  test.skip(FEATURES.record, "The record is on.");
+  for (const path of ["/registo", "/registo/1", "/interesses"]) expect((await request.get(path)).status()).toBe(404);
+  await page.goto(`/deputados/${recordDeputy.id}`);
+  await expect(page.getByRole("heading", { name: "Percurso" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Registo" })).toHaveCount(0);
+});
+
 test("a deputy's page shows their career path and their record, with the presumption of innocence", async ({ page }) => {
+  recordOn();
   await page.goto("/registo/1");
   const deputyLink = page.locator("main a[href^='/deputados/']").first();
   await expect(deputyLink).toBeVisible();
@@ -49,6 +63,7 @@ test("featured paths link to each person's page", async ({ page }) => {
 });
 
 test("the record explains the stages and keeps the mandatory notes", async ({ page }) => {
+  recordOn();
   await page.goto("/registo");
   await expect(page.getByRole("heading", { name: "Como funciona um processo" })).toBeVisible();
   const card = page.getByRole("article").filter({ hasText: "Operação Exemplo" });
@@ -65,6 +80,7 @@ test("the record explains the stages and keeps the mandatory notes", async ({ pa
 });
 
 test("a case page lists sources with court ones first, and offers corrections", async ({ page }) => {
+  recordOn();
   await page.goto("/registo/1");
   await expect(page.getByRole("heading", { level: 1, name: "Operação Exemplo" })).toBeVisible();
   const sources = page.locator("[id^='fonte-']");
@@ -76,6 +92,7 @@ test("a case page lists sources with court ones first, and offers corrections", 
 });
 
 test("unknown cases are a 404", async ({ page }) => {
+  recordOn();
   const response = await page.goto("/registo/999");
   expect(response?.status()).toBe(404);
 });
@@ -89,6 +106,7 @@ for (const path of [
   "/governo/00000000000000000000000000000001",
 ]) {
   test(`no serious accessibility issues on ${path}`, async ({ page }) => {
+    if (/^\/(registo|interesses)/.test(path)) recordOn();
     await page.goto(path);
     await noSeriousA11yIssues(page);
   });

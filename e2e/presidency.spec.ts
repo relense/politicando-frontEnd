@@ -52,16 +52,15 @@ test("initiatives: plain titles, topic and status filters, more on demand, and t
   await expect(page.getByRole("link", { name: "Discutir no fórum" })).toHaveAttribute("href", /\/forum\/geral\?iniciativa=\d+#nova/);
 });
 
-test("initiative detail: unknown id is a 404, and parliament cards link to the detail page", async ({ page }) => {
+test("initiative detail: unknown id is a 404, and list cards link to the detail page", async ({ page }) => {
   const missing = await page.goto("/iniciativas/123");
   expect(missing?.status()).toBe(404);
 
   await page.goto("/iniciativas/5000");
   await expect(page.getByRole("heading", { name: "No Presidente da República" })).toBeVisible();
 
-  await page.goto("/parlamento");
-  const section = page.getByRole("region", { name: "Iniciativas" });
-  await section.getByRole("article").first().getByRole("heading").getByRole("link").click();
+  await page.goto("/iniciativas");
+  await page.getByRole("list", { name: "Iniciativas" }).getByRole("listitem").first().getByRole("heading").getByRole("link").click();
   await expect(page).toHaveURL(/\/iniciativas\/\d+$/);
 });
 

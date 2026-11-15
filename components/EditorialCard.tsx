@@ -26,7 +26,8 @@ export function EditorialCard({
           imageClassName="size-full object-cover"
         />
       ) : (
-        <div aria-hidden="true" className="aspect-[16/9] bg-surface" />
+        // No cover: a thin rule instead of an empty box, and the subtitle says more.
+        <div aria-hidden="true" className="h-1 bg-ink" />
       )}
       <div className="flex flex-1 flex-col p-4">
         <p className="font-mono text-[11px] font-bold uppercase tracking-widest">
@@ -39,7 +40,9 @@ export function EditorialCard({
             {post.title}
           </Link>
         </Heading>
-        {post.subtitle && !compact && <p className="mt-1 text-sm text-muted">{post.subtitle}</p>}
+        {post.subtitle && (!compact || !post.coverImageUrl) && (
+          <p className={`mt-1 text-sm text-muted ${compact ? "line-clamp-3" : ""}`}>{post.subtitle}</p>
+        )}
         <p className="mt-auto pt-3 font-mono text-xs text-muted">
           {post.authorName && <>{post.authorName} · </>}
           {formatLongDate(post.publishedAt)}

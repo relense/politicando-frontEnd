@@ -11,6 +11,7 @@ import { ApiError, getGovernmentMember } from "@/lib/api/client";
 import { tryPersonPath } from "@/lib/api/people";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
+import { FEATURES } from "@/lib/features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -90,7 +91,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
         )}
       </header>
 
-      {path && <RecordsBox records={path.records} kind="government" id={member.id} />}
+      {FEATURES.record && path && <RecordsBox records={path.records} kind="government" id={member.id} />}
 
       {member.bio.length > 0 && (
         <Section title="Biografia">
