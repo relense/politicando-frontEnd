@@ -20,58 +20,129 @@ const icon = (path: string) => (
   </svg>
 );
 
-/** The site's sections. New sections are added here and appear on desktop and in the phone menu. */
-export const SITE_SECTIONS: Item[] = [
+/** The site's sections, in groups. New sections are added here and appear on desktop and in the phone menu. */
+export const SITE_GROUPS: { title: string; items: Item[] }[] = [
   {
-    href: "/",
-    label: "Notícias",
-    hint: "De todos os partidos",
-    icon: icon("M4 4h9v12H5a1 1 0 0 1-1-1V4Zm9 3h3v8a1 1 0 0 1-1 1h-2M7 7h3M7 10h3M7 13h3"),
-    active: (path) => path === "/" || path.startsWith("/partido/") || path.startsWith("/article/"),
+    title: "Notícias",
+    items: [
+      {
+        href: "/",
+        label: "Notícias",
+        hint: "De todos os partidos",
+        icon: icon("M4 4h9v12H5a1 1 0 0 1-1-1V4Zm9 3h3v8a1 1 0 0 1-1 1h-2M7 7h3M7 10h3M7 13h3"),
+        active: (path) => path === "/" || path.startsWith("/partido/") || path.startsWith("/article/"),
+      },
+      {
+        href: "/editorial",
+        label: "Blog",
+        hint: "Artigos, opinião e podcasts",
+        icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
+        active: (path) => path.startsWith("/editorial"),
+      },
+    ],
   },
   {
-    href: "/parlamento",
-    label: "Parlamento",
-    hint: "Deputados e iniciativas",
-    icon: icon("M2 15a8 8 0 0 1 16 0M5.5 15a4.5 4.5 0 0 1 9 0M2 15h16"),
-    active: (path) => path.startsWith("/parlamento"),
+    title: "Quem manda",
+    items: [
+      {
+        href: "/parlamento",
+        label: "Parlamento",
+        hint: "Deputados e iniciativas",
+        icon: icon("M2 15a8 8 0 0 1 16 0M5.5 15a4.5 4.5 0 0 1 9 0M2 15h16"),
+        active: (path) => path.startsWith("/parlamento"),
+      },
+      {
+        href: "/deputados",
+        label: "Deputados",
+        hint: "Os 230, por partido",
+        icon: icon("M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8a6 6 0 0 1 12 0"),
+        active: (path) => path.startsWith("/deputados"),
+      },
+      {
+        href: "/iniciativas",
+        label: "Iniciativas",
+        hint: "Leis e propostas, em linguagem simples",
+        icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 9h4M8 12h4M8 15h2"),
+        active: (path) => path.startsWith("/iniciativas"),
+      },
+      {
+        href: "/governo",
+        label: "Governo",
+        hint: "Primeiro-Ministro e ministros",
+        icon: icon("M3 8l7-4 7 4M4 8v7M8 8v7M12 8v7M16 8v7M2 17h16"),
+        active: (path) => path.startsWith("/governo"),
+      },
+      {
+        href: "/presidente",
+        label: "Presidente",
+        hint: "Promulgações e vetos",
+        icon: icon("M10 2l2 4 4 .5-3 3 .8 4.5L10 12l-3.8 2 .8-4.5-3-3L8 6l2-4ZM5 18h10"),
+        active: (path) => path.startsWith("/presidente"),
+      },
+    ],
   },
   {
-    href: "/deputados",
-    label: "Deputados",
-    hint: "Os 230, por partido",
-    icon: icon("M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8a6 6 0 0 1 12 0"),
-    active: (path) => path.startsWith("/deputados"),
+    title: "Território e dinheiro",
+    items: [
+      {
+        href: "/eleicoes",
+        label: "Eleições",
+        hint: "Resultados desde 2011",
+        icon: icon("M4 9h12v8H4V9Zm3-5h6l1 5H6l1-5Zm1 9h4"),
+        active: (path) => path.startsWith("/eleicoes"),
+      },
+      {
+        href: "/sitios",
+        label: "Autarquias",
+        hint: "Quem governa cada concelho",
+        icon: icon("M10 17s-5-4.6-5-8.5a5 5 0 0 1 10 0C15 12.4 10 17 10 17Zm0-6.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"),
+        active: (path) => path.startsWith("/sitios"),
+      },
+      {
+        href: "/contratos",
+        label: "Contratos",
+        hint: "Ajustes diretos e dinheiro público",
+        icon: icon("M4 3h9l3 3v11H4V3Zm9 0v3h3M7 9h6M7 12h6M7 15h3"),
+        active: (path) => path.startsWith("/contratos"),
+      },
+    ],
   },
   {
-    href: "/governo",
-    label: "Governo",
-    hint: "Primeiro-Ministro e ministros",
-    icon: icon("M3 8l7-4 7 4M4 8v7M8 8v7M12 8v7M16 8v7M2 17h16"),
-    active: (path) => path.startsWith("/governo"),
-  },
-  {
-    href: "/eleicoes",
-    label: "Eleições",
-    hint: "Resultados desde 2011",
-    icon: icon("M4 9h12v8H4V9Zm3-5h6l1 5H6l1-5Zm1 9h4"),
-    active: (path) => path.startsWith("/eleicoes"),
-  },
-  {
-    href: "/historia",
-    label: "História",
-    hint: "Governos desde 1974",
-    icon: icon("M10 3v14M6 6h4M10 10h4M6 14h4M4 3h12M4 17h12"),
-    active: (path) => path.startsWith("/historia"),
-  },
-  {
-    href: "/editorial",
-    label: "Blog",
-    hint: "Artigos, opinião e podcasts",
-    icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
-    active: (path) => path.startsWith("/editorial"),
+    title: "Saber mais",
+    items: [
+      {
+        href: "/historia",
+        label: "História",
+        hint: "Governos desde 1974",
+        icon: icon("M10 3v14M6 6h4M10 10h4M6 14h4M4 3h12M4 17h12"),
+        active: (path) => path.startsWith("/historia"),
+      },
+      {
+        href: "/percursos",
+        label: "Percursos",
+        hint: "Como chegaram lá",
+        icon: icon("M4 16c3-1 4-4 6-7s3-5 6-5M4 16a1.5 1.5 0 1 0 0 .01M16 4a1.5 1.5 0 1 0 0 .01"),
+        active: (path) => path.startsWith("/percursos"),
+      },
+      {
+        href: "/como-ser-deputado",
+        label: "Como ser deputado",
+        hint: "Listas, círculos e o método de Hondt",
+        icon: icon("M10 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm-4.5 9a4.5 4.5 0 0 1 9 0M14 11l1.5 1.5L18 10"),
+        active: (path) => path.startsWith("/como-ser-deputado"),
+      },
+      {
+        href: "/registo",
+        label: "Registo",
+        hint: "Processos judiciais, com fontes",
+        icon: icon("M10 3v14M5 17h10M4 7h12M4 7l-2 5h4L4 7Zm12 0-2 5h4l-2-5Z"),
+        active: (path) => path.startsWith("/registo") || path.startsWith("/interesses"),
+      },
+    ],
   },
 ];
+
+export const SITE_SECTIONS: Item[] = SITE_GROUPS.flatMap((group) => group.items);
 
 /** One section link. Sections without a page yet are shown, but not as links. */
 export function SectionLink({
@@ -118,14 +189,24 @@ export function SectionLink({
 /** Desktop: the site's sections in a sticky column on the left. */
 export function SiteNav() {
   return (
-    <nav aria-label="Secções" className="sticky top-20 hidden w-56 shrink-0 2xl:w-[var(--side-column)] self-start lg:block">
-      <ul className="flex flex-col gap-1">
-        {SITE_SECTIONS.map((item) => (
-          <li key={item.label}>
-            <SectionLink item={item} />
-          </li>
-        ))}
-      </ul>
+    <nav
+      aria-label="Secções"
+      className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto pb-4 2xl:w-[var(--side-column)] lg:block"
+    >
+      {SITE_GROUPS.map((group, index) => (
+        <div key={group.title} className={index > 0 ? "mt-4" : undefined}>
+          <p aria-hidden="true" className="px-3 pb-1 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+            {group.title}
+          </p>
+          <ul aria-label={group.title} className="flex flex-col gap-0.5">
+            {group.items.map((item) => (
+              <li key={item.label}>
+                <SectionLink item={item} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }

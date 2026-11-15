@@ -6,7 +6,7 @@ import { partyPath } from "@/lib/parties";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
 import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
-import { SectionLink, SITE_SECTIONS } from "./SiteNav";
+import { SectionLink, SITE_GROUPS } from "./SiteNav";
 
 /** A native modal dialog provides the focus trap, Esc to close, and the backdrop. */
 export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLDialogElement> }) {
@@ -32,14 +32,21 @@ export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLD
             </button>
           </form>
         </div>
-        <nav aria-label="Secções" className="border-b border-line p-2">
-          <ul>
-            {SITE_SECTIONS.map((item) => (
-              <li key={item.label}>
-                <SectionLink item={item} onNavigate={(event) => event.currentTarget.closest("dialog")?.close()} />
-              </li>
-            ))}
-          </ul>
+        <nav aria-label="Secções" className="no-scrollbar max-h-[55vh] shrink-0 overflow-y-auto border-b border-line p-2">
+          {SITE_GROUPS.map((group) => (
+            <div key={group.title} className="pb-2">
+              <p aria-hidden="true" className="px-3 pb-1 pt-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+                {group.title}
+              </p>
+              <ul aria-label={group.title} className="grid grid-cols-2">
+                {group.items.map((item) => (
+                  <li key={item.label}>
+                    <SectionLink item={item} compact onNavigate={(event) => event.currentTarget.closest("dialog")?.close()} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
         {parties.length === 0 ? (
           <p className="p-4 text-muted">Não foi possível carregar os partidos.</p>
