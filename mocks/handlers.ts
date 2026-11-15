@@ -5,6 +5,7 @@ import { electionResult, elections, placeOf } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
 import { governmentHistory, timeline } from "./historyFixtures";
 import { editorialPosts } from "./editorialFixtures";
+import { contractHandlers } from "./contractFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -167,4 +168,5 @@ export const handlers = [
     store.set(articleId, [...(store.get(articleId) ?? []), created]);
     return HttpResponse.json(created, { status: 201 });
   }),
+  ...contractHandlers,
 ];
