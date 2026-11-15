@@ -5,10 +5,12 @@ import type { Ref } from "react";
 import { partyPath } from "@/lib/parties";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
+import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
 import { SectionLink, SITE_SECTIONS } from "./SiteNav";
 
 /** A native modal dialog provides the focus trap, Esc to close, and the backdrop. */
 export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLDialogElement> }) {
+  const { ordered, standingOf } = useOrderedParties(parties);
   return (
     <dialog
       ref={ref}
@@ -43,8 +45,11 @@ export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLD
           <p className="p-4 text-muted">Não foi possível carregar os partidos.</p>
         ) : (
           <ul aria-label="Partidos" className="flex-1 overflow-y-auto p-2">
-            <li className="px-2 pb-1 pt-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</li>
-            {parties.map((party) => (
+            <li className="flex items-center justify-between gap-2 px-2 pb-1 pt-2">
+              <span className="font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</span>
+              <PartyOrderToggle />
+            </li>
+            {ordered.map((party) => (
               <li key={party.slug}>
                 <Link
                   href={partyPath(party.slug)}
@@ -55,6 +60,7 @@ export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLD
                   <span>
                     <span className="block font-mono text-sm font-bold">{party.acronym}</span>
                     <span className="block text-sm text-muted">{party.name}</span>
+                    {standingOf(party.slug) && <span className="block font-mono text-xs text-muted">{standingOf(party.slug)}</span>}
                   </span>
                 </Link>
               </li>

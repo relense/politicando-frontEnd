@@ -1,4 +1,4 @@
-import type { ArticleParty } from "@/lib/types";
+import type { ArticleParty, Party, PartyStanding } from "@/lib/types";
 
 /** Logos by party slug. Parties missing here get a neutral badge, never another party's logo. */
 const PARTY_LOGOS: Record<string, string> = {
@@ -49,4 +49,16 @@ export function findPartyByParam<T extends ArticleParty>(parties: T[], param: st
   }
   const slug = LEGACY_SLUGS[decoded] ?? decoded;
   return parties.find((party) => party.slug === slug) ?? parties.find((party) => party.acronym.toLowerCase() === decoded);
+}
+
+export type PartyOrder = "name" | "votes";
+
+/**
+ * Parties by name (as they come), or by weight: seats in Parliament first, then votes in the latest legislativas.
+ * Parties with neither keep their alphabetical order at the end.
+ */
+export function sortParties(parties: readonly Party[], standings: Readonly<Record<string, PartyStanding>>, order: PartyOrder): Party[] {
+  if (order === "name") return [...parties];
+  const weight = (party: Party) => standings[party.slug] ?? { seats: 0, votes: 0 };
+  return [...parties].sort((a, b) => weight(b).seats - weight(a).seats || weight(b).votes - weight(a).votes);
 }

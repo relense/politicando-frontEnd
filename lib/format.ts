@@ -137,3 +137,16 @@ export function formatLongDate(value: string | null | undefined): string | null 
   const p = dayParts(date);
   return `${p.day} de ${p.month} de ${p.year}`;
 }
+
+const numberFormatter = new Intl.NumberFormat("pt-PT");
+const percentFormatter = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** "1 971 558", with Portuguese grouping. */
+export function formatNumber(value: number): string {
+  return numberFormatter.format(value);
+}
+
+/** "32,5%". */
+export function formatPercent(value: number | null | undefined): string | null {
+  return value === null || value === undefined ? null : `${percentFormatter.format(value)}%`;
+}

@@ -205,3 +205,56 @@ export type DeputyDetail = DeputySummary & {
   initiatives: { total: number; approved: number; latest: Initiative[] };
   articles: Article[];
 };
+
+export type ElectionType = "legislativas" | "europeias" | "presidenciais" | "autarquicas";
+export type PlaceLevel = "global" | "national" | "foreign" | "district" | "municipality" | "parish";
+
+export type ElectionTurnout = {
+  registered: number | null;
+  voters: number | null;
+  turnoutPct: number | null;
+  blank: number | null;
+  null: number | null;
+  totalMandates: number | null;
+};
+
+/** A list on the ballot: a party, a coalition, a citizens' group or, in presidenciais, a candidate. */
+export type ElectionList = {
+  list: string;
+  name: string;
+  /** Our parties in it, for colours and links; empty when none of ours is. */
+  partySlugs: string[];
+  coalition: boolean;
+  citizens: boolean;
+  votes: number;
+  pct: number | null;
+  /** Share of valid votes: the usual headline figure. */
+  validPct: number | null;
+  mandates: number | null;
+  /** Autárquicas: câmaras or juntas won inside the place. */
+  presidents: number | null;
+};
+
+export type Place = { key: string; name: string; level: PlaceLevel; dicofre: string | null };
+
+export type ElectionSummary = { id: string; type: ElectionType; name: string; date: string; organs: string[]; sourceUrl: string | null };
+
+export type Election = ElectionSummary & { turnout: ElectionTurnout | null; winner: ElectionList | null; imported: boolean };
+
+export type ElectionResult = {
+  election: ElectionSummary;
+  organ: string;
+  place: Place;
+  breadcrumb: Place[];
+  turnout: ElectionTurnout | null;
+  /** Most votes first. */
+  lists: ElectionList[];
+  /** The places inside, alphabetical; empty at the deepest level. */
+  children: (Place & {
+    turnoutPct: number | null;
+    winner: { list: string; partySlugs: string[]; votes: number; validPct: number | null } | null;
+  })[];
+};
+
+/** How a party did: its seats in Parliament and its votes in the latest legislativas. */
+export type PartyStanding = { seats: number; votes: number; validPct: number; coalition: string | null };

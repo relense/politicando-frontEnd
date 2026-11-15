@@ -51,6 +51,13 @@ export const SITE_SECTIONS: Item[] = [
     active: (path) => path.startsWith("/governo"),
   },
   {
+    href: "/eleicoes",
+    label: "Eleições",
+    hint: "Resultados desde 2011",
+    icon: icon("M4 9h12v8H4V9Zm3-5h6l1 5H6l1-5Zm1 9h4"),
+    active: (path) => path.startsWith("/eleicoes"),
+  },
+  {
     href: null,
     label: "Blog",
     hint: "Em breve",

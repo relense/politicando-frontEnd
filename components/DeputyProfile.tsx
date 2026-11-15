@@ -17,8 +17,8 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-const SIZES = { sm: "size-14 text-base", md: "size-16 text-lg", lg: "size-28 text-3xl" } as const;
-const PIXELS = { sm: 56, md: 64, lg: 112 } as const;
+const SIZES = { xs: "size-9 text-[10px]", sm: "size-14 text-base", md: "size-16 text-lg", lg: "size-28 text-3xl" } as const;
+const PIXELS = { xs: 36, sm: 56, md: 64, lg: 112 } as const;
 
 /** The deputy's photo with a ring in the party's colour, or their initials when there is no photo or it fails. */
 export function DeputyPortrait({

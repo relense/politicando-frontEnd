@@ -5,6 +5,9 @@ import type {
   Comment,
   DeputyDetail,
   DeputyVotesPage,
+  Election,
+  ElectionResult,
+  ElectionType,
   Government,
   GovernmentMemberDetail,
   InitiativeDetail,
@@ -13,12 +16,16 @@ import type {
   NewComment,
   Parliament,
   Party,
+  PartyStanding,
 } from "@/lib/types";
+import { partyStandings } from "@/lib/elections";
 import {
   mapArticle,
   mapComment,
   mapDeputyDetail,
   mapDeputyVotes,
+  mapElectionResult,
+  mapElections,
   mapGovernment,
   mapGovernmentMemberDetail,
   mapInitiative,
@@ -32,6 +39,8 @@ import {
   commentSchema,
   deputyDetailSchema,
   deputyVotesPageSchema,
+  electionResultSchema,
+  electionsSchema,
   errorSchema,
   governmentMemberDetailSchema,
   governmentSchema,
@@ -155,4 +164,36 @@ export async function getGovernment(): Promise<Government> {
 
 export async function getGovernmentMember(id: string): Promise<GovernmentMemberDetail> {
   return mapGovernmentMemberDetail(await request(`/government/members/${encodeURIComponent(id)}`, governmentMemberDetailSchema, cached));
+}
+
+/** Election results change only when an import finishes, so they are cached for an hour. */
+const hourly = { next: { revalidate: 3600 } };
+
+export async function getElections(type?: ElectionType): Promise<Election[]> {
+  const query = type ? `?type=${type}` : "";
+  return mapElections(await request(`/elections${query}`, electionsSchema, hourly));
+}
+
+/** Results in one place (the top level without `place`) for one body (`organ`, the main one by default). */
+export async function getElectionResult(id: string, { place, organ }: { place?: string; organ?: string } = {}): Promise<ElectionResult> {
+  const path = place ? `/elections/${encodeURIComponent(id)}/places/${encodeURIComponent(place)}` : `/elections/${encodeURIComponent(id)}`;
+  const query = organ ? `?organ=${encodeURIComponent(organ)}` : "";
+  return mapElectionResult(await request(`${path}${query}`, electionResultSchema, hourly));
+}
+
+/**
+ * Each party's seats in Parliament and its votes in the latest legislativas, to order parties by weight. A party
+ * in several lists (AD on the mainland and in Madeira) adds them up; a coalition's votes count for each partner.
+ * Empty when either source is unavailable, so the order by name is the only one offered.
+ */
+export async function getPartyStandings(): Promise<Record<string, PartyStanding>> {
+  try {
+    const [parliament, elections] = await Promise.all([getParliament(), getElections("legislativas")]);
+    const latest = elections.find((election) => election.imported);
+    if (!latest) return {};
+    const { lists } = await getElectionResult(latest.id);
+    return partyStandings(new Map(parliament.groups.map((group) => [group.party.slug, group.seats])), lists);
+  } catch {
+    return {};
+  }
 }

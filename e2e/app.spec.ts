@@ -28,7 +28,7 @@ test("hostile title stays harmless text", async ({ page }) => {
 
 test("direct party URL works, and unknown party is a real 404", async ({ page }) => {
   await page.goto("/partido/cds-pp");
-  await expect(page.getByRole("heading", { level: 1, name: "CDS-PP" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "CDS - Partido Popular" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("CDS-PP");
   await expect(page.getByRole("region", { name: "Sobre o partido" })).toContainText("humanismo personalista");
   await expect(page.getByRole("link", { name: /apresentação do próprio partido/ })).toHaveAttribute(
@@ -46,7 +46,7 @@ test("old party URLs redirect to the current slug", async ({ page }) => {
   await expect(page).toHaveURL(/\/partido\/livre$/);
   await page.goto("/partido/pctp");
   await expect(page).toHaveURL(/\/partido\/pctp-mrpp$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("PCTP/MRPP");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Partido Comunista dos Trabalhadores Portugueses");
 });
 
 test("missing and malformed articles are real 404s", async ({ request }) => {
@@ -193,6 +193,7 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).toContain("/parlamento");
   expect(sitemap).toContain("/deputados");
   expect(sitemap).toContain("/governo");
+  expect(sitemap).toContain("/eleicoes");
   expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
 });
 
@@ -200,6 +201,7 @@ for (const colorScheme of ["light", "dark"] as const) {
   for (const path of [
     "/",
     "/partido/ps",
+    "/partido/ps?ver=votacoes",
     "/article/100",
     "/parlamento",
     "/parlamento?partido=psd",
@@ -209,6 +211,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/deputados/1100",
     "/governo",
     "/governo/00000000000000000000000000000001",
+    "/eleicoes",
+    "/eleicoes/legislativas-2025",
+    "/eleicoes/legislativas-2025/LOCAL-010000",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -305,9 +310,7 @@ test("parliament: press a seat to open the bench, pick a deputy, then browse ini
 });
 
 test("deputies: filter by party and open a deputy's full profile", async ({ page }) => {
-  await page.goto("/partido/ps");
-  await page.getByRole("link", { name: /Deputados \(58\)/ }).click();
-  await expect(page).toHaveURL(/\/deputados\?partido=ps$/);
+  await page.goto("/deputados?partido=ps");
   await expect(page.getByRole("heading", { level: 1, name: "Deputados do PS" })).toBeVisible();
   const list = page.getByRole("main").getByRole("list").last();
   await expect(list.getByRole("listitem")).toHaveCount(58);
@@ -354,4 +357,92 @@ test("government: from the menu to a minister who came from Parliament, and on t
   await page.getByRole("link", { name: "Ver ficha de deputado" }).click();
   await expect(page).toHaveURL(/\/deputados\/\d+$/);
   await expect(page.getByRole("heading", { name: "Votações" })).toBeVisible();
+});
+
+test("elections: from the menu to a district and a municipality, and back up the breadcrumb", async ({ page, isMobile }) => {
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: /Eleições/ })
+      .click();
+  } else {
+    await page
+      .getByRole("navigation", { name: "Secções" })
+      .getByRole("link", { name: /Eleições/ })
+      .click();
+  }
+  await expect(page).toHaveURL(/\/eleicoes$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Eleições" })).toBeVisible();
+  // Not imported yet: shown, but not a link.
+  await expect(page.getByRole("link", { name: /Legislativas 2019/ })).toHaveCount(0);
+
+  await page.getByRole("link", { name: /Legislativas 2025/ }).click();
+  await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
+  await expect(page.getByText("230 mandatos")).toBeVisible();
+  await page.getByRole("link", { name: /Território nacional/ }).click();
+  await page
+    .getByRole("link", { name: /^Aveiro/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/LOCAL-010000$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Aveiro" })).toBeVisible();
+  await page.getByRole("link", { name: /Águeda/ }).click();
+  await expect(page).toHaveURL(/LOCAL-010100$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Águeda" })).toBeVisible();
+
+  await page.getByRole("navigation", { name: "Caminho" }).getByRole("link", { name: "Legislativas 2025" }).click();
+  await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
+});
+
+test("elections: unknown elections, places and bodies are real 404s", async ({ request }) => {
+  expect((await request.get("/eleicoes/legislativas-1900")).status()).toBe(404);
+  expect((await request.get("/eleicoes/legislativas-2025/LOCAL-999999")).status()).toBe(404);
+  expect((await request.get("/eleicoes/legislativas-2025/nada")).status()).toBe(404);
+  expect((await request.get("/eleicoes/legislativas-2025?orgao=CM")).status()).toBe(404);
+});
+
+test("parties can be ordered by votes, and the choice survives a reload", async ({ page, isMobile }) => {
+  await page.goto("/");
+  const nav = isMobile
+    ? page.getByRole("navigation", { name: "Partidos" })
+    : page.locator("aside").getByRole("navigation", { name: "Partidos" });
+  const first = nav.getByRole("link").filter({ hasNotText: "Todas" }).first();
+  await expect(first).toContainText("B.E.");
+  await nav.getByRole("button", { name: "Votos" }).click();
+  await expect(nav.getByRole("button", { name: "Votos" })).toHaveAttribute("aria-pressed", "true");
+  await expect(first).toContainText("PSD");
+  await page.reload();
+  await expect(first).toContainText("PSD");
+  await nav.getByRole("button", { name: "A–Z" }).click();
+  await expect(first).toContainText("B.E.");
+});
+
+test("party page: Parliament card and tabs for deputies, initiatives and votes", async ({ page }) => {
+  await page.goto("/partido/ps");
+  const card = page.getByRole("region", { name: "PS no Parlamento" });
+  await expect(card).toContainText("58");
+  await expect(card).toContainText("de 230 lugares");
+  await expect(card).toContainText("Legislativas 2025");
+
+  await page.getByRole("link", { name: "Ver os 58 deputados" }).click();
+  await expect(page).toHaveURL(/\/partido\/ps\?ver=deputados$/);
+  const tabs = page.getByRole("navigation", { name: "Secções do PS" });
+  await expect(tabs.getByRole("link", { name: /Deputados/ })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("region", { name: "Deputados do PS" }).getByRole("listitem")).toHaveCount(58);
+
+  await tabs.getByRole("link", { name: "Iniciativas" }).click();
+  await expect(page).toHaveURL(/ver=iniciativas$/);
+  await expect(page.getByRole("region", { name: "Iniciativas do PS" }).getByRole("listitem").first()).toBeVisible();
+
+  await tabs.getByRole("link", { name: "Votações" }).click();
+  await expect(page).toHaveURL(/ver=votacoes$/);
+  await expect(page.getByRole("region", { name: "Votações do PS" }).getByRole("listitem").first()).toBeVisible();
+});
+
+test("party page without deputies has no Parliament tabs", async ({ page }) => {
+  await page.goto("/partido/pctp-mrpp?ver=deputados");
+  await expect(page.getByText("sem assento parlamentar")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: /Secções do/ })).toHaveCount(0);
 });

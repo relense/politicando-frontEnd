@@ -218,6 +218,67 @@ export const governmentMemberDetailSchema = z.object({
   articles: list(articleSchema),
 });
 
+const electionTypeSchema = z.enum(["legislativas", "europeias", "presidenciais", "autarquicas"]);
+const placeLevelSchema = z.enum(["global", "national", "foreign", "district", "municipality", "parish"]);
+
+const turnoutSchema = z.object({
+  registered: z.number().nullish(),
+  voters: z.number().nullish(),
+  turnoutPct: z.number().nullish(),
+  blank: z.number().nullish(),
+  null: z.number().nullish(),
+  totalMandates: z.number().nullish(),
+});
+
+const electionListSchema = z.object({
+  list: z.string(),
+  name: z.string().nullish(),
+  partySlugs: list(z.string()),
+  coalition: z.boolean().nullish(),
+  citizens: z.boolean().nullish(),
+  votes: z.number(),
+  pct: z.number().nullish(),
+  validPct: z.number().nullish(),
+  mandates: z.number().nullish(),
+  presidents: z.number().nullish(),
+});
+
+const placeSchema = z.object({ key: z.string(), name: z.string(), level: placeLevelSchema, dicofre: z.string().nullish() });
+
+const electionSummarySchema = z.object({
+  id: z.string(),
+  type: electionTypeSchema,
+  name: z.string(),
+  date: z.string(),
+  organs: list(z.string()),
+  sourceUrl: z.string().nullish(),
+});
+
+export const electionsSchema = z.object({
+  items: z.array(
+    electionSummarySchema.extend({
+      turnout: turnoutSchema.nullish(),
+      winner: electionListSchema.nullish(),
+      imported: z.boolean().nullish(),
+    }),
+  ),
+});
+
+export const electionResultSchema = z.object({
+  election: electionSummarySchema,
+  organ: z.string(),
+  place: placeSchema,
+  breadcrumb: list(placeSchema),
+  turnout: turnoutSchema.nullish(),
+  lists: list(electionListSchema),
+  children: list(
+    placeSchema.extend({
+      turnoutPct: z.number().nullish(),
+      winner: z.object({ list: z.string(), partySlugs: list(z.string()), votes: z.number(), validPct: z.number().nullish() }).nullish(),
+    }),
+  ),
+});
+
 export const errorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });
@@ -242,3 +303,7 @@ export type ApiGovernmentInput = z.input<typeof governmentSchema>;
 export type ApiGovernmentMember = z.infer<typeof governmentMemberSchema>;
 export type ApiGovernmentMemberDetail = z.infer<typeof governmentMemberDetailSchema>;
 export type ApiGovernmentMemberDetailInput = z.input<typeof governmentMemberDetailSchema>;
+export type ApiElections = z.infer<typeof electionsSchema>;
+export type ApiElectionsInput = z.input<typeof electionsSchema>;
+export type ApiElectionResult = z.infer<typeof electionResultSchema>;
+export type ApiElectionResultInput = z.input<typeof electionResultSchema>;

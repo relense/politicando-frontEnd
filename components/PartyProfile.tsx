@@ -7,15 +7,15 @@ const SOURCE_LABEL: Record<Profile["sourceKind"], string> = {
 };
 
 /** A short, neutral "what this party stands for", with its source so readers can check it. */
-export function PartyProfile({ profile }: { profile: Profile }) {
+export function PartyProfile({ profile, withFounded = true }: { profile: Profile; withFounded?: boolean }) {
   return (
     <section aria-labelledby="sobre-o-partido" className="mt-5">
       <h2 id="sobre-o-partido" className="sr-only">
         Sobre o partido
       </h2>
-      <p className="leading-relaxed">{profile.summary}</p>
+      <p className="leading-relaxed sm:text-lg">{profile.summary}</p>
       <p className="mt-2 font-mono text-xs text-muted">
-        {profile.founded && <>Fundado em {profile.founded} · </>}
+        {withFounded && profile.founded && <>Fundado em {profile.founded} · </>}
         Fonte:{" "}
         <a href={profile.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-link underline">
           {SOURCE_LABEL[profile.sourceKind]}
