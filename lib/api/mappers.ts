@@ -1,7 +1,33 @@
 import { decode } from "he";
-import type { Article, Comment, Party } from "@/lib/types";
+import type {
+  Article,
+  Comment,
+  DeputyDetail,
+  DeputySummary,
+  DeputyVotesPage,
+  Government,
+  GovernmentMember,
+  GovernmentMemberDetail,
+  Initiative,
+  InitiativeDetail,
+  Parliament,
+  Party,
+} from "@/lib/types";
 import { sourceName } from "@/lib/sources";
-import type { ApiArticle, ApiComment, ApiParty } from "./schemas";
+import type {
+  ApiArticle,
+  ApiComment,
+  ApiDeputyDetail,
+  ApiDeputySummary,
+  ApiDeputyVotesPage,
+  ApiGovernment,
+  ApiGovernmentMember,
+  ApiGovernmentMemberDetail,
+  ApiInitiative,
+  ApiInitiativeDetail,
+  ApiParliament,
+  ApiParty,
+} from "./schemas";
 
 /** External URLs reach the page as href/src, so only http(s) may pass. */
 export function safeHttpUrl(value: string | null | undefined): string | null {
@@ -16,7 +42,10 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
 
 /** Some sources put markup in their summaries. Decoding first also catches encoded tags. */
 function plainText(value: string): string {
-  return decode(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return decode(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function mapParty(party: ApiParty): Party {
@@ -45,5 +74,188 @@ export function mapComment(comment: ApiComment): Comment {
     text: comment.body,
     parentId: comment.parentId,
     createdAt: comment.createdAt,
+  };
+}
+
+/** The Parliament's files link to documents over http://; its servers also answer on https. */
+function secureUrl(value: string | null | undefined): string | null {
+  const url = safeHttpUrl(value);
+  return url?.startsWith("http://") ? `https://${url.slice("http://".length)}` : url;
+}
+
+export function mapDeputySummary(deputy: ApiDeputySummary): DeputySummary {
+  return {
+    id: deputy.id,
+    name: deputy.name,
+    group: deputy.group,
+    partySlug: deputy.party,
+    constituency: deputy.constituency,
+    seat: deputy.seat ?? null,
+    seatEstimated: deputy.seatEstimated ?? false,
+    positions: deputy.positions.map(plainText).filter(Boolean),
+    role: deputy.parliamentRole ?? null,
+    photoUrl: secureUrl(deputy.photoUrl),
+  };
+}
+
+export function mapParliament(parliament: ApiParliament): Parliament {
+  return {
+    legislature: parliament.legislature,
+    updatedAt: parliament.updatedAt,
+    seatMap: {
+      ...parliament.seatMap,
+      seats: parliament.seatMap.seats.map(({ party, deputyId, estimated, ...seat }) => ({
+        ...seat,
+        partySlug: party,
+        deputyId: deputyId ?? null,
+        estimated: estimated ?? false,
+      })),
+    },
+    groups: parliament.groups,
+    deputies: parliament.deputies.map(mapDeputySummary),
+    initiativeCounts: parliament.initiativeCounts ?? {},
+  };
+}
+
+export function mapInitiative(initiative: ApiInitiative): Initiative {
+  return {
+    id: initiative.id,
+    type: initiative.type,
+    number: initiative.number ?? null,
+    title: plainText(initiative.title),
+    status: initiative.status,
+    phase: initiative.phase ?? null,
+    phaseDate: initiative.phaseDate ?? null,
+    submittedAt: initiative.submittedAt ?? null,
+    publishedAt: initiative.publishedAt ?? null,
+    textUrl: secureUrl(initiative.textUrl),
+    authors: {
+      parties: initiative.authors.parties,
+      deputies: initiative.authors.deputies.map(({ party, ...author }) => ({ ...author, partySlug: party })),
+      other: initiative.authors.other ?? null,
+    },
+    lastVote: initiative.lastVote
+      ? { ...initiative.lastVote, date: initiative.lastVote.date ?? null, phase: initiative.lastVote.phase ?? null }
+      : null,
+    coverage: {
+      articles: initiative.coverage?.articles ?? 0,
+      sources: initiative.coverage?.sources ?? 0,
+      lastAt: initiative.coverage?.lastAt ?? null,
+    },
+  };
+}
+
+export function mapInitiativeDetail(initiative: ApiInitiativeDetail): InitiativeDetail {
+  const positions = (list: { party: string; count: number | null }[]) => list.map(({ party, count }) => ({ partySlug: party, count }));
+  return {
+    ...mapInitiative(initiative),
+    votes: initiative.votes.map((vote) => ({
+      id: vote.id,
+      date: vote.date ?? null,
+      phase: vote.phase ?? null,
+      result: vote.result,
+      unanimous: vote.unanimous,
+      favor: positions(vote.favor),
+      against: positions(vote.against),
+      abstention: positions(vote.abstention),
+      absent: positions(vote.absent),
+      named: vote.named,
+    })),
+    articles: initiative.articles.map(mapArticle),
+  };
+}
+
+export function mapDeputyDetail(deputy: ApiDeputyDetail): DeputyDetail {
+  return {
+    ...mapDeputySummary(deputy),
+    fullName: deputy.fullName,
+    party: deputy.partyInfo ?? null,
+    situation: deputy.situation ?? null,
+    active: deputy.active,
+    birthDate: deputy.birthDate ?? null,
+    profession: deputy.profession ?? null,
+    education: deputy.education,
+    roles: deputy.roles,
+    committees: deputy.committees.map((committee) => ({
+      name: committee.name,
+      acronym: committee.acronym ?? null,
+      membership: committee.membership ?? null,
+      role: committee.role ?? null,
+    })),
+    pastLegislatures: deputy.pastLegislatures,
+    initiatives: { ...deputy.initiatives, latest: deputy.initiatives.latest.map(mapInitiative) },
+    articles: deputy.articles.map(mapArticle),
+  };
+}
+
+export function mapDeputyVotes(page: ApiDeputyVotesPage): DeputyVotesPage {
+  return {
+    summary: page.summary,
+    votes: page.items.map((item) => ({
+      initiative: { ...item.initiative, number: item.initiative.number ?? null, title: plainText(item.initiative.title) },
+      vote: { ...item.vote, date: item.vote.date ?? null, phase: item.vote.phase ?? null },
+      position: item.position,
+      basis: item.basis,
+    })),
+    nextCursor: page.nextCursor,
+  };
+}
+
+export function mapGovernmentMember(member: ApiGovernmentMember): GovernmentMember {
+  return {
+    id: member.id,
+    name: member.name,
+    title: member.title,
+    kind: member.kind,
+    gender: member.gender ?? null,
+    photoUrl: secureUrl(member.photoUrl),
+    startDate: member.startDate ?? null,
+    endDate: member.endDate ?? null,
+    deputyId: member.deputyId ?? null,
+    partySlug: member.party ?? null,
+    areaName: member.areaName ?? null,
+  };
+}
+
+export function mapGovernment(data: ApiGovernment): Government {
+  return {
+    code: data.government.code,
+    name: data.government.name,
+    startDate: data.government.startDate ?? null,
+    updatedAt: data.government.updatedAt ?? null,
+    primeMinister: data.primeMinister ? mapGovernmentMember(data.primeMinister) : null,
+    ministries: data.ministries.map((ministry) => ({
+      area: ministry.area,
+      name: ministry.name,
+      minister: ministry.minister ? mapGovernmentMember(ministry.minister) : null,
+      secretaries: ministry.secretaries.map(mapGovernmentMember),
+    })),
+    former: data.former.map(mapGovernmentMember),
+  };
+}
+
+export function mapGovernmentMemberDetail(member: ApiGovernmentMemberDetail): GovernmentMemberDetail {
+  return {
+    id: member.id,
+    name: member.name,
+    gender: member.gender ?? null,
+    photoUrl: secureUrl(member.photoUrl),
+    bio: member.bio.map(plainText).filter(Boolean),
+    links: member.links.flatMap((link) => {
+      const url = safeHttpUrl(link.url);
+      return url ? [{ network: link.network, url }] : [];
+    }),
+    inOffice: member.inOffice,
+    deputy: member.deputy ? { id: member.deputy.id, name: member.deputy.name, partySlug: member.deputy.party ?? null } : null,
+    positions: member.positions.map((position) => ({
+      title: position.title,
+      kind: position.kind,
+      areaName: position.areaName ?? null,
+      government: position.government ?? null,
+      startDate: position.startDate ?? null,
+      endDate: position.endDate ?? null,
+      url: safeHttpUrl(position.url),
+    })),
+    articles: member.articles.map(mapArticle),
   };
 }

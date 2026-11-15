@@ -3,6 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* Both side columns: wide enough for the longest party name on one line. */
+  --side-column: 21.5rem;
   --paper: #ffffff;
   --surface: #f6f4f0;
   --ink: #191919;
@@ -72,4 +74,16 @@ article[id^="comentario-"]:target {
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--link) 9%, transparent);
   box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--link) 9%, transparent);
+}
+
+/* A seat appearing on the map: the Government's bench and the Council of Ministers' table. */
+@keyframes seat-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

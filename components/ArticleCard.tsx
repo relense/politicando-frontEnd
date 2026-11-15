@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { commentLinkLabel, excerpt } from "@/lib/format";
+import { commentLinkLabel, excerpt, formatDateTime, formatTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
 import { CommentIcon } from "./icons";
 import { PartyChips } from "./PartyChips";
-import { RelativeTime } from "./RelativeTime";
 
 /** A feed entry. Everything opens our article page except the outlet link, which goes to the original. */
 export function ArticleCard({ article }: { article: Article }) {
@@ -12,7 +11,7 @@ export function ArticleCard({ article }: { article: Article }) {
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="grid gap-x-8 gap-y-4 border-b border-line py-8 first:pt-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
+    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_9rem]">
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (
@@ -25,16 +24,19 @@ export function ArticleCard({ article }: { article: Article }) {
             <span className="font-bold text-ink">{article.source}</span>
           )}
           <span aria-hidden="true">·</span>
-          <RelativeTime value={article.publishedAt} />
+          {/* The feed is grouped by day, so the clock time is enough. */}
+          <time dateTime={article.publishedAt} title={formatDateTime(article.publishedAt) ?? undefined}>
+            {formatTime(article.publishedAt)}
+          </time>
         </div>
 
-        <h2 className="mb-3 text-2xl font-bold leading-tight sm:text-[1.7rem]">
+        <h2 className="mb-2 text-lg font-bold leading-snug sm:text-xl">
           <Link href={articlePath} className="hover:underline">
             {article.title}
           </Link>
         </h2>
 
-        {text && <p className="mb-5 leading-relaxed text-ink/80">{text}</p>}
+        {text && <p className="mb-3 text-[15px] leading-relaxed text-ink/80">{text}</p>}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <PartyChips parties={article.parties} />

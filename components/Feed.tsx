@@ -1,8 +1,10 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { getFeedPage } from "@/lib/api/client";
+import { formatDayHeading, lisbonDay } from "@/lib/format";
+import { useNow } from "@/lib/useNow";
 import type { ArticlePage } from "@/lib/types";
 import { ArticleCard } from "./ArticleCard";
 
@@ -19,6 +21,7 @@ export function Feed({ initialPage, partySlug }: Props) {
   });
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const now = useNow();
   const canAutoLoad = hasNextPage && !isFetchingNextPage && !isFetchNextPageError;
 
   useEffect(() => {
@@ -49,9 +52,24 @@ export function Feed({ initialPage, partySlug }: Props) {
   return (
     <>
       <div className="flex flex-col">
-        {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
+        {articles.map((article, index) => {
+          // A heading whenever the day changes, as in a printed paper's sections.
+          const day = lisbonDay(article.publishedAt);
+          const newDay = day !== null && day !== lisbonDay(articles[index - 1]?.publishedAt);
+          return (
+            <Fragment key={article.id}>
+              {newDay && (
+                <h2
+                  className={`border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest ${index > 0 ? "mt-10" : ""}`}
+                  suppressHydrationWarning
+                >
+                  {formatDayHeading(article.publishedAt, now)}
+                </h2>
+              )}
+              <ArticleCard article={article} />
+            </Fragment>
+          );
+        })}
       </div>
       <div ref={sentinelRef} aria-live="polite" className="py-8 text-center font-mono text-sm text-muted">
         {isFetchingNextPage && "A carregar mais notícias…"}

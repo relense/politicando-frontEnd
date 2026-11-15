@@ -22,44 +22,51 @@ function useActiveSlug(): string | null {
 
 const current = (active: boolean) => (active ? ("page" as const) : undefined);
 
-/** Desktop: a sticky list beside the content. */
+/** On the news pages, from laptop width: what the site is, and every party, in a column on the right as wide as the one on the left. */
 export function PartySidebar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
-  const item = (isActive: boolean) =>
-    `flex items-center gap-3 rounded px-2 py-1.5 hover:bg-surface ${isActive ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : ""}`;
+  // Only beside the news: the feed, the party feeds and the articles. The other pages use the width themselves.
+  const pathname = usePathname();
+  if (!(pathname === "/" || pathname.startsWith("/partido/") || pathname.startsWith("/article/"))) return null;
 
   return (
-    <nav
-      aria-label="Partidos"
-      className="sticky top-20 hidden max-h-[calc(100dvh-6rem)] w-52 shrink-0 self-start overflow-y-auto lg:block"
-    >
-      <h2 className="mb-2 px-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</h2>
-      <ul className="flex flex-col gap-0.5">
-        <li>
-          <Link href="/" aria-current={current(active === "")} className={item(active === "")}>
-            <span aria-hidden="true" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-line font-mono text-xs font-bold text-muted">
-              ∗
-            </span>
-            <span className="font-mono text-sm font-bold">Todas as notícias</span>
-          </Link>
-        </li>
-        {parties.map((party) => (
-          <li key={party.slug}>
-            <Link href={partyPath(party.slug)} aria-current={current(active === party.slug)} className={item(active === party.slug)}>
-              <PartyLogo slug={party.slug} acronym={party.acronym} size={28} />
-              <span className="min-w-0">
-                <span className="block font-mono text-sm font-bold">{party.acronym}</span>
-                <span className="block truncate text-xs text-muted">{party.name}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto lg:block 2xl:w-[var(--side-column)]">
+      <div className="mb-8 rounded-xl border border-line p-4">
+        <p className="text-sm italic leading-relaxed 2xl:text-base">
+          As notícias sobre os partidos políticos portugueses, num só lugar. Lê, compara e comenta.
+        </p>
+      </div>
+      <nav aria-label="Partidos">
+        <h2 className="mb-2 border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+          Partidos <span className="font-normal normal-case tracking-normal text-muted">· ordem alfabética</span>
+        </h2>
+        <ul className="flex flex-col">
+          {parties.map((party) => (
+            <li key={party.slug}>
+              <Link
+                href={partyPath(party.slug)}
+                aria-current={current(active === party.slug)}
+                title={party.name}
+                className={`flex items-center gap-2.5 rounded px-1.5 py-1.5 hover:bg-surface ${
+                  active === party.slug ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : ""
+                }`}
+              >
+                <PartyLogo slug={party.slug} acronym={party.acronym} size={24} />
+                {/* One line each. On very wide screens the column fits the longest name; narrower, long names end in "…" (the full name is the title). */}
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block whitespace-nowrap font-mono text-xs font-bold">{party.acronym}</span>
+                  <span className="block truncate text-xs text-muted">{party.name}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 }
 
-/** Mobile and tablet: a row of chips that scrolls sideways, above the feed. */
+/** Phones and tablets, where there is no party column: a row of chips that scrolls sideways, above the feed. */
 export function PartyChipBar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
   const listRef = useRef<HTMLUListElement>(null);
@@ -88,7 +95,11 @@ export function PartyChipBar({ parties }: { parties: Party[] }) {
         </li>
         {parties.map((party) => (
           <li key={party.slug} className="shrink-0">
-            <Link href={partyPath(party.slug)} aria-current={current(active === party.slug)} className={`${chip(active === party.slug)} pl-1.5`}>
+            <Link
+              href={partyPath(party.slug)}
+              aria-current={current(active === party.slug)}
+              className={`${chip(active === party.slug)} pl-1.5`}
+            >
               <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />
               {party.acronym}
             </Link>

@@ -10,6 +10,9 @@ const MAX_PAGES = 10;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
   const home = { url: SITE_URL, changeFrequency: "hourly" as const };
+  const parliament = { url: `${SITE_URL}/parlamento`, changeFrequency: "daily" as const };
+  const deputies = { url: `${SITE_URL}/deputados`, changeFrequency: "weekly" as const };
+  const government = { url: `${SITE_URL}/governo`, changeFrequency: "weekly" as const };
   try {
     const parties = await getParties();
     const articles: Article[] = [];
@@ -22,6 +25,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     return [
       home,
+      parliament,
+      deputies,
+      government,
       ...parties.map((party) => ({ url: `${SITE_URL}${partyPath(party.slug)}` })),
       ...articles.map((article) => ({
         url: `${SITE_URL}/article/${article.id}`,
@@ -29,6 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
     ];
   } catch {
-    return [home];
+    return [home, parliament, deputies, government];
   }
 }

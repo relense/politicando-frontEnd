@@ -27,7 +27,7 @@ export function ArticleImage({ src, href, caption, className, imageClassName }: 
     <>
       {image}
       {caption && (
-        <span className="absolute bottom-2 left-2 rounded bg-paper/85 px-1.5 py-0.5 font-mono text-[11px] text-muted">
+        <span className="absolute bottom-1.5 left-1.5 max-w-[calc(100%-0.75rem)] truncate rounded bg-paper/85 px-1.5 py-0.5 font-mono text-[10px] text-muted">
           {caption}
         </span>
       )}
