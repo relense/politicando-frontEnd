@@ -19,16 +19,16 @@ test("president page: profile, the laws in this term, the explainer and former P
   const vetoes = page.getByRole("region", { name: "Vetos" });
   await vetoes.getByRole("link", { name: /Ver todas/ }).click();
   await expect(page).toHaveURL(/\/iniciativas\?presidente=vetoed$/);
-  await expect(page.getByRole("link", { name: "Vetadas", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("a:visible", { hasText: /^Vetada/ }).first()).toHaveAttribute("aria-current", "page");
 });
 
 test("initiatives: plain titles, topic and status filters, more on demand, and the detail page", async ({ page }) => {
   await page.goto("/iniciativas");
-  await expect(page.getByRole("heading", { level: 1, name: "Iniciativas, em linguagem simples" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "O que está a mudar nas leis" })).toBeVisible();
   const list = page.getByRole("list", { name: "Iniciativas" });
   await expect(list.getByRole("article")).toHaveCount(20);
   await expect(list.getByText("não muda nenhuma lei").first()).toBeVisible();
-  await page.getByRole("button", { name: "Mostrar mais" }).click();
+  await page.getByRole("button", { name: "Carregar mais 20" }).click();
   await expect(list.getByRole("article")).toHaveCount(40);
 
   await page
@@ -40,8 +40,10 @@ test("initiatives: plain titles, topic and status filters, more on demand, and t
   for (const article of await list.getByRole("article").all())
     await expect(article.getByRole("link", { name: "Saúde", exact: true })).toBeVisible();
 
-  await page.getByRole("navigation", { name: "Estado" }).getByRole("link", { name: "Aprovadas" }).click();
+  // The phases: pills above the list on phones, "o caminho de uma lei" beside it on larger screens.
+  await page.locator("a:visible", { hasText: /^Aprovada no Parlamento/ }).first().click();
   await expect(page).toHaveURL(/tema=saude&estado=approved/);
+  await expect(page.getByRole("link", { name: /Tema: Saúde/ })).toBeVisible();
 
   await list.getByRole("heading").first().getByRole("link").click();
   await expect(page).toHaveURL(/\/iniciativas\/\d+$/);

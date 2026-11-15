@@ -23,21 +23,21 @@ export type StageProgress = {
   vetoed: boolean;
 };
 
-const LAW_STEPS = ["Entregue", "Em comissão", "Em debate", "Aprovada", "Presidente", "Publicada"];
-const RECOMMENDATION_STEPS = ["Entregue", "Em comissão", "Em debate", "Aprovada"];
+const LAW_STEPS = ["Entregue", "Em debate", "Votada", "Presidente", "Lei"];
+const RECOMMENDATION_STEPS = ["Entregue", "Em debate", "Votada"];
 
 /** Steps completed for each stage, on the path of a law. */
 const LAW_REACHED: Record<PlainStage, number> = {
   submitted: 1,
   committee: 2,
   consultation: 2,
-  debate: 3,
-  approved_in_principle: 3,
-  approved: 4,
+  debate: 2,
+  approved_in_principle: 2,
+  approved: 3,
   awaiting_president: 4,
   vetoed: 4,
   promulgated: 5,
-  published: 6,
+  published: 5,
   rejected: 3,
   not_admitted: 1,
   withdrawn: 1,
@@ -57,6 +57,42 @@ export function stageProgress(stage: PlainStage, makesLaw: boolean): StageProgre
     vetoed: makesLaw && stage === "vetoed",
   };
 }
+
+/**
+ * The colour family of a stage, as on the path of a law: entered, under discussion, approved, with the President,
+ * law, and the ends (vetoed or rejected, withdrawn). Each has a CSS colour `--stage-<tone>`.
+ */
+export type StageTone = "submitted" | "debate" | "approved" | "president" | "law" | "stopped" | "withdrawn";
+
+export function stageTone(stage: PlainStage | null | undefined, makesLaw = true): StageTone {
+  switch (stage) {
+    case "submitted":
+      return "submitted";
+    case "committee":
+    case "consultation":
+    case "debate":
+    case "approved_in_principle":
+      return "debate";
+    case "approved":
+      return "approved";
+    case "awaiting_president":
+      return "president";
+    case "promulgated":
+    case "published":
+      return makesLaw ? "law" : "approved";
+    case "vetoed":
+    case "rejected":
+      return "stopped";
+    case "not_admitted":
+    case "withdrawn":
+      return "withdrawn";
+    default:
+      return "debate";
+  }
+}
+
+/** `var(--stage-debate)` and the like, for inline styles. */
+export const toneColor = (tone: StageTone) => `var(--stage-${tone})`;
 
 export const PRESIDENCY_LABELS: Record<InitiativePresidency["status"], string> = {
   pending: "À espera do Presidente",

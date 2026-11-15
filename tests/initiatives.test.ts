@@ -4,7 +4,7 @@ import { getInitiatives } from "@/lib/api/client";
 import { mapInitiative } from "@/lib/api/mappers";
 import { getInitiativeTopics, getPresidency, mapPresidency, presidencySchema } from "@/lib/api/presidency";
 import { initiativeSchema } from "@/lib/api/schemas";
-import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress } from "@/lib/initiatives";
+import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress, stageTone } from "@/lib/initiatives";
 import { handlers } from "@/mocks/handlers";
 import { initiatives } from "@/mocks/parliamentFixtures";
 import { presidency } from "@/mocks/presidencyFixtures";
@@ -18,8 +18,19 @@ describe("stageProgress", () => {
   it("walks a law from submission to publication", () => {
     expect(stageProgress("submitted", true)).toMatchObject({ reached: 1, ended: null, vetoed: false });
     expect(stageProgress("committee", true).reached).toBe(2);
+    expect(stageProgress("approved", true).reached).toBe(3);
     expect(stageProgress("awaiting_president", true).reached).toBe(4);
-    expect(stageProgress("published", true)).toMatchObject({ reached: 6, steps: expect.arrayContaining(["Presidente"]) });
+    expect(stageProgress("published", true)).toMatchObject({ reached: 5, steps: ["Entregue", "Em debate", "Votada", "Presidente", "Lei"] });
+  });
+
+  it("gives each stage its colour family", () => {
+    expect(stageTone("debate")).toBe("debate");
+    expect(stageTone("approved_in_principle")).toBe("debate");
+    expect(stageTone("awaiting_president")).toBe("president");
+    expect(stageTone("published", true)).toBe("law");
+    expect(stageTone("published", false)).toBe("approved");
+    expect(stageTone("vetoed")).toBe("stopped");
+    expect(stageTone("withdrawn")).toBe("withdrawn");
   });
 
   it("stops recommendations at the vote, and marks ended paths and vetoes", () => {

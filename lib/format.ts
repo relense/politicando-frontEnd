@@ -138,7 +138,7 @@ export function formatLongDate(value: string | null | undefined): string | null 
   return `${p.day} de ${p.month} de ${p.year}`;
 }
 
-const numberFormatter = new Intl.NumberFormat("pt-PT");
+const numberFormatter = new Intl.NumberFormat("pt-PT", { useGrouping: "always" });
 const percentFormatter = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** "1 971 558", with Portuguese grouping. */

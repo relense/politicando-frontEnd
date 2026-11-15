@@ -39,9 +39,10 @@ export function InitiativeList({ query, initialPage }: { query: Omit<InitiativeQ
             type="button"
             onClick={() => void fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="rounded-full border border-line px-5 py-2 font-mono text-sm font-bold hover:bg-surface disabled:opacity-60"
+            className="rounded-lg border px-5 py-2 font-mono text-sm font-bold hover:bg-surface disabled:opacity-60"
+            style={{ borderColor: "var(--stage-debate)", color: "var(--stage-debate)" }}
           >
-            {isFetchingNextPage ? "A carregar…" : "Mostrar mais"}
+            {isFetchingNextPage ? "A carregar…" : `Carregar mais ${query.limit ?? 20}`}
           </button>
         </div>
       )}
