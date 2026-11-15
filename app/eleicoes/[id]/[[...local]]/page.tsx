@@ -25,6 +25,7 @@ import { formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { placeMap } from "@/lib/maps";
 import { partyColor } from "@/lib/parliament";
 import { partyPath } from "@/lib/parties";
+import { PLACE_KEY, placePath } from "@/lib/places";
 import type { Election, ElectionList, ElectionResult, Party } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string; local?: string[] }>; searchParams: Promise<{ orgao?: string | string[] }> };
@@ -207,6 +208,11 @@ export default async function ElectionPage(props: Props) {
         </p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">{isTop ? election.name : place.name}</h1>
         {sentence && <p className="mt-3 max-w-2xl leading-relaxed">{sentence}</p>}
+        {PLACE_KEY.test(place.key) && ["district", "municipality", "parish"].includes(place.level) && (
+          <Link href={placePath(place.key)} className="mt-3 inline-block font-mono text-sm text-link underline">
+            Quem governa {place.name} →
+          </Link>
+        )}
       </header>
 
       {election.organs.length > 1 && (

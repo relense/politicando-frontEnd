@@ -165,9 +165,3 @@ export function electionResult(id: string, key: string | null, organ: string | n
     },
   };
 }
-
-/** A place on its own, as `GET /places/:key` answers. */
-export function placeOf(key: string) {
-  const found = find(key);
-  return found ? { key: found.place.key, name: found.place.name, level: found.place.level, dicofre: found.place.dicofre } : null;
-}

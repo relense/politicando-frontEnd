@@ -1,11 +1,12 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
-import { electionResult, elections, placeOf } from "./electionFixtures";
+import { electionResult, elections } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
 import { governmentHistory, timeline } from "./historyFixtures";
 import { editorialPosts } from "./editorialFixtures";
 import { contractHandlers } from "./contractFixtures";
+import { placeHandlers } from "./placeFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -60,10 +61,6 @@ export const handlers = [
   http.get(`${API}/elections/:id`, ({ params, request }) =>
     answer(electionResult(String(params.id), null, new URL(request.url).searchParams.get("organ"))),
   ),
-  http.get(`${API}/places/:key`, ({ params }) => {
-    const place = placeOf(String(params.key));
-    return place ? HttpResponse.json(place) : fail(404, "not_found");
-  }),
   http.get(`${API}/parties`, () => HttpResponse.json(parties)),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
@@ -169,4 +166,5 @@ export const handlers = [
     return HttpResponse.json(created, { status: 201 });
   }),
   ...contractHandlers,
+  ...placeHandlers,
 ];
