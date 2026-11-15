@@ -1,12 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-
-const noSeriousA11yIssues = async (page: import("@playwright/test").Page) => {
-  // Seats fade in; checked once they have settled, so contrast isn't measured mid-animation.
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations.map((violation) => `${violation.id}: ${violation.nodes[0]?.html}`)).toEqual([]);
-};
+import { noSeriousA11yIssues } from "./helpers";
 
 test("feed loads more on scroll and reaches the end", async ({ page }) => {
   await page.goto("/");

@@ -77,7 +77,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
+export async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, init);
@@ -100,7 +100,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit
   return parsed.data;
 }
 
-const cached = { next: { revalidate: REVALIDATE_SECONDS } };
+export const cached = { next: { revalidate: REVALIDATE_SECONDS } };
 
 export async function getParties(): Promise<Party[]> {
   const parties = (await request("/parties", z.array(partySchema), cached)).map(mapParty);
@@ -109,7 +109,7 @@ export async function getParties(): Promise<Party[]> {
 }
 
 /** Builds "?a=1&b=2" from the values that are set, or "" when none are. */
-function searchOf(values: Record<string, string | number | undefined>): string {
+export function searchOf(values: Record<string, string | number | undefined>): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) if (value !== undefined) query.set(key, String(value));
   return query.size > 0 ? `?${query}` : "";
@@ -180,7 +180,7 @@ export async function getGovernmentMember(id: string): Promise<GovernmentMemberD
 }
 
 /** Election results change only when an import finishes, so they are cached for an hour. */
-const hourly = { next: { revalidate: 3600 } };
+export const hourly = { next: { revalidate: 3600 } };
 
 export async function getElections(type?: ElectionType): Promise<Election[]> {
   const query = type ? `?type=${type}` : "";
