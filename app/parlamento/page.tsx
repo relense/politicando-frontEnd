@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ParliamentView, type Selection } from "@/components/ParliamentView";
-import { ApiError, getGovernment, getInitiatives, getParliament } from "@/lib/api/client";
+import { ApiError, getInitiatives, getParliament } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
-import type { Government, GovernmentMember, InitiativePage, Parliament } from "@/lib/types";
+import type { InitiativePage, Parliament } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Parlamento",
@@ -25,11 +25,9 @@ async function loadParliament(): Promise<Parliament | null> {
 
 export default async function ParliamentPage({ searchParams }: Props) {
   await connection();
-  const [parliament, initiatives, government, { deputado, partido }] = await Promise.all([
+  const [parliament, initiatives, { deputado, partido }] = await Promise.all([
     loadParliament(),
     getInitiatives({ status: "approved" }).catch((): InitiativePage | null => null),
-    // The map works without it: the bench is simply not drawn.
-    getGovernment().catch((): Government | null => null),
     searchParams,
   ]);
   // The view checks these against the real data and ignores anything unknown.
@@ -55,13 +53,7 @@ export default async function ParliamentPage({ searchParams }: Props) {
     <div data-wide>
       {parliament ? (
         // The title sits in the map's column, so the card beside it can run from the title down.
-        <ParliamentView
-          parliament={parliament}
-          initialInitiatives={initiatives}
-          initialSelection={selection}
-          header={header}
-          government={benchOf(government)}
-        />
+        <ParliamentView parliament={parliament} initialInitiatives={initiatives} initialSelection={selection} header={header} />
       ) : (
         <>
           {header}
@@ -78,11 +70,4 @@ export default async function ParliamentPage({ searchParams }: Props) {
       </p>
     </div>
   );
-}
-
-/** Who sits on the Government's bench: the Prime Minister, then the ministers in protocol order. */
-function benchOf(government: Government | null): GovernmentMember[] {
-  if (!government) return [];
-  const ministers = government.ministries.flatMap((ministry) => (ministry.minister?.kind === "minister" ? [ministry.minister] : []));
-  return government.primeMinister ? [government.primeMinister, ...ministers] : ministers;
 }

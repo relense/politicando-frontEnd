@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { arrangeSeats, focusOf, governmentBench, neighbourSeat, polar, seatSpacing, type Direction } from "@/lib/hemicycle";
+import { arrangeSeats, focusOf, neighbourSeat, polar, seatSpacing, type Direction } from "@/lib/hemicycle";
 import { partyColor, SEAT_ORDER } from "@/lib/parliament";
-import { governmentPhoto, seatPhoto } from "@/lib/photos";
-import type { DeputySummary, GovernmentMember, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
+import { seatPhoto } from "@/lib/photos";
+import type { DeputySummary, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
 
 type Props = {
   seatMap: Parliament["seatMap"];
@@ -17,13 +16,11 @@ type Props = {
   /** Parties whose seats stand out; the rest are dimmed. Null shows every seat normally. */
   highlighted: ReadonlySet<string> | null;
   onSeat: (seat: ParliamentSeat) => void;
-  /** The Prime Minister and the ministers, in protocol order, for the Government's bench. Empty draws none. */
-  government?: readonly GovernmentMember[];
 };
 
 /** Server and browser can differ in the last digit of trigonometry, which breaks hydration; two decimals is plenty. */
 const round = (value: number) => Math.round(value * 100) / 100;
-/** `key` is "lugar-N" for a deputy's seat or "governo-ID" for the Government's bench. */
+/** `key` is "lugar-N", the seat's element id. */
 type Tip = { key: string; left: number; top: number; align: "start" | "middle" | "end"; below: boolean };
 /** Room the label needs above a seat; on the top rows it opens below instead. */
 const TIP_HEIGHT = 80;
@@ -34,10 +31,8 @@ const KEYS: Record<string, Direction> = { ArrowLeft: "left", ArrowRight: "right"
  * The chamber as a seat map, like choosing a seat for a show, drawn from the official seating plan on the floor
  * of the hemicycle. Keyboard: one tab stop; arrows move along a row and between rows, Enter or Space opens the seat.
  */
-export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted, onSeat, government = [] }: Props) {
-  const router = useRouter();
+export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted, onSeat }: Props) {
   const [tip, setTip] = useState<Tip | null>(null);
-  const [focusedMember, setFocusedMember] = useState(0);
   const [focused, setFocused] = useState<number | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -53,43 +48,25 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
   const photos = useMemo(() => {
     const byRow = seats.map((seat, index) => ({ seat, radius: radii[index]! })).sort((a, b) => a.radius - b.radius);
     const list: [string, string][] = [];
-    // The Government's few faces first: they sit at the front.
-    for (const member of government) {
-      const url = governmentPhoto(member.photoUrl, 32);
-      if (url) list.push([`governo-${member.id}`, url]);
-    }
     for (const { seat } of byRow) {
       const deputy = seat.deputyId !== null ? deputies.get(seat.deputyId) : undefined;
       const url = deputy ? seatPhoto(deputy) : null;
       if (url) list.push([`lugar-${seat.number}`, url]);
     }
     return list;
-  }, [seats, radii, deputies, government]);
+  }, [seats, radii, deputies]);
   const loaded = useLoadedPhotos(photos);
 
   const outer = round(Math.max(...radii) + spacing * 0.8);
   const inner = round(Math.min(...radii) - spacing * 0.8);
-  const seatRadius = round(spacing * 0.38);
+  // Big enough to recognise a face; the closest pair of seats still keeps a small gap.
+  const seatRadius = round(spacing * 0.44);
   const fx = round(focus.x);
   const fy = round(focus.y);
   // The floor: a half ring from behind the back row to just in front of the first row.
   const floor = `M ${fx - outer} ${fy} A ${outer} ${outer} 0 0 1 ${fx + outer} ${fy} L ${fx + inner} ${fy} A ${inner} ${inner} 0 0 0 ${fx - inner} ${fy} Z`;
-  // A smaller Mesa leaves room for the Government's bench in front of it.
-  const mesaWidth = round(government.length > 0 ? inner * 0.62 : inner * 0.9);
-  const mesaTop = government.length > 0 ? 32 : 44;
-  const benchRadius = round(seatRadius * 0.82);
-  const bench = useMemo(
-    () =>
-      governmentBench(government.length, {
-        front: inner - benchRadius * 1.6,
-        step: benchRadius * 2.25,
-        clear: mesaTop + benchRadius,
-        mesaHalfWidth: mesaWidth / 2,
-      }).map((place) => ({ x: round(fx + place.x), y: round(fy + place.y) })),
-    [government.length, inner, benchRadius, mesaTop, mesaWidth, fx, fy],
-  );
-  // The bench's arcs, drawn as a desk behind its seats.
-  const benchArcs = [...new Set(bench.map((place) => round(Math.hypot(place.x - fx, place.y - fy))))];
+  const mesaWidth = round(inner * 0.9);
+  const mesaTop = 44;
 
   // On a phone the map is wider than the screen so seats stay big enough to press; start at the centre.
   useEffect(() => {
@@ -128,7 +105,8 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
     const direction = KEYS[event.key];
     if (!direction) return;
     event.preventDefault();
-    const next = neighbourSeat(seats, seat, direction, focus, spacing);
+    // Rows are judged by the gap between them, since seats in a busy row sit a little forward or back.
+    const next = neighbourSeat(seats, seat, direction, focus, layout.rowGap);
     if (!next) return;
     setFocused(next.number);
     document.getElementById(`lugar-${next.number}`)?.focus();
@@ -140,20 +118,6 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
     return { acronym: group?.party.acronym ?? seat.group, name: group?.party.name ?? seat.group, deputy };
   };
   const shown = tip ? seats.find((seat) => `lugar-${seat.number}` === tip.key) : undefined;
-  const shownMember = tip ? government.find((member) => `governo-${member.id}` === tip.key) : undefined;
-
-  // The bench is one tab stop too: arrows move along it in drawing order, Enter opens the member's page.
-  const benchOrder = bench.map((place, index) => ({ index, x: place.x, y: place.y })).sort((a, b) => a.x - b.x);
-  function onBenchKey(event: KeyboardEvent, index: number) {
-    const position = benchOrder.findIndex((item) => item.index === index);
-    const move = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-    if (move === 0) return;
-    event.preventDefault();
-    const next = benchOrder[position + move];
-    if (!next) return;
-    setFocusedMember(next.index);
-    document.getElementById(`governo-${government[next.index]!.id}`)?.focus();
-  }
 
   return (
     // The label sits outside the scrolling area, so it can never add a scrollbar of its own.
@@ -172,9 +136,6 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
               <clipPath id="lugar-recorte" clipPathUnits="objectBoundingBox">
                 <circle cx={0.5} cy={0.5} r={0.5} />
               </clipPath>
-              <clipPath id="governo-recorte" clipPathUnits="objectBoundingBox">
-                <rect width={1} height={1} rx={0.25} />
-              </clipPath>
             </defs>
             <path d={floor} className="fill-surface stroke-line" strokeWidth={2} aria-hidden="true" />
             <g aria-hidden="true">
@@ -191,113 +152,11 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
                 x={fx}
                 y={round(fy - 12 - (mesaTop - 12) / 2 + 4)}
                 textAnchor="middle"
-                className={`fill-muted font-mono uppercase tracking-[0.2em] ${government.length > 0 ? "text-[10px]" : "text-[12px]"}`}
+                className="fill-muted font-mono text-[12px] uppercase tracking-[0.2em]"
               >
                 Mesa
               </text>
             </g>
-
-            {bench.length > 0 && (
-              <g
-                role="group"
-                aria-label="Bancada do Governo: o Primeiro-Ministro e os ministros. Não são deputados. Usa as setas para mudar e Enter para abrir."
-                style={{ opacity: highlighted !== null ? 0.45 : 1, transition: "opacity 150ms" }}
-              >
-                {/* The desk: the bench's arcs in the Government's colour, so it never reads as one more party. */}
-                <g aria-hidden="true">
-                  {benchArcs.map((radius) => (
-                    <path
-                      key={radius}
-                      d={`M ${round(fx - radius)} ${fy} A ${radius} ${radius} 0 0 1 ${round(fx + radius)} ${fy}`}
-                      fill="none"
-                      className="stroke-ink"
-                      strokeOpacity={0.12}
-                      strokeWidth={round(benchRadius * 2.5)}
-                      strokeDasharray={`0 ${round(radius * 0.18)} ${round(radius * Math.PI - radius * 0.36)} ${round(radius * 0.18)}`}
-                      strokeLinecap="round"
-                    />
-                  ))}
-                </g>
-                {bench.map((place, index) => {
-                  const member = government[index]!;
-                  const key = `governo-${member.id}`;
-                  const photo = loaded.get(key);
-                  const size = benchRadius * 2;
-                  return (
-                    <a
-                      key={member.id}
-                      id={key}
-                      href={`/governo/${member.id}`}
-                      aria-label={`${member.title}, ${member.name} (Governo)`}
-                      tabIndex={index === focusedMember ? 0 : -1}
-                      onClick={(event) => {
-                        if (event.metaKey || event.ctrlKey || event.shiftKey) return;
-                        event.preventDefault();
-                        router.push(`/governo/${member.id}`);
-                      }}
-                      onKeyDown={(event) => onBenchKey(event, index)}
-                      onFocus={(event) => {
-                        setFocusedMember(index);
-                        showTip(key, event.currentTarget);
-                      }}
-                      onBlur={() => setTip(null)}
-                      onMouseEnter={(event) => showTip(key, event.currentTarget)}
-                      className="cursor-pointer outline-none motion-safe:animate-[seat-in_500ms_cubic-bezier(0.2,0.8,0.2,1)_both]"
-                      style={{ animationDelay: `${300 + index * 70}ms`, transformBox: "fill-box", transformOrigin: "center" }}
-                    >
-                      <rect
-                        x={round(place.x - size * 0.68)}
-                        y={round(place.y - size * 0.68)}
-                        width={round(size * 1.36)}
-                        height={round(size * 1.36)}
-                        fill="transparent"
-                      />
-                      {/* Square seats in the Government's colour: the bench is not a party sector. */}
-                      <rect
-                        x={round(place.x - size / 2)}
-                        y={round(place.y - size / 2)}
-                        width={round(size)}
-                        height={round(size)}
-                        rx={round(size * 0.28)}
-                        className="fill-ink"
-                      />
-                      {photo && (
-                        <image
-                          href={photo}
-                          x={round(place.x - size / 2 + 1.5)}
-                          y={round(place.y - size / 2 + 1.5)}
-                          width={round(size - 3)}
-                          height={round(size - 3)}
-                          preserveAspectRatio="xMidYMin slice"
-                          clipPath="url(#governo-recorte)"
-                        />
-                      )}
-                      {member.kind === "prime_minister" && (
-                        <rect
-                          x={round(place.x - size / 2 - 3)}
-                          y={round(place.y - size / 2 - 3)}
-                          width={round(size + 6)}
-                          height={round(size + 6)}
-                          rx={round(size * 0.34)}
-                          fill="none"
-                          className="stroke-ink"
-                          strokeWidth={1.5}
-                        />
-                      )}
-                    </a>
-                  );
-                })}
-                <text
-                  x={fx}
-                  y={round(fy - mesaTop - 6)}
-                  textAnchor="middle"
-                  aria-hidden="true"
-                  className="fill-muted font-mono text-[9px] font-bold uppercase tracking-[0.25em]"
-                >
-                  Governo
-                </text>
-              </g>
-            )}
 
             {seats.map((seat) => {
               const { acronym, name, deputy } = describe(seat);
@@ -380,15 +239,6 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
           <TipContent seat={shown} {...describe(shown)} />
         </div>
       )}
-      {shownMember && tip && (
-        <div
-          role="tooltip"
-          className="pointer-events-none absolute z-20 w-max max-w-72 rounded-md border border-line bg-paper px-2.5 py-1.5 text-xs shadow-lg"
-          style={{ left: tip.left, top: tip.top, transform: `translate(${TIP_SHIFT[tip.align]}, ${tip.below ? "0" : "-100%"})` }}
-        >
-          <MemberTip member={shownMember} party={shownMember.partySlug ? groups.get(shownMember.partySlug) : undefined} />
-        </div>
-      )}
     </div>
   );
 }
@@ -417,20 +267,6 @@ function TipContent({ seat, acronym, name, deputy }: { seat: ParliamentSeat; acr
         {seat.estimated && " (aproximado)"}
       </span>
       {post && <span className="mt-0.5 block truncate font-mono text-ink">{post}</span>}
-    </span>
-  );
-}
-
-/** Someone on the Government's bench: who, what post, and that they are not a deputy. */
-function MemberTip({ member, party }: { member: GovernmentMember; party?: ParliamentGroup }) {
-  const elected = member.gender === "F" ? "eleita deputada" : "eleito deputado";
-  return (
-    <span className="block">
-      <span className="block text-sm font-bold leading-snug">{member.name}</span>
-      <span className="block font-mono text-ink">{member.title}</span>
-      <span className="mt-0.5 block font-mono text-muted">
-        Governo · {party ? `${elected} pelo ${party.party.acronym}, com o mandato suspenso` : "não é deputado"}
-      </span>
     </span>
   );
 }

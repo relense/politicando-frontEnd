@@ -180,17 +180,3 @@ describe("Government and votes", () => {
 function parsedId() {
   return governmentSchema.parse(government).primeMinister!.id;
 }
-
-describe("governmentBench", () => {
-  it("puts the Prime Minister in the middle of the front arc and keeps every seat off the Mesa", async () => {
-    const { governmentBench } = await import("@/lib/hemicycle");
-    const options = { front: 94, step: 22, clear: 42, mesaHalfWidth: 34 };
-    const seats = governmentBench(17, options);
-    expect(seats).toHaveLength(17);
-    expect(seats[0]!.x).toBeCloseTo(0);
-    expect(Math.hypot(seats[0]!.x, seats[0]!.y)).toBeCloseTo(94);
-    for (const seat of seats) expect(Math.abs(seat.x) > options.mesaHalfWidth + options.step / 2 || -seat.y > options.clear).toBe(true);
-    // No two seats overlap.
-    for (const [i, a] of seats.entries()) for (const b of seats.slice(i + 1)) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(13);
-  });
-});

@@ -19,8 +19,6 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
-const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
@@ -46,15 +44,10 @@ const psSeat = parliament.seatMap.seats.find((seat) => seat.partySlug === "ps")!
 const government = mapGovernment(governmentSchema.parse(apiGovernment));
 const bench = [government.primeMinister!, ...government.ministries.flatMap((m) => (m.minister?.kind === "minister" ? [m.minister] : []))];
 
-const renderView = (initialSelection: Selection = null, withGovernment = false) =>
+const renderView = (initialSelection: Selection = null) =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })}>
-      <ParliamentView
-        parliament={parliament}
-        initialInitiatives={null}
-        initialSelection={initialSelection}
-        government={withGovernment ? bench : []}
-      />
+      <ParliamentView parliament={parliament} initialInitiatives={null} initialSelection={initialSelection} />
     </QueryClientProvider>,
   );
 
@@ -171,21 +164,6 @@ describe("ParliamentView", () => {
 
     await user.click(within(section).getByRole("checkbox", { name: `Só as de ${ps.name}` }));
     expect(await within(section).findByText(/Não há iniciativas|Proposta por/)).toBeInTheDocument();
-  });
-
-  it("seats the Government on its own bench, apart from the parties, and opens a member's page", async () => {
-    const user = userEvent.setup();
-    renderView(null, true);
-    const benchGroup = screen.getByRole("group", { name: /Bancada do Governo/ });
-    const members = within(benchGroup).getAllByRole("link");
-    expect(members).toHaveLength(bench.length);
-    expect(members[0]).toHaveAccessibleName(/Primeiro-Ministro, Henrique Valadares \(Governo\)/);
-    // Not deputies: the 230 seats are unchanged.
-    expect(seats()).toHaveLength(230);
-    await user.hover(members[0]!);
-    expect(screen.getByRole("tooltip")).toHaveTextContent(/não é deputado/);
-    await user.click(members[0]!);
-    expect(push).toHaveBeenCalledWith(`/governo/${bench[0]!.id}`);
   });
 });
 
