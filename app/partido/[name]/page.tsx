@@ -8,11 +8,13 @@ import { Feed } from "@/components/Feed";
 import { PartyHemicycle } from "@/components/PartyHemicycle";
 import { PartyInitiatives } from "@/components/PartyInitiatives";
 import { PartyLogo } from "@/components/PartyLogo";
+import { PartyVoteSummary } from "@/components/PartyVoteSummary";
 import { PartyProfile } from "@/components/PartyProfile";
 import { PartyVotes } from "@/components/PartyVotes";
 import { getElections, getFeedPage, getInitiatives, getParliament, getParties, getPartyStandings } from "@/lib/api/client";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { partyLeaders } from "@/lib/parliament";
+import { getPartyVoteSummary } from "@/lib/api/partyVotes";
 import { findPartyByParam, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
 import type { DeputySummary, Election, Parliament, Party, PartyStanding } from "@/lib/types";
@@ -70,9 +72,10 @@ export default async function PartyPage({ params, searchParams }: Props) {
   // The Parliament records votes by group: any of the party's deputies gives its votes.
   const voter = leader?.deputy ?? benchLeader ?? deputies[0] ?? null;
 
-  const [page, initiatives] = await Promise.all([
+  const [page, initiatives, votes] = await Promise.all([
     tab === "noticias" ? getFeedPage({ party: party.slug }) : null,
     seats > 0 && (tab === "noticias" || tab === "iniciativas") ? getInitiatives({ party: party.slug }).catch(() => null) : null,
+    seats > 0 ? getPartyVoteSummary(party.slug) : null,
   ]);
 
   const profile = getPartyProfile(party.slug);
@@ -116,6 +119,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
             </div>
           </div>
           {profile && <PartyProfile profile={profile} withFounded={!hasFactsCard} />}
+          {votes && <PartyVoteSummary acronym={party.acronym} summary={votes} href={tabPath(party.slug, "votacoes")} />}
         </div>
         {hasFactsCard && (
           <FactsCard

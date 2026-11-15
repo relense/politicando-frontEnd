@@ -12,6 +12,7 @@ import { forumHandlers } from "./forumFixtures";
 import { presidencyHandlers } from "./presidencyFixtures";
 import { peopleHandlers } from "./peopleFixtures";
 import { sitemapHandlers } from "./sitemapFixtures";
+import { partyVoteHandlers } from "./partyVoteFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -198,4 +199,5 @@ export const handlers = [
   ...peopleHandlers,
   ...becomeDeputyHandlers,
   ...sitemapHandlers,
+  ...partyVoteHandlers,
 ];
