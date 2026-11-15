@@ -84,7 +84,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
 
   return (
     <div data-wide className="@container">
-      <PartyChipBar parties={parties} />
+      <PartyChipBar parties={parties} always />
       <header className="grid items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
           <div className="flex items-center gap-5">

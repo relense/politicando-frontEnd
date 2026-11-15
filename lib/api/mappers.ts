@@ -286,7 +286,7 @@ const mapTurnout = (turnout: ApiTurnout | null | undefined): ElectionTurnout | n
 /** A list with more than one of our parties is a coalition, whatever the flag says. */
 const mapElectionList = (item: ApiElectionList): ElectionList => ({
   list: item.list,
-  name: item.name ?? item.list,
+  name: item.name?.trim() || item.list,
   partySlugs: item.partySlugs,
   coalition: Boolean(item.coalition) || item.partySlugs.length > 1,
   citizens: Boolean(item.citizens),

@@ -378,9 +378,14 @@ test("elections: from the menu to a district and a municipality, and back up the
   // Not imported yet: shown, but not a link.
   await expect(page.getByRole("link", { name: /Legislativas 2019/ })).toHaveCount(0);
 
-  await page.getByRole("link", { name: /Legislativas 2025/ }).click();
+  // The latest election is featured at the top, and also listed with the others.
+  await expect(page.getByRole("region", { name: "Legislativas 2025" })).toContainText("Mais recente");
+  await page
+    .getByRole("link", { name: /Legislativas 2025/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
-  await expect(page.getByText("230 mandatos")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "O novo Parlamento" })).toBeVisible();
   await page.getByRole("link", { name: /Território nacional/ }).click();
   await page
     .getByRole("link", { name: /^Aveiro/ })
@@ -388,11 +393,11 @@ test("elections: from the menu to a district and a municipality, and back up the
     .click();
   await expect(page).toHaveURL(/LOCAL-010000$/);
   await expect(page.getByRole("heading", { level: 1, name: "Aveiro" })).toBeVisible();
-  await page.getByRole("link", { name: /Águeda/ }).click();
+  await page.getByRole("link", { name: /^Águeda Mais votado/ }).click();
   await expect(page).toHaveURL(/LOCAL-010100$/);
   await expect(page.getByRole("heading", { level: 1, name: "Águeda" })).toBeVisible();
 
-  await page.getByRole("navigation", { name: "Caminho" }).getByRole("link", { name: "Legislativas 2025" }).click();
+  await page.getByRole("navigation", { name: "Caminho" }).getByRole("link", { name: "2025" }).click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
 });
 
@@ -445,4 +450,36 @@ test("party page without deputies has no Parliament tabs", async ({ page }) => {
   await page.goto("/partido/pctp-mrpp?ver=deputados");
   await expect(page.getByText("sem assento parlamentar")).toBeVisible();
   await expect(page.getByRole("navigation", { name: /Secções do/ })).toHaveCount(0);
+});
+
+test("elections: the map links each place one level down", async ({ page }) => {
+  await page.goto("/eleicoes/legislativas-2025/LOCAL-500000");
+  const map = page.getByRole("group", { name: /Mapa por distrito/ });
+  await expect(map).toBeVisible();
+  await map.getByRole("link", { name: /^Lisboa: / }).click();
+  await expect(page).toHaveURL(/LOCAL-110000$/);
+  await page
+    .getByRole("group", { name: /Mapa por concelho/ })
+    .getByRole("link", { name: /^Sintra: / })
+    .click();
+  await expect(page).toHaveURL(/LOCAL-111100$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Sintra" })).toBeVisible();
+});
+
+test("elections: add up seats in the simulator, and pick a circle on the schematic map", async ({ page }) => {
+  await page.goto("/eleicoes/legislativas-2025");
+  const lists = page.getByRole("group", { name: "Listas a somar" });
+  // The winner starts selected.
+  await expect(lists.getByRole("button", { pressed: true })).toHaveCount(1);
+  await lists.getByRole("button", { name: /^PS/ }).click();
+  await expect(page.getByText(/^AD \+ PS: \d+ mandatos · maioria absoluta$/)).toBeVisible();
+  await page.getByRole("button", { name: "Limpar" }).click();
+  await expect(lists.getByRole("button", { pressed: true })).toHaveCount(0);
+
+  const circles = page.getByRole("group", { name: "Círculos eleitorais" });
+  await circles.getByRole("button", { name: /Aveiro/ }).click();
+  const panel = page.getByRole("region", { name: "Círculo selecionado" });
+  await expect(panel.getByRole("heading", { name: "Aveiro" })).toBeVisible();
+  await panel.getByRole("link", { name: /Ver concelhos de Aveiro/ }).click();
+  await expect(page).toHaveURL(/LOCAL-010000$/);
 });
