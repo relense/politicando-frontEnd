@@ -19,6 +19,7 @@ import type {
   PresidencyStatus,
   Parliament,
   Party,
+  PartyStanding,
   GovernmentEndReason,
   GovernmentHistory,
   TimelineEvent,
@@ -69,6 +70,14 @@ function plainText(value: string): string {
 
 export function mapParty(party: ApiParty): Party {
   return { slug: party.slug, acronym: party.acronym, name: party.name, website: safeHttpUrl(party.website) };
+}
+
+/** Seats now and votes in the latest legislativas, when the API sends them; null for a party with neither. */
+export function mapPartyStanding(party: ApiParty): PartyStanding | null {
+  const seats = party.assemblySeats ?? 0;
+  const election = party.lastElection;
+  if (seats === 0 && !election) return null;
+  return { seats, votes: election?.votes ?? 0, validPct: election?.validPct ?? 0, coalition: election?.coalition ?? false };
 }
 
 export function mapArticle(article: ApiArticle): Article {

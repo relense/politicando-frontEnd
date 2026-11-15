@@ -24,7 +24,6 @@ import type {
   EditorialKind,
   EditorialPage,
 } from "@/lib/types";
-import { partyStandings } from "@/lib/elections";
 import {
   mapArticle,
   mapComment,
@@ -39,6 +38,7 @@ import {
   mapInitiativeDetail,
   mapParliament,
   mapParty,
+  mapPartyStanding,
   mapTimeline,
   mapEditorialDetail,
   mapEditorialPost,
@@ -213,17 +213,17 @@ export async function getElectionResult(id: string, { place, organ }: { place?: 
 }
 
 /**
- * Each party's seats in Parliament and its votes in the latest legislativas, to order parties by weight. A party
- * in several lists (AD on the mainland and in Madeira) adds them up; a coalition's votes count for each partner.
- * Empty when either source is unavailable, so the order by name is the only one offered.
+ * Each party's seats now and votes in the latest legislativas, from the list of parties ordered by seats.
+ * Empty when the API doesn't send them, so the order by name is the only one offered.
  */
 export async function getPartyStandings(): Promise<Record<string, PartyStanding>> {
   try {
-    const [parliament, elections] = await Promise.all([getParliament(), getElections("legislativas")]);
-    const latest = elections.find((election) => election.imported);
-    if (!latest) return {};
-    const { lists } = await getElectionResult(latest.id);
-    return partyStandings(new Map(parliament.groups.map((group) => [group.party.slug, group.seats])), lists);
+    const parties = await request("/parties?sort=seats", z.array(partySchema), cached);
+    const standings = parties.flatMap((party) => {
+      const standing = mapPartyStanding(party);
+      return standing ? [[party.slug, standing] as const] : [];
+    });
+    return Object.fromEntries(standings);
   } catch {
     return {};
   }

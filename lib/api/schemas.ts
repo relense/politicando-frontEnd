@@ -5,6 +5,11 @@ export const partySchema = z.object({
   acronym: z.string(),
   name: z.string(),
   website: z.string().nullable(),
+  /** Seats now and the latest legislativas; only in the list of parties. */
+  assemblySeats: z.number().nullish(),
+  lastElection: z
+    .object({ id: z.string(), votes: z.number(), validPct: z.number().nullable(), mandates: z.number().nullable(), coalition: z.boolean() })
+    .nullish(),
 });
 
 const articlePartySchema = partySchema.pick({ slug: true, acronym: true, name: true });

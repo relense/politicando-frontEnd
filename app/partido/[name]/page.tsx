@@ -238,7 +238,7 @@ function FactsCard({
       value: (
         <>
           {formatPercent(standing.validPct)}
-          {standing.coalition && <span className="block font-normal text-xs text-muted">em coligação ({standing.coalition})</span>}
+          {standing.coalition && <span className="block font-normal text-xs text-muted">em coligação</span>}
         </>
       ),
     });

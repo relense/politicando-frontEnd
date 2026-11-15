@@ -301,7 +301,13 @@ export type ElectionResult = {
 };
 
 /** How a party did: its seats in Parliament and its votes in the latest legislativas. */
-export type PartyStanding = { seats: number; votes: number; validPct: number; coalition: string | null };
+export type PartyStanding = {
+  seats: number;
+  votes: number;
+  validPct: number;
+  /** Ran in a coalition: the votes are the coalition's, shared with its partners, never to be added up. */
+  coalition: boolean;
+};
 
 export type GovernmentEndReason =
   | "end_of_term"

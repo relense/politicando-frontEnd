@@ -13,13 +13,15 @@ export type ResultRow = {
   pct: string | null;
   share: number;
   votes: string;
+  /** Change in points from the previous election, when that list ran there too: "+2,3 pp". */
+  change?: { label: string; direction: "up" | "down" | "same" } | null;
 };
 
 /** How many lists show before the rest fold away. */
 const SHOWN = 8;
 
 /** Every list, most votes first: its share as a bar, its seats where there are seats, and its votes. */
-export function ResultsTable({ rows, withMandates }: { rows: ResultRow[]; withMandates: boolean }) {
+export function ResultsTable({ rows, withMandates, compareTo }: { rows: ResultRow[]; withMandates: boolean; compareTo?: string }) {
   const [open, setOpen] = useState(false);
   if (rows.length === 0) return <p className="text-muted">Sem resultados para este local.</p>;
   const top = Math.max(...rows.map((row) => row.share), 1);
@@ -37,13 +39,18 @@ export function ResultsTable({ rows, withMandates }: { rows: ResultRow[]; withMa
               Lista
             </th>
             {withMandates && (
-              <th scope="col" className="w-20 py-2 text-right font-normal">
+              <th scope="col" className="w-16 py-2 sm:w-20 text-right font-normal">
                 Mandatos
               </th>
             )}
-            <th scope="col" className="w-20 py-2 text-right font-normal">
+            <th scope="col" className="w-16 py-2 sm:w-20 text-right font-normal">
               Votos
             </th>
+            {compareTo && (
+              <th scope="col" className="w-16 whitespace-nowrap sm:w-24 py-2 text-right font-normal">
+                vs {compareTo}
+              </th>
+            )}
             <th scope="col" className="hidden w-28 py-2 text-right font-normal sm:table-cell">
               Votos (n.º)
             </th>
@@ -82,6 +89,23 @@ export function ResultsTable({ rows, withMandates }: { rows: ResultRow[]; withMa
               </td>
               {withMandates && <td className="py-3 text-right text-2xl font-bold">{row.mandates || "–"}</td>}
               <td className="py-3 text-right font-mono text-sm font-bold">{row.pct}</td>
+              {compareTo && (
+                <td className="whitespace-nowrap py-3 pl-2 text-right font-mono text-xs text-muted">
+                  {row.change ? (
+                    <>
+                      <span aria-hidden="true" className="hidden sm:inline">
+                        {row.change.direction === "up" ? "▲ " : row.change.direction === "down" ? "▼ " : ""}
+                      </span>
+                      {row.change.label}
+                    </>
+                  ) : (
+                    <span title="Sem lista comparável na eleição anterior">
+                      <span aria-hidden="true">–</span>
+                      <span className="sr-only">sem comparação</span>
+                    </span>
+                  )}
+                </td>
+              )}
               <td className="hidden py-3 text-right font-mono text-xs text-muted sm:table-cell">{row.votes}</td>
             </tr>
           ))}

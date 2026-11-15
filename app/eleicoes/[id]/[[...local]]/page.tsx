@@ -11,7 +11,9 @@ import { ApiError, getElectionResult, getElections, getParties } from "@/lib/api
 import {
   chamberOrder,
   CHILDREN_HEADING,
+  compareLists,
   electionPath,
+  formatPoints,
   hasMandates,
   listColor,
   listLabel,
@@ -82,6 +84,16 @@ export default async function ElectionPage(props: Props) {
   const at = timeline.findIndex((item) => item.id === election.id);
   const previous = at > 0 ? timeline[at - 1] : undefined;
   const next = at >= 0 ? timeline[at + 1] : undefined;
+  // The same place and body in the previous election, to show what changed; nothing when either is missing there.
+  const previousResult =
+    previous && (organ === mainOrgan || previous.organs.includes(organ))
+      ? await loadResult(previous.id, placeKey ?? undefined, organ === mainOrgan ? undefined : organ).catch(() => null)
+      : null;
+  const changes = previousResult && previousResult.lists.length > 0 ? compareLists(lists, previousResult.lists) : null;
+  const turnoutChange =
+    previousResult?.turnout?.turnoutPct != null && turnout?.turnoutPct != null
+      ? Math.round((turnout.turnoutPct - previousResult.turnout.turnoutPct) * 10) / 10
+      : null;
 
   // At the top, the circles: the mainland's districts and the two circles abroad, each with its own result.
   const national = isTop ? children.find((child) => child.level === "national") : undefined;
@@ -148,6 +160,11 @@ export default async function ElectionPage(props: Props) {
     pct: formatPercent(item.validPct),
     share: item.validPct ?? 0,
     votes: formatNumber(item.votes),
+    change: (() => {
+      const change = changes?.get(item)?.change;
+      if (change === null || change === undefined) return null;
+      return { label: formatPoints(change), direction: change > 0 ? "up" : change < 0 ? "down" : "same" } as const;
+    })(),
   }));
   const merged = mergeSameParties(lists);
   const chamber = seats && seats >= 10 ? chamberOrder(merged) : [];
@@ -241,6 +258,11 @@ export default async function ElectionPage(props: Props) {
                   <span className="block h-full rounded-full bg-ink" style={{ width: `${turnout.turnoutPct}%` }} />
                 </span>
                 <span className="mt-1.5 block">Abstenção {formatPercent(100 - turnout.turnoutPct)}</span>
+                {turnoutChange !== null && previousResult && (
+                  <span className="block">
+                    {formatPoints(turnoutChange)} vs {previousResult.election.date.slice(0, 4)}
+                  </span>
+                )}
               </>
             )}
           </Fact>
@@ -273,7 +295,17 @@ export default async function ElectionPage(props: Props) {
       )}
 
       <Section id="resultados" title="Resultados por lista" note={ORGAN_LABELS[organ] ?? organ}>
-        <ResultsTable rows={rows} withMandates={Boolean(seats)} />
+        <ResultsTable rows={rows} withMandates={Boolean(seats)} compareTo={changes && previous ? previous.date.slice(0, 4) : undefined} />
+        {changes && previous && (
+          <p className="mt-2 font-mono text-[11px] text-muted">
+            Eleição anterior:{" "}
+            <Link href={electionPath(previous.id, placeKey, organParam)} className="underline hover:text-ink">
+              {previous.name}
+            </Link>
+            . Diferença em pontos percentuais; sem comparação quando a lista não concorreu da mesma forma (por exemplo, uma coligação que
+            antes concorria em listas separadas).
+          </p>
+        )}
       </Section>
 
       {isTop && (national || foreign) && (

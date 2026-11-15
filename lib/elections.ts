@@ -1,5 +1,5 @@
 import { majority, partyColor, SEAT_ORDER } from "./parliament";
-import type { ElectionList, ElectionType, Party, PartyStanding, PlaceLevel } from "./types";
+import type { ElectionList, ElectionType, Party, PlaceLevel } from "./types";
 
 /** In the order the menu shows them: national elections first. */
 export const ELECTION_TYPES: { type: ElectionType; label: string; about: string }[] = [
@@ -39,31 +39,6 @@ export function electionPath(id: string, place?: string | null, organ?: string |
 
 /** Whether the lists win seats here: shown as seats instead of only percentages. */
 export const hasMandates = (organ: string) => ["AR", "PE", "EUR", "AM", "AF", "CM"].includes(organ);
-
-/**
- * Each party's seats and its votes in one election. A party in several lists (AD on the mainland and in Madeira)
- * adds them up; a coalition's votes count for each partner, marked with the name of its biggest coalition. Parties
- * with seats but no list of their own still count.
- */
-export function partyStandings(seats: ReadonlyMap<string, number>, lists: readonly ElectionList[]): Record<string, PartyStanding> {
-  const standings: Record<string, PartyStanding> = {};
-  const biggestCoalition = new Map<string, number>();
-  for (const item of lists) {
-    for (const slug of item.partySlugs) {
-      const current = standings[slug] ?? { seats: seats.get(slug) ?? 0, votes: 0, validPct: 0, coalition: null };
-      const takesName = item.coalition && item.votes > (biggestCoalition.get(slug) ?? -1);
-      if (takesName) biggestCoalition.set(slug, item.votes);
-      standings[slug] = {
-        ...current,
-        votes: current.votes + item.votes,
-        validPct: Math.round((current.validPct + (item.validPct ?? 0)) * 100) / 100,
-        coalition: takesName ? item.name : current.coalition,
-      };
-    }
-  }
-  for (const [slug, count] of seats) standings[slug] ??= { seats: count, votes: 0, validPct: 0, coalition: null };
-  return standings;
-}
 
 const SMALL_WORDS = new Set(["a", "o", "e", "da", "de", "do", "das", "dos", "para", "pelo", "pela", "com", "em", "por"]);
 
@@ -180,4 +155,52 @@ export function mergeSameParties(lists: readonly ElectionList[]): ElectionList[]
     });
   }
   return [...merged.values()].sort((a, b) => b.votes - a.votes);
+}
+
+/** The change from the previous election of the same type, for one list. */
+export type ListChange = { previousPct: number | null; change: number | null };
+
+type Comparable = Pick<ElectionList, "list" | "partySlugs" | "validPct">;
+
+const slugSet = (item: Pick<ElectionList, "partySlugs">) => [...item.partySlugs].sort().join("+");
+
+/**
+ * Matches each list with the same list in the previous election, one to one: first the same ballot name and the same
+ * parties, then the same parties (AD under a new name), then the same ballot name for lists none of ours is in
+ * (citizens' groups, and candidates in presidenciais). A coalition is never matched with its parties running alone,
+ * nor the other way round: those numbers are not comparable, so such lists have no change.
+ */
+export function compareLists<T extends Comparable>(current: readonly T[], previous: readonly Comparable[]): Map<T, ListChange> {
+  const used = new Set<number>();
+  const matched = new Map<T, number>();
+  const passes: ((a: T, b: Comparable) => boolean)[] = [
+    (a, b) => bare(a.list) === bare(b.list) && slugSet(a) === slugSet(b),
+    (a, b) => a.partySlugs.length > 0 && slugSet(a) === slugSet(b),
+    (a, b) => a.partySlugs.length === 0 && b.partySlugs.length === 0 && bare(a.list) === bare(b.list),
+  ];
+  for (const pass of passes) {
+    for (const item of current) {
+      if (matched.has(item)) continue;
+      const index = previous.findIndex((candidate, at) => !used.has(at) && pass(item, candidate));
+      if (index >= 0) {
+        used.add(index);
+        matched.set(item, index);
+      }
+    }
+  }
+  return new Map(
+    current.map((item) => {
+      const index = matched.get(item);
+      const before = index === undefined ? null : (previous[index]!.validPct ?? null);
+      const change = before !== null && item.validPct !== null ? Math.round((item.validPct - before) * 10) / 10 : null;
+      return [item, { previousPct: before, change }];
+    }),
+  );
+}
+
+const pointsFormatter = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
+
+/** "+2,3 pp", "−0,4 pp", "0,0 pp": a change in percentage points. */
+export function formatPoints(change: number): string {
+  return `${pointsFormatter.format(change).replace("-", "−")} pp`;
 }
