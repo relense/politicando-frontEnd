@@ -4,10 +4,14 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { DeputyArticles, DeputyCareer, DeputyFacts, DeputyInitiatives, DeputyPortrait } from "@/components/DeputyProfile";
+import { CareerPath } from "@/components/CareerPath";
 import { DeputyVotes } from "@/components/DeputyVotes";
 import { PartyChips } from "@/components/PartyChips";
+import { RecordsBox } from "@/components/Records";
 import { ApiError, getDeputy } from "@/lib/api/client";
+import { tryPersonPath } from "@/lib/api/people";
 import { partyColor } from "@/lib/parliament";
+import { FEATURES } from "@/lib/features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -35,7 +39,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DeputyPage({ params }: Props) {
   await connection();
-  const deputy = await loadDeputy((await params).id);
+  const { id } = await params;
+  const [deputy, path] = await Promise.all([loadDeputy(id), /^\d+$/.test(id) ? tryPersonPath("deputy", id) : null]);
   if (!deputy) notFound();
 
   return (
@@ -67,6 +72,8 @@ export default async function DeputyPage({ params }: Props) {
         </Link>
       </header>
 
+      {FEATURES.record && path && <RecordsBox records={path.records} kind="deputy" id={deputy.id} />}
+
       <Section title="Iniciativas que assina">
         <DeputyInitiatives detail={deputy} />
       </Section>
@@ -76,9 +83,20 @@ export default async function DeputyPage({ params }: Props) {
       <Section title="Nas notícias">
         <DeputyArticles detail={deputy} />
       </Section>
-      <Section title="Percurso">
-        <DeputyCareer detail={deputy} />
-      </Section>
+      {path && (path.path.length > 0 || path.currentRoles.length > 0) ? (
+        <>
+          <Section title="Percurso" id="percurso">
+            <CareerPath path={path} here="deputy" />
+          </Section>
+          <Section title="Comissões e formação">
+            <DeputyCareer detail={deputy} />
+          </Section>
+        </>
+      ) : (
+        <Section title="Percurso">
+          <DeputyCareer detail={deputy} />
+        </Section>
+      )}
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">Fonte: Assembleia da República (dados abertos).</p>
     </article>

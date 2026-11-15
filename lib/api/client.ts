@@ -9,6 +9,7 @@ import type {
   ElectionResult,
   ElectionType,
   Government,
+  GovernmentHistory,
   GovernmentMemberDetail,
   InitiativeDetail,
   InitiativePage,
@@ -16,9 +17,14 @@ import type {
   NewComment,
   Parliament,
   Party,
+  PartyOverview,
   PartyStanding,
+  PresidencyStatus,
+  TimelineEvent,
+  EditorialDetail,
+  EditorialKind,
+  EditorialPage,
 } from "@/lib/types";
-import { partyStandings } from "@/lib/elections";
 import {
   mapArticle,
   mapComment,
@@ -27,11 +33,17 @@ import {
   mapElectionResult,
   mapElections,
   mapGovernment,
+  mapGovernmentHistory,
   mapGovernmentMemberDetail,
   mapInitiative,
   mapInitiativeDetail,
   mapParliament,
   mapParty,
+  mapPartyOverview,
+  mapPartyStanding,
+  mapTimeline,
+  mapEditorialDetail,
+  mapEditorialPost,
 } from "./mappers";
 import {
   articlePageSchema,
@@ -42,12 +54,16 @@ import {
   electionResultSchema,
   electionsSchema,
   errorSchema,
+  governmentHistorySchema,
   governmentMemberDetailSchema,
   governmentSchema,
   initiativeDetailSchema,
   initiativePageSchema,
   parliamentSchema,
   partySchema,
+  timelineSchema,
+  editorialDetailSchema,
+  editorialPageSchema,
 } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
@@ -64,7 +80,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
+export async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, init);
@@ -87,7 +103,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit
   return parsed.data;
 }
 
-const cached = { next: { revalidate: REVALIDATE_SECONDS } };
+export const cached = { next: { revalidate: REVALIDATE_SECONDS } };
 
 export async function getParties(): Promise<Party[]> {
   const parties = (await request("/parties", z.array(partySchema), cached)).map(mapParty);
@@ -96,7 +112,7 @@ export async function getParties(): Promise<Party[]> {
 }
 
 /** Builds "?a=1&b=2" from the values that are set, or "" when none are. */
-function searchOf(values: Record<string, string | number | undefined>): string {
+export function searchOf(values: Record<string, string | number | undefined>): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) if (value !== undefined) query.set(key, String(value));
   return query.size > 0 ? `?${query}` : "";
@@ -143,10 +159,27 @@ export async function getDeputy(id: number): Promise<DeputyDetail> {
   return mapDeputyDetail(await request(`/deputies/${id}`, deputyDetailSchema, cached));
 }
 
-export type InitiativeQuery = { status?: InitiativeStatus; deputy?: number; party?: string; cursor?: string; limit?: number };
+export type InitiativeQuery = {
+  status?: InitiativeStatus;
+  deputy?: number;
+  party?: string;
+  presidency?: PresidencyStatus;
+  topic?: string;
+  cursor?: string;
+  limit?: number;
+};
 
-export async function getInitiatives({ status, deputy, party, cursor, limit }: InitiativeQuery = {}): Promise<InitiativePage> {
-  const page = await request(`/initiatives${searchOf({ status, deputy, party, cursor, limit })}`, initiativePageSchema, cached);
+export async function getInitiatives({
+  status,
+  deputy,
+  party,
+  presidency,
+  topic,
+  cursor,
+  limit,
+}: InitiativeQuery = {}): Promise<InitiativePage> {
+  const query = searchOf({ status, deputy, party, presidency, topic, cursor, limit });
+  const page = await request(`/initiatives${query}`, initiativePageSchema, cached);
   return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor };
 }
 
@@ -167,7 +200,7 @@ export async function getGovernmentMember(id: string): Promise<GovernmentMemberD
 }
 
 /** Election results change only when an import finishes, so they are cached for an hour. */
-const hourly = { next: { revalidate: 3600 } };
+export const hourly = { next: { revalidate: 3600 } };
 
 export async function getElections(type?: ElectionType): Promise<Election[]> {
   const query = type ? `?type=${type}` : "";
@@ -182,18 +215,46 @@ export async function getElectionResult(id: string, { place, organ }: { place?: 
 }
 
 /**
- * Each party's seats in Parliament and its votes in the latest legislativas, to order parties by weight. A party
- * in several lists (AD on the mainland and in Madeira) adds them up; a coalition's votes count for each partner.
- * Empty when either source is unavailable, so the order by name is the only one offered.
+ * Each party's seats now and votes in the latest legislativas, from the list of parties ordered by seats.
+ * Empty when the API doesn't send them, so the order by name is the only one offered.
  */
+/** Every party with its leader, seats and latest result, most seats first (ties by name). */
+export async function getPartyOverview(): Promise<PartyOverview[]> {
+  return (await request("/parties?sort=seats", z.array(partySchema), cached)).map(mapPartyOverview);
+}
+
 export async function getPartyStandings(): Promise<Record<string, PartyStanding>> {
   try {
-    const [parliament, elections] = await Promise.all([getParliament(), getElections("legislativas")]);
-    const latest = elections.find((election) => election.imported);
-    if (!latest) return {};
-    const { lists } = await getElectionResult(latest.id);
-    return partyStandings(new Map(parliament.groups.map((group) => [group.party.slug, group.seats])), lists);
+    const parties = await request("/parties?sort=seats", z.array(partySchema), cached);
+    const standings = parties.flatMap((party) => {
+      const standing = mapPartyStanding(party);
+      return standing ? [[party.slug, standing] as const] : [];
+    });
+    return Object.fromEntries(standings);
   } catch {
     return {};
   }
+}
+
+/** Every government since 1974, newest first. History changes rarely, so it is cached for an hour. */
+export async function getGovernmentHistory(): Promise<GovernmentHistory> {
+  return mapGovernmentHistory(await request("/governments/history", governmentHistorySchema, hourly));
+}
+
+/** Elections and Presidents' terms, newest first. */
+export async function getTimeline(kinds: ("election" | "president")[] = ["election", "president"]): Promise<TimelineEvent[]> {
+  return mapTimeline(await request(`/timeline?kinds=${kinds.join(",")}`, timelineSchema, hourly));
+}
+
+export type EditorialQuery = { featured?: boolean; kind?: EditorialKind; tag?: string; page?: number; limit?: number };
+
+/** Our own posts, newest first. */
+export async function getEditorial({ featured, kind, tag, page, limit }: EditorialQuery = {}): Promise<EditorialPage> {
+  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit });
+  const result = await request(`/editorial${query}`, editorialPageSchema, cached);
+  return { items: result.items.map(mapEditorialPost), total: result.total };
+}
+
+export async function getEditorialPost(slug: string): Promise<EditorialDetail> {
+  return mapEditorialDetail(await request(`/editorial/${encodeURIComponent(slug)}`, editorialDetailSchema, cached));
 }

@@ -3,11 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
+import { CareerPath } from "@/components/CareerPath";
 import { GovernmentPortrait } from "@/components/GovernmentPortrait";
 import { OriginBadge } from "@/components/OrgansExplainer";
+import { RecordsBox } from "@/components/Records";
 import { ApiError, getGovernmentMember } from "@/lib/api/client";
+import { tryPersonPath } from "@/lib/api/people";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
+import { FEATURES } from "@/lib/features";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -35,7 +39,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function GovernmentMemberPage({ params }: Props) {
   await connection();
-  const member = await loadMember((await params).id);
+  const { id } = await params;
+  const [member, path] = await Promise.all([loadMember(id), /^[0-9a-f]{32}$/.test(id) ? tryPersonPath("government", id) : null]);
   if (!member) notFound();
   const current = member.positions.find((position) => !position.endDate) ?? member.positions[0];
   const female = member.gender === "F";
@@ -86,6 +91,8 @@ export default async function GovernmentMemberPage({ params }: Props) {
         )}
       </header>
 
+      {FEATURES.record && path && <RecordsBox records={path.records} kind="government" id={member.id} />}
+
       {member.bio.length > 0 && (
         <Section title="Biografia">
           <div className="max-w-3xl space-y-3 leading-relaxed">
@@ -122,6 +129,12 @@ export default async function GovernmentMemberPage({ params }: Props) {
         </Section>
       )}
 
+      {path && (path.path.length > 0 || path.currentRoles.length > 0 || path.otherRoles.length > 0) && (
+        <Section title="Percurso" id="percurso">
+          <CareerPath path={path} here="government" />
+        </Section>
+      )}
+
       <Section title="Nas notícias">
         {member.articles.length === 0 ? (
           <p className="text-sm text-muted">Sem notícias recentes com o nome completo.</p>
@@ -149,9 +162,9 @@ export default async function GovernmentMemberPage({ params }: Props) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10">
+    <section id={id} className="mt-10 scroll-mt-20">
       <h2 className="mb-3 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">{title}</h2>
       {children}
     </section>

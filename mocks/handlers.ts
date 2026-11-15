@@ -1,8 +1,18 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
-import { electionResult, elections, placeOf } from "./electionFixtures";
+import { electionResult, elections, partiesWithResults } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
+import { governmentHistory, timeline } from "./historyFixtures";
+import { becomeDeputyHandlers } from "./becomeDeputyFixtures";
+import { editorialPosts } from "./editorialFixtures";
+import { contractHandlers } from "./contractFixtures";
+import { placeHandlers } from "./placeFixtures";
+import { forumHandlers } from "./forumFixtures";
+import { presidencyHandlers } from "./presidencyFixtures";
+import { peopleHandlers } from "./peopleFixtures";
+import { sitemapHandlers } from "./sitemapFixtures";
+import { partyVoteHandlers } from "./partyVoteFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -22,10 +32,39 @@ const newCommentSchema = z.strictObject({
   recaptchaToken: z.string().min(1),
 });
 
+/** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
+const psLeader = deputies.find((deputy) => deputy.party === "ps")!;
+const leaders: Record<string, { name: string; title: string; deputyId: number | null; governmentMemberId: string | null }> = {
+  psd: { name: government.primeMinister!.name!, title: "Presidente do PSD", deputyId: null, governmentMemberId: government.primeMinister!.id! },
+  ps: { name: psLeader.name, title: "Secretário-geral do PS", deputyId: psLeader.id, governmentMemberId: null },
+  be: { name: "Marta Quintela", title: "Coordenadora do Bloco de Esquerda", deputyId: null, governmentMemberId: null },
+};
+
 const answer = (result: ReturnType<typeof electionResult>) =>
   result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
 
 export const handlers = [
+  http.get(`${API}/editorial`, ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const featured = params.get("featured");
+    const kind = params.get("kind");
+    const limit = Number(params.get("limit") ?? 10);
+    const page = Number(params.get("page") ?? 1);
+    const matching = editorialPosts.filter(
+      (post) => (featured === null || String(post.featured) === featured) && (!kind || post.kind === kind),
+    );
+    const items = matching.slice((page - 1) * limit, page * limit).map((post) => ({ ...post, body: undefined })); // The list has no body.;
+    return HttpResponse.json({ items, total: matching.length });
+  }),
+  http.get(`${API}/editorial/:slug`, ({ params }) => {
+    const post = editorialPosts.find((item) => item.slug === params.slug);
+    return post ? HttpResponse.json(post) : fail(404, "not_found");
+  }),
+  http.get(`${API}/governments/history`, () => HttpResponse.json(governmentHistory)),
+  http.get(`${API}/timeline`, ({ request }) => {
+    const kinds = new URL(request.url).searchParams.get("kinds")?.split(",");
+    return HttpResponse.json({ items: timeline.items.filter((item) => !kinds || kinds.includes(item.kind)) });
+  }),
   http.get(`${API}/elections`, ({ request }) => {
     const type = new URL(request.url).searchParams.get("type");
     return HttpResponse.json({ items: elections.items.filter((item) => !type || item.type === type) });
@@ -36,11 +75,15 @@ export const handlers = [
   http.get(`${API}/elections/:id`, ({ params, request }) =>
     answer(electionResult(String(params.id), null, new URL(request.url).searchParams.get("organ"))),
   ),
-  http.get(`${API}/places/:key`, ({ params }) => {
-    const place = placeOf(String(params.key));
-    return place ? HttpResponse.json(place) : fail(404, "not_found");
-  }),
-  http.get(`${API}/parties`, () => HttpResponse.json(parties)),
+  http.get(`${API}/parties`, ({ request }) =>
+    HttpResponse.json(
+      partiesWithResults(
+        parties,
+        new Map(parliament.groups.map((group) => [group.party.slug, group.seats])),
+        new URL(request.url).searchParams.get("sort"),
+      ).map((party) => ({ ...party, leader: leaders[party.slug] ?? null })),
+    ),
+  ),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
     const party = search.get("party");
@@ -94,6 +137,7 @@ export const handlers = [
     return detail ? HttpResponse.json(detail) : fail(404, "not_found");
   }),
   http.get(`${API}/initiatives/:id`, ({ params }) => {
+    if (params.id === "topics") return; // Answered by the presidency handlers.
     const detail = initiativeDetails.find((item) => item.id === Number(params.id));
     if (!detail) return fail(404, "not_found");
     const related = detail.coverage?.articles ? articles.slice(detail.id % 20, (detail.id % 20) + 3) : [];
@@ -104,6 +148,8 @@ export const handlers = [
     const status = search.get("status");
     const deputy = search.get("deputy");
     const party = search.get("party");
+    const presidency = search.get("presidency");
+    const topic = search.get("topic");
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
     if (cursor && !/^i\d+$/.test(cursor)) return fail(400, "invalid_cursor");
@@ -112,6 +158,8 @@ export const handlers = [
       .filter((item) => !status || item.status === status)
       .filter((item) => !deputy || item.authors.deputies?.some((author) => author.id === Number(deputy)))
       .filter((item) => !party || item.authors.parties?.some((author) => author.slug === party))
+      .filter((item) => !presidency || item.presidency?.status === presidency)
+      .filter((item) => !topic || item.topics?.some((tag) => tag.slug === topic))
       .filter((item) => !cursor || item.id < Number(cursor.slice(1)));
     const page = matching.slice(0, limit);
     return HttpResponse.json({ items: page, nextCursor: matching.length > limit ? `i${page.at(-1)!.id}` : null });
@@ -144,4 +192,12 @@ export const handlers = [
     store.set(articleId, [...(store.get(articleId) ?? []), created]);
     return HttpResponse.json(created, { status: 201 });
   }),
+  ...contractHandlers,
+  ...placeHandlers,
+  ...forumHandlers,
+  ...presidencyHandlers,
+  ...peopleHandlers,
+  ...becomeDeputyHandlers,
+  ...sitemapHandlers,
+  ...partyVoteHandlers,
 ];

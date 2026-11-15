@@ -15,8 +15,18 @@ import type {
   GovernmentMemberDetail,
   Initiative,
   InitiativeDetail,
+  PlainStage,
+  PresidencyStatus,
   Parliament,
   Party,
+  PartyOverview,
+  PartyStanding,
+  GovernmentEndReason,
+  GovernmentHistory,
+  TimelineEvent,
+  EditorialDetail,
+  EditorialKind,
+  EditorialPost,
 } from "@/lib/types";
 import { sourceName } from "@/lib/sources";
 import type {
@@ -34,6 +44,10 @@ import type {
   ApiInitiativeDetail,
   ApiParliament,
   ApiParty,
+  ApiGovernmentHistory,
+  ApiTimeline,
+  ApiEditorialDetail,
+  ApiEditorialPost,
 } from "./schemas";
 
 /** External URLs reach the page as href/src, so only http(s) may pass. */
@@ -57,6 +71,35 @@ function plainText(value: string): string {
 
 export function mapParty(party: ApiParty): Party {
   return { slug: party.slug, acronym: party.acronym, name: party.name, website: safeHttpUrl(party.website) };
+}
+
+export function mapPartyOverview(party: ApiParty): PartyOverview {
+  const leader = party.leader;
+  return {
+    ...mapParty(party),
+    seats: party.assemblySeats ?? 0,
+    lastElection: party.lastElection ?? null,
+    governmentMembers: party.governmentMembers ?? 0,
+    leader: leader
+      ? {
+          name: leader.name,
+          title: leader.title ?? null,
+          href: leader.deputyId
+            ? `/deputados/${leader.deputyId}`
+            : leader.governmentMemberId && /^[0-9a-f]{32}$/.test(leader.governmentMemberId)
+              ? `/governo/${leader.governmentMemberId}`
+              : null,
+        }
+      : null,
+  };
+}
+
+/** Seats now and votes in the latest legislativas, when the API sends them; null for a party with neither. */
+export function mapPartyStanding(party: ApiParty): PartyStanding | null {
+  const seats = party.assemblySeats ?? 0;
+  const election = party.lastElection;
+  if (seats === 0 && !election) return null;
+  return { seats, votes: election?.votes ?? 0, validPct: election?.validPct ?? 0, coalition: election?.coalition ?? false };
 }
 
 export function mapArticle(article: ApiArticle): Article {
@@ -149,13 +192,55 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
       sources: initiative.coverage?.sources ?? 0,
       lastAt: initiative.coverage?.lastAt ?? null,
     },
+    topics: initiative.topics,
+    plain: initiative.plain
+      ? {
+          title: plainText(initiative.plain.title),
+          type: {
+            label: initiative.plain.type.label,
+            explainer: initiative.plain.type.explainer ?? "",
+            makesLaw: initiative.plain.type.makesLaw ?? true,
+          },
+          status: { label: initiative.plain.status.label, stage: knownStage(initiative.plain.status.stage) },
+        }
+      : null,
+    presidency:
+      initiative.presidency && PRESIDENCY_STATUSES.includes(initiative.presidency.status as PresidencyStatus)
+        ? {
+            status: initiative.presidency.status as PresidencyStatus,
+            sentAt: initiative.presidency.sentAt ?? null,
+            promulgatedAt: initiative.presidency.promulgatedAt ?? null,
+            vetoedAt: initiative.presidency.vetoedAt ?? null,
+            by: initiative.presidency.by ?? null,
+          }
+        : null,
   };
 }
+
+const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "promulgated", "vetoed"];
+const STAGES: readonly PlainStage[] = [
+  "submitted",
+  "committee",
+  "consultation",
+  "debate",
+  "approved_in_principle",
+  "approved",
+  "awaiting_president",
+  "vetoed",
+  "promulgated",
+  "published",
+  "rejected",
+  "not_admitted",
+  "withdrawn",
+];
+const knownStage = (stage: string | null | undefined): PlainStage | null =>
+  stage && STAGES.includes(stage as PlainStage) ? (stage as PlainStage) : null;
 
 export function mapInitiativeDetail(initiative: ApiInitiativeDetail): InitiativeDetail {
   const positions = (list: { party: string; count: number | null }[]) => list.map(({ party, count }) => ({ partySlug: party, count }));
   return {
     ...mapInitiative(initiative),
+    legislature: initiative.legislature ?? null,
     votes: initiative.votes.map((vote) => ({
       id: vote.id,
       date: vote.date ?? null,
@@ -286,7 +371,7 @@ const mapTurnout = (turnout: ApiTurnout | null | undefined): ElectionTurnout | n
 /** A list with more than one of our parties is a coalition, whatever the flag says. */
 const mapElectionList = (item: ApiElectionList): ElectionList => ({
   list: item.list,
-  name: item.name ?? item.list,
+  name: item.name?.trim() || item.list,
   partySlugs: item.partySlugs,
   coalition: Boolean(item.coalition) || item.partySlugs.length > 1,
   citizens: Boolean(item.citizens),
@@ -331,4 +416,89 @@ export function mapElectionResult(api: ApiElectionResult): ElectionResult {
       winner: child.winner ? { ...child.winner, validPct: child.winner.validPct ?? null } : null,
     })),
   };
+}
+
+const END_REASONS: readonly GovernmentEndReason[] = [
+  "end_of_term",
+  "early_election",
+  "censure",
+  "confidence_rejected",
+  "programme_rejected",
+  "resignation",
+  "dismissed",
+  "death",
+  "provisional",
+  "in_office",
+];
+
+export function mapGovernmentHistory(api: ApiGovernmentHistory): GovernmentHistory {
+  return {
+    governments: api.items.map((item) => ({
+      code: item.code,
+      kind: item.kind === "provisional" ? "provisional" : "constitutional",
+      name: item.name,
+      primeMinister: item.primeMinister,
+      start: item.start,
+      end: item.end,
+      days: item.days,
+      parties: item.parties,
+      support: item.support ?? null,
+      endReason: END_REASONS.find((reason) => reason === item.endReason) ?? null,
+      endNote: item.endNote ?? null,
+      portalUrl: safeHttpUrl(item.portalUrl),
+      current: item.current ?? item.end === null,
+    })),
+    source: safeHttpUrl(api.source),
+  };
+}
+
+/** Governments come from their own endpoint; editorial kinds planned for later are dropped until the site knows them. */
+export function mapTimeline(api: ApiTimeline): TimelineEvent[] {
+  return api.items.flatMap((item) =>
+    item.kind === "election" || item.kind === "president"
+      ? [
+          {
+            kind: item.kind,
+            date: item.date,
+            endDate: item.endDate ?? null,
+            title: item.title,
+            detail: item.detail ?? null,
+            electionId: item.ref?.kind === "election" ? item.ref.id : null,
+          },
+        ]
+      : [],
+  );
+}
+
+const EDITORIAL_KINDS: readonly EditorialKind[] = ["article", "opinion", "podcast", "interview", "video"];
+
+/** Players we allow in an iframe, matching the API's list; anything else is dropped. */
+const EMBED_HOSTS = ["www.youtube-nocookie.com", "player.vimeo.com", "open.spotify.com", "w.soundcloud.com", "embed.podcasts.apple.com"];
+
+export function safeEmbedUrl(value: string | null | undefined): string | null {
+  const url = safeHttpUrl(value);
+  if (!url) return null;
+  const parsed = new URL(url);
+  return parsed.protocol === "https:" && EMBED_HOSTS.includes(parsed.hostname) ? url : null;
+}
+
+export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
+  const embedUrl = safeEmbedUrl(api.media?.embedUrl);
+  return {
+    id: api.id,
+    slug: api.slug,
+    kind: EDITORIAL_KINDS.find((kind) => kind === api.kind) ?? "article",
+    title: decode(api.title),
+    subtitle: api.subtitle ? decode(api.subtitle) : null,
+    authorName: api.authorName?.trim() || null,
+    coverImageUrl: safeHttpUrl(api.coverImageUrl),
+    media: api.media && embedUrl ? { provider: api.media.provider, url: safeHttpUrl(api.media.url) ?? embedUrl, embedUrl } : null,
+    tags: api.tags ?? [],
+    featured: api.featured ?? false,
+    publishedAt: api.publishedAt,
+  };
+}
+
+export function mapEditorialDetail(api: ApiEditorialDetail): EditorialDetail {
+  return { ...mapEditorialPost(api), body: api.body };
 }

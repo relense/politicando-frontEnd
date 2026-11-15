@@ -45,9 +45,13 @@ const LISTS = [
 /** Made-up votes in one municipality: each list's base, nudged by the place's seed. */
 const leafVotes = (seed: number) => LISTS.map((item, index) => Math.round(item.base * (1 + (((seed * (index + 3)) % 7) - 3) / 10)));
 
-function votesOf(place: Node): number[] {
-  if (place.children.length === 0) return leafVotes(place.seed);
-  return place.children.map(votesOf).reduce((sum, votes) => sum.map((value, index) => value + votes[index]!));
+/** An earlier election: the same places, each list's votes moved a little (CHEGA smaller, PS bigger). */
+const EARLIER = [1.05, 1.2, 0.8, 1, 1.3, 1.6, 1];
+
+function votesOf(place: Node, earlier = false): number[] {
+  if (place.children.length === 0)
+    return leafVotes(place.seed).map((votes, index) => (earlier ? Math.round(votes * EARLIER[index]!) : votes));
+  return place.children.map((child) => votesOf(child, earlier)).reduce((sum, votes) => sum.map((value, index) => value + votes[index]!));
 }
 
 const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 10000) / 100 : null);
@@ -73,8 +77,11 @@ function find(key: string, place: Node = TREE, path: Node[] = []): { place: Node
 
 const ELECTIONS = [
   { id: "legislativas-2025", type: "legislativas", name: "Legislativas 2025", date: "2025-05-18", organs: ["AR"], imported: true },
+  { id: "legislativas-2024", type: "legislativas", name: "Legislativas 2024", date: "2024-03-10", organs: ["AR"], imported: true },
   { id: "legislativas-2019", type: "legislativas", name: "Legislativas 2019", date: "2019-10-06", organs: ["AR"], imported: false },
   { id: "autarquicas-2021", type: "autarquicas", name: "Autárquicas 2021", date: "2021-09-26", organs: ["CM", "AM", "AF"], imported: true },
+  // Already scheduled: shown on the menu by its date.
+  { id: "autarquicas-2029", type: "autarquicas", name: "Autárquicas 2029", date: "2029-10-07", organs: ["CM", "AM", "AF"], imported: false },
 ] as const;
 
 const summary = (election: (typeof ELECTIONS)[number]) => ({
@@ -122,7 +129,7 @@ const winnerOf = (votes: number[]) => {
 
 export const elections: ApiElectionsInput = {
   items: ELECTIONS.map((election) => {
-    const votes = votesOf(TREE);
+    const votes = votesOf(TREE, election.id === "legislativas-2024");
     const withMandates = election.type === "legislativas" ? TOTAL_MANDATES : null;
     return {
       ...summary(election),
@@ -145,7 +152,8 @@ export function electionResult(id: string, key: string | null, organ: string | n
   if (!found) return { status: 404, code: "not_found" };
 
   const { place, path } = found;
-  const votes = votesOf(place);
+  const earlier = election.id === "legislativas-2024";
+  const votes = votesOf(place, earlier);
   const seats = place === TREE && election.type === "legislativas" ? TOTAL_MANDATES : null;
   const plain = (item: Node) => ({ key: item.key, name: item.name, level: item.level, dicofre: item.dicofre });
   return {
@@ -159,15 +167,47 @@ export function electionResult(id: string, key: string | null, organ: string | n
       lists: lists(votes, seats),
       children: place.children.map((child) => ({
         ...plain(child),
-        turnoutPct: turnout(votesOf(child), null).turnoutPct,
-        winner: winnerOf(votesOf(child)),
+        turnoutPct: turnout(votesOf(child, earlier), null).turnoutPct,
+        winner: winnerOf(votesOf(child, earlier)),
       })),
     },
   };
 }
 
-/** A place on its own, as `GET /places/:key` answers. */
-export function placeOf(key: string) {
-  const found = find(key);
-  return found ? { key: found.place.key, name: found.place.name, level: found.place.level, dicofre: found.place.dicofre } : null;
+/**
+ * `GET /parties?sort=`: each party with its seats now and its result in the latest legislativas. Coalition partners
+ * share the coalition's figures, as the real API does.
+ */
+export function partiesWithResults<T extends { slug: string; acronym: string }>(
+  parties: readonly T[],
+  seats: ReadonlyMap<string, number>,
+  sort: string | null,
+) {
+  const result = electionResult("legislativas-2025", null, null);
+  const lists = result.status === 200 ? (result.body.lists ?? []) : [];
+  const items = parties.map((party) => {
+    const own = lists.filter((item) => (item.partySlugs ?? []).includes(party.slug));
+    return {
+      ...party,
+      assemblySeats: seats.get(party.slug) ?? 0,
+      seatsAsOf: "2026-10-08",
+      governmentMembers: 0,
+      lastElection:
+        own.length > 0
+          ? {
+              id: "legislativas-2025",
+              date: "2025-05-18",
+              votes: own.reduce((sum, item) => sum + item.votes, 0),
+              validPct: own.reduce((sum, item) => sum + (item.validPct ?? 0), 0),
+              mandates: own.reduce((sum, item) => sum + (item.mandates ?? 0), 0),
+              lists: own.map((item) => item.list),
+              coalition: own.some((item) => (item.partySlugs ?? []).length > 1),
+            }
+          : null,
+    };
+  });
+  const byName = (a: T, b: T) => a.acronym.localeCompare(b.acronym, "pt");
+  if (sort === "seats") return items.sort((a, b) => b.assemblySeats - a.assemblySeats || byName(a, b));
+  if (sort === "votes") return items.sort((a, b) => (b.lastElection?.votes ?? 0) - (a.lastElection?.votes ?? 0) || byName(a, b));
+  return items;
 }

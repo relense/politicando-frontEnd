@@ -97,6 +97,50 @@ export type Initiative = {
   lastVote: { date: string | null; phase: string | null; result: string; unanimous: boolean } | null;
   /** News found about it. Approximate (matched by keywords), so the UI calls it "related". */
   coverage: { articles: number; sources: number; lastAt: string | null };
+  /** Subjects found in the title; empty when none fits. */
+  topics: InitiativeTopic[];
+  /** The plain-language reading, from fixed rules; null when the API has none. */
+  plain: PlainInitiative | null;
+  /** What the President did with it; null until Parliament sends it to Belém. */
+  presidency: InitiativePresidency | null;
+};
+
+export type InitiativeTopic = { slug: string; label: string };
+
+/** Where an initiative stands, for the progress bar. */
+export type PlainStage =
+  | "submitted"
+  | "committee"
+  | "consultation"
+  | "debate"
+  | "approved_in_principle"
+  | "approved"
+  | "awaiting_president"
+  | "vetoed"
+  | "promulgated"
+  | "published"
+  | "rejected"
+  | "not_admitted"
+  | "withdrawn";
+
+export type PlainInitiative = {
+  /** The title without the legal boilerplate. */
+  title: string;
+  /** What kind of initiative this is; `makesLaw` false means approving it changes no law. */
+  type: { label: string; explainer: string; makesLaw: boolean };
+  /** `stage` null when the API sends one we don't know. */
+  status: { label: string; stage: PlainStage | null };
+};
+
+export type PresidencyStatus = "pending" | "promulgated" | "vetoed";
+
+export type InitiativePresidency = {
+  status: PresidencyStatus;
+  sentAt: string | null;
+  promulgatedAt: string | null;
+  /** Kept after a veto that Parliament overcame, so "vetado e depois promulgado" can be shown. */
+  vetoedAt: string | null;
+  by: string | null;
 };
 
 export type InitiativePage = { initiatives: Initiative[]; nextCursor: string | null };
@@ -119,7 +163,7 @@ export type Vote = {
   named: { name: string; group: string; position: string }[];
 };
 
-export type InitiativeDetail = Initiative & { votes: Vote[]; articles: Article[] };
+export type InitiativeDetail = Initiative & { legislature: string | null; votes: Vote[]; articles: Article[] };
 
 /**
  * How a deputy's position in a vote is known. The Parliament records votes by group, so most come from the
@@ -257,4 +301,86 @@ export type ElectionResult = {
 };
 
 /** How a party did: its seats in Parliament and its votes in the latest legislativas. */
-export type PartyStanding = { seats: number; votes: number; validPct: number; coalition: string | null };
+/** A party on the parties page: who leads it, its seats now and its latest legislativas. */
+export type PartyOverview = Party & {
+  seats: number;
+  /** The latest legislativas; `coalition`: the votes are the coalition's, shared with its partners. */
+  lastElection: { id: string; votes: number; validPct: number | null; mandates: number | null; coalition: boolean } | null;
+  governmentMembers: number;
+  /** `href`: their deputy or Government page, when we have one. */
+  leader: { name: string; title: string | null; href: string | null } | null;
+};
+
+export type PartyStanding = {
+  seats: number;
+  votes: number;
+  validPct: number;
+  /** Ran in a coalition: the votes are the coalition's, shared with its partners, never to be added up. */
+  coalition: boolean;
+};
+
+export type GovernmentEndReason =
+  | "end_of_term"
+  | "early_election"
+  | "censure"
+  | "confidence_rejected"
+  | "programme_rejected"
+  | "resignation"
+  | "dismissed"
+  | "death"
+  | "provisional"
+  | "in_office";
+
+/** One of the governments since 1974, newest first in lists. */
+export type HistoricalGovernment = {
+  /** "gc01"–"gc25" constitutional, "gp1"–"gp6" provisional. */
+  code: string;
+  kind: "constitutional" | "provisional";
+  name: string;
+  primeMinister: string;
+  start: string;
+  /** The next government's first day; null while in office. */
+  end: string | null;
+  days: number;
+  parties: ArticleParty[];
+  support: string | null;
+  /** Null when the API sends a reason this site doesn't know yet. */
+  endReason: GovernmentEndReason | null;
+  endNote: string | null;
+  portalUrl: string | null;
+  current: boolean;
+};
+
+export type GovernmentHistory = { governments: HistoricalGovernment[]; source: string | null };
+
+/** An election or a President's term on the timeline. Kinds this site doesn't know are dropped. */
+export type TimelineEvent = {
+  kind: "election" | "president";
+  date: string;
+  endDate: string | null;
+  title: string;
+  detail: string | null;
+  /** The election's id, when the site has its results. */
+  electionId: string | null;
+};
+
+export type EditorialKind = "article" | "opinion" | "podcast" | "interview" | "video";
+
+/** One of our own posts: an article, opinion, podcast, interview or video. */
+export type EditorialPost = {
+  id: number;
+  slug: string;
+  kind: EditorialKind;
+  title: string;
+  subtitle: string | null;
+  authorName: string | null;
+  coverImageUrl: string | null;
+  /** An embedded player, only from the allowed providers. */
+  media: { provider: string; url: string; embedUrl: string } | null;
+  tags: string[];
+  featured: boolean;
+  publishedAt: string;
+};
+
+export type EditorialDetail = EditorialPost & { body: string };
+export type EditorialPage = { items: EditorialPost[]; total: number };

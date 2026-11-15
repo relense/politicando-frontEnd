@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "@/lib/format";
+import { headlineOf, initiativePath } from "@/lib/initiatives";
 import { ageOn, partyColor, STATUS_LABELS } from "@/lib/parliament";
 import { photoSource } from "@/lib/photos";
 import type { DeputyDetail, DeputySummary } from "@/lib/types";
@@ -95,14 +96,9 @@ export function DeputyInitiatives({ detail, limit }: { detail: DeputyDetail; lim
             {item.number && ` n.º ${item.number}`} · <span className="font-bold text-ink">{STATUS_LABELS[item.status]}</span>
           </p>
           <p className="text-sm font-bold leading-snug">
-            {item.textUrl ? (
-              <a href={item.textUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                {item.title}
-                <span className="sr-only"> (abre num novo separador)</span>
-              </a>
-            ) : (
-              item.title
-            )}
+            <Link href={initiativePath(item.id)} className="hover:underline">
+              {headlineOf(item)}
+            </Link>
           </p>
         </li>
       ))}

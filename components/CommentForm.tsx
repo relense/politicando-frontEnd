@@ -69,7 +69,14 @@ export function CommentForm({ articleId, parentId, initialText = "", autoFocus, 
       const tempId = -Date.now();
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) => [
         ...current,
-        { id: tempId, username: input.username || null, text: input.text, parentId: input.parentId, createdAt: new Date().toISOString(), pending: true },
+        {
+          id: tempId,
+          username: input.username || null,
+          text: input.text,
+          parentId: input.parentId,
+          createdAt: new Date().toISOString(),
+          pending: true,
+        },
       ]);
       return { tempId };
     },

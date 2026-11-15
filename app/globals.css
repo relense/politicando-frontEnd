@@ -12,6 +12,15 @@
   --line: #dcd8d1;
   --link: #0b4fd6;
   --danger: #b3261e;
+  /* The path of a law, one colour per stage (initiatives pages). */
+  --stage-submitted: #3d5094;
+  --stage-debate: #765100;
+  --stage-approved: #25662e;
+  --stage-president: #5a3eae;
+  --stage-law: #12605a;
+  --stage-stopped: #b3261e;
+  --stage-withdrawn: #625d56;
+  --marker: #f3d27a;
 }
 
 .dark {
@@ -22,6 +31,14 @@
   --line: #3a3b43;
   --link: #6db1ff;
   --danger: #ff8a80;
+  --stage-submitted: #93a6dc;
+  --stage-debate: #e4bb4f;
+  --stage-approved: #7fc683;
+  --stage-president: #b6a1fb;
+  --stage-law: #5fc4b8;
+  --stage-stopped: #ff8a80;
+  --stage-withdrawn: #b6b1aa;
+  --marker: #6b5a2a;
 }
 
 @theme inline {
@@ -86,4 +103,80 @@ article[id^="comentario-"]:target {
     opacity: 1;
     transform: none;
   }
+}
+
+/* Hides a scrollbar in every browser while the box still scrolls by touch, wheel and keyboard. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Our own posts, rendered from Markdown (lib/markdown.tsx). */
+.post-body {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+.post-body > * + * {
+  margin-top: 1.25em;
+}
+.post-body h2 {
+  margin-top: 2em;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.post-body h3,
+.post-body h4,
+.post-body h5,
+.post-body h6 {
+  margin-top: 1.75em;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.post-body a {
+  color: var(--link);
+  text-decoration: underline;
+}
+.post-body ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.post-body ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.post-body li + li {
+  margin-top: 0.4em;
+}
+.post-body blockquote {
+  border-left: 3px solid var(--ink);
+  padding-left: 1em;
+  font-style: italic;
+}
+.post-body code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--surface);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.3em;
+}
+.post-body pre {
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 0.75rem;
+  padding: 1em;
+}
+.post-body pre code {
+  background: none;
+  padding: 0;
+}
+.post-body img {
+  border-radius: 1rem;
+  max-width: 100%;
+}
+.post-body hr {
+  border-color: var(--line);
 }

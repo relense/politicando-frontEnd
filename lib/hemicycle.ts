@@ -140,7 +140,7 @@ export function arrangeSeats<T extends Point & { partySlug: string }>(
     const indexes = places.map((place, index) => ({ place, index })).filter((item) => item.place.row === row);
     const own = indexes
       .map((item) => chosen.indexOf(item.index))
-      .sort((a, b) => plan[a]!.along - plan[b]!.along || rank(seats[a]!.partySlug) - rank(seats[b]!.partySlug));
+      .sort((a, b) => plan[a]!.along - plan[b]!.along || rank(seats[a]!.partySlug) - rank(seats[b]!.partySlug) || a - b);
     indexes.sort((a, b) => a.place.along - b.place.along);
     indexes.forEach((item, k) => arranged.push({ ...seats[own[k]!]!, x: item.place.x, y: item.place.y }));
   }
@@ -245,6 +245,46 @@ function officialRows(seats: readonly Point[], focus: Point): { row: number; alo
         : point.y < height
           ? height + Math.PI * d + (height - point.y)
           : height + d * (Math.PI - Math.atan2(point.y - height, point.x));
-    return { row: best.rows[index]!, along: length > 0 ? travelled / length : 0.5 };
+    // Rounded so the server and the browser, which can differ in the last digit of trigonometry, place every seat alike.
+    return { row: best.rows[index]!, along: length > 0 ? Math.round((travelled / length) * 1e6) / 1e6 : 0.5 };
   });
+}
+
+/**
+ * Seats for a chamber of any size, drawn as concentric rows and ordered left to right (by angle, then front to
+ * back), so consecutive seats given to one list form a wedge, as in the usual parliament chart. Used for election
+ * results, where there are seat counts but no seating plan. Box `width` × `height`, the Mesa at the bottom centre.
+ */
+export function chamberSeats(total: number): { seats: Point[]; width: number; height: number; seatRadius: number } {
+  if (total <= 0) return { seats: [], width: 0, height: 0, seatRadius: 0 };
+  const rows = Math.max(1, Math.round(Math.sqrt(total / 2.8)));
+  const innerShare =
+    rows === 1
+      ? 1
+      : (() => {
+          const arcFactor = (Math.PI * rows) / (2 * total);
+          const gapFactor = 1 / (rows - 1);
+          return Math.max(0.2, (gapFactor - arcFactor) / (gapFactor + arcFactor));
+        })();
+  const radii = Array.from(
+    { length: rows },
+    (_, row) => OUTER_RADIUS * (rows === 1 ? 1 : innerShare + ((1 - innerShare) * row) / (rows - 1)),
+  );
+  const radiusSum = radii.reduce((sum, radius) => sum + radius, 0);
+  const counts = radii.map((radius) => Math.floor((total * radius) / radiusSum));
+  for (let row = rows - 1, left = total - counts.reduce((a, b) => a + b, 0); left > 0; row = row === 0 ? rows - 1 : row - 1, left--)
+    counts[row]!++;
+  const spacing = Math.min((Math.PI * radiusSum) / total, rows > 1 ? (OUTER_RADIUS * (1 - innerShare)) / (rows - 1) : Infinity);
+  const margin = OUTER_RADIUS + spacing;
+  const places: (Point & { angle: number; radius: number })[] = [];
+  radii.forEach((radius, row) => {
+    const count = counts[row]!;
+    const edge = Math.min(spacing / 2 / radius, Math.PI / 4);
+    for (let i = 0; i < count; i++) {
+      const angle = count === 1 ? Math.PI / 2 : Math.PI - edge - ((Math.PI - 2 * edge) * i) / (count - 1);
+      places.push({ x: margin + radius * Math.cos(angle), y: margin - radius * Math.sin(angle), angle, radius });
+    }
+  });
+  places.sort((a, b) => b.angle - a.angle || a.radius - b.radius);
+  return { seats: places.map(({ x, y }) => ({ x, y })), width: margin * 2, height: margin, seatRadius: spacing * 0.42 };
 }

@@ -8,12 +8,13 @@ import { Feed } from "@/components/Feed";
 import { PartyHemicycle } from "@/components/PartyHemicycle";
 import { PartyInitiatives } from "@/components/PartyInitiatives";
 import { PartyLogo } from "@/components/PartyLogo";
-import { PartyChipBar } from "@/components/PartyNav";
+import { PartyVoteSummary } from "@/components/PartyVoteSummary";
 import { PartyProfile } from "@/components/PartyProfile";
 import { PartyVotes } from "@/components/PartyVotes";
 import { getElections, getFeedPage, getInitiatives, getParliament, getParties, getPartyStandings } from "@/lib/api/client";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { partyLeaders } from "@/lib/parliament";
+import { getPartyVoteSummary } from "@/lib/api/partyVotes";
 import { findPartyByParam, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
 import type { DeputySummary, Election, Parliament, Party, PartyStanding } from "@/lib/types";
@@ -50,7 +51,7 @@ const tabPath = (slug: string, tab: Tab) => (tab === "noticias" ? partyPath(slug
 export default async function PartyPage({ params, searchParams }: Props) {
   await connection();
   const [{ name }, { ver }] = await Promise.all([params, searchParams]);
-  const { parties, party } = await resolveParty(name);
+  const { party } = await resolveParty(name);
   if (!party) notFound();
   // Old links such as /partido/l keep working and move to the current address.
   if (name !== party.slug) permanentRedirect(partyPath(party.slug));
@@ -71,9 +72,10 @@ export default async function PartyPage({ params, searchParams }: Props) {
   // The Parliament records votes by group: any of the party's deputies gives its votes.
   const voter = leader?.deputy ?? benchLeader ?? deputies[0] ?? null;
 
-  const [page, initiatives] = await Promise.all([
+  const [page, initiatives, votes] = await Promise.all([
     tab === "noticias" ? getFeedPage({ party: party.slug }) : null,
     seats > 0 && (tab === "noticias" || tab === "iniciativas") ? getInitiatives({ party: party.slug }).catch(() => null) : null,
+    seats > 0 ? getPartyVoteSummary(party.slug) : null,
   ]);
 
   const profile = getPartyProfile(party.slug);
@@ -84,7 +86,6 @@ export default async function PartyPage({ params, searchParams }: Props) {
 
   return (
     <div data-wide className="@container">
-      <PartyChipBar parties={parties} />
       <header className="grid items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
           <div className="flex items-center gap-5">
@@ -111,10 +112,14 @@ export default async function PartyPage({ params, searchParams }: Props) {
                     Ver {seats === 1 ? "o deputado" : `os ${seats} deputados`} <span aria-hidden="true">→</span>
                   </Link>
                 )}
+                <Link href={`/forum/${party.slug}`} className={pill}>
+                  Fórum do {party.acronym} <span aria-hidden="true">→</span>
+                </Link>
               </div>
             </div>
           </div>
           {profile && <PartyProfile profile={profile} withFounded={!hasFactsCard} />}
+          {votes && <PartyVoteSummary acronym={party.acronym} summary={votes} href={tabPath(party.slug, "votacoes")} />}
         </div>
         {hasFactsCard && (
           <FactsCard
@@ -235,7 +240,7 @@ function FactsCard({
       value: (
         <>
           {formatPercent(standing.validPct)}
-          {standing.coalition && <span className="block font-normal text-xs text-muted">em coligação ({standing.coalition})</span>}
+          {standing.coalition && <span className="block font-normal text-xs text-muted">em coligação</span>}
         </>
       ),
     });

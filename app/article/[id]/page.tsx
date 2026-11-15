@@ -45,6 +45,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: article.title,
     description,
     alternates: { canonical: path },
+    // Only another outlet's headline and excerpt: kept out of search results (links are still followed), so search
+    // engines judge the site by its own pages. Sharing still works.
+    robots: { index: false, follow: true },
     openGraph: {
       type: "article",
       title: article.title,

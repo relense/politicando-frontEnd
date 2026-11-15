@@ -5,6 +5,22 @@ export const partySchema = z.object({
   acronym: z.string(),
   name: z.string(),
   website: z.string().nullable(),
+  /** Seats now and the latest legislativas; only in the list of parties. */
+  assemblySeats: z.number().nullish(),
+  lastElection: z
+    .object({ id: z.string(), votes: z.number(), validPct: z.number().nullable(), mandates: z.number().nullable(), coalition: z.boolean() })
+    .nullish(),
+  /** People in office whose deputy record belongs to the party: a lower bound. */
+  governmentMembers: z.number().nullish(),
+  /** Curated by hand, for the parties with seats. */
+  leader: z
+    .object({
+      name: z.string(),
+      title: z.string().nullish(),
+      deputyId: z.number().nullish(),
+      governmentMemberId: z.string().nullish(),
+    })
+    .nullish(),
 });
 
 const articlePartySchema = partySchema.pick({ slug: true, acronym: true, name: true });
@@ -98,11 +114,29 @@ export const initiativeSchema = z.object({
   lastVote: z.object({ date: z.string().nullish(), phase: z.string().nullish(), result: z.string(), unanimous: z.boolean() }).nullish(),
   /** How much news we found about it. Approximate: matched by keywords from the title. */
   coverage: z.object({ articles: z.number(), sources: z.number(), lastAt: z.string().nullish() }).nullish(),
+  topics: list(z.object({ slug: z.string(), label: z.string() })),
+  plain: z
+    .object({
+      title: z.string(),
+      type: z.object({ label: z.string(), explainer: z.string().nullish(), makesLaw: z.boolean().nullish() }),
+      status: z.object({ label: z.string(), stage: z.string().nullish() }),
+    })
+    .nullish(),
+  presidency: z
+    .object({
+      status: z.string(),
+      sentAt: z.string().nullish(),
+      promulgatedAt: z.string().nullish(),
+      vetoedAt: z.string().nullish(),
+      by: z.string().nullish(),
+    })
+    .nullish(),
 });
 
 const positionSchema = z.object({ party: z.string(), count: z.number().nullable() });
 
 export const initiativeDetailSchema = initiativeSchema.extend({
+  legislature: z.string().nullish(),
   articles: list(articleSchema),
   votes: list(
     z.object({
@@ -307,3 +341,64 @@ export type ApiElections = z.infer<typeof electionsSchema>;
 export type ApiElectionsInput = z.input<typeof electionsSchema>;
 export type ApiElectionResult = z.infer<typeof electionResultSchema>;
 export type ApiElectionResultInput = z.input<typeof electionResultSchema>;
+
+export const governmentHistorySchema = z.object({
+  items: z.array(
+    z.object({
+      code: z.string(),
+      kind: z.string(),
+      name: z.string(),
+      primeMinister: z.string(),
+      start: z.string(),
+      end: z.string().nullable(),
+      days: z.number(),
+      parties: z.array(articlePartySchema),
+      support: z.string().nullish(),
+      endReason: z.string().nullish(),
+      endNote: z.string().nullish(),
+      portalUrl: z.string().nullish(),
+      current: z.boolean().nullish(),
+    }),
+  ),
+  source: z.string().nullish(),
+});
+
+export const timelineSchema = z.object({
+  items: z.array(
+    z.object({
+      kind: z.string(),
+      date: z.string(),
+      endDate: z.string().nullish(),
+      title: z.string(),
+      detail: z.string().nullish(),
+      ref: z.object({ kind: z.string(), id: z.string() }).nullish(),
+    }),
+  ),
+});
+
+export type ApiGovernmentHistory = z.infer<typeof governmentHistorySchema>;
+export type ApiGovernmentHistoryInput = z.input<typeof governmentHistorySchema>;
+export type ApiTimeline = z.infer<typeof timelineSchema>;
+export type ApiTimelineInput = z.input<typeof timelineSchema>;
+
+export const editorialPostSchema = z.object({
+  id: z.number(),
+  slug: z.string(),
+  kind: z.string(),
+  title: z.string(),
+  subtitle: z.string().nullish(),
+  authorName: z.string().nullish(),
+  coverImageUrl: z.string().nullish(),
+  media: z.object({ provider: z.string(), url: z.string(), embedUrl: z.string() }).nullish(),
+  tags: z.array(z.string()).nullish(),
+  featured: z.boolean().nullish(),
+  publishedAt: z.string(),
+});
+
+export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });
+export const editorialDetailSchema = editorialPostSchema.extend({ body: z.string() });
+
+export type ApiEditorialPost = z.infer<typeof editorialPostSchema>;
+export type ApiEditorialPageInput = z.input<typeof editorialPageSchema>;
+export type ApiEditorialDetail = z.infer<typeof editorialDetailSchema>;
+export type ApiEditorialDetailInput = z.input<typeof editorialDetailSchema>;

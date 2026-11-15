@@ -6,5 +6,4 @@ export const recordNavigation = (from: string) => {
 };
 
 /** True when the previous page was a news list, so going back returns to it at the same scroll position. */
-export const cameFromFeed = () =>
-  previousPath !== null && (previousPath === "/" || previousPath.startsWith("/partido/"));
+export const cameFromFeed = () => previousPath !== null && (previousPath === "/" || previousPath.startsWith("/partido/"));

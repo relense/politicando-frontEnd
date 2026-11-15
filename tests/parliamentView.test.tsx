@@ -47,7 +47,7 @@ const bench = [government.primeMinister!, ...government.ministries.flatMap((m) =
 const renderView = (initialSelection: Selection = null) =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })}>
-      <ParliamentView parliament={parliament} initialInitiatives={null} initialSelection={initialSelection} />
+      <ParliamentView parliament={parliament} initialSelection={initialSelection} />
     </QueryClientProvider>,
   );
 
@@ -130,18 +130,13 @@ describe("ParliamentView", () => {
     expect(screen.getByRole("region", { name: "CHEGA" })).toBeInTheDocument();
   });
 
-  it("tells the Parliament and the Government apart, and marks where each initiative comes from", async () => {
+  it("tells the Parliament and the Government apart, and points to the initiatives page", () => {
     renderView();
     const explainer = screen.getByRole("region", { name: /Parlamento ou Governo/ });
     expect(within(explainer).getByRole("heading", { name: /Assembleia da República/ })).toBeInTheDocument();
     expect(within(explainer).getByRole("heading", { name: /^Governo/ })).toBeInTheDocument();
-
     const section = screen.getByRole("region", { name: "Iniciativas" });
-    const cards = await within(section).findAllByRole("article");
-    const government = cards.find((card) => within(card).queryByText(/Proposta de Lei/));
-    const parliament = cards.find((card) => within(card).queryByText(/Projeto de Lei/));
-    expect(within(government!).getByText("Governo", { selector: "span" })).toBeInTheDocument();
-    expect(within(parliament!).getByText("Parlamento", { selector: "span" })).toBeInTheDocument();
+    expect(within(section).getByRole("link", { name: "Ver as iniciativas →" })).toHaveAttribute("href", "/iniciativas");
   });
 
   it("links a bench to its deputies page", () => {
@@ -149,40 +144,28 @@ describe("ParliamentView", () => {
     expect(screen.getByRole("link", { name: /bancada com fotografias/ })).toHaveAttribute("href", "/deputados?partido=ps");
     expect(screen.queryByText(/Ver lista de deputados/)).toBeNull();
   });
-
-  it("switches initiative tabs, shows a party-by-party vote on request and filters by the chosen deputy", async () => {
-    const user = userEvent.setup();
-    renderView({ party: "", deputy: ps.id });
-    const section = screen.getByRole("region", { name: "Iniciativas" });
-    expect(within(section).getByRole("button", { name: /Aprovadas/ })).toHaveTextContent(/\d/);
-
-    await user.click((await within(section).findAllByRole("button", { name: "Ver votação por partido" }))[0]!);
-    expect(await within(section).findByText("A favor")).toBeInTheDocument();
-
-    await user.click(within(section).getByRole("button", { name: /Em discussão/ }));
-    expect((await within(section).findAllByText("Em discussão", { selector: "span" })).length).toBeGreaterThan(0);
-
-    await user.click(within(section).getByRole("checkbox", { name: `Só as de ${ps.name}` }));
-    expect(await within(section).findByText(/Não há iniciativas|Proposta por/)).toBeInTheDocument();
-  });
 });
 
 describe("GovernmentView", () => {
-  it("sits the ministers around the table and opens a card for the one pressed, then their secretary of State", async () => {
+  it("shows a card per ministry, opens the minister pressed, then their secretary of State, and searches every member", async () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <GovernmentView government={government} parties={[]} initialMember={null} />
+        <GovernmentView government={government} parties={[]} initialMember={null} today="2026-11-15" />
       </QueryClientProvider>,
     );
-    const places = within(screen.getByRole("list", { name: /Lugares à mesa/ })).getAllByRole("button");
-    expect(places).toHaveLength(bench.length);
-    expect(screen.getByText(/Carrega numa pessoa à mesa/)).toBeInTheDocument();
+    const cards = within(screen.getByRole("list", { name: "Ministérios" })).getAllByRole("button");
+    expect(cards).toHaveLength(bench.length - 1);
+    expect(screen.getByText("Carrega num ministério")).toBeInTheDocument();
+    expect(screen.getByText("no Conselho de Ministros")).toBeInTheDocument();
 
     const ministry = government.ministries.find((m) => m.minister?.kind === "minister" && m.secretaries.length > 0)!;
-    await user.click(screen.getByRole("button", { name: new RegExp(ministry.minister!.name) }));
+    await user.click(
+      within(screen.getByRole("list", { name: "Ministérios" })).getByRole("button", { name: new RegExp(ministry.minister!.name) }),
+    );
     const card = screen.getByRole("region", { name: ministry.minister!.name });
     expect(window.location.search).toBe(`?membro=${ministry.minister!.id}`);
+    expect(within(card).getByText(/na ordem protocolar/)).toBeInTheDocument();
     expect(within(card).getByRole("link", { name: /Percurso e notícias/ })).toHaveAttribute("href", `/governo/${ministry.minister!.id}`);
 
     const secretary = ministry.secretaries[0]!;
@@ -190,5 +173,13 @@ describe("GovernmentView", () => {
     const secretaryCard = screen.getByRole("region", { name: secretary.name });
     await user.click(within(secretaryCard).getByRole("button", { name: `← ${ministry.name}` }));
     expect(screen.getByRole("region", { name: ministry.minister!.name })).toBeInTheDocument();
+
+    const table = screen.getByRole("region", { name: "Todos os membros do Governo" });
+    await user.click(within(table).getByRole("button", { name: /^Ministros/ }));
+    expect(within(table).getAllByRole("row")).toHaveLength(bench.length + 1);
+    await user.type(within(table).getByRole("searchbox"), secretary.name);
+    expect(within(table).getByText("Ninguém com esse nome ou cargo.")).toBeInTheDocument();
+    await user.click(within(table).getByRole("button", { name: /^Todos/ }));
+    expect(within(table).getByRole("link", { name: new RegExp(secretary.name) })).toHaveAttribute("href", `/governo/${secretary.id}`);
   });
 });

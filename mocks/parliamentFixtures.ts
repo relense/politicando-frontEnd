@@ -160,6 +160,79 @@ const PHASES: Record<(typeof STATUSES)[number], string> = {
   withdrawn: "Retirada da iniciativa",
 };
 const SLUGS = groups.map((group) => group.party.slug);
+
+/** Topics for each subject above, by keyword, as the API tags them; some fit none. */
+const TOPICS: { slug: string; label: string }[][] = [
+  [{ slug: "habitacao", label: "Habitação e urbanismo" }],
+  [{ slug: "saude", label: "Saúde" }],
+  [{ slug: "educacao", label: "Educação" }],
+  [{ slug: "transportes", label: "Transportes e mobilidade" }],
+  [{ slug: "transparencia", label: "Transparência e corrupção" }],
+  [{ slug: "seguranca", label: "Segurança e proteção civil" }],
+  [
+    { slug: "impostos", label: "Impostos" },
+    { slug: "trabalho", label: "Trabalho e salários" },
+  ],
+  [],
+  [{ slug: "pensoes", label: "Pensões e apoios sociais" }],
+  [{ slug: "trabalho", label: "Trabalho e salários" }],
+];
+
+const PLAIN_TYPES: Record<string, { label: string; explainer: string; makesLaw: boolean }> = {
+  "Projeto de Lei": {
+    label: "Proposta de lei dos deputados",
+    explainer: "Uma lei nova ou uma alteração a uma lei, proposta por deputados.",
+    makesLaw: true,
+  },
+  "Proposta de Lei": {
+    label: "Proposta de lei do Governo",
+    explainer: "Uma lei nova ou uma alteração a uma lei, proposta pelo Governo.",
+    makesLaw: true,
+  },
+  "Projeto de Resolução": {
+    label: "Recomendação",
+    explainer: "Uma recomendação ao Governo ou uma decisão interna do Parlamento. Não muda nenhuma lei.",
+    makesLaw: false,
+  },
+};
+
+/** Approved laws: most published, some still with the President, one vetoed and one vetoed and then promulgated. */
+function presidencyOf(index: number, type: string, status: string) {
+  if (status !== "approved" || !PLAIN_TYPES[type]!.makesLaw) return null;
+  const sentAt = day(index * 2 + 10);
+  if (index % 4 === 0) return { status: "pending", sentAt, promulgatedAt: null, vetoedAt: null, by: "Teresa Albuquerque" };
+  if (index % 5 === 1) return { status: "vetoed", sentAt, promulgatedAt: null, vetoedAt: day(index * 2 + 5), by: "Teresa Albuquerque" };
+  const vetoedAt = index % 7 === 3 ? day(index * 2 + 30) : null;
+  return { status: "promulgated", sentAt, promulgatedAt: day(index * 2 + 4), vetoedAt, by: "Teresa Albuquerque" };
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  submitted: "Entregue, à espera de debate",
+  committee: "Em análise numa comissão",
+  debate: "Agendada para debate",
+  approved: "Aprovada",
+  awaiting_president: "À espera do Presidente da República",
+  vetoed: "Vetada pelo Presidente da República",
+  published: "Aprovada e publicada",
+  rejected: "Rejeitada",
+  withdrawn: "Retirada pelos autores",
+};
+
+function plainOf(index: number, type: string, status: string) {
+  const kind = PLAIN_TYPES[type]!;
+  const presidency = presidencyOf(index, type, status);
+  const stage =
+    status === "approved"
+      ? presidency?.status === "pending"
+        ? "awaiting_president"
+        : presidency?.status === "vetoed"
+          ? "vetoed"
+          : "published"
+      : status === "in_progress"
+        ? (["committee", "submitted", "debate"] as const)[index % 3]!
+        : status;
+  return { title: SUBJECTS[index % SUBJECTS.length]!, type: kind, status: { label: STAGE_LABELS[stage]!, stage } };
+}
 const day = (offset: number) => new Date(Date.UTC(2026, 10, 12) - offset * 86_400_000).toISOString().slice(0, 10);
 
 export const initiativeDetails: ApiInitiativeDetailInput[] = Array.from({ length: 48 }, (_, index) => {
@@ -194,6 +267,9 @@ export const initiativeDetails: ApiInitiativeDetailInput[] = Array.from({ length
           deputies: [author, coAuthor].map((deputy) => ({ id: deputy.id, name: deputy.name, party: deputy.party })),
           other: null,
         },
+    topics: TOPICS[index % SUBJECTS.length] ?? [],
+    plain: plainOf(index, type, status),
+    presidency: presidencyOf(index, type, status),
     // A few initiatives have related news (the handler attaches the articles).
     coverage: index % 5 === 0 ? { articles: 3, sources: 2, lastAt: "2026-11-14T20:20:00.000Z" } : { articles: 0, sources: 0, lastAt: null },
     lastVote: voted

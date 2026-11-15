@@ -30,7 +30,9 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 const withQuery = (ui: ReactNode) =>
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })}>{ui}</QueryClientProvider>);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })}>{ui}</QueryClientProvider>,
+  );
 
 const article = (overrides: Partial<ApiArticle> = {}) =>
   mapArticle({
@@ -126,8 +128,7 @@ describe("comments", () => {
     { id: 1, username: "ana", text: "Raiz", parentId: null, createdAt: null },
     { id: 2, username: null, text: "Filho", parentId: 1, createdAt: null },
   ];
-  const openBox = (user: ReturnType<typeof userEvent.setup>) =>
-    user.click(screen.getByRole("button", { name: "Junta-te à conversa…" }));
+  const openBox = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: "Junta-te à conversa…" }));
 
   it("opens the comment box from a single line and closes it with Cancelar, like Reddit", async () => {
     const user = userEvent.setup();
@@ -287,7 +288,11 @@ describe("comments", () => {
     withQuery(<CommentSection articleId={60} initialComments={comments} />);
     const root = document.getElementById("comentario-1")!;
     const backlinks = within(root).getByText("Respostas:").parentElement!;
-    expect(within(backlinks).getAllByRole("link").map((link) => link.textContent)).toEqual([">>2", ">>3"]);
+    expect(
+      within(backlinks)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual([">>2", ">>3"]);
   });
 
   it("quotes a post into the comment box when its number is clicked", async () => {

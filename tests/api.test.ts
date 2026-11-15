@@ -44,7 +44,10 @@ describe("api client", () => {
       http.post(`${API}/articles/:id/comments`, async ({ request }) => {
         url = request.url;
         body = await request.json();
-        return HttpResponse.json({ id: 5, articleId: 100, parentId: 1, username: null, parentUsername: null, body: "olá", createdAt: "2026-10-30T12:00:00.000Z" }, { status: 201 });
+        return HttpResponse.json(
+          { id: 5, articleId: 100, parentId: 1, username: null, parentUsername: null, body: "olá", createdAt: "2026-10-30T12:00:00.000Z" },
+          { status: 201 },
+        );
       }),
     );
     const created = await createComment({ articleId: 100, parentId: 1, username: "", text: "olá", captchaToken: "tok" });

@@ -1,16 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { Ref } from "react";
-import { partyPath } from "@/lib/parties";
-import type { Party } from "@/lib/types";
-import { PartyLogo } from "./PartyLogo";
-import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
-import { SectionLink, SITE_SECTIONS } from "./SiteNav";
+import { SectionLink, SITE_GROUPS } from "./SiteNav";
 
-/** A native modal dialog provides the focus trap, Esc to close, and the backdrop. */
-export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLDialogElement> }) {
-  const { ordered, standingOf } = useOrderedParties(parties);
+/** The site's sections on phones. A native modal dialog provides the focus trap, Esc to close, and the backdrop. */
+export function PartyDrawer({ ref }: { ref: Ref<HTMLDialogElement> }) {
   return (
     <dialog
       ref={ref}
@@ -32,41 +26,22 @@ export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLD
             </button>
           </form>
         </div>
-        <nav aria-label="Secções" className="border-b border-line p-2">
-          <ul>
-            {SITE_SECTIONS.map((item) => (
-              <li key={item.label}>
-                <SectionLink item={item} onNavigate={(event) => event.currentTarget.closest("dialog")?.close()} />
-              </li>
-            ))}
-          </ul>
+        <nav aria-label="Secções" className="no-scrollbar flex-1 overflow-y-auto p-2">
+          {SITE_GROUPS.map((group) => (
+            <div key={group.title} className="pb-2">
+              <p aria-hidden="true" className="px-3 pb-1 pt-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+                {group.title}
+              </p>
+              <ul aria-label={group.title} className="grid grid-cols-2">
+                {group.items.map((item) => (
+                  <li key={item.label}>
+                    <SectionLink item={item} compact onNavigate={(event) => event.currentTarget.closest("dialog")?.close()} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
-        {parties.length === 0 ? (
-          <p className="p-4 text-muted">Não foi possível carregar os partidos.</p>
-        ) : (
-          <ul aria-label="Partidos" className="flex-1 overflow-y-auto p-2">
-            <li className="flex items-center justify-between gap-2 px-2 pb-1 pt-2">
-              <span className="font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</span>
-              <PartyOrderToggle />
-            </li>
-            {ordered.map((party) => (
-              <li key={party.slug}>
-                <Link
-                  href={partyPath(party.slug)}
-                  onClick={(event) => event.currentTarget.closest("dialog")?.close()}
-                  className="flex items-center gap-3 rounded p-2 hover:bg-surface"
-                >
-                  <PartyLogo slug={party.slug} acronym={party.acronym} size={32} />
-                  <span>
-                    <span className="block font-mono text-sm font-bold">{party.acronym}</span>
-                    <span className="block text-sm text-muted">{party.name}</span>
-                    {standingOf(party.slug) && <span className="block font-mono text-xs text-muted">{standingOf(party.slug)}</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </dialog>
   );
