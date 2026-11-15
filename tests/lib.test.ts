@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mapArticle, safeHttpUrl } from "@/lib/api/mappers";
 import { articleSchema, type ApiArticle } from "@/lib/api/schemas";
-import { buildCommentTree, countReplies, displayName } from "@/lib/comments";
-import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatRelative } from "@/lib/format";
+import { buildBacklinks, buildCommentTree, countReplies, displayName, mentionsOf, splitMentions } from "@/lib/comments";
+import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatLongDateTime, formatRelative } from "@/lib/format";
 import { findPartyByParam, getPartyLogo, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
 import type { Comment } from "@/lib/types";
@@ -112,6 +112,19 @@ describe("comments", () => {
     expect(displayName(comment(2))).toBe("anon");
     expect(displayName(comment(12, null, "joao7"))).toBe("joao7");
   });
+
+  it("finds >>123 mentions in a comment", () => {
+    expect(splitMentions(">>12 sim\n>>3>>4 não")).toEqual([{ mention: 12 }, " sim\n", { mention: 3 }, { mention: 4 }, " não"]);
+    expect(splitMentions("sem nada > aqui")).toEqual(["sem nada > aqui"]);
+    expect(mentionsOf({ id: 5, text: ">>5 >>1 >>1 >>2" })).toEqual([1, 2]);
+  });
+
+  it("links each post to the replies and mentions that answer it", () => {
+    const mention = (id: number, text: string, parentId: number | null = null): Comment => ({ ...comment(id, parentId), text });
+    const backlinks = buildBacklinks([comment(1), mention(4, ">>1"), comment(2, 1), mention(3, ">>1 >>2", 1), { ...mention(-9, ">>1"), pending: true }]);
+    expect(backlinks.get(1)).toEqual([2, 3, 4]);
+    expect(backlinks.get(2)).toEqual([3]);
+  });
 });
 
 describe("format", () => {
@@ -119,6 +132,7 @@ describe("format", () => {
     expect(formatDateTime("2026-07-01T12:05:00Z")).toBe("01-07-2026 | 13:05");
     expect(formatDateTime(null)).toBeNull();
     expect(formatDateTime("nonsense")).toBeNull();
+    expect(formatLongDateTime("2026-11-14T17:59:00Z")).toBe("Sábado, 14 de novembro de 2026, 17:59");
   });
 
   it("only adds an ellipsis when text was cut", () => {

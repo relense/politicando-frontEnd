@@ -71,6 +71,7 @@ test("back navigation shows the right article", async ({ page }) => {
 test("post a comment and a reply; API errors are shown", async ({ page }) => {
   const unique = `Comentário ${Date.now()}`;
   await page.goto("/article/97");
+  await page.getByRole("button", { name: "Junta-te à conversa…" }).click();
   const form = page.locator("main form").first();
 
   await form.getByRole("button", { name: "Publicar" }).click();
@@ -86,8 +87,9 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Publicar" }).click();
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Junta-te à conversa…" })).toBeVisible();
 
-  await page.getByRole("button", { name: "responder" }).last().click();
+  await page.getByRole("button", { name: "Responder" }).last().click();
   const replyForm = page.locator("main form", { has: page.getByRole("textbox", { name: "Resposta" }) });
   await replyForm.getByRole("textbox", { name: "Resposta" }).fill(`Resposta a ${unique}`);
   await replyForm.getByRole("checkbox").check();
@@ -155,7 +157,8 @@ test("article page shows the excerpt and links to the original", async ({ page }
   await expect(link).toHaveAttribute("target", "_blank");
   await expect(page.locator("article p").first()).toContainText("…");
   await expect(page.getByRole("heading", { name: "Mais sobre PS" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Partilhar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Partilhar" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Últimas notícias" })).toHaveAttribute("href", "/");
 });
 
 test("feed images and titles open our article page", async ({ page }) => {
@@ -194,3 +197,32 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   }
 }
+
+test("comments use >>number to quote, with a preview and a jump", async ({ page }) => {
+  const unique = `Citação ${Date.now()}`;
+  await page.goto("/article/96");
+  await page.getByRole("button", { name: "Junta-te à conversa…" }).click();
+  const form = page.locator("main form").first();
+  await form.getByLabel("Comentário").fill(`Primeiro ${unique}`);
+  await form.getByRole("checkbox").check();
+  await form.getByRole("button", { name: "Publicar" }).click();
+  const first = page.locator("article", { hasText: `Primeiro ${unique}` });
+  await expect(first).toBeVisible();
+  const number = (await first.getAttribute("id"))!.replace("comentario-", "");
+
+  await first.getByRole("button", { name: `No.${number}, citar este comentário` }).click();
+  const quoteForm = page.locator("main form").first();
+  await expect(quoteForm.getByLabel("Comentário")).toHaveValue(`>>${number}\n`);
+  await quoteForm.getByLabel("Comentário").pressSequentially(`Segundo ${unique}`);
+  await quoteForm.getByRole("checkbox").check();
+  await quoteForm.getByRole("button", { name: "Publicar" }).click();
+
+  const second = page.locator("article", { hasText: `Segundo ${unique}` });
+  const mention = second.getByRole("link", { name: `>>${number}` });
+  await expect(mention).toBeVisible();
+  await mention.hover();
+  await expect(page.getByRole("tooltip")).toContainText(`Primeiro ${unique}`);
+  await expect(first.getByText("Respostas:")).toBeVisible();
+  await mention.click();
+  await expect(page).toHaveURL(new RegExp(`#comentario-${number}$`));
+});

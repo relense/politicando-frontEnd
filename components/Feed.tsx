@@ -48,7 +48,7 @@ export function Feed({ initialPage, partySlug }: Props) {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col">
         {articles.map((article) => (
           <ArticleCard key={article.id} article={article} />
         ))}

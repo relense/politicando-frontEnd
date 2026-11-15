@@ -1,44 +1,63 @@
+import { formatLongDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
+import { BackLink } from "./BackLink";
 import { PartyChips } from "./PartyChips";
-import { RelativeTime } from "./RelativeTime";
 import { ShareButton } from "./ShareButton";
 
 /** The article page. We only have a teaser, so the way to the original is the main action. */
 export function ArticleDetail({ article }: { article: Article }) {
+  const published = formatLongDateTime(article.publishedAt);
+
   return (
     <article>
-      <div className="mb-3 flex flex-wrap items-center gap-x-2 font-mono text-xs uppercase tracking-wider text-muted">
-        <span className="font-bold text-ink">{article.source}</span>
-        <span aria-hidden="true">·</span>
-        <RelativeTime value={article.publishedAt} />
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <BackLink />
+        <ShareButton title={article.title} />
       </div>
 
-      <h1 className="mb-4 text-2xl font-bold leading-tight sm:text-4xl">{article.title}</h1>
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 font-mono text-sm text-muted">
+        <span className="font-bold text-ink">{article.source}</span>
+        {published && (
+          <>
+            <span aria-hidden="true">·</span>
+            <time dateTime={article.publishedAt ?? undefined}>{published}</time>
+          </>
+        )}
+      </div>
 
-      <PartyChips parties={article.parties} className="mb-6" />
+      <h1 className="mb-6 text-3xl font-bold leading-[1.1] tracking-tight sm:text-5xl">{article.title}</h1>
+
+      <PartyChips parties={article.parties} className="mb-8" />
 
       {article.imageUrl && (
-        <ArticleImage src={article.imageUrl} className="mb-6" imageClassName="aspect-video w-full rounded-lg object-cover" />
+        <ArticleImage
+          src={article.imageUrl}
+          caption={`Imagem · ${article.source}`}
+          className="mb-8 overflow-hidden rounded-lg"
+          imageClassName="aspect-video w-full object-cover"
+        />
       )}
 
-      {article.excerpt && <p className="text-lg leading-relaxed">{article.excerpt}</p>}
+      {article.excerpt && <p className="text-xl leading-relaxed">{article.excerpt}</p>}
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {article.url && (
+      {article.url && (
+        <div className="mt-8 flex flex-col gap-4 border-y border-line py-6 sm:flex-row sm:items-center sm:gap-6">
           <a
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded bg-ink px-4 py-2 font-mono text-sm font-bold text-paper hover:opacity-90"
+            className="shrink-0 rounded bg-ink px-6 py-3.5 text-center font-mono text-sm font-bold text-paper hover:opacity-90"
           >
             Ler o artigo completo em {article.source}
             <span aria-hidden="true"> ↗</span>
             <span className="sr-only"> (abre num novo separador)</span>
           </a>
-        )}
-        <ShareButton title={article.title} />
-      </div>
+          <p className="font-mono text-xs leading-relaxed text-muted">
+            O Politicando mostra só um excerto. O artigo e a imagem pertencem à publicação original.
+          </p>
+        </div>
+      )}
     </article>
   );
 }

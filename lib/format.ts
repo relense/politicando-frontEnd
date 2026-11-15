@@ -66,3 +66,23 @@ export function commentLinkLabel(count: number): string {
 export function repliesLabel(count: number): string {
   return count === 1 ? "1 resposta" : `${count} respostas`;
 }
+
+const longFormatter = new Intl.DateTimeFormat("pt-PT", {
+  timeZone: LISBON,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** "Sábado, 14 de novembro de 2026, 17:59", for the article page. */
+export function formatLongDateTime(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = Object.fromEntries(longFormatter.formatToParts(date).map((part) => [part.type, part.value]));
+  const weekday = p.weekday!.charAt(0).toUpperCase() + p.weekday!.slice(1);
+  return `${weekday}, ${p.day} de ${p.month} de ${p.year}, ${p.hour}:${p.minute}`;
+}

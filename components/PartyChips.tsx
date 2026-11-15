@@ -11,9 +11,11 @@ export function PartyChips({ parties, className = "" }: { parties: ArticleParty[
         <li key={party.slug}>
           <Link
             href={partyPath(party.slug)}
-            className="flex items-center gap-1.5 rounded-full border border-line py-1 pl-1.5 pr-3 font-mono text-xs hover:bg-surface"
+            className="flex items-center gap-2 rounded-full border border-line bg-paper py-1 pl-1 pr-3.5 font-mono text-sm font-bold hover:bg-surface"
           >
-            <PartyLogo slug={party.slug} acronym={party.acronym} size={20} />
+            <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
+              <PartyLogo slug={party.slug} acronym={party.acronym} size={20} />
+            </span>
             {party.acronym}
           </Link>
         </li>

@@ -28,3 +28,50 @@ export function buildCommentTree(comments: readonly Comment[]): CommentNode[] {
 export function countReplies(node: CommentNode): number {
   return node.replies.reduce((total, reply) => total + 1 + countReplies(reply), 0);
 }
+
+/** A ">>123" mention, as on 4chan. */
+const MENTION = />>(\d{1,10})/g;
+
+export type TextPart = string | { mention: number };
+
+/** Splits a comment into plain text and ">>123" mentions, in order. */
+export function splitMentions(text: string): TextPart[] {
+  const parts: TextPart[] = [];
+  let last = 0;
+  for (const match of text.matchAll(MENTION)) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    parts.push({ mention: Number(match[1]) });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+/** The posts each post mentions, without repeats or itself. */
+export function mentionsOf(comment: Pick<Comment, "id" | "text">): number[] {
+  const ids = new Set<number>();
+  for (const part of splitMentions(comment.text)) {
+    if (typeof part !== "string" && part.mention !== comment.id) ids.add(part.mention);
+  }
+  return [...ids];
+}
+
+/**
+ * For each post, the posts that answer it: direct replies and posts that mention it, oldest first.
+ * Shown as 4chan-style backlinks so a conversation can be followed across the thread.
+ */
+export function buildBacklinks(comments: readonly Comment[]): Map<number, number[]> {
+  const backlinks = new Map<number, number[]>();
+  const add = (target: number, from: number) => {
+    const list = backlinks.get(target) ?? [];
+    if (!list.includes(from)) list.push(from);
+    backlinks.set(target, list);
+  };
+  for (const comment of comments) {
+    if (comment.pending) continue;
+    if (comment.parentId !== null && comment.parentId !== comment.id) add(comment.parentId, comment.id);
+    for (const id of mentionsOf(comment)) add(id, comment.id);
+  }
+  for (const list of backlinks.values()) list.sort((a, b) => a - b);
+  return backlinks;
+}
