@@ -65,11 +65,11 @@ export const SITE_SECTIONS: Item[] = [
     active: (path) => path.startsWith("/historia"),
   },
   {
-    href: null,
+    href: "/editorial",
     label: "Blog",
-    hint: "Em breve",
+    hint: "Artigos, opinião e podcasts",
     icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
-    active: () => false,
+    active: (path) => path.startsWith("/editorial"),
   },
 ];
 

@@ -4,6 +4,7 @@ import { articles, comments as seedComments, parties } from "./fixtures";
 import { electionResult, elections, placeOf } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
 import { governmentHistory, timeline } from "./historyFixtures";
+import { editorialPosts } from "./editorialFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -27,6 +28,22 @@ const answer = (result: ReturnType<typeof electionResult>) =>
   result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
 
 export const handlers = [
+  http.get(`${API}/editorial`, ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const featured = params.get("featured");
+    const kind = params.get("kind");
+    const limit = Number(params.get("limit") ?? 10);
+    const page = Number(params.get("page") ?? 1);
+    const matching = editorialPosts.filter(
+      (post) => (featured === null || String(post.featured) === featured) && (!kind || post.kind === kind),
+    );
+    const items = matching.slice((page - 1) * limit, page * limit).map((post) => ({ ...post, body: undefined })); // The list has no body.;
+    return HttpResponse.json({ items, total: matching.length });
+  }),
+  http.get(`${API}/editorial/:slug`, ({ params }) => {
+    const post = editorialPosts.find((item) => item.slug === params.slug);
+    return post ? HttpResponse.json(post) : fail(404, "not_found");
+  }),
   http.get(`${API}/governments/history`, () => HttpResponse.json(governmentHistory)),
   http.get(`${API}/timeline`, ({ request }) => {
     const kinds = new URL(request.url).searchParams.get("kinds")?.split(",");

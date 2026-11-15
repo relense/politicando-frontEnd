@@ -80,8 +80,32 @@ describe("parties", () => {
 });
 
 describe("party profiles", () => {
-  const slugs = ["atua", "adn", "be", "cds-pp", "chega", "il", "jpp", "livre", "mas", "nova-direita", "nc", "pcp",
-    "pctp-mrpp", "pev", "pls", "ppm", "psd", "ps", "ptp", "mpt", "pan", "rir", "tu", "volt"];
+  const slugs = [
+    "atua",
+    "adn",
+    "be",
+    "cds-pp",
+    "chega",
+    "il",
+    "jpp",
+    "livre",
+    "mas",
+    "nova-direita",
+    "nc",
+    "pcp",
+    "pctp-mrpp",
+    "pev",
+    "pls",
+    "ppm",
+    "psd",
+    "ps",
+    "ptp",
+    "mpt",
+    "pan",
+    "rir",
+    "tu",
+    "volt",
+  ];
 
   it("has a short, sourced summary and a logo for every party", () => {
     for (const slug of slugs) {
@@ -121,7 +145,13 @@ describe("comments", () => {
 
   it("links each post to the replies and mentions that answer it", () => {
     const mention = (id: number, text: string, parentId: number | null = null): Comment => ({ ...comment(id, parentId), text });
-    const backlinks = buildBacklinks([comment(1), mention(4, ">>1"), comment(2, 1), mention(3, ">>1 >>2", 1), { ...mention(-9, ">>1"), pending: true }]);
+    const backlinks = buildBacklinks([
+      comment(1),
+      mention(4, ">>1"),
+      comment(2, 1),
+      mention(3, ">>1 >>2", 1),
+      { ...mention(-9, ">>1"), pending: true },
+    ]);
     expect(backlinks.get(1)).toEqual([2, 3, 4]);
     expect(backlinks.get(2)).toEqual([3]);
   });

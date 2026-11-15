@@ -188,8 +188,16 @@ test("hostile title cannot break out of JSON-LD", async ({ request }) => {
 
 test("sitemap and robots are served", async ({ request }) => {
   const sitemap = await (await request.get("/sitemap.xml")).text();
-  expect(sitemap).toContain("/article/100");
+  // News pages carry another outlet's text: out of the map and noindex. Our own pages are all in.
+  expect(sitemap).not.toContain("/article/");
   expect(sitemap).toContain("/partido/cds-pp");
+  expect(sitemap).toContain("/deputados/1100");
+  expect(sitemap).toContain("/governo/00000000000000000000000000000001");
+  expect(sitemap).toContain("/eleicoes/legislativas-2025/LOCAL-110000");
+  expect(sitemap).toContain("/eleicoes/legislativas-2025/LOCAL-111100");
+  expect(sitemap).toContain("/editorial/como-se-faz-uma-lei");
+  expect(sitemap).toContain("/historia");
+  expect(await (await request.get("/article/100")).text()).toMatch(/<meta name="robots" content="noindex, follow"/);
   expect(sitemap).toContain("/parlamento");
   expect(sitemap).toContain("/deputados");
   expect(sitemap).toContain("/governo");
@@ -216,6 +224,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/eleicoes/legislativas-2025",
     "/eleicoes/legislativas-2025/LOCAL-010000",
     "/historia",
+    "/editorial",
+    "/editorial/a-maioria-que-nao-existe",
+    "/editorial/o-que-muda-no-orcamento",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -531,4 +542,30 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await page.goBack();
   await page.getByRole("link", { name: "Quem governa agora →" }).click();
   await expect(page).toHaveURL(/\/governo$/);
+});
+
+test("blog: featured posts on the front page, the list by kind, and a post rendered safely", async ({ page }) => {
+  await page.goto("/");
+  const highlights = page.getByRole("region", { name: "Destaques" });
+  await expect(highlights.getByRole("listitem")).toHaveCount(3);
+  await highlights.getByRole("link", { name: "A maioria que não existe" }).click();
+  await expect(page).toHaveURL(/\/editorial\/a-maioria-que-nao-existe$/);
+  await expect(page.getByRole("heading", { level: 1, name: "A maioria que não existe" })).toBeVisible();
+  await expect(page.getByText(/Texto de opinião: vincula apenas Tomás Varela/)).toBeVisible();
+  // Raw HTML shows as text, a script link stays plain text, and a player from an unknown host is dropped.
+  await expect(page.getByText("<script>window.__xssPost=1</script>", { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __xssPost?: number }).__xssPost)).toBeUndefined();
+  await expect(page.getByRole("link", { name: "um link perigoso" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "um bom" })).toHaveAttribute("href", "https://www.parlamento.pt");
+  await expect(page.locator("iframe")).toHaveCount(0);
+  const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
+  expect(ld).toMatchObject({ "@type": "OpinionNewsArticle", headline: "A maioria que não existe" });
+
+  await page.goto("/editorial?tipo=podcast");
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
+  await page.getByRole("link", { name: "Orçamento do Estado: o que muda?" }).click();
+  await expect(page.locator('iframe[src^="https://open.spotify.com/embed/"]')).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Neste episódio" })).toBeVisible();
+
+  expect((await page.goto("/editorial/nao-existe"))!.status()).toBe(404);
 });

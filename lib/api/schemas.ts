@@ -346,3 +346,25 @@ export type ApiGovernmentHistory = z.infer<typeof governmentHistorySchema>;
 export type ApiGovernmentHistoryInput = z.input<typeof governmentHistorySchema>;
 export type ApiTimeline = z.infer<typeof timelineSchema>;
 export type ApiTimelineInput = z.input<typeof timelineSchema>;
+
+export const editorialPostSchema = z.object({
+  id: z.number(),
+  slug: z.string(),
+  kind: z.string(),
+  title: z.string(),
+  subtitle: z.string().nullish(),
+  authorName: z.string().nullish(),
+  coverImageUrl: z.string().nullish(),
+  media: z.object({ provider: z.string(), url: z.string(), embedUrl: z.string() }).nullish(),
+  tags: z.array(z.string()).nullish(),
+  featured: z.boolean().nullish(),
+  publishedAt: z.string(),
+});
+
+export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });
+export const editorialDetailSchema = editorialPostSchema.extend({ body: z.string() });
+
+export type ApiEditorialPost = z.infer<typeof editorialPostSchema>;
+export type ApiEditorialPageInput = z.input<typeof editorialPageSchema>;
+export type ApiEditorialDetail = z.infer<typeof editorialDetailSchema>;
+export type ApiEditorialDetailInput = z.input<typeof editorialDetailSchema>;

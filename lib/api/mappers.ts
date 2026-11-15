@@ -20,6 +20,9 @@ import type {
   GovernmentEndReason,
   GovernmentHistory,
   TimelineEvent,
+  EditorialDetail,
+  EditorialKind,
+  EditorialPost,
 } from "@/lib/types";
 import { sourceName } from "@/lib/sources";
 import type {
@@ -39,6 +42,8 @@ import type {
   ApiParty,
   ApiGovernmentHistory,
   ApiTimeline,
+  ApiEditorialDetail,
+  ApiEditorialPost,
 } from "./schemas";
 
 /** External URLs reach the page as href/src, so only http(s) may pass. */
@@ -388,4 +393,37 @@ export function mapTimeline(api: ApiTimeline): TimelineEvent[] {
         ]
       : [],
   );
+}
+
+const EDITORIAL_KINDS: readonly EditorialKind[] = ["article", "opinion", "podcast", "interview", "video"];
+
+/** Players we allow in an iframe, matching the API's list; anything else is dropped. */
+const EMBED_HOSTS = ["www.youtube-nocookie.com", "player.vimeo.com", "open.spotify.com", "w.soundcloud.com", "embed.podcasts.apple.com"];
+
+export function safeEmbedUrl(value: string | null | undefined): string | null {
+  const url = safeHttpUrl(value);
+  if (!url) return null;
+  const parsed = new URL(url);
+  return parsed.protocol === "https:" && EMBED_HOSTS.includes(parsed.hostname) ? url : null;
+}
+
+export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
+  const embedUrl = safeEmbedUrl(api.media?.embedUrl);
+  return {
+    id: api.id,
+    slug: api.slug,
+    kind: EDITORIAL_KINDS.find((kind) => kind === api.kind) ?? "article",
+    title: decode(api.title),
+    subtitle: api.subtitle ? decode(api.subtitle) : null,
+    authorName: api.authorName?.trim() || null,
+    coverImageUrl: safeHttpUrl(api.coverImageUrl),
+    media: api.media && embedUrl ? { provider: api.media.provider, url: safeHttpUrl(api.media.url) ?? embedUrl, embedUrl } : null,
+    tags: api.tags ?? [],
+    featured: api.featured ?? false,
+    publishedAt: api.publishedAt,
+  };
+}
+
+export function mapEditorialDetail(api: ApiEditorialDetail): EditorialDetail {
+  return { ...mapEditorialPost(api), body: api.body };
 }

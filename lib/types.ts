@@ -303,3 +303,24 @@ export type TimelineEvent = {
   /** The election's id, when the site has its results. */
   electionId: string | null;
 };
+
+export type EditorialKind = "article" | "opinion" | "podcast" | "interview" | "video";
+
+/** One of our own posts: an article, opinion, podcast, interview or video. */
+export type EditorialPost = {
+  id: number;
+  slug: string;
+  kind: EditorialKind;
+  title: string;
+  subtitle: string | null;
+  authorName: string | null;
+  coverImageUrl: string | null;
+  /** An embedded player, only from the allowed providers. */
+  media: { provider: string; url: string; embedUrl: string } | null;
+  tags: string[];
+  featured: boolean;
+  publishedAt: string;
+};
+
+export type EditorialDetail = EditorialPost & { body: string };
+export type EditorialPage = { items: EditorialPost[]; total: number };

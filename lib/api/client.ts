@@ -19,6 +19,9 @@ import type {
   Party,
   PartyStanding,
   TimelineEvent,
+  EditorialDetail,
+  EditorialKind,
+  EditorialPage,
 } from "@/lib/types";
 import { partyStandings } from "@/lib/elections";
 import {
@@ -36,6 +39,8 @@ import {
   mapParliament,
   mapParty,
   mapTimeline,
+  mapEditorialDetail,
+  mapEditorialPost,
 } from "./mappers";
 import {
   articlePageSchema,
@@ -54,6 +59,8 @@ import {
   parliamentSchema,
   partySchema,
   timelineSchema,
+  editorialDetailSchema,
+  editorialPageSchema,
 } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
@@ -212,4 +219,17 @@ export async function getGovernmentHistory(): Promise<GovernmentHistory> {
 /** Elections and Presidents' terms, newest first. */
 export async function getTimeline(kinds: ("election" | "president")[] = ["election", "president"]): Promise<TimelineEvent[]> {
   return mapTimeline(await request(`/timeline?kinds=${kinds.join(",")}`, timelineSchema, hourly));
+}
+
+export type EditorialQuery = { featured?: boolean; kind?: EditorialKind; tag?: string; page?: number; limit?: number };
+
+/** Our own posts, newest first. */
+export async function getEditorial({ featured, kind, tag, page, limit }: EditorialQuery = {}): Promise<EditorialPage> {
+  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit });
+  const result = await request(`/editorial${query}`, editorialPageSchema, cached);
+  return { items: result.items.map(mapEditorialPost), total: result.total };
+}
+
+export async function getEditorialPost(slug: string): Promise<EditorialDetail> {
+  return mapEditorialDetail(await request(`/editorial/${encodeURIComponent(slug)}`, editorialDetailSchema, cached));
 }

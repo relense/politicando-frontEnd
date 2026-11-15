@@ -13,14 +13,7 @@ export function ArticleImage({ src, href, caption, className, imageClassName }: 
   const image = (
     // next/image cannot allow-list arbitrary outlet hosts.
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-      className={imageClassName}
-    />
+    <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} className={imageClassName} />
   );
 
   const content = (

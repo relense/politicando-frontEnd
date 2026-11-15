@@ -115,12 +115,7 @@ export function CommentItem({ node, articleId, depth = 0 }: Props) {
                 </button>
                 {!node.pending && (
                   <>
-                    <button
-                      type="button"
-                      aria-expanded={replying}
-                      onClick={() => setReplying((value) => !value)}
-                      className={actionClass}
-                    >
+                    <button type="button" aria-expanded={replying} onClick={() => setReplying((value) => !value)} className={actionClass}>
                       <CommentIcon />
                       Responder
                     </button>
@@ -157,8 +152,7 @@ export function CommentItem({ node, articleId, depth = 0 }: Props) {
   );
 }
 
-const actionClass =
-  "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-bold text-muted hover:bg-surface hover:text-ink";
+const actionClass = "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-bold text-muted hover:bg-surface hover:text-ink";
 
 /** Anonymous posts share one grey avatar; a chosen name always gets the same colour. */
 function Avatar({ name }: { name: string }) {
