@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
-import { DeputyPortrait } from "@/components/DeputyProfile";
+import { DeputiesView } from "@/components/DeputiesView";
 import { ApiError, getParliament } from "@/lib/api/client";
 import { partyColor } from "@/lib/parliament";
 import type { Parliament } from "@/lib/types";
 
-type Props = { searchParams: Promise<{ partido?: string | string[] }> };
+type Props = { searchParams: Promise<{ partido?: string | string[]; deputado?: string | string[] }> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { partido } = await searchParams;
@@ -32,7 +32,7 @@ async function loadParliament(): Promise<Parliament | null> {
 
 export default async function DeputiesPage({ searchParams }: Props) {
   await connection();
-  const [parliament, { partido }] = await Promise.all([loadParliament(), searchParams]);
+  const [parliament, { partido, deputado }] = await Promise.all([loadParliament(), searchParams]);
 
   if (!parliament) {
     return (
@@ -46,6 +46,7 @@ export default async function DeputiesPage({ searchParams }: Props) {
   }
 
   const group = parliament.groups.find((item) => item.party.slug === partido) ?? null;
+  const initialDeputy = typeof deputado === "string" && /^\d+$/.test(deputado) ? Number(deputado) : null;
   const shown = group ? parliament.deputies.filter((deputy) => deputy.partySlug === group.party.slug) : parliament.deputies;
   const chip = (active: boolean) =>
     `flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs font-bold ${active ? "border-ink bg-surface" : "border-line hover:bg-surface"}`;
@@ -61,6 +62,7 @@ export default async function DeputiesPage({ searchParams }: Props) {
           {group
             ? `${group.party.name} · ${shown.length} ${shown.length === 1 ? "deputado" : "deputados"}`
             : `${shown.length} deputados, por ordem alfabética`}
+          {" · carrega num deputado para ver o resumo"}
           {" · "}
           <Link href={group ? `/parlamento?partido=${group.party.slug}` : "/parlamento"} className="text-link underline">
             ver no hemiciclo
@@ -91,28 +93,7 @@ export default async function DeputiesPage({ searchParams }: Props) {
         </ul>
       </nav>
 
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shown.map((deputy) => {
-          const party = parliament.groups.find((item) => item.party.slug === deputy.partySlug)?.party;
-          return (
-            <li key={deputy.id}>
-              <Link
-                href={`/deputados/${deputy.id}`}
-                className="flex h-full items-center gap-4 rounded-2xl border border-line p-4 hover:bg-surface"
-              >
-                <DeputyPortrait deputy={deputy} size="sm" />
-                <span className="min-w-0">
-                  <span className="block font-bold leading-snug">{deputy.name}</span>
-                  <span className="block font-mono text-xs text-muted">
-                    <span className="font-bold text-ink">{party?.acronym ?? deputy.group}</span> · {deputy.constituency}
-                  </span>
-                  {deputy.role && <span className="block text-xs text-muted">{deputy.role}</span>}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <DeputiesView key={group?.party.slug ?? ""} deputies={shown} groups={parliament.groups} initialDeputy={initialDeputy} />
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">Fonte: Assembleia da República (dados abertos).</p>
     </div>

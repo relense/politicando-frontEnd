@@ -67,7 +67,7 @@ function Card({
         </button>
       </div>
       {/* Long content scrolls inside the card, so it never grows past the map beside it. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">{children}</div>
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-5">{children}</div>
     </section>
   );
 }
@@ -119,7 +119,8 @@ function GroupCard({
 
 const TABS = ["Iniciativas", "Votações", "Notícias", "Percurso"] as const;
 
-function DeputyCard({
+/** One deputy at a glance, with tabs and a link to the full record. `group` adds a way back to their bench. */
+export function DeputyCard({
   summary,
   group,
   onBack,
@@ -152,7 +153,7 @@ function DeputyCard({
       <div className="flex items-center gap-4">
         <DeputyPortrait deputy={summary} size="md" />
         <div className="min-w-0">
-          <h2 id="deputado-nome" className="text-xl font-bold leading-tight">
+          <h2 id="deputado-nome" className="text-xl font-bold leading-tight outline-none">
             {summary.name}
           </h2>
           {party && (

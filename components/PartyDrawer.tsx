@@ -44,7 +44,7 @@ export function PartyDrawer({ parties, ref }: { parties: Party[]; ref: Ref<HTMLD
         {parties.length === 0 ? (
           <p className="p-4 text-muted">Não foi possível carregar os partidos.</p>
         ) : (
-          <ul aria-label="Partidos" className="flex-1 overflow-y-auto p-2">
+          <ul aria-label="Partidos" className="no-scrollbar flex-1 overflow-y-auto p-2">
             <li className="flex items-center justify-between gap-2 px-2 pb-1 pt-2">
               <span className="font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</span>
               <PartyOrderToggle />

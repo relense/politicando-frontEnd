@@ -146,7 +146,7 @@ function MemberCard({
         </button>
       </div>
       {/* Long content scrolls inside the card, so it never grows past the table beside it. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         <div className="mt-2 flex items-center gap-4">
           <GovernmentPortrait name={member.name} photoUrl={member.photoUrl} size="md" />
           <div className="min-w-0">

@@ -34,7 +34,7 @@ export function PartySidebar({ parties }: { parties: Party[] }) {
 
   return (
     <aside
-      className={`sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto lg:block 2xl:w-[var(--side-column)] ${NO_SCROLLBAR}`}
+      className={`sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start no-scrollbar overflow-y-auto lg:block 2xl:w-[var(--side-column)]`}
     >
       <div className="mb-8 rounded-xl border border-line p-4">
         <p className="text-sm italic leading-relaxed 2xl:text-base">
@@ -74,9 +74,6 @@ export function PartySidebar({ parties }: { parties: Party[] }) {
     </aside>
   );
 }
-
-/** Hides a scrollbar in every browser while keeping the row scrollable by touch, wheel and keyboard. */
-const NO_SCROLLBAR = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 /**
  * A row of party chips that scrolls sideways. Above the feed on phones and tablets, where there is no party column;
@@ -138,7 +135,7 @@ export function PartyChipBar({ parties, always = false }: { parties: Party[]; al
       <PartyOrderToggle className={`mb-2 px-4 ${always ? "lg:px-0" : ""}`} />
       <div className="flex items-center gap-2">
         {always && arrow(-1)}
-        <ul ref={listRef} className={`flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 ${always ? "lg:px-0" : ""} ${NO_SCROLLBAR}`}>
+        <ul ref={listRef} className={`no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 ${always ? "lg:px-0" : ""}`}>
           <li className="shrink-0">
             <Link href="/" aria-current={current(active === "")} className={chip(active === "")}>
               Todas

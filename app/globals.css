@@ -87,3 +87,11 @@ article[id^="comentario-"]:target {
     transform: none;
   }
 }
+
+/* Hides a scrollbar in every browser while the box still scrolls by touch, wheel and keyboard. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
