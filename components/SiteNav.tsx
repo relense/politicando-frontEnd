@@ -97,7 +97,7 @@ export function SectionLink({
 /** Desktop: the site's sections in a sticky column on the left. */
 export function SiteNav() {
   return (
-    <nav aria-label="Secções" className="sticky top-20 hidden w-[var(--side-column)] shrink-0 self-start lg:block">
+    <nav aria-label="Secções" className="sticky top-20 hidden w-56 shrink-0 2xl:w-[var(--side-column)] self-start lg:block">
       <ul className="flex flex-col gap-1">
         {SITE_SECTIONS.map((item) => (
           <li key={item.label}>

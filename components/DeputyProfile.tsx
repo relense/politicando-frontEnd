@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "@/lib/format";
@@ -16,25 +17,38 @@ const initials = (name: string) =>
     .toUpperCase();
 
 const SIZES = { sm: "size-14 text-base", md: "size-16 text-lg", lg: "size-28 text-3xl" } as const;
+const PIXELS = { sm: 56, md: 64, lg: 112 } as const;
+
+const PARLIAMENT_PHOTO = /^https:\/\/app\.parlamento\.pt\/webutils\/getimage\.aspx\?/;
+
+/** Photos from the Parliament go through our cached route; any other address is used as given. */
+function photoSource(deputy: Pick<DeputySummary, "id" | "photoUrl">): string | null {
+  if (!deputy.photoUrl) return null;
+  return PARLIAMENT_PHOTO.test(deputy.photoUrl) ? `/fotos/deputados/${deputy.id}` : deputy.photoUrl;
+}
 
 /** The deputy's photo with a ring in the party's colour, or their initials when there is no photo or it fails. */
 export function DeputyPortrait({
   deputy,
   size,
 }: {
-  deputy: Pick<DeputySummary, "name" | "photoUrl" | "partySlug">;
+  deputy: Pick<DeputySummary, "id" | "name" | "photoUrl" | "partySlug">;
   size: keyof typeof SIZES;
 }) {
   const [failed, setFailed] = useState(false);
   const ring = { boxShadow: `0 0 0 3px ${partyColor(deputy.partySlug ?? "")}` };
   const classes = `${SIZES[size]} shrink-0 rounded-full`;
-  if (deputy.photoUrl && !failed) {
+  const src = photoSource(deputy);
+  if (src && !failed) {
+    // Through the image optimiser: resized for this size, cached on our server and in the browser.
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- photos come from the Parliament's servers
-      <img
-        src={deputy.photoUrl}
+      <Image
+        src={src}
+        // Addresses other than our cached route (a CDN, later) are already small and cached; use them as they are.
+        unoptimized={!src.startsWith("/")}
         alt=""
-        loading="lazy"
+        width={PIXELS[size]}
+        height={PIXELS[size]}
         onError={() => setFailed(true)}
         className={`${classes} bg-surface object-cover object-top`}
         style={ring}

@@ -10,9 +10,15 @@ import { InitiativesSection, type InitiativeFilter } from "./InitiativesSection"
 
 export type Selection = { party: string; deputy: number | null } | null;
 
-type Props = { parliament: Parliament; initialInitiatives: InitiativePage | null; initialSelection: Selection };
+type Props = {
+  parliament: Parliament;
+  initialInitiatives: InitiativePage | null;
+  initialSelection: Selection;
+  /** The page title, shown above the map so the card beside it starts level with it. */
+  header?: ReactNode;
+};
 
-export function ParliamentView({ parliament, initialInitiatives, initialSelection }: Props) {
+export function ParliamentView({ parliament, initialInitiatives, initialSelection, header }: Props) {
   const { deputies, groups, seatMap } = parliament;
   const groupBySlug = useMemo(() => new Map(groups.map((group) => [group.party.slug, group])), [groups]);
   const deputyById = useMemo(() => new Map(deputies.map((deputy) => [deputy.id, deputy])), [deputies]);
@@ -41,7 +47,7 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
     else if (next) url.searchParams.set("partido", next.party);
     window.history.replaceState(window.history.state, "", url);
     // On a phone the card is below the map, so bring it into view.
-    if (next && !window.matchMedia("(min-width: 1024px)").matches) {
+    if (next && !window.matchMedia("(min-width: 1280px)").matches) {
       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
@@ -64,14 +70,13 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
 
   return (
     <>
-      <div className="mb-4">
-        <p className="font-mono text-xs text-muted">
-          {total} deputados · maioria absoluta: {majority(total)} · <span className="hidden sm:inline">passa o cursor ou </span>toca num
-          lugar
-        </p>
-      </div>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="min-w-0">
+          {header}
+          <p className="mb-4 font-mono text-xs text-muted">
+            {total} deputados · maioria absoluta: {majority(total)} · <span className="hidden sm:inline">passa o cursor ou </span>toca num
+            lugar
+          </p>
           <Hemicycle
             seatMap={seatMap}
             groups={groupBySlug}
@@ -90,8 +95,8 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
           </p>
         </div>
         {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. */}
-        <div ref={panelRef} className="relative min-h-[28rem] scroll-mt-20 lg:min-h-0">
-          <div className="h-full lg:absolute lg:inset-0">
+        <div ref={panelRef} className="relative min-h-[28rem] scroll-mt-20 xl:min-h-0">
+          <div className="h-full xl:absolute xl:inset-0">
             <DeputyPanel
               group={group}
               deputies={bench}

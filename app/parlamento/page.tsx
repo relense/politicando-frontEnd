@@ -38,23 +38,28 @@ export default async function ParliamentPage({ searchParams }: Props) {
         ? { party: partido, deputy: null }
         : null;
   const updated = formatDate(parliament?.updatedAt);
+  const header = (
+    <header className="mb-3">
+      <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
+        Assembleia da República{parliament && ` · ${parliament.legislature} Legislatura`}
+      </p>
+      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem está sentado onde</h1>
+    </header>
+  );
 
   return (
     // data-wide lets this page use the full width instead of the news column.
     <div data-wide>
-      <header className="mb-6">
-        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
-          Assembleia da República{parliament && ` · ${parliament.legislature} Legislatura`}
-        </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem está sentado onde</h1>
-      </header>
-
       {parliament ? (
-        <ParliamentView parliament={parliament} initialInitiatives={initiatives} initialSelection={selection} />
+        // The title sits in the map's column, so the card beside it can run from the title down.
+        <ParliamentView parliament={parliament} initialInitiatives={initiatives} initialSelection={selection} header={header} />
       ) : (
-        <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-          Os dados do Parlamento estarão disponíveis em breve.
-        </p>
+        <>
+          {header}
+          <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+            Os dados do Parlamento estarão disponíveis em breve.
+          </p>
+        </>
       )}
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">
