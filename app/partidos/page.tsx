@@ -39,8 +39,8 @@ export default async function PartiesPage() {
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Partidos políticos</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Partidos</h1>
         <p className="mt-3 max-w-2xl leading-relaxed">
-          Quem os lidera, quantos deputados têm e como votaram neles nas últimas legislativas. Carrega num partido para ver as notícias,
-          as votações no Parlamento e o fórum.
+          Quem os lidera, quantos deputados têm e como votaram neles nas últimas legislativas. Carrega num partido para ver as notícias, as
+          votações no Parlamento e o fórum.
         </p>
       </header>
 
@@ -71,7 +71,10 @@ export default async function PartiesPage() {
               <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {others.map((party) => (
                   <li key={party.slug}>
-                    <Link href={partyPath(party.slug)} className="flex items-center gap-3 rounded-xl border border-line p-3 hover:bg-surface">
+                    <Link
+                      href={partyPath(party.slug)}
+                      className="flex items-center gap-3 rounded-xl border border-line p-3 hover:bg-surface"
+                    >
                       <PartyLogo slug={party.slug} acronym={party.acronym} size={28} />
                       <span className="min-w-0">
                         <span className="block font-mono text-xs font-bold">{party.acronym}</span>
@@ -95,7 +98,9 @@ function electionLine(election: PartyOverview["lastElection"]): string | null {
   const year = election.id.match(/\d{4}/)?.[0];
   const share = formatPercent(election.validPct);
   if (!share) return null;
-  return election.coalition ? `${share} em coligação, nas legislativas${year ? ` de ${year}` : ""}` : `${share} nas legislativas${year ? ` de ${year}` : ""}`;
+  return election.coalition
+    ? `${share} em coligação, nas legislativas${year ? ` de ${year}` : ""}`
+    : `${share} nas legislativas${year ? ` de ${year}` : ""}`;
 }
 
 function PartyCard({ party }: { party: PartyOverview }) {
@@ -133,7 +138,10 @@ function PartyCard({ party }: { party: PartyOverview }) {
         <p className="mt-auto border-t border-line pt-3 text-sm">
           <span className="block font-mono text-xs text-muted">{party.leader.title ?? "Líder"}</span>
           {party.leader.href ? (
-            <Link href={party.leader.href} className="relative z-10 font-bold underline decoration-line underline-offset-2 hover:decoration-ink">
+            <Link
+              href={party.leader.href}
+              className="relative z-10 font-bold underline decoration-line underline-offset-2 hover:decoration-ink"
+            >
               {party.leader.name}
             </Link>
           ) : (

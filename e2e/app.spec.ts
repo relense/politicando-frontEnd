@@ -388,15 +388,16 @@ test("government: from the menu to a minister who came from Parliament, and on t
   await expect(page).toHaveURL(/\/governo$/);
   await expect(page.getByRole("heading", { level: 1, name: "Quem governa" })).toBeVisible();
   // At the table: pressing the Prime Minister opens their card beside it, and the address keeps the choice.
-  const table = page.getByRole("list", { name: /Lugares à mesa do Conselho de Ministros/ });
-  await table.getByRole("button", { name: /Henrique Valadares/ }).click();
+  await page.getByRole("button", { name: /Primeiro-Ministro.*Henrique Valadares/ }).click();
   await expect(page).toHaveURL(/membro=0+1$/);
   const card = page.getByRole("region", { name: "Henrique Valadares" });
   await expect(card.getByRole("link", { name: /Percurso e notícias/ })).toBeVisible();
   await card.getByRole("button", { name: "Fechar" }).click();
-  await expect(page.getByText("Carrega numa pessoa à mesa")).toBeVisible();
+  await expect(page.getByText("Carrega num ministério")).toBeVisible();
 
-  await page.getByRole("link", { name: /Eleito deputado pelo PSD/ }).click();
+  const members = page.getByRole("region", { name: "Todos os membros do Governo" });
+  await members.getByRole("searchbox").fill("Presidência");
+  await members.getByRole("row").filter({ hasText: "PSD" }).first().getByRole("link").click();
   await expect(page).toHaveURL(/\/governo\/[0-9a-f]{32}$/);
   await expect(page.getByText(/suspendeu o mandato para entrar no Governo/)).toBeVisible();
   await page.getByRole("link", { name: "Ver ficha de deputado" }).click();

@@ -147,21 +147,25 @@ describe("ParliamentView", () => {
 });
 
 describe("GovernmentView", () => {
-  it("sits the ministers around the table and opens a card for the one pressed, then their secretary of State", async () => {
+  it("shows a card per ministry, opens the minister pressed, then their secretary of State, and searches every member", async () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <GovernmentView government={government} parties={[]} initialMember={null} />
+        <GovernmentView government={government} parties={[]} initialMember={null} today="2026-11-15" />
       </QueryClientProvider>,
     );
-    const places = within(screen.getByRole("list", { name: /Lugares à mesa/ })).getAllByRole("button");
-    expect(places).toHaveLength(bench.length);
-    expect(screen.getByText(/Carrega numa pessoa à mesa/)).toBeInTheDocument();
+    const cards = within(screen.getByRole("list", { name: "Ministérios" })).getAllByRole("button");
+    expect(cards).toHaveLength(bench.length - 1);
+    expect(screen.getByText("Carrega num ministério")).toBeInTheDocument();
+    expect(screen.getByText("no Conselho de Ministros")).toBeInTheDocument();
 
     const ministry = government.ministries.find((m) => m.minister?.kind === "minister" && m.secretaries.length > 0)!;
-    await user.click(screen.getByRole("button", { name: new RegExp(ministry.minister!.name) }));
+    await user.click(
+      within(screen.getByRole("list", { name: "Ministérios" })).getByRole("button", { name: new RegExp(ministry.minister!.name) }),
+    );
     const card = screen.getByRole("region", { name: ministry.minister!.name });
     expect(window.location.search).toBe(`?membro=${ministry.minister!.id}`);
+    expect(within(card).getByText(/na ordem protocolar/)).toBeInTheDocument();
     expect(within(card).getByRole("link", { name: /Percurso e notícias/ })).toHaveAttribute("href", `/governo/${ministry.minister!.id}`);
 
     const secretary = ministry.secretaries[0]!;
@@ -169,5 +173,13 @@ describe("GovernmentView", () => {
     const secretaryCard = screen.getByRole("region", { name: secretary.name });
     await user.click(within(secretaryCard).getByRole("button", { name: `← ${ministry.name}` }));
     expect(screen.getByRole("region", { name: ministry.minister!.name })).toBeInTheDocument();
+
+    const table = screen.getByRole("region", { name: "Todos os membros do Governo" });
+    await user.click(within(table).getByRole("button", { name: /^Ministros/ }));
+    expect(within(table).getAllByRole("row")).toHaveLength(bench.length + 1);
+    await user.type(within(table).getByRole("searchbox"), secretary.name);
+    expect(within(table).getByText("Ninguém com esse nome ou cargo.")).toBeInTheDocument();
+    await user.click(within(table).getByRole("button", { name: /^Todos/ }));
+    expect(within(table).getByRole("link", { name: new RegExp(secretary.name) })).toHaveAttribute("href", `/governo/${secretary.id}`);
   });
 });

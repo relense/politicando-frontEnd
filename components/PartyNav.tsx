@@ -23,8 +23,12 @@ export function PartyChipBar({ parties, active }: { parties: Party[]; active: st
     const list = listRef.current;
     const selected = list?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!list || !selected) return;
-    list.scrollLeft = selected.offsetLeft - list.clientWidth / 2 + selected.clientWidth / 2;
-  }, [active]);
+    // Measured against the list itself (offsetLeft would be against the page), and centred when it can be.
+    const listBox = list.getBoundingClientRect();
+    const box = selected.getBoundingClientRect();
+    const target = list.scrollLeft + (box.left - listBox.left) - (listBox.width - box.width) / 2;
+    list.scrollTo?.({ left: Math.max(0, target), behavior: "smooth" });
+  }, [active, ordered]);
 
   // Whether there is more to either side, for the arrows.
   useEffect(() => {

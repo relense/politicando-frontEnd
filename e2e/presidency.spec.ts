@@ -6,7 +6,7 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByRole("heading", { level: 1, name: "Teresa Albuquerque" })).toBeVisible();
   await expect(page).toHaveTitle(/Teresa Albuquerque, Presidente da República/);
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "À espera de decisão" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "O que faz o Presidente da República" })).toBeVisible();
   await expect(page.getByText("Jorge Vilalobos")).toBeVisible();
 
@@ -17,7 +17,7 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByText(/Foi eleita Presidente da República/)).toBeVisible();
 
   const vetoes = page.getByRole("region", { name: "Vetos" });
-  await vetoes.getByRole("link", { name: /Ver todas/ }).click();
+  await vetoes.getByRole("link", { name: "Ver todos os vetos" }).click();
   await expect(page).toHaveURL(/\/iniciativas\?presidente=vetoed$/);
   await expect(page.locator("a:visible", { hasText: /^Vetada/ }).first()).toHaveAttribute("aria-current", "page");
 });
@@ -41,7 +41,10 @@ test("initiatives: plain titles, topic and status filters, more on demand, and t
     await expect(article.getByRole("link", { name: "Saúde", exact: true })).toBeVisible();
 
   // The phases: pills above the list on phones, "o caminho de uma lei" beside it on larger screens.
-  await page.locator("a:visible", { hasText: /^Aprovada no Parlamento/ }).first().click();
+  await page
+    .locator("a:visible", { hasText: /^Aprovada no Parlamento/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/tema=saude&estado=approved/);
   await expect(page.getByRole("link", { name: /Tema: Saúde/ })).toBeVisible();
 
