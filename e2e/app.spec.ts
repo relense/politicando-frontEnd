@@ -190,6 +190,9 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).toContain("/eleicoes/legislativas-2025/LOCAL-111100");
   expect(sitemap).toContain("/editorial/como-se-faz-uma-lei");
   expect(sitemap).toContain("/historia");
+  expect(sitemap).toContain("/sitios/LOCAL-111100");
+  expect(sitemap).toMatch(/\/iniciativas\/\d+<\/loc>\s*<lastmod>2026-11-01/);
+  expect(sitemap).not.toContain("presidente-ficticio");
   expect(await (await request.get("/article/100")).text()).toMatch(/<meta name="robots" content="noindex, follow"/);
   expect(sitemap).toContain("/parlamento");
   expect(sitemap).toContain("/deputados");

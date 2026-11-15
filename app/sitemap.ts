@@ -1,17 +1,33 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
-import { getEditorial, getElectionResult, getElections, getGovernment, getParliament, getParties } from "@/lib/api/client";
+import { getElectionResult, getElections } from "@/lib/api/client";
+import { getSitemapItems, type SitemapItem, type SitemapKind } from "@/lib/api/sitemap";
 import { editorialPath } from "@/lib/editorial";
 import { electionPath } from "@/lib/elections";
 import { partyPath } from "@/lib/parties";
 import { SITE_URL } from "@/lib/site";
-import type { Election, GovernmentMember } from "@/lib/types";
+import type { Election } from "@/lib/types";
 
 type Entry = MetadataRoute.Sitemap[number];
-
-const EDITORIAL_PAGES = 20;
+type Frequency = Entry["changeFrequency"];
 
 const at = (path: string, extra: Omit<Entry, "url"> = {}): Entry => ({ url: `${SITE_URL}${path}`, ...extra });
+
+/** Where each kind the backend lists lives on our site. `null`: no page of its own (the President has one page, below). */
+const ROUTES: Record<SitemapKind, { path: ((id: string) => string) | null; changeFrequency: Frequency }> = {
+  party: { path: partyPath, changeFrequency: "daily" },
+  deputy: { path: (id) => `/deputados/${id}`, changeFrequency: "weekly" },
+  "government-member": { path: (id) => `/governo/${id}`, changeFrequency: "monthly" },
+  president: { path: null, changeFrequency: "monthly" },
+  election: { path: (id) => electionPath(id), changeFrequency: "yearly" },
+  place: { path: (id) => `/sitios/${id}`, changeFrequency: "monthly" },
+  initiative: { path: (id) => `/iniciativas/${id}`, changeFrequency: "weekly" },
+  editorial: { path: editorialPath, changeFrequency: "monthly" },
+  case: { path: (id) => `/registo/${id}`, changeFrequency: "monthly" },
+};
+
+/** Districts and municipalities before parishes, as the backend suggests. */
+const LEVEL_ORDER: Record<string, number> = { district: 0, municipality: 1, parish: 2 };
 
 /** One section of the map; a section whose data is unavailable is left out instead of breaking the rest. */
 async function section(load: () => Promise<Entry[]>): Promise<Entry[]> {
@@ -22,32 +38,30 @@ async function section(load: () => Promise<Entry[]>): Promise<Entry[]> {
   }
 }
 
-const parties = () => getParties().then((list) => list.map((party) => at(partyPath(party.slug), { changeFrequency: "daily" })));
-
-const deputies = () =>
-  getParliament().then((parliament) => parliament.deputies.map((deputy) => at(`/deputados/${deputy.id}`, { changeFrequency: "weekly" })));
-
-async function government(): Promise<Entry[]> {
-  const { primeMinister, ministries, former } = await getGovernment();
-  const members = [primeMinister, ...ministries.flatMap((ministry) => [ministry.minister, ...ministry.secretaries]), ...former].filter(
-    (member): member is GovernmentMember => member !== null,
-  );
-  return [...new Set(members.map((member) => member.id))].map((id) => at(`/governo/${id}`, { changeFrequency: "monthly" }));
+/** Our data pages, as listed by the backend's `/sitemap`, with their real last change when it is known. */
+async function dataPages(): Promise<Entry[]> {
+  const kinds = await getSitemapItems();
+  return (Object.entries(kinds) as [SitemapKind, SitemapItem[]][]).flatMap(([kind, items]) => {
+    const { path, changeFrequency } = ROUTES[kind];
+    if (!path) return [];
+    const ordered =
+      kind === "place" ? [...items].sort((a, b) => (LEVEL_ORDER[a.level ?? ""] ?? 3) - (LEVEL_ORDER[b.level ?? ""] ?? 3)) : items;
+    return ordered.map((item) => at(path(item.id), { changeFrequency, ...(item.lastmod ? { lastModified: item.lastmod } : {}) }));
+  });
 }
 
 /**
- * Every election with results, and, for the latest of each type, every district and municipality page: those are
- * the pages people search for ("resultados eleições Sintra"). Older elections' places stay reachable by links.
+ * For the latest election of each type, its district and municipality result pages: those are what people search
+ * for ("resultados eleições Sintra"). Older elections' places stay reachable by links.
  */
-async function elections(): Promise<Entry[]> {
-  const imported = (await getElections()).filter((election) => election.imported);
+async function latestElectionPlaces(): Promise<Entry[]> {
   const latest = new Map<string, Election>();
-  for (const election of imported) {
+  for (const election of (await getElections()).filter((item) => item.imported)) {
     const current = latest.get(election.type);
     if (!current || election.date > current.date) latest.set(election.type, election);
   }
   const places = await Promise.all([...latest.values()].map((election) => section(() => placesOf(election.id))));
-  return [...imported.map((election) => at(electionPath(election.id), { changeFrequency: "yearly" })), ...places.flat()];
+  return places.flat();
 }
 
 /** Down from the top level through the national territory to the districts and their municipalities. */
@@ -63,19 +77,11 @@ async function placesOf(id: string): Promise<Entry[]> {
   return [...regions, ...districts, ...municipalities].map((place) => at(electionPath(id, place.key), { changeFrequency: "yearly" }));
 }
 
-async function editorial(): Promise<Entry[]> {
-  const entries: Entry[] = [];
-  for (let page = 1; page <= EDITORIAL_PAGES; page++) {
-    const { items, total } = await getEditorial({ page, limit: 50 });
-    entries.push(...items.map((post) => at(editorialPath(post.slug), { lastModified: post.publishedAt, changeFrequency: "monthly" })));
-    if (items.length === 0 || page * 50 >= total) break;
-  }
-  return entries;
-}
-
 /**
- * Our own pages: sections, parties, deputies, Government members, elections and places, and our posts. The news
- * pages are left out: they only carry another outlet's headline and excerpt, and are marked noindex.
+ * Our own pages: the sections, then every data page the backend lists (parties, deputies, Government members,
+ * elections, places, initiatives, posts, cases) and the latest elections' local results. Under Google's 50 000
+ * URLs per file, so one file is enough. News pages are left out: they only carry another outlet's headline and
+ * excerpt, and are marked noindex. Forum threads are readers' posts, also noindex.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
@@ -84,10 +90,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/parlamento", { changeFrequency: "daily" }),
     at("/deputados", { changeFrequency: "weekly" }),
     at("/governo", { changeFrequency: "weekly" }),
+    at("/presidente", { changeFrequency: "weekly" }),
+    at("/iniciativas", { changeFrequency: "daily" }),
     at("/eleicoes", { changeFrequency: "monthly" }),
+    at("/sitios", { changeFrequency: "monthly" }),
+    at("/contratos", { changeFrequency: "weekly" }),
     at("/historia", { changeFrequency: "monthly" }),
+    at("/percursos", { changeFrequency: "monthly" }),
+    at("/como-ser-deputado", { changeFrequency: "yearly" }),
+    at("/registo", { changeFrequency: "weekly" }),
+    at("/interesses", { changeFrequency: "weekly" }),
     at("/editorial", { changeFrequency: "daily" }),
   ];
-  const sections = await Promise.all([parties, deputies, government, elections, editorial].map(section));
-  return [...fixed, ...sections.flat()];
+  const [data, places] = await Promise.all([section(dataPages), section(latestElectionPlaces)]);
+  const seen = new Set<string>();
+  return [...fixed, ...data, ...places].filter((entry) => !seen.has(entry.url) && Boolean(seen.add(entry.url)));
 }
