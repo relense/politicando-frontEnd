@@ -460,8 +460,15 @@ function Pending({ items, total, now }: { items: Initiative[]; total: number; no
 }
 
 function PendingItem({ initiative, now }: { initiative: Initiative; now: number }) {
-  const sent = initiative.presidency?.sentAt ? atNoon(initiative.presidency.sentAt) : null;
-  const days = sent && !Number.isNaN(sent.getTime()) ? Math.max(0, Math.floor((now - sent.getTime()) / DAY)) : null;
+  const presidency = initiative.presidency;
+  const daysSince = (date: string | null | undefined) => {
+    const from = date ? atNoon(date) : null;
+    return from && !Number.isNaN(from.getTime()) ? Math.max(0, Math.floor((now - from.getTime()) / DAY)) : null;
+  };
+  const inCourt = presidency?.status === "constitutional_court";
+  // After the Court rules, the twenty days start again from its ruling.
+  const days = inCourt ? null : daysSince(presidency?.courtRuledAt ?? presidency?.sentAt);
+  const courtDays = inCourt ? daysSince(presidency?.courtRequestedAt) : null;
   const color = toneColor("president");
   const options = [
     { label: "Promulga", tone: "law" as const, mark: "✓" },
@@ -484,6 +491,25 @@ function PendingItem({ initiative, now }: { initiative: Initiative; now: number 
         </Link>
       </h4>
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        {inCourt && (
+          <div>
+            <p className="font-mono text-xs">
+              <span className="rounded-full px-2.5 py-1 font-bold" style={tinted("submitted")}>
+                No Tribunal Constitucional
+              </span>
+              {presidency?.courtRequestedAt && (
+                <span className="ml-2 text-muted">
+                  desde {formatDate(presidency.courtRequestedAt)}
+                  {courtDays !== null && ` · há ${formatNumber(courtDays)} ${courtDays === 1 ? "dia" : "dias"}`}
+                </span>
+              )}
+            </p>
+            <p className="mt-2 text-xs text-muted">
+              O Presidente pediu ao Tribunal que verifique se a lei respeita a Constituição. O prazo para decidir fica suspenso até ao
+              acórdão; se o Tribunal disser que não respeita, o Presidente tem de a vetar.
+            </p>
+          </div>
+        )}
         {days !== null && (
           <div>
             <p className="flex justify-between gap-2 font-mono text-xs">
@@ -498,12 +524,13 @@ function PendingItem({ initiative, now }: { initiative: Initiative; now: number 
             </div>
             <p className="mt-1.5 text-xs text-muted">
               A Constituição dá {DECISION_DAYS} dias para promulgar ou vetar um decreto do Parlamento
+              {presidency?.courtRuledAt ? ", contados desde o acórdão do Tribunal Constitucional" : ""}
               {days > DECISION_DAYS ? "; o prazo fica suspenso se o Presidente o enviar ao Tribunal Constitucional." : "."}
             </p>
           </div>
         )}
         <ul aria-label="O que pode fazer" className="flex flex-wrap gap-1.5 font-mono text-[11px] font-bold">
-          {options.map((option) => (
+          {(inCourt ? options.slice(0, 2) : options).map((option) => (
             <li key={option.label} className="rounded-full px-2.5 py-1" style={tinted(option.tone)}>
               <span aria-hidden="true">{option.mark} </span>
               {option.label}
@@ -539,7 +566,12 @@ function Authors({ initiative, className = "" }: { initiative: Initiative; class
   );
 }
 
-const DECISION_TONE: Record<string, StageTone> = { vetoed: "stopped", promulgated: "law", pending: "president" };
+const DECISION_TONE: Record<string, StageTone> = {
+  vetoed: "stopped",
+  promulgated: "law",
+  pending: "president",
+  constitutional_court: "submitted",
+};
 
 function DecisionGroup({
   id,

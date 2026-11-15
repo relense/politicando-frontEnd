@@ -68,9 +68,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
   const tab: Tab = tabs.find((item) => item.value === ver)?.value ?? "noticias";
 
   const deputies = parliament ? sortDeputies(parliament.deputies, party.slug) : [];
-  const { leader, benchLeader } = partyLeaders(deputies, party.slug);
-  // The Parliament records votes by group: any of the party's deputies gives its votes.
-  const voter = leader?.deputy ?? benchLeader ?? deputies[0] ?? null;
+  const { leader } = partyLeaders(deputies, party.slug);
 
   const [page, initiatives, votes] = await Promise.all([
     tab === "noticias" ? getFeedPage({ party: party.slug }) : null,
@@ -169,9 +167,9 @@ export default async function PartyPage({ params, searchParams }: Props) {
                 <SidePanel title="Deputados" more={{ href: tabPath(party.slug, "deputados"), label: `Ver os ${seats}` }}>
                   <Faces deputies={deputies} />
                 </SidePanel>
-                {voter && (
+                {votes && (
                   <SidePanel title="Como votou" more={{ href: tabPath(party.slug, "votacoes"), label: "Todas" }}>
-                    <PartyVotes deputyId={voter.id} acronym={party.acronym} compact />
+                    <PartyVotes slug={party.slug} acronym={party.acronym} compact />
                   </SidePanel>
                 )}
                 <SidePanel title="Iniciativas" more={{ href: tabPath(party.slug, "iniciativas"), label: "Todas" }}>
@@ -187,13 +185,13 @@ export default async function PartyPage({ params, searchParams }: Props) {
             <PartyInitiatives slug={party.slug} acronym={party.acronym} initialPage={initiatives} />
           </section>
         )}
-        {tab === "votacoes" && voter && (
+        {tab === "votacoes" && (
           <section aria-label={`Votações do ${party.acronym}`} className="max-w-3xl">
             <p className="mb-4 text-sm text-muted">
-              O Parlamento regista os votos por bancada. Aqui aparecem as votações em que a bancada do {party.acronym} votou toda no mesmo
-              sentido.
+              O Parlamento regista os votos por bancada: aqui está o sentido de voto da bancada do {party.acronym} nas votações que decidem
+              uma iniciativa (na generalidade e votação final global). Quando parte da bancada votou de outra forma, é assinalado.
             </p>
-            <PartyVotes deputyId={voter.id} acronym={party.acronym} />
+            <PartyVotes slug={party.slug} acronym={party.acronym} summary={votes} />
           </section>
         )}
       </div>

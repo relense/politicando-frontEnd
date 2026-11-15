@@ -34,7 +34,7 @@ export default async function PartiesPage() {
   const others = (parties ?? []).filter((party) => party.seats === 0).sort(byName);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Partidos políticos</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Partidos</h1>

@@ -165,4 +165,9 @@ export function ContractsSource({ updatedAt, source }: { updatedAt?: string | nu
 }
 
 /** "12,3%" of something, or nothing for an empty whole. */
-export const percentOf = (part: number, whole: number) => (whole > 0 ? formatPercent(share(part, whole)) : null);
+/** "14,5%", or "menos de 0,1%" for a sliver that would otherwise round to nothing. */
+export const percentOf = (part: number, whole: number) => {
+  if (whole <= 0) return null;
+  const value = share(part, whole);
+  return part > 0 && value < 0.05 ? "menos de 0,1%" : formatPercent(value);
+};

@@ -54,7 +54,7 @@ export default async function HistoryPage() {
 
   if (!history || history.governments.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl">
+      <div className="max-w-4xl">
         {header}
         <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
           A história dos governos estará disponível em breve.
@@ -72,7 +72,7 @@ export default async function HistoryPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="max-w-4xl">
       {header}
       <p className="-mt-4 mb-8 max-w-2xl leading-relaxed text-muted">
         Depois da revolução houve {stats.provisional} governos provisórios, até à Constituição de 1976. Desde então, {stats.constitutional}{" "}

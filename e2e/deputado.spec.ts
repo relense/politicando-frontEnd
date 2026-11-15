@@ -84,6 +84,6 @@ test("election results compare with the previous election of the same type", asy
   await noSeriousA11yIssues(page);
 
   // The first election has nothing before it.
-  await page.goto("/eleicoes/legislativas-2024/LOCAL-110000");
+  await page.goto("/eleicoes/legislativas-1976/LOCAL-110000");
   await expect(page.getByRole("columnheader", { name: /^vs / })).toHaveCount(0);
 });

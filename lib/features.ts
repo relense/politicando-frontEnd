@@ -7,4 +7,9 @@ export const FEATURES = {
   record: false,
   /** `/como-ser-deputado`, now a blog post (see lib/localPosts.ts): while off it redirects there. */
   becomeDeputyPage: false,
+  /**
+   * The search box and the newest/oldest order on `/iniciativas`. Off until the API filters by `q` and `sort`, or the
+   * box would show unfiltered results; the tests build with it on.
+   */
+  initiativeSearch: process.env.NEXT_PUBLIC_INITIATIVE_SEARCH === "on",
 } as const;

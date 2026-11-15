@@ -43,7 +43,8 @@ export function ParliamentView({ parliament, initialSelection, header }: Props) 
     window.history.replaceState(window.history.state, "", url);
     // On a phone the card is below the map, so bring it into view.
     if (next && !window.matchMedia("(min-width: 1280px)").matches) {
-      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // After the render that shows the card, which is hidden on a phone while nothing is chosen.
+      requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
   }
 
@@ -85,8 +86,9 @@ export function ParliamentView({ parliament, initialSelection, header }: Props) 
             senta em cada cadeira é aproximado, porque o Parlamento não o publica: os deputados com cargos mais importantes vão à frente.
           </p>
         </div>
-        {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. */}
-        <div ref={panelRef} className="relative min-h-[28rem] scroll-mt-20 xl:min-h-0">
+        {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. On a
+            phone, where it sits below the map, the empty invitation is left out: it would only be a blank box. */}
+        <div ref={panelRef} className={`relative min-h-[28rem] scroll-mt-20 xl:block xl:min-h-0 ${selection ? "" : "hidden"}`}>
           <div className="h-full xl:absolute xl:inset-0">
             <DeputyPanel
               group={group}

@@ -132,7 +132,8 @@ export type PlainInitiative = {
   status: { label: string; stage: PlainStage | null };
 };
 
-export type PresidencyStatus = "pending" | "promulgated" | "vetoed";
+/** `constitutional_court`: sent to the Constitutional Court, which stops the clock until it rules. */
+export type PresidencyStatus = "pending" | "constitutional_court" | "promulgated" | "vetoed";
 
 export type InitiativePresidency = {
   status: PresidencyStatus;
@@ -140,10 +141,18 @@ export type InitiativePresidency = {
   promulgatedAt: string | null;
   /** Kept after a veto that Parliament overcame, so "vetado e depois promulgado" can be shown. */
   vetoedAt: string | null;
+  /** When the President asked the Constitutional Court, and when it ruled. */
+  courtRequestedAt: string | null;
+  courtRuledAt: string | null;
   by: string | null;
 };
 
-export type InitiativePage = { initiatives: Initiative[]; nextCursor: string | null };
+export type InitiativePage = {
+  initiatives: Initiative[];
+  nextCursor: string | null;
+  /** How many match the filters; null when the API doesn't count them. */
+  total: number | null;
+};
 
 /** A party's position in a vote. `count` null means the whole group; a number means only that many deputies. */
 export type VotePosition = { partySlug: string; count: number | null };
@@ -281,7 +290,18 @@ export type ElectionList = {
 
 export type Place = { key: string; name: string; level: PlaceLevel; dicofre: string | null };
 
-export type ElectionSummary = { id: string; type: ElectionType; name: string; date: string; organs: string[]; sourceUrl: string | null };
+export type ElectionSummary = {
+  id: string;
+  type: ElectionType;
+  name: string;
+  date: string;
+  organs: string[];
+  sourceUrl: string | null;
+  /** How far down the results go; null when the API doesn't say (then as far as there are places). */
+  deepestLevel: "national" | "district" | "municipality" | "parish" | null;
+  /** Presidenciais: the first or second round; null otherwise. */
+  round: number | null;
+};
 
 export type Election = ElectionSummary & { turnout: ElectionTurnout | null; winner: ElectionList | null; imported: boolean };
 

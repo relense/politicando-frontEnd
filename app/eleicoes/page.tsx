@@ -19,8 +19,7 @@ import type { Election, ElectionResult, Party } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Eleições",
-  description:
-    "Os resultados das eleições em Portugal desde 2011: legislativas, autárquicas, presidenciais e europeias, do país à freguesia.",
+  description: "Os resultados das eleições em Portugal: legislativas, autárquicas, presidenciais e europeias, do país à freguesia.",
   alternates: { canonical: "/eleicoes" },
 };
 
@@ -35,6 +34,8 @@ async function loadElections(): Promise<Election[] | null> {
 }
 
 const newestFirst = (a: Election, b: Election) => b.date.localeCompare(a.date);
+/** The latest of each type get a card; the older ones a line each, by decade. */
+const CARDS = 6;
 
 export default async function ElectionsPage() {
   await connection();
@@ -49,14 +50,19 @@ export default async function ElectionsPage() {
     const next = ofType.filter((election) => election.date > today).at(-1) ?? null;
     return { ...item, next, elections: ofType.filter((election) => election.date <= today) };
   }).filter((item) => item.elections.length > 0 || item.next);
+  const since = sorted
+    .filter((election) => election.date <= today)
+    .at(-1)
+    ?.date.slice(0, 4);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Resultados oficiais</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Eleições</h1>
         <p className="mt-3 max-w-2xl leading-relaxed">
-          Quem ganhou, com quantos votos e onde, desde 2011. Escolhe uma eleição e desce do país ao distrito, ao concelho e à freguesia.
+          Quem ganhou, com quantos votos e onde{since ? `, desde ${since}` : ""}. Escolhe uma eleição e desce do país ao distrito, ao
+          concelho e à freguesia, até onde houver resultados.
         </p>
       </header>
 
@@ -104,12 +110,13 @@ export default async function ElectionsPage() {
                   <TurnoutBars elections={ofType} />
                 </div>
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {ofType.map((election) => (
+                  {ofType.slice(0, CARDS).map((election) => (
                     <li key={election.id}>
                       <ElectionCard election={election} parties={parties} />
                     </li>
                   ))}
                 </ul>
+                {ofType.length > CARDS && <OlderElections type={type} label={label} elections={ofType.slice(CARDS)} parties={parties} />}
               </section>
             ))}
           </div>
@@ -269,7 +276,12 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
           <span className="rounded-full border border-line px-2 py-0.5 text-ink">A importar</span>
         )}
       </span>
-      <span className="mt-1 block text-xl font-bold">{election.name}</span>
+      <span className="mt-1 block text-xl font-bold">
+        {election.name}
+        {election.round === 2 && !/volta/i.test(election.name) && (
+          <span className="ml-2 align-middle font-mono text-[11px] font-normal text-muted">2.ª volta</span>
+        )}
+      </span>
       {winner && (
         <>
           <span className="mt-2 flex items-center gap-2 text-sm font-bold">
@@ -308,5 +320,84 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
     </Link>
   ) : (
     <div className={`${classes} border-dashed`}>{content}</div>
+  );
+}
+
+const DEPTH: Record<NonNullable<Election["deepestLevel"]>, string | null> = {
+  national: "só o resultado nacional",
+  district: "até ao distrito",
+  municipality: "até ao concelho",
+  parish: null,
+};
+
+/** The older elections of a type, one line each, by decade: when, who won, by how much, and how far the results go. */
+function OlderElections({ type, label, elections, parties }: { type: string; label: string; elections: Election[]; parties: Party[] }) {
+  const decades = new Map<string, Election[]>();
+  for (const election of elections) {
+    const decade = `${election.date.slice(0, 3)}0`;
+    decades.set(decade, [...(decades.get(decade) ?? []), election]);
+  }
+  return (
+    <div className="mt-6">
+      <h3 id={`antes-${type}`} className="mb-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+        {label} anteriores
+      </h3>
+      <div className="space-y-4">
+        {[...decades].map(([decade, items]) => (
+          <section key={decade} aria-label={`Anos ${decade.slice(2)}`}>
+            <h4 className="mb-1 font-mono text-[11px] text-muted">Anos {decade.slice(2)}</h4>
+            <ul className="divide-y divide-line rounded-2xl border border-line">
+              {items.map((election) => {
+                const { winner } = election;
+                const depth = election.deepestLevel ? DEPTH[election.deepestLevel] : null;
+                const name = (
+                  <>
+                    <span className="font-bold">{election.name}</span>
+                    {election.round === 2 && !/volta/i.test(election.name) && <span className="text-muted"> · 2.ª volta</span>}
+                  </>
+                );
+                return (
+                  <li
+                    key={election.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:grid-cols-[9rem_minmax(0,1fr)_auto_auto]"
+                  >
+                    {election.imported ? (
+                      <Link href={electionPath(election.id)} className="hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      <span>{name}</span>
+                    )}
+                    <span className="order-3 col-span-2 flex min-w-0 items-center gap-2 sm:order-none sm:col-span-1">
+                      {winner ? (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className="size-2.5 shrink-0 rounded-sm"
+                            style={{ backgroundColor: listColor(winner) }}
+                          />
+                          <span className="sr-only">Mais votado: </span>
+                          <span className="min-w-0 truncate">{listName(winner, parties)}</span>
+                          <span className="shrink-0 font-mono text-xs font-bold">{formatPercent(winner.validPct)}</span>
+                          {winner.mandates ? (
+                            <span className="shrink-0 font-mono text-xs text-muted">{winner.mandates} mandatos</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="text-muted">{election.imported ? "Sem resultados" : "A importar"}</span>
+                      )}
+                    </span>
+                    <span className="hidden font-mono text-[11px] text-muted sm:block">
+                      {election.turnout?.turnoutPct != null && <>Participação {formatPercent(election.turnout.turnoutPct)}</>}
+                    </span>
+                    <span className="text-right font-mono text-[11px] text-muted">{depth ?? formatLongDate(election.date)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -200,6 +200,15 @@ const PLAIN_TYPES: Record<string, { label: string; explainer: string; makesLaw: 
 function presidencyOf(index: number, type: string, status: string) {
   if (status !== "approved" || !PLAIN_TYPES[type]!.makesLaw) return null;
   const sentAt = day(index * 2 + 10);
+  if (index % 16 === 0)
+    return {
+      status: "constitutional_court",
+      sentAt,
+      courtRequestedAt: day(index * 2 + 6),
+      promulgatedAt: null,
+      vetoedAt: null,
+      by: "Teresa Albuquerque",
+    };
   if (index % 4 === 0) return { status: "pending", sentAt, promulgatedAt: null, vetoedAt: null, by: "Teresa Albuquerque" };
   if (index % 5 === 1) return { status: "vetoed", sentAt, promulgatedAt: null, vetoedAt: day(index * 2 + 5), by: "Teresa Albuquerque" };
   const vetoedAt = index % 7 === 3 ? day(index * 2 + 30) : null;

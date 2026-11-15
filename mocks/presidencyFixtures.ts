@@ -26,10 +26,10 @@ export const presidency: ApiPresidencyInput = {
   legislation: {
     promulgated: 42,
     vetoed: 3,
-    pending: withPresidency("pending").length,
+    pending: withPresidency("pending").length + withPresidency("constitutional_court").length,
     latestVetoes: withPresidency("vetoed").slice(0, 3),
     latestPromulgated: withPresidency("promulgated").slice(0, 5),
-    pendingNow: withPresidency("pending"),
+    pendingNow: [...withPresidency("constitutional_court"), ...withPresidency("pending")],
   },
   articles: articles.slice(0, 4),
   former: [{ id: "jorge-vilalobos", name: "Jorge Vilalobos", termStart: "2016-03-09", termEnd: "2026-03-09" }],

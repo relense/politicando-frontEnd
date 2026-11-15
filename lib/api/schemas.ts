@@ -117,7 +117,8 @@ export const initiativeSchema = z.object({
   topics: list(z.object({ slug: z.string(), label: z.string() })),
   plain: z
     .object({
-      title: z.string(),
+      /** Null when no plain version could be made: the official title is used. */
+      title: z.string().nullish(),
       type: z.object({ label: z.string(), explainer: z.string().nullish(), makesLaw: z.boolean().nullish() }),
       status: z.object({ label: z.string(), stage: z.string().nullish() }),
     })
@@ -128,6 +129,8 @@ export const initiativeSchema = z.object({
       sentAt: z.string().nullish(),
       promulgatedAt: z.string().nullish(),
       vetoedAt: z.string().nullish(),
+      courtRequestedAt: z.string().nullish(),
+      courtRuledAt: z.string().nullish(),
       by: z.string().nullish(),
     })
     .nullish(),
@@ -157,6 +160,8 @@ export const initiativeDetailSchema = initiativeSchema.extend({
 export const initiativePageSchema = z.object({
   items: z.array(initiativeSchema),
   nextCursor: z.string().nullable(),
+  /** How many match the filters, when the API counts them. */
+  total: z.number().nullish(),
 });
 
 export const deputyDetailSchema = deputySummarySchema.extend({
@@ -286,6 +291,10 @@ const electionSummarySchema = z.object({
   date: z.string(),
   organs: list(z.string()),
   sourceUrl: z.string().nullish(),
+  /** How far down the results go: older elections often have them only for the country or by district. */
+  deepestLevel: z.enum(["national", "district", "municipality", "parish"]).nullish().catch(null),
+  /** Presidenciais: 1 or 2. */
+  round: z.number().int().nullish().catch(null),
 });
 
 export const electionsSchema = z.object({

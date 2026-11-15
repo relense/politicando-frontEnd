@@ -195,7 +195,8 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
     topics: initiative.topics,
     plain: initiative.plain
       ? {
-          title: plainText(initiative.plain.title),
+          // Empty when there is no plain version: headlineOf() then falls back to the official title.
+          title: plainText(initiative.plain.title ?? ""),
           type: {
             label: initiative.plain.type.label,
             explainer: initiative.plain.type.explainer ?? "",
@@ -211,13 +212,15 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
             sentAt: initiative.presidency.sentAt ?? null,
             promulgatedAt: initiative.presidency.promulgatedAt ?? null,
             vetoedAt: initiative.presidency.vetoedAt ?? null,
+            courtRequestedAt: initiative.presidency.courtRequestedAt ?? null,
+            courtRuledAt: initiative.presidency.courtRuledAt ?? null,
             by: initiative.presidency.by ?? null,
           }
         : null,
   };
 }
 
-const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "promulgated", "vetoed"];
+const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "constitutional_court", "promulgated", "vetoed"];
 const STAGES: readonly PlainStage[] = [
   "submitted",
   "committee",
@@ -391,6 +394,8 @@ const mapElectionSummary = (election: ApiElectionResult["election"]) => ({
   date: election.date,
   organs: election.organs,
   sourceUrl: safeHttpUrl(election.sourceUrl),
+  deepestLevel: election.deepestLevel ?? null,
+  round: election.round ?? null,
 });
 
 export function mapElections(api: ApiElections): Election[] {

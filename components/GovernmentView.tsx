@@ -83,7 +83,8 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
     window.history.replaceState(window.history.state, "", url);
     // On a phone the card is below the ministries, so bring it into view.
     if (id && !window.matchMedia("(min-width: 1280px)").matches) {
-      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // After the render that shows the card, which is hidden on a phone while nothing is chosen.
+      requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
   }
 
@@ -221,7 +222,8 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
           )}
         </div>
 
-        <div ref={panelRef} className="scroll-mt-20">
+        {/* On a phone the card sits below the ministries; the empty invitation is left out there. */}
+        <div ref={panelRef} className={`scroll-mt-20 xl:block ${seat ? "" : "hidden"}`}>
           <div className="xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]">
             {seat && member ? (
               <MemberCard

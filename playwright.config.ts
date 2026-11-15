@@ -4,6 +4,7 @@ const env = {
   NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v2",
   NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
   NEXT_PUBLIC_CAPTCHA_MODE: "mock",
+  NEXT_PUBLIC_INITIATIVE_SEARCH: "on",
 };
 
 export default defineConfig({

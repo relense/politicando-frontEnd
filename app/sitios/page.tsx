@@ -37,7 +37,7 @@ export default async function PlacesPage({ searchParams }: Props) {
   const [data, { mapa }] = await Promise.all([load(), searchParams]);
   if (!data) {
     return (
-      <div data-wide className="mx-auto max-w-5xl">
+      <div data-wide className="max-w-5xl">
         <h1 className="text-3xl font-bold sm:text-5xl">Quem governa a tua terra</h1>
         <p className="mt-4 text-muted">Em breve: o mapa dos presidentes de câmara ainda não está disponível.</p>
       </div>
@@ -109,7 +109,7 @@ export default async function PlacesPage({ searchParams }: Props) {
     .filter((group) => group.places.length > 0);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Poder local{election && <> · {electionName(election)}</>}

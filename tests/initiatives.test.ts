@@ -52,6 +52,12 @@ describe("plain language", () => {
     expect(bare).toMatchObject({ plain: null, topics: [], presidency: null });
     expect(headlineOf(bare)).toBe(bare.title);
     expect(hasPlainTitle(bare)).toBe(false);
+
+    // The API sends a null plain title when it couldn't make one: the official title is used, and the rest stays.
+    const untitled = mapInitiative(initiativeSchema.parse({ ...initiatives[0]!, plain: { ...initiatives[0]!.plain!, title: null } }));
+    expect(headlineOf(untitled)).toBe(untitled.title);
+    expect(hasPlainTitle(untitled)).toBe(false);
+    expect(untitled.plain?.type.label).toBeTruthy();
   });
 
   it("drops unknown stages and presidency states instead of failing", () => {
@@ -67,9 +73,18 @@ describe("plain language", () => {
   });
 
   it("says when a veto was overcome", () => {
-    const presidency = { status: "promulgated" as const, sentAt: null, promulgatedAt: "2026-10-09", vetoedAt: null, by: null };
+    const presidency = {
+      status: "promulgated" as const,
+      sentAt: null,
+      promulgatedAt: "2026-10-09",
+      vetoedAt: null,
+      courtRequestedAt: null,
+      courtRuledAt: null,
+      by: null,
+    };
     expect(presidencyLabel(presidency)).toBe("Promulgada");
     expect(presidencyLabel({ ...presidency, vetoedAt: "2026-06-15" })).toBe("Vetada e depois promulgada");
+    expect(presidencyLabel({ ...presidency, status: "constitutional_court", promulgatedAt: null })).toBe("No Tribunal Constitucional");
   });
 });
 
@@ -77,7 +92,8 @@ describe("presidency api", () => {
   it("loads the President and filters initiatives by the President's decision and topic", async () => {
     const data = await getPresidency();
     expect(data.president.name).toBe("Teresa Albuquerque");
-    expect(data.legislation.pendingNow.every((item) => item.presidency?.status === "pending")).toBe(true);
+    expect(data.legislation.pendingNow.every((item) => ["pending", "constitutional_court"].includes(item.presidency!.status))).toBe(true);
+    expect(data.legislation.pendingNow.some((item) => item.presidency!.status === "constitutional_court")).toBe(true);
 
     const vetoed = await getInitiatives({ presidency: "vetoed" });
     expect(vetoed.initiatives.length).toBeGreaterThan(0);

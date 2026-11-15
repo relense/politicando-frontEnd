@@ -96,6 +96,7 @@ export const toneColor = (tone: StageTone) => `var(--stage-${tone})`;
 
 export const PRESIDENCY_LABELS: Record<InitiativePresidency["status"], string> = {
   pending: "À espera do Presidente",
+  constitutional_court: "No Tribunal Constitucional",
   promulgated: "Promulgada",
   vetoed: "Vetada",
 };

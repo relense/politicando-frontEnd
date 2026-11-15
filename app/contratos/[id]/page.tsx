@@ -57,7 +57,7 @@ export default async function ContractPage({ params }: Props) {
   const direct = contract.procedure.kind.startsWith("direct_award");
 
   return (
-    <article className="mx-auto max-w-3xl pb-4" data-wide>
+    <article className="max-w-3xl pb-4" data-wide>
       <Link href="/contratos" className="mb-6 inline-block font-mono text-sm text-muted hover:text-ink hover:underline">
         ← Contratos públicos
       </Link>

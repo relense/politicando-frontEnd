@@ -112,7 +112,7 @@ export default async function ContractsPage({ searchParams }: Props) {
   const updated = years ?? entities;
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Dinheiro público</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos{where}</h1>
@@ -182,7 +182,9 @@ export default async function ContractsPage({ searchParams }: Props) {
               <li key={item.kind} className="rounded-2xl border border-line p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <h3 className="font-bold">{item.label}</h3>
-                  <span className="font-mono text-sm font-bold tabular-nums">{formatEurosShort(item.total)}</span>
+                  <span className="shrink-0 whitespace-nowrap font-mono text-sm font-bold tabular-nums">
+                    {formatEurosShort(item.total)}
+                  </span>
                 </div>
                 <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface">
                   <div
@@ -337,7 +339,7 @@ export default async function ContractsPage({ searchParams }: Props) {
 
 function ComingSoon() {
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos</h1>
       <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
         Os contratos estarão disponíveis em breve.

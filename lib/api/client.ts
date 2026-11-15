@@ -165,6 +165,10 @@ export type InitiativeQuery = {
   party?: string;
   presidency?: PresidencyStatus;
   topic?: string;
+  /** Words to look for in the titles. */
+  q?: string;
+  /** Newest first unless "oldest". */
+  sort?: "newest" | "oldest";
   cursor?: string;
   limit?: number;
 };
@@ -175,12 +179,14 @@ export async function getInitiatives({
   party,
   presidency,
   topic,
+  q,
+  sort,
   cursor,
   limit,
 }: InitiativeQuery = {}): Promise<InitiativePage> {
-  const query = searchOf({ status, deputy, party, presidency, topic, cursor, limit });
+  const query = searchOf({ status, deputy, party, presidency, topic, q, sort: sort === "oldest" ? sort : undefined, cursor, limit });
   const page = await request(`/initiatives${query}`, initiativePageSchema, cached);
-  return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor };
+  return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor, total: page.total ?? null };
 }
 
 export async function getInitiative(id: number): Promise<InitiativeDetail> {

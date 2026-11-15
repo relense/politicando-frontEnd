@@ -47,8 +47,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <div className="mx-auto flex w-full max-w-[96rem] gap-6 px-4 py-6 2xl:gap-8">
               <SiteNav />
               <main id="conteudo" className="min-w-0 flex-1">
-                {/* A Reddit-sized reading column, centred; wide pages (data-wide) take the full width. */}
-                <div className="mx-auto max-w-3xl has-[[data-wide]]:max-w-none">{children}</div>
+                {/* A Reddit-sized reading column, level with the menu like every page; wide pages (data-wide) take the full width. */}
+                <div className="max-w-3xl has-[[data-wide]]:max-w-none">{children}</div>
               </main>
             </div>
           </PartyOrderProvider>

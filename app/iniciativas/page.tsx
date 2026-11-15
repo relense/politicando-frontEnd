@@ -4,11 +4,18 @@ import { connection } from "next/server";
 import { InitiativeList } from "@/components/InitiativeList";
 import { ApiError, getInitiatives, getParliament, type InitiativeQuery } from "@/lib/api/client";
 import { getInitiativeTopics, getPresidency, type TopicCount } from "@/lib/api/presidency";
+import { FEATURES } from "@/lib/features";
 import { formatNumber } from "@/lib/format";
 import { toneColor, type StageTone } from "@/lib/initiatives";
 import type { InitiativePage, InitiativeStatus, Parliament, PresidencyStatus } from "@/lib/types";
 
-type Search = { tema?: string | string[]; estado?: string | string[]; presidente?: string | string[] };
+type Search = {
+  tema?: string | string[];
+  estado?: string | string[];
+  presidente?: string | string[];
+  q?: string | string[];
+  ordem?: string | string[];
+};
 type Props = { searchParams: Promise<Search> };
 
 const STATUSES: { value: InitiativeStatus; label: string }[] = [
@@ -19,25 +26,37 @@ const STATUSES: { value: InitiativeStatus; label: string }[] = [
 ];
 const PRESIDENCY: PresidencyStatus[] = ["pending", "vetoed", "promulgated"];
 
-type Filters = { topic: string | null; status: InitiativeStatus | null; presidency: PresidencyStatus | null };
+type Filters = {
+  topic: string | null;
+  status: InitiativeStatus | null;
+  presidency: PresidencyStatus | null;
+  /** Words to look for in the titles. */
+  q: string | null;
+  oldest: boolean;
+};
 
 function filtersOf(search: Search, topics: readonly TopicCount[]): Filters {
   const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : null);
   const topic = one(search.tema);
   const status = one(search.estado);
   const presidency = one(search.presidente);
+  const q = FEATURES.initiativeSearch ? (one(search.q)?.trim().slice(0, 100) ?? "") : "";
   return {
     topic: topics.some((item) => item.slug === topic) ? topic : null,
     status: STATUSES.find((item) => item.value === status)?.value ?? null,
     presidency: PRESIDENCY.find((item) => item === presidency) ?? null,
+    q: q || null,
+    oldest: FEATURES.initiativeSearch && one(search.ordem) === "antigas",
   };
 }
 
-function pathOf({ topic, status, presidency }: Filters) {
+function pathOf({ topic, status, presidency, q, oldest }: Filters) {
   const query = new URLSearchParams();
   if (topic) query.set("tema", topic);
   if (status) query.set("estado", status);
   if (presidency) query.set("presidente", presidency);
+  if (q) query.set("q", q);
+  if (oldest) query.set("ordem", "antigas");
   return query.size > 0 ? `/iniciativas?${query}` : "/iniciativas";
 }
 
@@ -51,7 +70,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title: topic ? `${topic.label} · Iniciativas no Parlamento` : "Iniciativas no Parlamento",
     description:
       "As propostas de lei e recomendações que entram no Parlamento, explicadas em linguagem simples: o que são, em que fase estão, quem as propôs e como se votou.",
-    alternates: { canonical: pathOf(filters) },
+    // A search or another order is the same list again: point to it without them, and keep searches out of the index.
+    alternates: { canonical: pathOf({ ...filters, q: null, oldest: false }) },
+    robots: filters.q ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -84,6 +105,8 @@ export default async function InitiativesPage({ searchParams }: Props) {
     topic: filters.topic ?? undefined,
     status: filters.status ?? undefined,
     presidency: filters.presidency ?? undefined,
+    q: filters.q ?? undefined,
+    sort: filters.oldest ? "oldest" : undefined,
     limit: 20,
   };
   const page = await loadPage(query);
@@ -94,7 +117,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
     ? counts.in_progress! + counts.approved! + counts.rejected! + counts.withdrawn!
     : null;
   const pending = presidency?.legislation.pending ?? null;
-  const base = { topic: filters.topic, status: null, presidency: null };
+  const base: Filters = { ...filters, status: null, presidency: null };
   const path: PathStep[] = [
     { label: "Em discussão", tone: "debate", filters: { ...base, status: "in_progress" }, count: known(counts.in_progress) },
     { label: "Aprovada no Parlamento", tone: "approved", filters: { ...base, status: "approved" }, count: known(counts.approved) },
@@ -107,7 +130,9 @@ export default async function InitiativesPage({ searchParams }: Props) {
   const active = path.find((step) => step.filters.status === filters.status && step.filters.presidency === filters.presidency) ?? null;
   const topic = topics.items.find((item) => item.slug === filters.topic) ?? null;
   // How many match, when one number answers it: the whole list, one stage, or one topic.
-  const shown = !filters.status && !filters.presidency ? (topic ? topic.count : total) : !topic ? (active?.count ?? null) : null;
+  const shown =
+    page?.total ??
+    (filters.q ? null : !filters.status && !filters.presidency ? (topic ? topic.count : total) : !topic ? (active?.count ?? null) : null);
 
   const cards = [
     { label: "Em discussão", tone: "debate" as const, value: counts.in_progress, note: "Ainda a ser debatidas" },
@@ -122,7 +147,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
   ].filter((card) => card.value !== undefined);
 
   return (
-    <div data-wide className="mx-auto max-w-6xl">
+    <div data-wide className="max-w-6xl">
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Assembleia da República{parliament ? ` · ${parliament.legislature} Legislatura` : ""}
@@ -185,12 +210,20 @@ export default async function InitiativesPage({ searchParams }: Props) {
             </ul>
           </nav>
 
+          {FEATURES.initiativeSearch && <SearchBar filters={filters} />}
+
           <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-2 border-b-2 border-ink pb-2 font-mono text-xs">
             <p>
               {shown !== null && <span className="font-bold">{formatNumber(shown)} </span>}
               <span className={shown !== null ? "text-muted" : "font-bold"}>{shown === 1 ? "iniciativa" : "iniciativas"}</span>
-              <span className="text-muted"> · mais recentes primeiro</span>
+              <span className="text-muted"> · {filters.oldest ? "mais antigas primeiro" : "mais recentes primeiro"}</span>
             </p>
+            {filters.q && (
+              <Link href={pathOf({ ...filters, q: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
+                Pesquisa: «{filters.q}» <span aria-hidden="true">×</span>
+                <span className="sr-only"> (tirar a pesquisa)</span>
+              </Link>
+            )}
             {topic && (
               <Link href={pathOf({ ...filters, topic: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
                 Tema: {topic.label} <span aria-hidden="true">×</span>
@@ -320,5 +353,39 @@ function TopicBars({ topics, filters }: { topics: TopicCount[]; filters: Filters
         </details>
       )}
     </nav>
+  );
+}
+
+/** A plain form, so it works before the page's scripts load: the words, plus the filters already chosen, and the order. */
+function SearchBar({ filters }: { filters: Filters }) {
+  const keep = { tema: filters.topic, estado: filters.status, presidente: filters.presidency, ordem: filters.oldest ? "antigas" : null };
+  const order = (oldest: boolean) =>
+    `h-10 rounded-full border px-3 font-mono text-xs font-bold ${filters.oldest === oldest ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <form action="/iniciativas" role="search" className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
+        {Object.entries(keep).map(([name, value]) => (value ? <input key={name} type="hidden" name={name} value={value} /> : null))}
+        <input
+          type="search"
+          name="q"
+          defaultValue={filters.q ?? ""}
+          maxLength={100}
+          placeholder="Procurar no título, por exemplo «rendas»"
+          aria-label="Procurar iniciativas"
+          className="h-10 min-w-0 flex-1 rounded-full border border-line bg-paper px-4 text-sm"
+        />
+        <button type="submit" className="h-10 rounded-full border border-ink px-4 font-mono text-xs font-bold hover:bg-surface">
+          Procurar
+        </button>
+      </form>
+      <nav aria-label="Ordem" className="flex gap-1.5">
+        <Link href={pathOf({ ...filters, oldest: false })} aria-current={!filters.oldest ? "page" : undefined} className={order(false)}>
+          Mais recentes
+        </Link>
+        <Link href={pathOf({ ...filters, oldest: true })} aria-current={filters.oldest ? "page" : undefined} className={order(true)}>
+          Mais antigas
+        </Link>
+      </nav>
+    </div>
   );
 }

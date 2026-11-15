@@ -173,7 +173,7 @@ export default async function ElectionPage(props: Props) {
   const share = (part: number | null) => (part !== null && turnout?.voters ? formatPercent((part / turnout.voters) * 100) : null);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide className="max-w-5xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Caminho" className="flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           <Link href="/eleicoes" className="underline hover:text-ink">

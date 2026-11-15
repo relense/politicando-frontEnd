@@ -35,7 +35,12 @@ const newCommentSchema = z.strictObject({
 /** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
 const psLeader = deputies.find((deputy) => deputy.party === "ps")!;
 const leaders: Record<string, { name: string; title: string; deputyId: number | null; governmentMemberId: string | null }> = {
-  psd: { name: government.primeMinister!.name!, title: "Presidente do PSD", deputyId: null, governmentMemberId: government.primeMinister!.id! },
+  psd: {
+    name: government.primeMinister!.name!,
+    title: "Presidente do PSD",
+    deputyId: null,
+    governmentMemberId: government.primeMinister!.id!,
+  },
   ps: { name: psLeader.name, title: "Secretário-geral do PS", deputyId: psLeader.id, governmentMemberId: null },
   be: { name: "Marta Quintela", title: "Coordenadora do Bloco de Esquerda", deputyId: null, governmentMemberId: null },
 };
@@ -150,6 +155,8 @@ export const handlers = [
     const party = search.get("party");
     const presidency = search.get("presidency");
     const topic = search.get("topic");
+    const q = search.get("q")?.toLowerCase().trim();
+    const oldest = search.get("sort") === "oldest";
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
     if (cursor && !/^i\d+$/.test(cursor)) return fail(400, "invalid_cursor");
@@ -160,9 +167,12 @@ export const handlers = [
       .filter((item) => !party || item.authors.parties?.some((author) => author.slug === party))
       .filter((item) => !presidency || item.presidency?.status === presidency)
       .filter((item) => !topic || item.topics?.some((tag) => tag.slug === topic))
-      .filter((item) => !cursor || item.id < Number(cursor.slice(1)));
-    const page = matching.slice(0, limit);
-    return HttpResponse.json({ items: page, nextCursor: matching.length > limit ? `i${page.at(-1)!.id}` : null });
+      .filter((item) => !q || `${item.title} ${item.plain?.title ?? ""}`.toLowerCase().includes(q));
+    const ordered = oldest ? [...matching].reverse() : matching;
+    const after = ordered.filter((item) => !cursor || (oldest ? item.id > Number(cursor.slice(1)) : item.id < Number(cursor.slice(1))));
+    const page = after.slice(0, limit);
+    // `total` counts every match, not just what is left after the cursor.
+    return HttpResponse.json({ items: page, nextCursor: after.length > limit ? `i${page.at(-1)!.id}` : null, total: matching.length });
   }),
   http.get(`${API}/articles/:id/comments`, ({ params }) => HttpResponse.json(store.get(Number(params.id)) ?? [])),
   http.get(`${API}/articles/:id`, ({ params }) => {

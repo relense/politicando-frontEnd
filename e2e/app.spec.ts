@@ -393,7 +393,7 @@ test("government: from the menu to a minister who came from Parliament, and on t
   const card = page.getByRole("region", { name: "Henrique Valadares" });
   await expect(card.getByRole("link", { name: /Percurso e notícias/ })).toBeVisible();
   await card.getByRole("button", { name: "Fechar" }).click();
-  await expect(page.getByText("Carrega num ministério")).toBeVisible();
+  await expect(card).toHaveCount(0);
 
   const members = page.getByRole("region", { name: "Todos os membros do Governo" });
   await members.getByRole("searchbox").fill("Presidência");
@@ -457,6 +457,16 @@ test("elections: each type shows the date of its next election when one is sched
   await expect(page.getByRole("region", { name: "Legislativas" }).getByText("Próximas eleições")).toHaveCount(0);
 });
 
+test("elections: the latest of each type as cards, older ones one per line by decade", async ({ page }) => {
+  await page.goto("/eleicoes");
+  const legislativas = page.getByRole("region", { name: "Legislativas", exact: true });
+  await expect(legislativas.getByRole("heading", { name: "Legislativas anteriores" })).toBeVisible();
+  const seventies = legislativas.getByRole("region", { name: "Anos 70" });
+  await expect(seventies.getByText("só o resultado nacional")).toBeVisible();
+  await legislativas.getByRole("region", { name: "Anos 80" }).getByRole("link", { name: "Legislativas 1987" }).click();
+  await expect(page).toHaveURL(/\/eleicoes\/legislativas-1987$/);
+});
+
 test("elections: unknown elections, places and bodies are real 404s", async ({ request }) => {
   expect((await request.get("/eleicoes/legislativas-1900")).status()).toBe(404);
   expect((await request.get("/eleicoes/legislativas-2025/LOCAL-999999")).status()).toBe(404);
@@ -497,7 +507,15 @@ test("party page: Parliament card and tabs for deputies, initiatives and votes",
 
   await tabs.getByRole("link", { name: "Votações" }).click();
   await expect(page).toHaveURL(/ver=votacoes$/);
-  await expect(page.getByRole("region", { name: "Votações do PS" }).getByRole("listitem").first()).toBeVisible();
+  const votes = page.getByRole("region", { name: "Votações do PS" });
+  await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(20);
+  await votes.getByRole("button", { name: /^Contra/ }).click();
+  await expect(votes.getByRole("button", { name: /^Contra/ })).toHaveAttribute("aria-pressed", "true");
+  for (const item of await votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem").all())
+    await expect(item.getByText("Contra", { exact: true })).toBeVisible();
+  await votes.getByRole("button", { name: /^Todas/ }).click();
+  await votes.getByRole("button", { name: "Carregar mais 20" }).click();
+  await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(40);
 });
 
 test("party page without deputies has no Parliament tabs", async ({ page }) => {

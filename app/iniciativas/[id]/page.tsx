@@ -54,7 +54,7 @@ export default async function InitiativePage({ params }: Props) {
   const { plain, presidency, authors } = initiative;
 
   return (
-    <article className="mx-auto max-w-3xl">
+    <article className="max-w-3xl">
       <p className="mb-3 font-mono text-xs">
         <Link href="/iniciativas" className="text-muted underline hover:text-ink">
           Iniciativas
@@ -184,9 +184,14 @@ export default async function InitiativePage({ params }: Props) {
           </p>
           <ol className="mt-3 flex flex-col gap-2 border-l-2 border-line pl-4 text-sm">
             {presidency.sentAt && <li>Enviada para Belém a {formatDate(presidency.sentAt)}</li>}
+            {presidency.courtRequestedAt && <li>Enviada ao Tribunal Constitucional a {formatDate(presidency.courtRequestedAt)}</li>}
+            {presidency.courtRuledAt && <li>O Tribunal Constitucional decidiu a {formatDate(presidency.courtRuledAt)}</li>}
             {presidency.vetoedAt && <li>Vetada a {formatDate(presidency.vetoedAt)}</li>}
             {presidency.promulgatedAt && <li>Promulgada a {formatDate(presidency.promulgatedAt)}</li>}
             {presidency.status === "pending" && <li className="text-muted">À espera da decisão do Presidente</li>}
+            {presidency.status === "constitutional_court" && (
+              <li className="text-muted">À espera do acórdão; o prazo do Presidente fica suspenso até lá</li>
+            )}
           </ol>
           <p className="mt-3 text-sm text-muted">
             <Link href="/presidente" className="text-link underline">

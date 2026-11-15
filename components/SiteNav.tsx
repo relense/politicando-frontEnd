@@ -94,7 +94,7 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
       {
         href: "/eleicoes",
         label: "Eleições",
-        hint: "Resultados desde 2011",
+        hint: "Do país à freguesia",
         icon: icon("M4 9h12v8H4V9Zm3-5h6l1 5H6l1-5Zm1 9h4"),
         active: (path) => path.startsWith("/eleicoes"),
       },
