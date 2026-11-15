@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getInitiatives } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
+import { headlineOf, initiativePath } from "@/lib/initiatives";
 import { STATUS_LABELS } from "@/lib/parliament";
 import type { InitiativePage } from "@/lib/types";
 
@@ -35,14 +37,9 @@ export function PartyInitiatives({ slug, acronym, initialPage, compact = false }
               {!compact && item.submittedAt && ` · ${formatDate(item.submittedAt)}`}
             </p>
             <p className={`leading-snug ${compact ? "line-clamp-3 text-sm" : "font-bold"}`}>
-              {item.textUrl ? (
-                <a href={item.textUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                  {item.title}
-                  <span className="sr-only"> (abre num novo separador)</span>
-                </a>
-              ) : (
-                item.title
-              )}
+              <Link href={initiativePath(item.id)} className="hover:underline">
+                {headlineOf(item)}
+              </Link>
             </p>
           </li>
         ))}

@@ -8,6 +8,7 @@ import { editorialPosts } from "./editorialFixtures";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
 import { forumHandlers } from "./forumFixtures";
+import { presidencyHandlers } from "./presidencyFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -116,6 +117,7 @@ export const handlers = [
     return detail ? HttpResponse.json(detail) : fail(404, "not_found");
   }),
   http.get(`${API}/initiatives/:id`, ({ params }) => {
+    if (params.id === "topics") return; // Answered by the presidency handlers.
     const detail = initiativeDetails.find((item) => item.id === Number(params.id));
     if (!detail) return fail(404, "not_found");
     const related = detail.coverage?.articles ? articles.slice(detail.id % 20, (detail.id % 20) + 3) : [];
@@ -126,6 +128,8 @@ export const handlers = [
     const status = search.get("status");
     const deputy = search.get("deputy");
     const party = search.get("party");
+    const presidency = search.get("presidency");
+    const topic = search.get("topic");
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
     if (cursor && !/^i\d+$/.test(cursor)) return fail(400, "invalid_cursor");
@@ -134,6 +138,8 @@ export const handlers = [
       .filter((item) => !status || item.status === status)
       .filter((item) => !deputy || item.authors.deputies?.some((author) => author.id === Number(deputy)))
       .filter((item) => !party || item.authors.parties?.some((author) => author.slug === party))
+      .filter((item) => !presidency || item.presidency?.status === presidency)
+      .filter((item) => !topic || item.topics?.some((tag) => tag.slug === topic))
       .filter((item) => !cursor || item.id < Number(cursor.slice(1)));
     const page = matching.slice(0, limit);
     return HttpResponse.json({ items: page, nextCursor: matching.length > limit ? `i${page.at(-1)!.id}` : null });
@@ -169,4 +175,5 @@ export const handlers = [
   ...contractHandlers,
   ...placeHandlers,
   ...forumHandlers,
+  ...presidencyHandlers,
 ];

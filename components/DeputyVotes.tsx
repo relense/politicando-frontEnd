@@ -4,6 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { getDeputyVotes } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
+import { initiativePath } from "@/lib/initiatives";
 import type { DeputyVote, DeputyVotesPage } from "@/lib/types";
 
 const POSITIONS: Record<NonNullable<DeputyVote["position"]>, string> = { favor: "A favor", against: "Contra", abstention: "Abstenção" };
@@ -73,7 +74,11 @@ export function DeputyVotes({ deputyId, group, compact = false }: Props) {
                 <span>{basisLabel(item, group)}</span>
                 {item.vote.date && <span>· {formatDate(item.vote.date)}</span>}
               </p>
-              <p className="mt-1 text-sm font-bold leading-snug">{item.initiative.title}</p>
+              <p className="mt-1 text-sm font-bold leading-snug">
+                <Link href={initiativePath(item.initiative.id)} className="hover:underline">
+                  {item.initiative.title}
+                </Link>
+              </p>
               <p className="font-mono text-[11px] text-muted">
                 {item.initiative.type}
                 {item.initiative.number && ` n.º ${item.initiative.number}`} · {item.vote.phase ?? "Votação"}: {item.vote.result}

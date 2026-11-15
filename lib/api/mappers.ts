@@ -15,6 +15,8 @@ import type {
   GovernmentMemberDetail,
   Initiative,
   InitiativeDetail,
+  PlainStage,
+  PresidencyStatus,
   Parliament,
   Party,
   GovernmentEndReason,
@@ -159,13 +161,55 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
       sources: initiative.coverage?.sources ?? 0,
       lastAt: initiative.coverage?.lastAt ?? null,
     },
+    topics: initiative.topics,
+    plain: initiative.plain
+      ? {
+          title: plainText(initiative.plain.title),
+          type: {
+            label: initiative.plain.type.label,
+            explainer: initiative.plain.type.explainer ?? "",
+            makesLaw: initiative.plain.type.makesLaw ?? true,
+          },
+          status: { label: initiative.plain.status.label, stage: knownStage(initiative.plain.status.stage) },
+        }
+      : null,
+    presidency:
+      initiative.presidency && PRESIDENCY_STATUSES.includes(initiative.presidency.status as PresidencyStatus)
+        ? {
+            status: initiative.presidency.status as PresidencyStatus,
+            sentAt: initiative.presidency.sentAt ?? null,
+            promulgatedAt: initiative.presidency.promulgatedAt ?? null,
+            vetoedAt: initiative.presidency.vetoedAt ?? null,
+            by: initiative.presidency.by ?? null,
+          }
+        : null,
   };
 }
+
+const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "promulgated", "vetoed"];
+const STAGES: readonly PlainStage[] = [
+  "submitted",
+  "committee",
+  "consultation",
+  "debate",
+  "approved_in_principle",
+  "approved",
+  "awaiting_president",
+  "vetoed",
+  "promulgated",
+  "published",
+  "rejected",
+  "not_admitted",
+  "withdrawn",
+];
+const knownStage = (stage: string | null | undefined): PlainStage | null =>
+  stage && STAGES.includes(stage as PlainStage) ? (stage as PlainStage) : null;
 
 export function mapInitiativeDetail(initiative: ApiInitiativeDetail): InitiativeDetail {
   const positions = (list: { party: string; count: number | null }[]) => list.map(({ party, count }) => ({ partySlug: party, count }));
   return {
     ...mapInitiative(initiative),
+    legislature: initiative.legislature ?? null,
     votes: initiative.votes.map((vote) => ({
       id: vote.id,
       date: vote.date ?? null,

@@ -98,11 +98,29 @@ export const initiativeSchema = z.object({
   lastVote: z.object({ date: z.string().nullish(), phase: z.string().nullish(), result: z.string(), unanimous: z.boolean() }).nullish(),
   /** How much news we found about it. Approximate: matched by keywords from the title. */
   coverage: z.object({ articles: z.number(), sources: z.number(), lastAt: z.string().nullish() }).nullish(),
+  topics: list(z.object({ slug: z.string(), label: z.string() })),
+  plain: z
+    .object({
+      title: z.string(),
+      type: z.object({ label: z.string(), explainer: z.string().nullish(), makesLaw: z.boolean().nullish() }),
+      status: z.object({ label: z.string(), stage: z.string().nullish() }),
+    })
+    .nullish(),
+  presidency: z
+    .object({
+      status: z.string(),
+      sentAt: z.string().nullish(),
+      promulgatedAt: z.string().nullish(),
+      vetoedAt: z.string().nullish(),
+      by: z.string().nullish(),
+    })
+    .nullish(),
 });
 
 const positionSchema = z.object({ party: z.string(), count: z.number().nullable() });
 
 export const initiativeDetailSchema = initiativeSchema.extend({
+  legislature: z.string().nullish(),
   articles: list(articleSchema),
   votes: list(
     z.object({

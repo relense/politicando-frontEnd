@@ -18,6 +18,7 @@ import type {
   Parliament,
   Party,
   PartyStanding,
+  PresidencyStatus,
   TimelineEvent,
   EditorialDetail,
   EditorialKind,
@@ -156,10 +157,27 @@ export async function getDeputy(id: number): Promise<DeputyDetail> {
   return mapDeputyDetail(await request(`/deputies/${id}`, deputyDetailSchema, cached));
 }
 
-export type InitiativeQuery = { status?: InitiativeStatus; deputy?: number; party?: string; cursor?: string; limit?: number };
+export type InitiativeQuery = {
+  status?: InitiativeStatus;
+  deputy?: number;
+  party?: string;
+  presidency?: PresidencyStatus;
+  topic?: string;
+  cursor?: string;
+  limit?: number;
+};
 
-export async function getInitiatives({ status, deputy, party, cursor, limit }: InitiativeQuery = {}): Promise<InitiativePage> {
-  const page = await request(`/initiatives${searchOf({ status, deputy, party, cursor, limit })}`, initiativePageSchema, cached);
+export async function getInitiatives({
+  status,
+  deputy,
+  party,
+  presidency,
+  topic,
+  cursor,
+  limit,
+}: InitiativeQuery = {}): Promise<InitiativePage> {
+  const query = searchOf({ status, deputy, party, presidency, topic, cursor, limit });
+  const page = await request(`/initiatives${query}`, initiativePageSchema, cached);
   return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor };
 }
 

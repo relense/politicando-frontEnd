@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { getInitiative, getInitiatives } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
+import { hasPlainTitle, headlineOf, initiativePath } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import { OriginBadge, originOf } from "./OrgansExplainer";
 import type { Initiative, InitiativePage, InitiativeStatus, ParliamentGroup, VotePosition } from "@/lib/types";
@@ -155,7 +156,12 @@ function InitiativeCard({ initiative, groups }: { initiative: Initiative; groups
           </>
         )}
       </p>
-      <h3 className="text-lg font-bold leading-snug">{initiative.title}</h3>
+      <h3 className="text-lg font-bold leading-snug">
+        <Link href={initiativePath(initiative.id)} className="hover:underline">
+          {headlineOf(initiative)}
+        </Link>
+      </h3>
+      {hasPlainTitle(initiative) && <p className="mt-1 line-clamp-2 text-sm text-muted">{initiative.title}</p>}
 
       {proposedBy && (
         <p className="mt-2 text-sm text-muted">

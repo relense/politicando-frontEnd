@@ -97,6 +97,50 @@ export type Initiative = {
   lastVote: { date: string | null; phase: string | null; result: string; unanimous: boolean } | null;
   /** News found about it. Approximate (matched by keywords), so the UI calls it "related". */
   coverage: { articles: number; sources: number; lastAt: string | null };
+  /** Subjects found in the title; empty when none fits. */
+  topics: InitiativeTopic[];
+  /** The plain-language reading, from fixed rules; null when the API has none. */
+  plain: PlainInitiative | null;
+  /** What the President did with it; null until Parliament sends it to Belém. */
+  presidency: InitiativePresidency | null;
+};
+
+export type InitiativeTopic = { slug: string; label: string };
+
+/** Where an initiative stands, for the progress bar. */
+export type PlainStage =
+  | "submitted"
+  | "committee"
+  | "consultation"
+  | "debate"
+  | "approved_in_principle"
+  | "approved"
+  | "awaiting_president"
+  | "vetoed"
+  | "promulgated"
+  | "published"
+  | "rejected"
+  | "not_admitted"
+  | "withdrawn";
+
+export type PlainInitiative = {
+  /** The title without the legal boilerplate. */
+  title: string;
+  /** What kind of initiative this is; `makesLaw` false means approving it changes no law. */
+  type: { label: string; explainer: string; makesLaw: boolean };
+  /** `stage` null when the API sends one we don't know. */
+  status: { label: string; stage: PlainStage | null };
+};
+
+export type PresidencyStatus = "pending" | "promulgated" | "vetoed";
+
+export type InitiativePresidency = {
+  status: PresidencyStatus;
+  sentAt: string | null;
+  promulgatedAt: string | null;
+  /** Kept after a veto that Parliament overcame, so "vetado e depois promulgado" can be shown. */
+  vetoedAt: string | null;
+  by: string | null;
 };
 
 export type InitiativePage = { initiatives: Initiative[]; nextCursor: string | null };
@@ -119,7 +163,7 @@ export type Vote = {
   named: { name: string; group: string; position: string }[];
 };
 
-export type InitiativeDetail = Initiative & { votes: Vote[]; articles: Article[] };
+export type InitiativeDetail = Initiative & { legislature: string | null; votes: Vote[]; articles: Article[] };
 
 /**
  * How a deputy's position in a vote is known. The Parliament records votes by group, so most come from the
