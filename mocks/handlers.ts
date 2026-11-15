@@ -7,6 +7,7 @@ import { governmentHistory, timeline } from "./historyFixtures";
 import { editorialPosts } from "./editorialFixtures";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
+import { forumHandlers } from "./forumFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -167,4 +168,5 @@ export const handlers = [
   }),
   ...contractHandlers,
   ...placeHandlers,
+  ...forumHandlers,
 ];

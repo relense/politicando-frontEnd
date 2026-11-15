@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatLongDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
@@ -58,6 +59,20 @@ export function ArticleDetail({ article }: { article: Article }) {
           </p>
         </div>
       )}
+
+      {/* A thread about this article on each party's board it mentions, or on the general board. */}
+      <div className="mt-6 flex flex-wrap items-center gap-2 font-mono text-sm">
+        <span className="text-muted">Discutir no fórum:</span>
+        {(article.parties.length > 0 ? article.parties : [{ slug: "geral", acronym: "Geral" }]).map((party) => (
+          <Link
+            key={party.slug}
+            href={`/forum/${party.slug}?artigo=${article.id}#nova`}
+            className="rounded-full border border-line px-3 py-1 font-bold hover:border-ink hover:bg-surface"
+          >
+            {party.slug === "geral" ? "Fórum geral" : `Fórum do ${party.acronym}`}
+          </Link>
+        ))}
+      </div>
     </article>
   );
 }

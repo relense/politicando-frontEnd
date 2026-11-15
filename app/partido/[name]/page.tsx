@@ -111,6 +111,9 @@ export default async function PartyPage({ params, searchParams }: Props) {
                     Ver {seats === 1 ? "o deputado" : `os ${seats} deputados`} <span aria-hidden="true">→</span>
                   </Link>
                 )}
+                <Link href={`/forum/${party.slug}`} className={pill}>
+                  Fórum do {party.acronym} <span aria-hidden="true">→</span>
+                </Link>
               </div>
             </div>
           </div>

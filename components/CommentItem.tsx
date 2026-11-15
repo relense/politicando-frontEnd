@@ -6,6 +6,7 @@ import { repliesLabel } from "@/lib/format";
 import { CommentForm } from "./CommentForm";
 import { QuoteLink, CommentText } from "./CommentText";
 import { useComments } from "./CommentsContext";
+import { ReportButton } from "./forum/ReportButton";
 import { CommentIcon, ShareIcon } from "./icons";
 import { RelativeTime } from "./RelativeTime";
 
@@ -126,6 +127,7 @@ export function CommentItem({ node, articleId, depth = 0 }: Props) {
                       Citar
                     </button>
                     <CopyLinkButton id={node.id} />
+                    <ReportButton kind="comment" id={node.id} />
                   </>
                 )}
               </div>
