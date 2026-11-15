@@ -9,6 +9,7 @@ import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
 import { forumHandlers } from "./forumFixtures";
 import { presidencyHandlers } from "./presidencyFixtures";
+import { peopleHandlers } from "./peopleFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -176,4 +177,5 @@ export const handlers = [
   ...placeHandlers,
   ...forumHandlers,
   ...presidencyHandlers,
+  ...peopleHandlers,
 ];
