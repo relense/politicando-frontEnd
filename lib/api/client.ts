@@ -9,6 +9,7 @@ import type {
   ElectionResult,
   ElectionType,
   Government,
+  GovernmentHistory,
   GovernmentMemberDetail,
   InitiativeDetail,
   InitiativePage,
@@ -17,6 +18,7 @@ import type {
   Parliament,
   Party,
   PartyStanding,
+  TimelineEvent,
 } from "@/lib/types";
 import { partyStandings } from "@/lib/elections";
 import {
@@ -27,11 +29,13 @@ import {
   mapElectionResult,
   mapElections,
   mapGovernment,
+  mapGovernmentHistory,
   mapGovernmentMemberDetail,
   mapInitiative,
   mapInitiativeDetail,
   mapParliament,
   mapParty,
+  mapTimeline,
 } from "./mappers";
 import {
   articlePageSchema,
@@ -42,12 +46,14 @@ import {
   electionResultSchema,
   electionsSchema,
   errorSchema,
+  governmentHistorySchema,
   governmentMemberDetailSchema,
   governmentSchema,
   initiativeDetailSchema,
   initiativePageSchema,
   parliamentSchema,
   partySchema,
+  timelineSchema,
 } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
@@ -196,4 +202,14 @@ export async function getPartyStandings(): Promise<Record<string, PartyStanding>
   } catch {
     return {};
   }
+}
+
+/** Every government since 1974, newest first. History changes rarely, so it is cached for an hour. */
+export async function getGovernmentHistory(): Promise<GovernmentHistory> {
+  return mapGovernmentHistory(await request("/governments/history", governmentHistorySchema, hourly));
+}
+
+/** Elections and Presidents' terms, newest first. */
+export async function getTimeline(kinds: ("election" | "president")[] = ["election", "president"]): Promise<TimelineEvent[]> {
+  return mapTimeline(await request(`/timeline?kinds=${kinds.join(",")}`, timelineSchema, hourly));
 }

@@ -258,3 +258,48 @@ export type ElectionResult = {
 
 /** How a party did: its seats in Parliament and its votes in the latest legislativas. */
 export type PartyStanding = { seats: number; votes: number; validPct: number; coalition: string | null };
+
+export type GovernmentEndReason =
+  | "end_of_term"
+  | "early_election"
+  | "censure"
+  | "confidence_rejected"
+  | "programme_rejected"
+  | "resignation"
+  | "dismissed"
+  | "death"
+  | "provisional"
+  | "in_office";
+
+/** One of the governments since 1974, newest first in lists. */
+export type HistoricalGovernment = {
+  /** "gc01"–"gc25" constitutional, "gp1"–"gp6" provisional. */
+  code: string;
+  kind: "constitutional" | "provisional";
+  name: string;
+  primeMinister: string;
+  start: string;
+  /** The next government's first day; null while in office. */
+  end: string | null;
+  days: number;
+  parties: ArticleParty[];
+  support: string | null;
+  /** Null when the API sends a reason this site doesn't know yet. */
+  endReason: GovernmentEndReason | null;
+  endNote: string | null;
+  portalUrl: string | null;
+  current: boolean;
+};
+
+export type GovernmentHistory = { governments: HistoricalGovernment[]; source: string | null };
+
+/** An election or a President's term on the timeline. Kinds this site doesn't know are dropped. */
+export type TimelineEvent = {
+  kind: "election" | "president";
+  date: string;
+  endDate: string | null;
+  title: string;
+  detail: string | null;
+  /** The election's id, when the site has its results. */
+  electionId: string | null;
+};

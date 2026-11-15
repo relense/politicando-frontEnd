@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const deputies = { url: `${SITE_URL}/deputados`, changeFrequency: "weekly" as const };
   const government = { url: `${SITE_URL}/governo`, changeFrequency: "weekly" as const };
   const elections = { url: `${SITE_URL}/eleicoes`, changeFrequency: "monthly" as const };
+  const history = { url: `${SITE_URL}/historia`, changeFrequency: "monthly" as const };
   try {
     const parties = await getParties();
     const articles: Article[] = [];
@@ -30,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       deputies,
       government,
       elections,
+      history,
       ...parties.map((party) => ({ url: `${SITE_URL}${partyPath(party.slug)}` })),
       ...articles.map((article) => ({
         url: `${SITE_URL}/article/${article.id}`,
@@ -37,6 +39,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
     ];
   } catch {
-    return [home, parliament, deputies, government, elections];
+    return [home, parliament, deputies, government, elections, history];
   }
 }

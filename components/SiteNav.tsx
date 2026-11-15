@@ -58,6 +58,13 @@ export const SITE_SECTIONS: Item[] = [
     active: (path) => path.startsWith("/eleicoes"),
   },
   {
+    href: "/historia",
+    label: "História",
+    hint: "Governos desde 1974",
+    icon: icon("M10 3v14M6 6h4M10 10h4M6 14h4M4 3h12M4 17h12"),
+    active: (path) => path.startsWith("/historia"),
+  },
+  {
     href: null,
     label: "Blog",
     hint: "Em breve",

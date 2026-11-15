@@ -17,6 +17,9 @@ import type {
   InitiativeDetail,
   Parliament,
   Party,
+  GovernmentEndReason,
+  GovernmentHistory,
+  TimelineEvent,
 } from "@/lib/types";
 import { sourceName } from "@/lib/sources";
 import type {
@@ -34,6 +37,8 @@ import type {
   ApiInitiativeDetail,
   ApiParliament,
   ApiParty,
+  ApiGovernmentHistory,
+  ApiTimeline,
 } from "./schemas";
 
 /** External URLs reach the page as href/src, so only http(s) may pass. */
@@ -331,4 +336,56 @@ export function mapElectionResult(api: ApiElectionResult): ElectionResult {
       winner: child.winner ? { ...child.winner, validPct: child.winner.validPct ?? null } : null,
     })),
   };
+}
+
+const END_REASONS: readonly GovernmentEndReason[] = [
+  "end_of_term",
+  "early_election",
+  "censure",
+  "confidence_rejected",
+  "programme_rejected",
+  "resignation",
+  "dismissed",
+  "death",
+  "provisional",
+  "in_office",
+];
+
+export function mapGovernmentHistory(api: ApiGovernmentHistory): GovernmentHistory {
+  return {
+    governments: api.items.map((item) => ({
+      code: item.code,
+      kind: item.kind === "provisional" ? "provisional" : "constitutional",
+      name: item.name,
+      primeMinister: item.primeMinister,
+      start: item.start,
+      end: item.end,
+      days: item.days,
+      parties: item.parties,
+      support: item.support ?? null,
+      endReason: END_REASONS.find((reason) => reason === item.endReason) ?? null,
+      endNote: item.endNote ?? null,
+      portalUrl: safeHttpUrl(item.portalUrl),
+      current: item.current ?? item.end === null,
+    })),
+    source: safeHttpUrl(api.source),
+  };
+}
+
+/** Governments come from their own endpoint; editorial kinds planned for later are dropped until the site knows them. */
+export function mapTimeline(api: ApiTimeline): TimelineEvent[] {
+  return api.items.flatMap((item) =>
+    item.kind === "election" || item.kind === "president"
+      ? [
+          {
+            kind: item.kind,
+            date: item.date,
+            endDate: item.endDate ?? null,
+            title: item.title,
+            detail: item.detail ?? null,
+            electionId: item.ref?.kind === "election" ? item.ref.id : null,
+          },
+        ]
+      : [],
+  );
 }

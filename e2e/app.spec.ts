@@ -215,6 +215,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/eleicoes",
     "/eleicoes/legislativas-2025",
     "/eleicoes/legislativas-2025/LOCAL-010000",
+    "/historia",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -345,12 +346,12 @@ test("government: from the menu to a minister who came from Parliament, and on t
     await page.getByRole("button", { name: "Abrir menu" }).click();
     await page
       .getByRole("dialog")
-      .getByRole("link", { name: /Governo/ })
+      .getByRole("link", { name: /^Governo/ })
       .click();
   } else {
     await page
       .getByRole("navigation", { name: "Secções" })
-      .getByRole("link", { name: /Governo/ })
+      .getByRole("link", { name: /^Governo/ })
       .click();
   }
   await expect(page).toHaveURL(/\/governo$/);
@@ -495,4 +496,39 @@ test("elections: add up seats in the simulator, and pick a circle on the schemat
   await expect(panel.getByRole("heading", { name: "Aveiro" })).toBeVisible();
   await panel.getByRole("link", { name: /Ver concelhos de Aveiro/ }).click();
   await expect(page).toHaveURL(/LOCAL-010000$/);
+});
+
+test("history: from the menu to the timeline of governments, and on to the current government and an election", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: /História/ })
+      .click();
+  } else {
+    await page
+      .getByRole("navigation", { name: "Secções" })
+      .getByRole("link", { name: /História/ })
+      .click();
+  }
+  await expect(page).toHaveURL(/\/historia$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Os governos da democracia" })).toBeVisible();
+  await expect(page.getByText("governos desde 1974", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Anos 70" })).toBeVisible();
+
+  const current = page.getByRole("article", { name: "Henrique Valadares" }).first();
+  await expect(current.getByText("Em funções")).toBeVisible();
+  // A kind of event the site doesn't know yet is left out.
+  await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
+  await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
+
+  await page.getByRole("link", { name: "Ver resultados →" }).first().click();
+  await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
+  await page.goBack();
+  await page.getByRole("link", { name: "Quem governa agora →" }).click();
+  await expect(page).toHaveURL(/\/governo$/);
 });

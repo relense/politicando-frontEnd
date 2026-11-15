@@ -3,6 +3,7 @@ import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
 import { electionResult, elections, placeOf } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
+import { governmentHistory, timeline } from "./historyFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
@@ -26,6 +27,11 @@ const answer = (result: ReturnType<typeof electionResult>) =>
   result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
 
 export const handlers = [
+  http.get(`${API}/governments/history`, () => HttpResponse.json(governmentHistory)),
+  http.get(`${API}/timeline`, ({ request }) => {
+    const kinds = new URL(request.url).searchParams.get("kinds")?.split(",");
+    return HttpResponse.json({ items: timeline.items.filter((item) => !kinds || kinds.includes(item.kind)) });
+  }),
   http.get(`${API}/elections`, ({ request }) => {
     const type = new URL(request.url).searchParams.get("type");
     return HttpResponse.json({ items: elections.items.filter((item) => !type || item.type === type) });

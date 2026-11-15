@@ -307,3 +307,42 @@ export type ApiElections = z.infer<typeof electionsSchema>;
 export type ApiElectionsInput = z.input<typeof electionsSchema>;
 export type ApiElectionResult = z.infer<typeof electionResultSchema>;
 export type ApiElectionResultInput = z.input<typeof electionResultSchema>;
+
+export const governmentHistorySchema = z.object({
+  items: z.array(
+    z.object({
+      code: z.string(),
+      kind: z.string(),
+      name: z.string(),
+      primeMinister: z.string(),
+      start: z.string(),
+      end: z.string().nullable(),
+      days: z.number(),
+      parties: z.array(articlePartySchema),
+      support: z.string().nullish(),
+      endReason: z.string().nullish(),
+      endNote: z.string().nullish(),
+      portalUrl: z.string().nullish(),
+      current: z.boolean().nullish(),
+    }),
+  ),
+  source: z.string().nullish(),
+});
+
+export const timelineSchema = z.object({
+  items: z.array(
+    z.object({
+      kind: z.string(),
+      date: z.string(),
+      endDate: z.string().nullish(),
+      title: z.string(),
+      detail: z.string().nullish(),
+      ref: z.object({ kind: z.string(), id: z.string() }).nullish(),
+    }),
+  ),
+});
+
+export type ApiGovernmentHistory = z.infer<typeof governmentHistorySchema>;
+export type ApiGovernmentHistoryInput = z.input<typeof governmentHistorySchema>;
+export type ApiTimeline = z.infer<typeof timelineSchema>;
+export type ApiTimelineInput = z.input<typeof timelineSchema>;
