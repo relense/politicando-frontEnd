@@ -22,44 +22,48 @@ function useActiveSlug(): string | null {
 
 const current = (active: boolean) => (active ? ("page" as const) : undefined);
 
-/** Desktop: a sticky list beside the content. */
+/** Very wide screens: what the site is, and every party, in a column on the right as wide as the one on the left. */
 export function PartySidebar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
-  const item = (isActive: boolean) =>
-    `flex items-center gap-3 rounded px-2 py-1.5 hover:bg-surface ${isActive ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : ""}`;
+  // The Parliament page needs the full width for the chamber.
+  if (usePathname() === "/parlamento") return null;
 
   return (
-    <nav
-      aria-label="Partidos"
-      className="sticky top-20 hidden max-h-[calc(100dvh-6rem)] w-52 shrink-0 self-start overflow-y-auto lg:block"
-    >
-      <h2 className="mb-2 px-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</h2>
-      <ul className="flex flex-col gap-0.5">
-        <li>
-          <Link href="/" aria-current={current(active === "")} className={item(active === "")}>
-            <span aria-hidden="true" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-line font-mono text-xs font-bold text-muted">
-              ∗
-            </span>
-            <span className="font-mono text-sm font-bold">Todas as notícias</span>
-          </Link>
-        </li>
-        {parties.map((party) => (
-          <li key={party.slug}>
-            <Link href={partyPath(party.slug)} aria-current={current(active === party.slug)} className={item(active === party.slug)}>
-              <PartyLogo slug={party.slug} acronym={party.acronym} size={28} />
-              <span className="min-w-0">
-                <span className="block font-mono text-sm font-bold">{party.acronym}</span>
-                <span className="block truncate text-xs text-muted">{party.name}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <aside className="hidden w-[var(--side-column)] shrink-0 self-start 2xl:block">
+      <div className="mb-8 rounded-xl border border-line p-4">
+        <p className="italic leading-relaxed">As notícias sobre os partidos políticos portugueses, num só lugar. Lê, compara e comenta.</p>
+      </div>
+      <nav aria-label="Partidos">
+        <h2 className="mb-2 border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+          Partidos <span className="font-normal normal-case tracking-normal text-muted">· ordem alfabética</span>
+        </h2>
+        <ul className="flex flex-col">
+          {parties.map((party) => (
+            <li key={party.slug}>
+              <Link
+                href={partyPath(party.slug)}
+                aria-current={current(active === party.slug)}
+                title={party.name}
+                className={`flex items-center gap-2.5 rounded px-1.5 py-1.5 hover:bg-surface ${
+                  active === party.slug ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : ""
+                }`}
+              >
+                <PartyLogo slug={party.slug} acronym={party.acronym} size={24} />
+                {/* One line each; the column is sized for the longest name, so nothing wraps. */}
+                <span className="min-w-0 flex-1 leading-tight">
+                  <span className="block whitespace-nowrap font-mono text-xs font-bold">{party.acronym}</span>
+                  <span className="block whitespace-nowrap text-xs text-muted">{party.name}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 }
 
-/** Mobile and tablet: a row of chips that scrolls sideways, above the feed. */
+/** Below wide screens: a row of chips that scrolls sideways, above the feed. */
 export function PartyChipBar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
   const listRef = useRef<HTMLUListElement>(null);
@@ -79,7 +83,7 @@ export function PartyChipBar({ parties }: { parties: Party[] }) {
     }`;
 
   return (
-    <nav aria-label="Partidos" className="-mx-4 mb-6 lg:hidden">
+    <nav aria-label="Partidos" className="-mx-4 mb-6 2xl:hidden">
       <ul ref={listRef} className="flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
         <li className="shrink-0">
           <Link href="/" aria-current={current(active === "")} className={chip(active === "")}>
@@ -88,7 +92,11 @@ export function PartyChipBar({ parties }: { parties: Party[] }) {
         </li>
         {parties.map((party) => (
           <li key={party.slug} className="shrink-0">
-            <Link href={partyPath(party.slug)} aria-current={current(active === party.slug)} className={`${chip(active === party.slug)} pl-1.5`}>
+            <Link
+              href={partyPath(party.slug)}
+              aria-current={current(active === party.slug)}
+              className={`${chip(active === party.slug)} pl-1.5`}
+            >
               <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />
               {party.acronym}
             </Link>

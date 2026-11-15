@@ -25,3 +25,6 @@ const SOURCE_NAMES: Record<string, string> = {
 export function sourceName(domain: string): string {
   return SOURCE_NAMES[domain] ?? domain;
 }
+
+/** How many outlets the site follows, for the home page's introduction. */
+export const SOURCE_COUNT = Object.keys(SOURCE_NAMES).length;

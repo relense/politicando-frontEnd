@@ -3,6 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* Both side columns: wide enough for the longest party name on one line. */
+  --side-column: 21.5rem;
   --paper: #ffffff;
   --surface: #f6f4f0;
   --ink: #191919;

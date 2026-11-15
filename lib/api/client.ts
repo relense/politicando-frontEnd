@@ -1,7 +1,28 @@
 import { z } from "zod";
-import type { Article, ArticlePage, Comment, NewComment, Party } from "@/lib/types";
-import { mapArticle, mapComment, mapParty } from "./mappers";
-import { articlePageSchema, articleSchema, commentSchema, errorSchema, partySchema } from "./schemas";
+import type {
+  Article,
+  ArticlePage,
+  Comment,
+  DeputyDetail,
+  InitiativeDetail,
+  InitiativePage,
+  InitiativeStatus,
+  NewComment,
+  Parliament,
+  Party,
+} from "@/lib/types";
+import { mapArticle, mapComment, mapDeputyDetail, mapInitiative, mapInitiativeDetail, mapParliament, mapParty } from "./mappers";
+import {
+  articlePageSchema,
+  articleSchema,
+  commentSchema,
+  deputyDetailSchema,
+  errorSchema,
+  initiativeDetailSchema,
+  initiativePageSchema,
+  parliamentSchema,
+  partySchema,
+} from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
 const REVALIDATE_SECONDS = 60;
@@ -48,14 +69,17 @@ export async function getParties(): Promise<Party[]> {
   return parties.sort((a, b) => a.acronym.localeCompare(b.acronym, "pt", { sensitivity: "base" }));
 }
 
-export type FeedQuery = { party?: string; cursor?: string; limit?: number };
-
-export async function getFeedPage({ party, cursor, limit }: FeedQuery = {}): Promise<ArticlePage> {
+/** Builds "?a=1&b=2" from the values that are set, or "" when none are. */
+function searchOf(values: Record<string, string | number | undefined>): string {
   const query = new URLSearchParams();
-  if (party !== undefined) query.set("party", party);
-  if (cursor !== undefined) query.set("cursor", cursor);
-  if (limit !== undefined) query.set("limit", String(limit));
-  const search = query.size > 0 ? `?${query}` : "";
+  for (const [key, value] of Object.entries(values)) if (value !== undefined) query.set(key, String(value));
+  return query.size > 0 ? `?${query}` : "";
+}
+
+export type FeedQuery = { party?: string; deputy?: number; cursor?: string; limit?: number };
+
+export async function getFeedPage({ party, deputy, cursor, limit }: FeedQuery = {}): Promise<ArticlePage> {
+  const search = searchOf({ party, deputy, cursor, limit });
 
   const page = await request(`/articles${search}`, articlePageSchema, cached);
   return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor };
@@ -83,4 +107,23 @@ export async function createComment(input: NewComment): Promise<Comment> {
     }),
   });
   return mapComment(created);
+}
+
+export async function getParliament(): Promise<Parliament> {
+  return mapParliament(await request("/parliament", parliamentSchema, cached));
+}
+
+export async function getDeputy(id: number): Promise<DeputyDetail> {
+  return mapDeputyDetail(await request(`/deputies/${id}`, deputyDetailSchema, cached));
+}
+
+export type InitiativeQuery = { status?: InitiativeStatus; deputy?: number; party?: string; cursor?: string; limit?: number };
+
+export async function getInitiatives({ status, deputy, party, cursor, limit }: InitiativeQuery = {}): Promise<InitiativePage> {
+  const page = await request(`/initiatives${searchOf({ status, deputy, party, cursor, limit })}`, initiativePageSchema, cached);
+  return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor };
+}
+
+export async function getInitiative(id: number): Promise<InitiativeDetail> {
+  return mapInitiativeDetail(await request(`/initiatives/${id}`, initiativeDetailSchema, cached));
 }

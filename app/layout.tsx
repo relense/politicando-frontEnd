@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { PartySidebar } from "@/components/PartyNav";
 import { Providers } from "@/components/Providers";
+import { SiteNav } from "@/components/SiteNav";
 import { getParties } from "@/lib/api/client";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import type { Party } from "@/lib/types";
@@ -42,11 +43,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             Saltar para o conteúdo
           </a>
           <Header parties={parties} />
-          <div className="mx-auto flex w-full max-w-6xl gap-10 px-4 py-6">
-            <PartySidebar parties={parties} />
-            <main id="conteudo" className="min-w-0 max-w-3xl flex-1">
+          <div className="mx-auto flex w-full max-w-[96rem] justify-center gap-8 px-4 py-6">
+            <SiteNav />
+            <main id="conteudo" className="min-w-0 max-w-3xl flex-1 has-[[data-wide]]:max-w-none">
               {children}
             </main>
+            <PartySidebar parties={parties} />
           </div>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}

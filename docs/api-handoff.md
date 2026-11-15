@@ -18,3 +18,11 @@ The frontend targets the rewritten API at `/api/v2`. Only `lib/api/` knows its s
 - An admin way to hide comments. It currently needs SQL.
 - A dedicated sitemap list. The sitemap currently walks up to 10 pages of 50 articles.
 - Story grouping. When several outlets cover the same event, the feed shows one card per article. The scanner could cluster them (for example by title similarity and publish time) and return a `storyId`, so the frontend can show one card with "3 fontes".
+
+## Parlamento page
+`/parlamento` follows the API's own contract in the backend repo, `docs/parliament-api.md`: `GET /parliament`, `/deputies/:id`, `/initiatives`, `/initiatives/:id` and `/articles?deputy=`. The mock in `mocks/parliamentFixtures.ts` uses the same shape, with the official seat map and fictional deputies, and `tests/parliament.test.ts` checks it against the schemas.
+
+- Seats come from the official map. Which deputy sits in which chair isn't published, so a seat opens its party's bench and a deputy is picked from there. When the API fills `deputyId` on a seat, pressing the seat opens that deputy directly; no frontend change is needed.
+- Photos are loaded only when a deputy's card opens.
+- If the API doesn't serve `/parliament` (404), the page says the data is coming soon.
+- The production API must list this site's origin in `CORS_ORIGINS`, because the deputy card, initiatives and votes load from the browser.

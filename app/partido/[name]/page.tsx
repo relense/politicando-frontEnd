@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 import { Feed } from "@/components/Feed";
 import { PartyLogo } from "@/components/PartyLogo";
 import { PartyChipBar } from "@/components/PartyNav";
 import { PartyProfile } from "@/components/PartyProfile";
-import { getFeedPage, getParties } from "@/lib/api/client";
+import { getFeedPage, getParliament, getParties } from "@/lib/api/client";
 import { findPartyByParam, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
 
@@ -36,7 +37,12 @@ export default async function PartyPage({ params }: Props) {
   // Old links such as /partido/l keep working and move to the current address.
   if (name !== party.slug) permanentRedirect(partyPath(party.slug));
 
-  const page = await getFeedPage({ party: party.slug });
+  const [page, parliament] = await Promise.all([
+    getFeedPage({ party: party.slug }),
+    // The party page works without Parliament data; the link to its deputies just isn't shown.
+    getParliament().catch(() => null),
+  ]);
+  const seats = parliament?.groups.find((group) => group.party.slug === party.slug)?.seats ?? 0;
   const profile = getPartyProfile(party.slug);
 
   return (
@@ -52,6 +58,11 @@ export default async function PartyPage({ params }: Props) {
               <a href={party.website} target="_blank" rel="noopener noreferrer" className="font-mono text-sm text-link underline">
                 Site oficial
               </a>
+            )}
+            {seats > 0 && (
+              <Link href={`/deputados?partido=${party.slug}`} className="block font-mono text-sm text-link underline">
+                Deputados ({seats}) →
+              </Link>
             )}
           </div>
         </div>

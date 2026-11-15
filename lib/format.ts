@@ -86,3 +86,45 @@ export function formatLongDateTime(value: string | null | undefined): string | n
   const weekday = p.weekday!.charAt(0).toUpperCase() + p.weekday!.slice(1);
   return `${weekday}, ${p.day} de ${p.month} de ${p.year}, ${p.hour}:${p.minute}`;
 }
+
+const dayFormatter = new Intl.DateTimeFormat("pt-PT", {
+  timeZone: LISBON,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+function dayParts(date: Date): Record<string, string> {
+  return Object.fromEntries(dayFormatter.formatToParts(date).map((part) => [part.type, part.value]));
+}
+
+/** The Lisbon calendar day, as "2026-11-14", for grouping the feed by day. */
+export function lisbonDay(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = parts(date);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+/** "Hoje · sábado, 14 de novembro", "Ontem · …", or just the date; the year only when it isn't this year. */
+export function formatDayHeading(value: string | null | undefined, now: number): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = dayParts(date);
+  const today = lisbonDay(new Date(now).toISOString());
+  const yesterday = lisbonDay(new Date(now - 86_400_000).toISOString());
+  const day = lisbonDay(value);
+  const label = `${p.weekday}, ${p.day} de ${p.month}${p.year !== dayParts(new Date(now)).year ? ` de ${p.year}` : ""}`;
+  if (day === today) return `Hoje · ${label}`;
+  if (day === yesterday) return `Ontem · ${label}`;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** "19:38" in Lisbon time, for items already grouped by day. */
+export function formatTime(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = parts(date);
+  return `${p.hour}:${p.minute}`;
+}

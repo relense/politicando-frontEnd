@@ -29,7 +29,10 @@ test("direct party URL works, and unknown party is a real 404", async ({ page })
   await expect(page.getByRole("heading", { level: 1, name: "CDS-PP" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("CDS-PP");
   await expect(page.getByRole("region", { name: "Sobre o partido" })).toContainText("humanismo personalista");
-  await expect(page.getByRole("link", { name: /apresentação do próprio partido/ })).toHaveAttribute("href", "https://www.cds.pt/principios.html");
+  await expect(page.getByRole("link", { name: /apresentação do próprio partido/ })).toHaveAttribute(
+    "href",
+    "https://www.cds.pt/principios.html",
+  );
 
   const response = await page.goto("/partido/nao-existe");
   expect(response?.status()).toBe(404);
@@ -118,16 +121,19 @@ test("party navigation is always on screen and marks the current party", async (
   await page.goto("/");
   await page.getByRole("navigation", { name: "Partidos" }).getByRole("link", { name: /PSD/ }).click();
   await expect(page).toHaveURL(/\/partido\/psd$/);
-  await expect(page.getByRole("navigation", { name: "Partidos" }).getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "Partidos" }).getByRole("link", { name: /PSD/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 test("drawer works by keyboard", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Desktop shows the party sidebar instead of the drawer.");
   await page.goto("/");
-  const trigger = page.getByRole("button", { name: "Abrir lista de partidos" });
+  const trigger = page.getByRole("button", { name: "Abrir menu" });
   await trigger.focus();
   await page.keyboard.press("Enter");
-  const drawer = page.getByRole("dialog", { name: "Partidos" });
+  const drawer = page.getByRole("dialog", { name: "Menu" });
   await expect(drawer).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
@@ -182,11 +188,23 @@ test("sitemap and robots are served", async ({ request }) => {
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain("/article/100");
   expect(sitemap).toContain("/partido/cds-pp");
+  expect(sitemap).toContain("/parlamento");
+  expect(sitemap).toContain("/deputados");
   expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
 });
 
 for (const colorScheme of ["light", "dark"] as const) {
-  for (const path of ["/", "/partido/ps", "/article/100"]) {
+  for (const path of [
+    "/",
+    "/partido/ps",
+    "/article/100",
+    "/parlamento",
+    "/parlamento?partido=psd",
+    "/parlamento?deputado=1100",
+    "/deputados",
+    "/deputados?partido=ps",
+    "/deputados/1100",
+  ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
       await page.goto(path);
@@ -225,4 +243,74 @@ test("comments use >>number to quote, with a preview and a jump", async ({ page 
   await expect(first.getByText("Respostas:")).toBeVisible();
   await mention.click();
   await expect(page).toHaveURL(new RegExp(`#comentario-${number}$`));
+});
+
+test("parliament: press a seat to open the bench, pick a deputy, then browse initiatives", async ({ page, isMobile }) => {
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: /Parlamento/ })
+      .click();
+  } else {
+    await page
+      .getByRole("navigation", { name: "Secções" })
+      .getByRole("link", { name: /Parlamento/ })
+      .click();
+  }
+  await expect(page).toHaveURL(/\/parlamento$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Quem está sentado onde" })).toBeVisible();
+  await expect(page.getByRole("region", { name: /Parlamento ou Governo/ })).toBeVisible();
+
+  const map = page.getByRole("group", { name: /Lugares do hemiciclo/ });
+  await expect(map.getByRole("button")).toHaveCount(230);
+  await map
+    .getByRole("button", { name: /Partido Socialista \(PS\)/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/partido=ps/);
+  const bench = page.getByRole("region", { name: "Partido Socialista" });
+  await expect(bench.getByText(/58 deputados/)).toBeVisible();
+
+  const first = bench.getByRole("listitem").first().getByRole("button");
+  const name = (await first.locator("span").first().textContent())!;
+  await first.click();
+  await expect(page).toHaveURL(/deputado=\d+/);
+  const card = page.getByRole("region", { name });
+  await expect(card.getByText("Círculo")).toBeVisible();
+  await expect(card.getByText(/assinadas/)).toBeVisible();
+
+  // The keyboard reaches the seats too.
+  await map.locator('[tabindex="0"]').focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/partido=/);
+
+  const initiatives = page.getByRole("region", { name: "Iniciativas" });
+  await initiatives.getByRole("button", { name: "Ver votação por partido" }).first().click();
+  await expect(initiatives.getByText("A favor").first()).toBeVisible();
+  await initiatives.getByRole("button", { name: /Em discussão/ }).click();
+  await expect(initiatives.getByText("Em discussão", { exact: true }).first()).toBeVisible();
+  await initiatives.getByRole("button", { name: "Carregar mais" }).click();
+  await expect(initiatives.getByRole("article")).toHaveCount(18);
+});
+
+test("deputies: filter by party and open a deputy's full profile", async ({ page }) => {
+  await page.goto("/partido/ps");
+  await page.getByRole("link", { name: /Deputados \(58\)/ }).click();
+  await expect(page).toHaveURL(/\/deputados\?partido=ps$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Deputados do PS" })).toBeVisible();
+  const list = page.getByRole("main").getByRole("list").last();
+  await expect(list.getByRole("listitem")).toHaveCount(58);
+
+  const first = list.getByRole("link").first();
+  const name = (await first.locator("span span").first().textContent())!;
+  await first.click();
+  await expect(page).toHaveURL(/\/deputados\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Iniciativas que assina" })).toBeVisible();
+  await page.getByRole("link", { name: "Ver no hemiciclo" }).click();
+  await expect(page).toHaveURL(/\/parlamento\?deputado=\d+$/);
+  await expect(page.getByRole("region", { name })).toBeVisible();
 });
