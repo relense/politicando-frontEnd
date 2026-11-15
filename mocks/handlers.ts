@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
+import { electionResult, elections, placeOf } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
 import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
@@ -21,7 +22,24 @@ const newCommentSchema = z.strictObject({
   recaptchaToken: z.string().min(1),
 });
 
+const answer = (result: ReturnType<typeof electionResult>) =>
+  result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
+
 export const handlers = [
+  http.get(`${API}/elections`, ({ request }) => {
+    const type = new URL(request.url).searchParams.get("type");
+    return HttpResponse.json({ items: elections.items.filter((item) => !type || item.type === type) });
+  }),
+  http.get(`${API}/elections/:id/places/:key`, ({ params, request }) =>
+    answer(electionResult(String(params.id), String(params.key), new URL(request.url).searchParams.get("organ"))),
+  ),
+  http.get(`${API}/elections/:id`, ({ params, request }) =>
+    answer(electionResult(String(params.id), null, new URL(request.url).searchParams.get("organ"))),
+  ),
+  http.get(`${API}/places/:key`, ({ params }) => {
+    const place = placeOf(String(params.key));
+    return place ? HttpResponse.json(place) : fail(404, "not_found");
+  }),
   http.get(`${API}/parties`, () => HttpResponse.json(parties)),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;

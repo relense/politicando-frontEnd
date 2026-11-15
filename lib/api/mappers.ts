@@ -2,6 +2,11 @@ import { decode } from "he";
 import type {
   Article,
   Comment,
+  Election,
+  ElectionList,
+  ElectionResult,
+  ElectionTurnout,
+  Place,
   DeputyDetail,
   DeputySummary,
   DeputyVotesPage,
@@ -20,6 +25,8 @@ import type {
   ApiDeputyDetail,
   ApiDeputySummary,
   ApiDeputyVotesPage,
+  ApiElectionResult,
+  ApiElections,
   ApiGovernment,
   ApiGovernmentMember,
   ApiGovernmentMemberDetail,
@@ -257,5 +264,71 @@ export function mapGovernmentMemberDetail(member: ApiGovernmentMemberDetail): Go
       url: safeHttpUrl(position.url),
     })),
     articles: member.articles.map(mapArticle),
+  };
+}
+
+type ApiTurnout = NonNullable<ApiElectionResult["turnout"]>;
+type ApiElectionList = ApiElectionResult["lists"][number];
+type ApiPlace = ApiElectionResult["place"];
+
+const mapTurnout = (turnout: ApiTurnout | null | undefined): ElectionTurnout | null =>
+  turnout
+    ? {
+        registered: turnout.registered ?? null,
+        voters: turnout.voters ?? null,
+        turnoutPct: turnout.turnoutPct ?? null,
+        blank: turnout.blank ?? null,
+        null: turnout.null ?? null,
+        totalMandates: turnout.totalMandates ?? null,
+      }
+    : null;
+
+/** A list with more than one of our parties is a coalition, whatever the flag says. */
+const mapElectionList = (item: ApiElectionList): ElectionList => ({
+  list: item.list,
+  name: item.name ?? item.list,
+  partySlugs: item.partySlugs,
+  coalition: Boolean(item.coalition) || item.partySlugs.length > 1,
+  citizens: Boolean(item.citizens),
+  votes: item.votes,
+  pct: item.pct ?? null,
+  validPct: item.validPct ?? null,
+  mandates: item.mandates ?? null,
+  presidents: item.presidents ?? null,
+});
+
+const mapPlace = (place: ApiPlace): Place => ({ key: place.key, name: place.name, level: place.level, dicofre: place.dicofre ?? null });
+
+const mapElectionSummary = (election: ApiElectionResult["election"]) => ({
+  id: election.id,
+  type: election.type,
+  name: election.name,
+  date: election.date,
+  organs: election.organs,
+  sourceUrl: safeHttpUrl(election.sourceUrl),
+});
+
+export function mapElections(api: ApiElections): Election[] {
+  return api.items.map((item) => ({
+    ...mapElectionSummary(item),
+    turnout: mapTurnout(item.turnout),
+    winner: item.winner ? mapElectionList(item.winner) : null,
+    imported: item.imported ?? true,
+  }));
+}
+
+export function mapElectionResult(api: ApiElectionResult): ElectionResult {
+  return {
+    election: mapElectionSummary(api.election),
+    organ: api.organ,
+    place: mapPlace(api.place),
+    breadcrumb: api.breadcrumb.map(mapPlace),
+    turnout: mapTurnout(api.turnout),
+    lists: api.lists.map(mapElectionList),
+    children: api.children.map((child) => ({
+      ...mapPlace(child),
+      turnoutPct: child.turnoutPct ?? null,
+      winner: child.winner ? { ...child.winner, validPct: child.winner.validPct ?? null } : null,
+    })),
   };
 }

@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { partyPath } from "@/lib/parties";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
+import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
 
 /** "" on the home feed, the party slug on a party page, null elsewhere. */
 function useActiveSlug(): string | null {
@@ -25,6 +26,7 @@ const current = (active: boolean) => (active ? ("page" as const) : undefined);
 /** On the news pages, from laptop width: what the site is, and every party, in a column on the right as wide as the one on the left. */
 export function PartySidebar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
+  const { ordered, order, standingOf } = useOrderedParties(parties);
   // Only beside the news: the feed, the party feeds and the articles. The other pages use the width themselves.
   const pathname = usePathname();
   if (!(pathname === "/" || pathname.startsWith("/partido/") || pathname.startsWith("/article/"))) return null;
@@ -37,11 +39,12 @@ export function PartySidebar({ parties }: { parties: Party[] }) {
         </p>
       </div>
       <nav aria-label="Partidos">
-        <h2 className="mb-2 border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
-          Partidos <span className="font-normal normal-case tracking-normal text-muted">· ordem alfabética</span>
-        </h2>
+        <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-ink pb-2">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest">Partidos</h2>
+          <PartyOrderToggle />
+        </div>
         <ul className="flex flex-col">
-          {parties.map((party) => (
+          {ordered.map((party) => (
             <li key={party.slug}>
               <Link
                 href={partyPath(party.slug)}
@@ -56,6 +59,9 @@ export function PartySidebar({ parties }: { parties: Party[] }) {
                 <span className="min-w-0 flex-1 leading-tight">
                   <span className="block whitespace-nowrap font-mono text-xs font-bold">{party.acronym}</span>
                   <span className="block truncate text-xs text-muted">{party.name}</span>
+                  {order === "votes" && standingOf(party.slug) && (
+                    <span className="block whitespace-nowrap font-mono text-[0.6875rem] text-muted">{standingOf(party.slug)}</span>
+                  )}
                 </span>
               </Link>
             </li>
@@ -69,6 +75,7 @@ export function PartySidebar({ parties }: { parties: Party[] }) {
 /** Phones and tablets, where there is no party column: a row of chips that scrolls sideways, above the feed. */
 export function PartyChipBar({ parties }: { parties: Party[] }) {
   const active = useActiveSlug();
+  const { ordered, standingOf } = useOrderedParties(parties);
   const listRef = useRef<HTMLUListElement>(null);
 
   // Bring the selected party into view without scrolling the page itself.
@@ -87,17 +94,19 @@ export function PartyChipBar({ parties }: { parties: Party[] }) {
 
   return (
     <nav aria-label="Partidos" className="-mx-4 mb-6 lg:hidden">
+      <PartyOrderToggle className="mb-2 px-4" />
       <ul ref={listRef} className="flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
         <li className="shrink-0">
           <Link href="/" aria-current={current(active === "")} className={chip(active === "")}>
             Todas
           </Link>
         </li>
-        {parties.map((party) => (
+        {ordered.map((party) => (
           <li key={party.slug} className="shrink-0">
             <Link
               href={partyPath(party.slug)}
               aria-current={current(active === party.slug)}
+              title={standingOf(party.slug) ?? undefined}
               className={`${chip(active === party.slug)} pl-1.5`}
             >
               <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />

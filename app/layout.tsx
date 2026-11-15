@@ -5,9 +5,10 @@ import type { ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { PartySidebar } from "@/components/PartyNav";
+import { PartyOrderProvider } from "@/components/PartyOrder";
 import { Providers } from "@/components/Providers";
 import { SiteNav } from "@/components/SiteNav";
-import { getParties } from "@/lib/api/client";
+import { getParties, getPartyStandings } from "@/lib/api/client";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import type { Party } from "@/lib/types";
 import "./globals.css";
@@ -31,28 +32,31 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   // The drawer must not take the whole site down if only this request fails.
-  const parties: Party[] = await getParties().catch(() => []);
+  // Standings never throw: without them only the order by name is offered.
+  const [parties, standings] = await Promise.all([getParties().catch((): Party[] => []), getPartyStandings()]);
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 
   return (
     <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <Providers>
-          <NavigationProgress />
-          <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-paper focus:p-3">
-            Saltar para o conteúdo
-          </a>
-          <Header parties={parties} />
-          {/* The side columns stay at the page's edges on every page; the content sits right after the left one,
+          <PartyOrderProvider standings={standings}>
+            <NavigationProgress />
+            <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-paper focus:p-3">
+              Saltar para o conteúdo
+            </a>
+            <Header parties={parties} />
+            {/* The side columns stay at the page's edges on every page; the content sits right after the left one,
               and is centred between both once the party column on the right is shown. */}
-          <div className="mx-auto flex w-full max-w-[96rem] gap-6 px-4 py-6 2xl:gap-8">
-            <SiteNav />
-            <main id="conteudo" className="min-w-0 flex-1">
-              {/* A Reddit-sized reading column, centred; wide pages (data-wide) take the full width. */}
-              <div className="mx-auto max-w-3xl has-[[data-wide]]:max-w-none">{children}</div>
-            </main>
-            <PartySidebar parties={parties} />
-          </div>
+            <div className="mx-auto flex w-full max-w-[96rem] gap-6 px-4 py-6 2xl:gap-8">
+              <SiteNav />
+              <main id="conteudo" className="min-w-0 flex-1">
+                {/* A Reddit-sized reading column, centred; wide pages (data-wide) take the full width. */}
+                <div className="mx-auto max-w-3xl has-[[data-wide]]:max-w-none">{children}</div>
+              </main>
+              <PartySidebar parties={parties} />
+            </div>
+          </PartyOrderProvider>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}
       </body>
