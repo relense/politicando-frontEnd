@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { DeputyArticles, DeputyCareer, DeputyFacts, DeputyInitiatives, DeputyPortrait } from "@/components/DeputyProfile";
+import { DeputyVotes } from "@/components/DeputyVotes";
 import { PartyChips } from "@/components/PartyChips";
 import { ApiError, getDeputy } from "@/lib/api/client";
 import { partyColor } from "@/lib/parliament";
@@ -69,6 +70,9 @@ export default async function DeputyPage({ params }: Props) {
       <Section title="Iniciativas que assina">
         <DeputyInitiatives detail={deputy} />
       </Section>
+      <Section title="Votações" id="votacoes">
+        <DeputyVotes deputyId={deputy.id} group={deputy.party?.acronym ?? deputy.group} />
+      </Section>
       <Section title="Nas notícias">
         <DeputyArticles detail={deputy} />
       </Section>
@@ -81,9 +85,9 @@ export default async function DeputyPage({ params }: Props) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10">
+    <section id={id} className="mt-10 scroll-mt-20">
       <h2 className="mb-3 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">{title}</h2>
       {children}
     </section>

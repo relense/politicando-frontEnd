@@ -45,10 +45,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Header parties={parties} />
           {/* The side columns stay at the page's edges on every page; the content sits right after the left one,
               and is centred between both once the party column on the right is shown. */}
-          <div className="mx-auto flex w-full max-w-[96rem] gap-8 px-4 py-6">
+          <div className="mx-auto flex w-full max-w-[96rem] gap-6 px-4 py-6 2xl:gap-8">
             <SiteNav />
             <main id="conteudo" className="min-w-0 flex-1">
-              <div className="max-w-5xl has-[[data-wide]]:max-w-none 2xl:mx-auto 2xl:max-w-3xl">{children}</div>
+              {/* A Reddit-sized reading column, centred; wide pages (data-wide) take the full width. */}
+              <div className="mx-auto max-w-3xl has-[[data-wide]]:max-w-none">{children}</div>
             </main>
             <PartySidebar parties={parties} />
           </div>

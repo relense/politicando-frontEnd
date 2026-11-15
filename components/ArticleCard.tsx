@@ -11,7 +11,7 @@ export function ArticleCard({ article }: { article: Article }) {
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="grid gap-x-8 gap-y-4 border-b border-line py-8 sm:grid-cols-[minmax(0,1fr)_14rem]">
+    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_9rem]">
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (
@@ -30,13 +30,13 @@ export function ArticleCard({ article }: { article: Article }) {
           </time>
         </div>
 
-        <h2 className="mb-3 text-2xl font-bold leading-tight sm:text-[1.7rem]">
+        <h2 className="mb-2 text-lg font-bold leading-snug sm:text-xl">
           <Link href={articlePath} className="hover:underline">
             {article.title}
           </Link>
         </h2>
 
-        {text && <p className="mb-5 leading-relaxed text-ink/80">{text}</p>}
+        {text && <p className="mb-3 text-[15px] leading-relaxed text-ink/80">{text}</p>}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <PartyChips parties={article.parties} />

@@ -128,3 +128,12 @@ export function formatTime(value: string | null | undefined): string | null {
   const p = parts(date);
   return `${p.hour}:${p.minute}`;
 }
+
+/** "5 de junho de 2025", for dates such as when a Government took office. Date-only values are read as such. */
+export function formatLongDate(value: string | null | undefined): string | null {
+  // "2025-06-05" would be midnight UTC; noon keeps it on the same day in Lisbon.
+  const date = parse(value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value);
+  if (!date) return null;
+  const p = dayParts(date);
+  return `${p.day} de ${p.month} de ${p.year}`;
+}

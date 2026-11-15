@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ParliamentView, type Selection } from "@/components/ParliamentView";
-import { ApiError, getInitiatives, getParliament } from "@/lib/api/client";
+import { ApiError, getGovernment, getInitiatives, getParliament } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
-import type { InitiativePage, Parliament } from "@/lib/types";
+import type { Government, GovernmentMember, InitiativePage, Parliament } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Parlamento",
@@ -25,9 +25,11 @@ async function loadParliament(): Promise<Parliament | null> {
 
 export default async function ParliamentPage({ searchParams }: Props) {
   await connection();
-  const [parliament, initiatives, { deputado, partido }] = await Promise.all([
+  const [parliament, initiatives, government, { deputado, partido }] = await Promise.all([
     loadParliament(),
     getInitiatives({ status: "approved" }).catch((): InitiativePage | null => null),
+    // The map works without it: the bench is simply not drawn.
+    getGovernment().catch((): Government | null => null),
     searchParams,
   ]);
   // The view checks these against the real data and ignores anything unknown.
@@ -41,7 +43,8 @@ export default async function ParliamentPage({ searchParams }: Props) {
   const header = (
     <header className="mb-3">
       <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
-        Assembleia da República{parliament && ` · ${parliament.legislature} Legislatura`}
+        Assembleia da República
+        {parliament && ` · ${parliament.legislature} Legislatura`}
       </p>
       <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem está sentado onde</h1>
     </header>
@@ -52,7 +55,13 @@ export default async function ParliamentPage({ searchParams }: Props) {
     <div data-wide>
       {parliament ? (
         // The title sits in the map's column, so the card beside it can run from the title down.
-        <ParliamentView parliament={parliament} initialInitiatives={initiatives} initialSelection={selection} header={header} />
+        <ParliamentView
+          parliament={parliament}
+          initialInitiatives={initiatives}
+          initialSelection={selection}
+          header={header}
+          government={benchOf(government)}
+        />
       ) : (
         <>
           {header}
@@ -63,9 +72,17 @@ export default async function ParliamentPage({ searchParams }: Props) {
       )}
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">
-        Fonte: Assembleia da República (dados abertos){parliament && `; lugares segundo a ${parliament.seatMap.source}`}
+        Fonte: Assembleia da República (dados abertos)
+        {parliament && `; lugares segundo a ${parliament.seatMap.source}`}
         {updated && ` · atualizado em ${updated}`}.
       </p>
     </div>
   );
+}
+
+/** Who sits on the Government's bench: the Prime Minister, then the ministers in protocol order. */
+function benchOf(government: Government | null): GovernmentMember[] {
+  if (!government) return [];
+  const ministers = government.ministries.flatMap((ministry) => (ministry.minister?.kind === "minister" ? [ministry.minister] : []));
+  return government.primeMinister ? [government.primeMinister, ...ministers] : ministers;
 }

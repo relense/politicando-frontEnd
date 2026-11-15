@@ -1,9 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { mapDeputyDetail, mapInitiative, mapInitiativeDetail, mapParliament } from "@/lib/api/mappers";
-import { deputyDetailSchema, initiativeDetailSchema, initiativeSchema, parliamentSchema } from "@/lib/api/schemas";
+import {
+  mapDeputyDetail,
+  mapDeputyVotes,
+  mapGovernment,
+  mapGovernmentMemberDetail,
+  mapInitiative,
+  mapInitiativeDetail,
+  mapParliament,
+} from "@/lib/api/mappers";
+import {
+  deputyDetailSchema,
+  deputyVotesPageSchema,
+  governmentMemberDetailSchema,
+  governmentSchema,
+  initiativeDetailSchema,
+  initiativeSchema,
+  parliamentSchema,
+} from "@/lib/api/schemas";
+import { government, governmentMember } from "@/mocks/governmentFixtures";
 import { arrangeSeats, facing, focusOf, neighbourSeat, OUTER_RADIUS, polar, seatSpacing } from "@/lib/hemicycle";
 import { ageOn, majority, SEAT_ORDER } from "@/lib/parliament";
-import { deputyDetail, initiativeDetails, initiatives, parliament as apiParliament } from "@/mocks/parliamentFixtures";
+import { deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament as apiParliament } from "@/mocks/parliamentFixtures";
 
 const parliament = mapParliament(parliamentSchema.parse(apiParliament));
 const { seatMap } = parliament;
@@ -122,5 +139,58 @@ describe("arrangeSeats", () => {
     expect(meanAngle("ps")).toBeGreaterThan(meanAngle("psd"));
     expect(meanAngle("psd")).toBeGreaterThan(meanAngle("chega"));
     expect(meanAngle("pcp")).toBeGreaterThan(meanAngle("ps"));
+  });
+});
+
+describe("Government and votes", () => {
+  it("parses the Government, linking a minister who came from Parliament to their deputy record", () => {
+    const parsed = mapGovernment(governmentSchema.parse(government));
+    expect(parsed.primeMinister?.kind).toBe("prime_minister");
+    expect(parsed.ministries[0]!.area).toBe("primeiro-ministro");
+    const fromParliament = parsed.ministries.flatMap((ministry) => (ministry.minister ? [ministry.minister] : [])).find((m) => m.deputyId);
+    expect(fromParliament?.partySlug).toBe("psd");
+    expect(parsed.former[0]!.endDate).toBe("2026-02-11");
+  });
+
+  it("parses a member's page and drops unsafe links", () => {
+    const raw = governmentMember(parsedId(), [])!;
+    const member = mapGovernmentMemberDetail(
+      governmentMemberDetailSchema.parse({ ...raw, links: [...raw.links!, { network: "Mau", url: "javascript:alert(1)" }] }),
+    );
+    expect(member.links.every((link) => link.url.startsWith("https://"))).toBe(true);
+    expect(member.positions[0]!.title).toBe("Primeiro-Ministro");
+  });
+
+  it("works out a deputy's votes from their group, naming those who broke ranks", () => {
+    const deputy = parliament.deputies.find((item) => item.partySlug === "ps")!;
+    const page = mapDeputyVotes(deputyVotesPageSchema.parse({ ...deputyVotes(deputy.id)!, nextCursor: null }));
+    expect(page.votes.length).toBeGreaterThan(0);
+    expect(page.votes.every((vote) => (vote.position === null) === (vote.basis === "absent" || vote.basis === "unknown"))).toBe(true);
+    const { favor, against, abstention, absent, unknown } = page.summary;
+    expect(favor + against + abstention + absent + unknown).toBe(page.votes.length);
+  });
+
+  it("reads coverage and absent groups on initiatives", () => {
+    const detail = mapInitiativeDetail(initiativeDetailSchema.parse({ ...initiativeDetails[0]!, articles: [] }));
+    expect(detail.coverage.articles).toBe(3);
+    expect(detail.votes[0]!.absent).toEqual([{ partySlug: "jpp", count: null }]);
+  });
+});
+
+function parsedId() {
+  return governmentSchema.parse(government).primeMinister!.id;
+}
+
+describe("governmentBench", () => {
+  it("puts the Prime Minister in the middle of the front arc and keeps every seat off the Mesa", async () => {
+    const { governmentBench } = await import("@/lib/hemicycle");
+    const options = { front: 94, step: 22, clear: 42, mesaHalfWidth: 34 };
+    const seats = governmentBench(17, options);
+    expect(seats).toHaveLength(17);
+    expect(seats[0]!.x).toBeCloseTo(0);
+    expect(Math.hypot(seats[0]!.x, seats[0]!.y)).toBeCloseTo(94);
+    for (const seat of seats) expect(Math.abs(seat.x) > options.mesaHalfWidth + options.step / 2 || -seat.y > options.clear).toBe(true);
+    // No two seats overlap.
+    for (const [i, a] of seats.entries()) for (const b of seats.slice(i + 1)) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(13);
   });
 });

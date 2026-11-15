@@ -26,20 +26,20 @@ export function ArticleDetail({ article }: { article: Article }) {
         )}
       </div>
 
-      <h1 className="mb-6 text-3xl font-bold leading-[1.1] tracking-tight sm:text-5xl">{article.title}</h1>
+      <h1 className="mb-4 text-2xl font-bold leading-tight sm:text-[1.75rem]">{article.title}</h1>
 
-      <PartyChips parties={article.parties} className="mb-8" />
+      <PartyChips parties={article.parties} className="mb-5" />
 
       {article.imageUrl && (
         <ArticleImage
           src={article.imageUrl}
           caption={`Imagem · ${article.source}`}
-          className="mb-8 overflow-hidden rounded-lg"
-          imageClassName="aspect-video w-full object-cover"
+          className="mb-5 flex justify-center overflow-hidden rounded-lg bg-surface"
+          imageClassName="max-h-[28rem] w-auto max-w-full object-contain"
         />
       )}
 
-      {article.excerpt && <p className="text-xl leading-relaxed">{article.excerpt}</p>}
+      {article.excerpt && <p className="text-base leading-relaxed sm:text-[17px]">{article.excerpt}</p>}
 
       {article.url && (
         <div className="mt-8 flex flex-col gap-4 border-y border-line py-6 sm:flex-row sm:items-center sm:gap-6">

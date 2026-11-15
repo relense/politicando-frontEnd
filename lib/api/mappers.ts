@@ -1,11 +1,28 @@
 import { decode } from "he";
-import type { Article, Comment, DeputyDetail, DeputySummary, Initiative, InitiativeDetail, Parliament, Party } from "@/lib/types";
+import type {
+  Article,
+  Comment,
+  DeputyDetail,
+  DeputySummary,
+  DeputyVotesPage,
+  Government,
+  GovernmentMember,
+  GovernmentMemberDetail,
+  Initiative,
+  InitiativeDetail,
+  Parliament,
+  Party,
+} from "@/lib/types";
 import { sourceName } from "@/lib/sources";
 import type {
   ApiArticle,
   ApiComment,
   ApiDeputyDetail,
   ApiDeputySummary,
+  ApiDeputyVotesPage,
+  ApiGovernment,
+  ApiGovernmentMember,
+  ApiGovernmentMemberDetail,
   ApiInitiative,
   ApiInitiativeDetail,
   ApiParliament,
@@ -74,6 +91,8 @@ export function mapDeputySummary(deputy: ApiDeputySummary): DeputySummary {
     partySlug: deputy.party,
     constituency: deputy.constituency,
     seat: deputy.seat ?? null,
+    seatEstimated: deputy.seatEstimated ?? false,
+    positions: deputy.positions.map(plainText).filter(Boolean),
     role: deputy.parliamentRole ?? null,
     photoUrl: secureUrl(deputy.photoUrl),
   };
@@ -85,7 +104,12 @@ export function mapParliament(parliament: ApiParliament): Parliament {
     updatedAt: parliament.updatedAt,
     seatMap: {
       ...parliament.seatMap,
-      seats: parliament.seatMap.seats.map(({ party, deputyId, ...seat }) => ({ ...seat, partySlug: party, deputyId: deputyId ?? null })),
+      seats: parliament.seatMap.seats.map(({ party, deputyId, estimated, ...seat }) => ({
+        ...seat,
+        partySlug: party,
+        deputyId: deputyId ?? null,
+        estimated: estimated ?? false,
+      })),
     },
     groups: parliament.groups,
     deputies: parliament.deputies.map(mapDeputySummary),
@@ -113,6 +137,11 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
     lastVote: initiative.lastVote
       ? { ...initiative.lastVote, date: initiative.lastVote.date ?? null, phase: initiative.lastVote.phase ?? null }
       : null,
+    coverage: {
+      articles: initiative.coverage?.articles ?? 0,
+      sources: initiative.coverage?.sources ?? 0,
+      lastAt: initiative.coverage?.lastAt ?? null,
+    },
   };
 }
 
@@ -129,8 +158,10 @@ export function mapInitiativeDetail(initiative: ApiInitiativeDetail): Initiative
       favor: positions(vote.favor),
       against: positions(vote.against),
       abstention: positions(vote.abstention),
+      absent: positions(vote.absent),
       named: vote.named,
     })),
+    articles: initiative.articles.map(mapArticle),
   };
 }
 
@@ -154,5 +185,77 @@ export function mapDeputyDetail(deputy: ApiDeputyDetail): DeputyDetail {
     pastLegislatures: deputy.pastLegislatures,
     initiatives: { ...deputy.initiatives, latest: deputy.initiatives.latest.map(mapInitiative) },
     articles: deputy.articles.map(mapArticle),
+  };
+}
+
+export function mapDeputyVotes(page: ApiDeputyVotesPage): DeputyVotesPage {
+  return {
+    summary: page.summary,
+    votes: page.items.map((item) => ({
+      initiative: { ...item.initiative, number: item.initiative.number ?? null, title: plainText(item.initiative.title) },
+      vote: { ...item.vote, date: item.vote.date ?? null, phase: item.vote.phase ?? null },
+      position: item.position,
+      basis: item.basis,
+    })),
+    nextCursor: page.nextCursor,
+  };
+}
+
+export function mapGovernmentMember(member: ApiGovernmentMember): GovernmentMember {
+  return {
+    id: member.id,
+    name: member.name,
+    title: member.title,
+    kind: member.kind,
+    gender: member.gender ?? null,
+    photoUrl: secureUrl(member.photoUrl),
+    startDate: member.startDate ?? null,
+    endDate: member.endDate ?? null,
+    deputyId: member.deputyId ?? null,
+    partySlug: member.party ?? null,
+    areaName: member.areaName ?? null,
+  };
+}
+
+export function mapGovernment(data: ApiGovernment): Government {
+  return {
+    code: data.government.code,
+    name: data.government.name,
+    startDate: data.government.startDate ?? null,
+    updatedAt: data.government.updatedAt ?? null,
+    primeMinister: data.primeMinister ? mapGovernmentMember(data.primeMinister) : null,
+    ministries: data.ministries.map((ministry) => ({
+      area: ministry.area,
+      name: ministry.name,
+      minister: ministry.minister ? mapGovernmentMember(ministry.minister) : null,
+      secretaries: ministry.secretaries.map(mapGovernmentMember),
+    })),
+    former: data.former.map(mapGovernmentMember),
+  };
+}
+
+export function mapGovernmentMemberDetail(member: ApiGovernmentMemberDetail): GovernmentMemberDetail {
+  return {
+    id: member.id,
+    name: member.name,
+    gender: member.gender ?? null,
+    photoUrl: secureUrl(member.photoUrl),
+    bio: member.bio.map(plainText).filter(Boolean),
+    links: member.links.flatMap((link) => {
+      const url = safeHttpUrl(link.url);
+      return url ? [{ network: link.network, url }] : [];
+    }),
+    inOffice: member.inOffice,
+    deputy: member.deputy ? { id: member.deputy.id, name: member.deputy.name, partySlug: member.deputy.party ?? null } : null,
+    positions: member.positions.map((position) => ({
+      title: position.title,
+      kind: position.kind,
+      areaName: position.areaName ?? null,
+      government: position.government ?? null,
+      startDate: position.startDate ?? null,
+      endDate: position.endDate ?? null,
+      url: safeHttpUrl(position.url),
+    })),
+    articles: member.articles.map(mapArticle),
   };
 }

@@ -44,8 +44,10 @@ export type ParliamentSeat = {
   /** Floor position: x from 0 (left) to 1, y from 0 (back row) to the map height (front, near the Mesa). */
   x: number;
   y: number;
-  /** Who sits here. Not published yet, so usually null. */
+  /** Who sits here, when known. */
   deputyId: number | null;
+  /** True when who sits here is the backend's estimate (by importance), not official seating. */
+  estimated: boolean;
 };
 
 export type ParliamentGroup = { group: string; party: ArticleParty; seats: number };
@@ -59,6 +61,10 @@ export type DeputySummary = {
   partySlug: string | null;
   constituency: string;
   seat: number | null;
+  /** True when the seat is estimated rather than official. */
+  seatEstimated: boolean;
+  /** Official posts, most important first, such as "Líder do grupo parlamentar". */
+  positions: string[];
   /** A post in the chamber's leadership, such as "Vice-Presidente". */
   role: string | null;
   photoUrl: string | null;
@@ -89,6 +95,8 @@ export type Initiative = {
   textUrl: string | null;
   authors: { parties: ArticleParty[]; deputies: { id: number; name: string; partySlug: string | null }[]; other: string | null };
   lastVote: { date: string | null; phase: string | null; result: string; unanimous: boolean } | null;
+  /** News found about it. Approximate (matched by keywords), so the UI calls it "related". */
+  coverage: { articles: number; sources: number; lastAt: string | null };
 };
 
 export type InitiativePage = { initiatives: Initiative[]; nextCursor: string | null };
@@ -105,11 +113,83 @@ export type Vote = {
   favor: VotePosition[];
   against: VotePosition[];
   abstention: VotePosition[];
+  /** Groups recorded as absent. */
+  absent: VotePosition[];
   /** Deputies the Parliament names because they voted apart from their group. */
   named: { name: string; group: string; position: string }[];
 };
 
-export type InitiativeDetail = Initiative & { votes: Vote[] };
+export type InitiativeDetail = Initiative & { votes: Vote[]; articles: Article[] };
+
+/**
+ * How a deputy's position in a vote is known. The Parliament records votes by group, so most come from the
+ * group; "named" ones are where the record names them, because they voted apart from it.
+ */
+export type VoteBasis = "named" | "group" | "unanimous" | "absent" | "unknown";
+
+export type DeputyVote = {
+  initiative: { id: number; type: string; number: string | null; title: string; status: InitiativeStatus };
+  vote: { id: string; date: string | null; phase: string | null; result: string };
+  position: "favor" | "against" | "abstention" | null;
+  basis: VoteBasis;
+};
+
+export type DeputyVotesPage = {
+  summary: { favor: number; against: number; abstention: number; absent: number; unknown: number; brokeRanks: number };
+  votes: DeputyVote[];
+  nextCursor: string | null;
+};
+
+export type GovernmentMemberKind = "prime_minister" | "minister" | "secretary_of_state";
+
+/** A member of the Government. Not a deputy: ids are the Government portal's. */
+export type GovernmentMember = {
+  id: string;
+  name: string;
+  title: string;
+  kind: GovernmentMemberKind;
+  gender: "M" | "F" | null;
+  photoUrl: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  /** Set when they were elected to this legislature and left their seat to join the Government. */
+  deputyId: number | null;
+  /** Only known through a deputy record; most members' party isn't published. */
+  partySlug: string | null;
+  /** For former members: the ministry they were in. */
+  areaName: string | null;
+};
+
+export type Government = {
+  code: string;
+  name: string;
+  startDate: string | null;
+  updatedAt: string | null;
+  primeMinister: GovernmentMember | null;
+  ministries: { area: string; name: string; minister: GovernmentMember | null; secretaries: GovernmentMember[] }[];
+  former: GovernmentMember[];
+};
+
+export type GovernmentMemberDetail = {
+  id: string;
+  name: string;
+  gender: "M" | "F" | null;
+  photoUrl: string | null;
+  bio: string[];
+  links: { network: string; url: string }[];
+  inOffice: boolean;
+  deputy: { id: number; name: string; partySlug: string | null } | null;
+  positions: {
+    title: string;
+    kind: GovernmentMemberKind;
+    areaName: string | null;
+    government: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    url: string | null;
+  }[];
+  articles: Article[];
+};
 
 export type DeputyDetail = DeputySummary & {
   fullName: string;

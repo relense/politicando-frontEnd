@@ -1,6 +1,7 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 import { getInitiative, getInitiatives } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
@@ -119,6 +120,8 @@ export function InitiativesSection({ initialPage, counts, groups, filter, onHigh
 
 function InitiativeCard({ initiative, groups }: { initiative: Initiative; groups: ReadonlyMap<string, ParliamentGroup> }) {
   const [showVote, setShowVote] = useState(false);
+  const [showNews, setShowNews] = useState(false);
+  const related = initiative.coverage.articles;
   const { authors, lastVote } = initiative;
   const date = formatDate(initiative.phaseDate);
   const proposedBy =
@@ -135,7 +138,7 @@ function InitiativeCard({ initiative, groups }: { initiative: Initiative; groups
     <article className="border-b border-line py-5">
       <p className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
         <span className="sr-only">Origem: </span>
-        <OriginBadge origin={originOf(initiative)} label={authors.other ?? undefined} />
+        <OriginBadge origin={originOf(initiative)} label={authors.other ?? undefined} linked />
         <span className="font-bold text-ink">
           {initiative.type}
           {initiative.number && ` n.º ${initiative.number}`}
@@ -175,6 +178,12 @@ function InitiativeCard({ initiative, groups }: { initiative: Initiative; groups
             {showVote ? "Esconder votação" : "Ver votação por partido"}
           </button>
         )}
+        {/* Matched by keywords from the title, so it's labelled as related rather than as coverage. */}
+        {related > 0 && (
+          <button type="button" aria-expanded={showNews} onClick={() => setShowNews((value) => !value)} className="text-link underline">
+            {showNews ? "Esconder notícias" : `${related} ${related === 1 ? "notícia relacionada" : "notícias relacionadas"}`}
+          </button>
+        )}
         {initiative.textUrl && (
           <a href={initiative.textUrl} target="_blank" rel="noopener noreferrer" className="text-link underline">
             Ler o texto ↗<span className="sr-only"> (abre num novo separador)</span>
@@ -183,6 +192,7 @@ function InitiativeCard({ initiative, groups }: { initiative: Initiative; groups
       </div>
 
       {showVote && <VoteBreakdown id={initiative.id} groups={groups} />}
+      {showNews && <RelatedNews id={initiative.id} />}
     </article>
   );
 }
@@ -205,6 +215,7 @@ function VoteBreakdown({ id, groups }: { id: number; groups: ReadonlyMap<string,
       <VoteRow label="A favor" positions={vote.favor} acronym={acronym} />
       <VoteRow label="Contra" positions={vote.against} acronym={acronym} />
       <VoteRow label="Abstenção" positions={vote.abstention} acronym={acronym} />
+      <VoteRow label="Ausentes" positions={vote.absent} acronym={acronym} />
       {vote.named.length > 0 && (
         <p className="mt-1 text-xs text-muted">
           Votaram à parte da sua bancada:{" "}
@@ -233,6 +244,31 @@ function VoteRow({ label, positions, acronym }: { label: string; positions: Vote
           {acronym(partySlug)}
         </span>
       ))}
+    </div>
+  );
+}
+
+/** News that seems to be about the initiative. Loaded only when asked for, from the same request as the votes. */
+function RelatedNews({ id }: { id: number }) {
+  const { data, isPending, isError } = useQuery({ queryKey: ["initiative", id], queryFn: () => getInitiative(id) });
+  if (isPending) return <p className="mt-3 text-sm text-muted">A carregar as notícias…</p>;
+  if (isError) return <p className="mt-3 text-sm text-muted">Não foi possível carregar as notícias.</p>;
+  if (data.articles.length === 0) return <p className="mt-3 text-sm text-muted">Sem notícias relacionadas nas nossas fontes.</p>;
+  return (
+    <div className="mt-3 rounded-xl bg-surface p-3">
+      <p className="font-mono text-xs text-muted">Encontradas pelas palavras do título; podem não ser todas sobre esta iniciativa.</p>
+      <ul className="mt-1 divide-y divide-line">
+        {data.articles.map((article) => (
+          <li key={article.id} className="py-2">
+            <p className="font-mono text-[11px] text-muted">
+              {article.source} · {formatDate(article.publishedAt)}
+            </p>
+            <Link href={`/article/${article.id}`} className="text-sm font-bold leading-snug hover:underline">
+              {article.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

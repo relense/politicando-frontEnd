@@ -44,6 +44,13 @@ export const SITE_SECTIONS: Item[] = [
     active: (path) => path.startsWith("/deputados"),
   },
   {
+    href: "/governo",
+    label: "Governo",
+    hint: "Primeiro-Ministro e ministros",
+    icon: icon("M3 8l7-4 7 4M4 8v7M8 8v7M12 8v7M16 8v7M2 17h16"),
+    active: (path) => path.startsWith("/governo"),
+  },
+  {
     href: null,
     label: "Blog",
     hint: "Em breve",

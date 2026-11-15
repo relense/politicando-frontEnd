@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
       { pathname: "/fotos/deputados/**", search: "" },
       { pathname: "/parties/**", search: "" },
     ],
+    // Government photos come from the Government portal's CDN, which is fast; the optimiser resizes them there.
+    // Only its media folder is allowed. Its query (?h=…&w=…) varies per photo.
+    remotePatterns: [
+      { protocol: "https", hostname: "edge.sitecorecloud.io", pathname: "/centrodeges65c9-cegere0de-prod6279-8af9/media/**" },
+    ],
     // Photos rarely change; a week keeps them fresh enough. There is no purge, so this stays modest.
     minimumCacheTTL: 604_800,
   },

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { getDeputy } from "@/lib/api/client";
 import { partyColor } from "@/lib/parliament";
 import type { DeputySummary, ParliamentGroup } from "@/lib/types";
+import { DeputyVotes } from "./DeputyVotes";
 import { DeputyArticles, DeputyCareer, DeputyFacts, DeputyInitiatives, DeputyPortrait } from "./DeputyProfile";
 
 type Props = {
@@ -24,9 +25,7 @@ export function DeputyPanel({ group, deputies, deputy, onDeputy, onBackToGroup, 
   return (
     <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center text-muted">
       <p className="font-bold text-ink">Carrega num lugar</p>
-      <p className="mt-1 text-sm">
-        para ver a bancada desse partido e escolher um deputado: quem é, o que propôs e o que dizem as notícias.
-      </p>
+      <p className="mt-1 text-sm">para ver quem lá se senta: quem é, o que propôs e o que dizem as notícias.</p>
       <Link href="/deputados" className="mt-4 font-mono text-sm text-link underline">
         Ver todos os deputados
       </Link>
@@ -93,7 +92,7 @@ function GroupCard({
       <p className="font-mono text-xs text-muted">
         {group.party.acronym} · {group.seats} {group.seats === 1 ? "deputado" : "deputados"}
       </p>
-      <p className="mt-3 text-sm text-muted">O Parlamento não publica quem se senta em cada cadeira. Escolhe um deputado desta bancada:</p>
+      <p className="mt-3 text-sm text-muted">Escolhe um deputado desta bancada:</p>
       <ul className="mt-2">
         {deputies.map((deputy) => (
           <li key={deputy.id}>
@@ -118,7 +117,7 @@ function GroupCard({
   );
 }
 
-const TABS = ["Iniciativas", "Notícias", "Percurso"] as const;
+const TABS = ["Iniciativas", "Votações", "Notícias", "Percurso"] as const;
 
 function DeputyCard({
   summary,
@@ -181,7 +180,7 @@ function DeputyCard({
           <div
             role="tablist"
             aria-label="Sobre o deputado"
-            className="mt-4 flex gap-4 border-b border-line font-mono text-xs font-bold uppercase tracking-wider"
+            className="mt-4 flex gap-3 border-b border-line font-mono text-[11px] font-bold uppercase tracking-wider"
           >
             {TABS.map((name) => (
               <button
@@ -198,6 +197,7 @@ function DeputyCard({
           </div>
           <div role="tabpanel" aria-label={tab} className="pt-3">
             {tab === "Iniciativas" && <DeputyInitiatives detail={detail} limit={5} />}
+            {tab === "Votações" && <DeputyVotes deputyId={summary.id} group={party?.acronym ?? summary.group} compact />}
             {tab === "Notícias" && <DeputyArticles detail={detail} limit={5} />}
             {tab === "Percurso" && <DeputyCareer detail={detail} />}
           </div>

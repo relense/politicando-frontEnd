@@ -4,6 +4,9 @@ import type {
   ArticlePage,
   Comment,
   DeputyDetail,
+  DeputyVotesPage,
+  Government,
+  GovernmentMemberDetail,
   InitiativeDetail,
   InitiativePage,
   InitiativeStatus,
@@ -11,13 +14,27 @@ import type {
   Parliament,
   Party,
 } from "@/lib/types";
-import { mapArticle, mapComment, mapDeputyDetail, mapInitiative, mapInitiativeDetail, mapParliament, mapParty } from "./mappers";
+import {
+  mapArticle,
+  mapComment,
+  mapDeputyDetail,
+  mapDeputyVotes,
+  mapGovernment,
+  mapGovernmentMemberDetail,
+  mapInitiative,
+  mapInitiativeDetail,
+  mapParliament,
+  mapParty,
+} from "./mappers";
 import {
   articlePageSchema,
   articleSchema,
   commentSchema,
   deputyDetailSchema,
+  deputyVotesPageSchema,
   errorSchema,
+  governmentMemberDetailSchema,
+  governmentSchema,
   initiativeDetailSchema,
   initiativePageSchema,
   parliamentSchema,
@@ -126,4 +143,16 @@ export async function getInitiatives({ status, deputy, party, cursor, limit }: I
 
 export async function getInitiative(id: number): Promise<InitiativeDetail> {
   return mapInitiativeDetail(await request(`/initiatives/${id}`, initiativeDetailSchema, cached));
+}
+
+export async function getDeputyVotes(id: number, { cursor, limit }: { cursor?: string; limit?: number } = {}): Promise<DeputyVotesPage> {
+  return mapDeputyVotes(await request(`/deputies/${id}/votes${searchOf({ cursor, limit })}`, deputyVotesPageSchema, cached));
+}
+
+export async function getGovernment(): Promise<Government> {
+  return mapGovernment(await request("/government", governmentSchema, cached));
+}
+
+export async function getGovernmentMember(id: string): Promise<GovernmentMemberDetail> {
+  return mapGovernmentMemberDetail(await request(`/government/members/${encodeURIComponent(id)}`, governmentMemberDetailSchema, cached));
 }

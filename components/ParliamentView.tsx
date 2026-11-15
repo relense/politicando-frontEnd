@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { COALITIONS, majority, partyColor, SEAT_ORDER } from "@/lib/parliament";
-import type { DeputySummary, InitiativePage, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
+import type { DeputySummary, GovernmentMember, InitiativePage, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
 import { DeputyPanel } from "./DeputyPanel";
 import { Hemicycle } from "./Hemicycle";
 import { OrgansExplainer } from "./OrgansExplainer";
@@ -16,9 +16,11 @@ type Props = {
   initialSelection: Selection;
   /** The page title, shown above the map so the card beside it starts level with it. */
   header?: ReactNode;
+  /** The Prime Minister and ministers, in protocol order, for the Government's bench on the map. */
+  government?: GovernmentMember[];
 };
 
-export function ParliamentView({ parliament, initialInitiatives, initialSelection, header }: Props) {
+export function ParliamentView({ parliament, initialInitiatives, initialSelection, header, government = [] }: Props) {
   const { deputies, groups, seatMap } = parliament;
   const groupBySlug = useMemo(() => new Map(groups.map((group) => [group.party.slug, group])), [groups]);
   const deputyById = useMemo(() => new Map(deputies.map((deputy) => [deputy.id, deputy])), [deputies]);
@@ -80,9 +82,11 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
           <Hemicycle
             seatMap={seatMap}
             groups={groupBySlug}
+            deputies={deputyById}
             selectedSeat={deputy?.seat ?? null}
             highlighted={highlighted}
             onSeat={openSeat}
+            government={government}
           />
           <Legend
             groups={groups}
@@ -90,8 +94,11 @@ export function ParliamentView({ parliament, initialInitiatives, initialSelectio
             onPick={(slug) => choose(selection?.party === slug && !deputy ? null : { party: slug, deputy: null })}
           />
           <p className="mx-auto mt-3 max-w-xl text-center text-xs text-muted">
-            Vista a partir da Mesa: cada partido no seu setor, da esquerda para a direita. O Parlamento não publica quem ocupa cada cadeira,
-            por isso cada lugar abre a bancada do partido.
+            Vista a partir da Mesa: cada partido no seu setor, da esquerda para a direita.{" "}
+            {government.length > 0 &&
+              "Ao centro, a bancada do Governo, virada para os deputados; não são deputados e a disposição é esquemática. "}{" "}
+            Os lugares de cada partido são oficiais; quem se senta em cada cadeira é aproximado, porque o Parlamento não o publica: os
+            deputados com cargos mais importantes vão à frente.
           </p>
         </div>
         {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. */}

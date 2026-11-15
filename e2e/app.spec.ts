@@ -2,6 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const noSeriousA11yIssues = async (page: import("@playwright/test").Page) => {
+  // Seats fade in; checked once they have settled, so contrast isn't measured mid-animation.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations.map((violation) => `${violation.id}: ${violation.nodes[0]?.html}`)).toEqual([]);
 };
@@ -190,6 +192,7 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).toContain("/partido/cds-pp");
   expect(sitemap).toContain("/parlamento");
   expect(sitemap).toContain("/deputados");
+  expect(sitemap).toContain("/governo");
   expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
 });
 
@@ -204,6 +207,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/deputados",
     "/deputados?partido=ps",
     "/deputados/1100",
+    "/governo",
+    "/governo/00000000000000000000000000000001",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -265,10 +270,13 @@ test("parliament: press a seat to open the bench, pick a deputy, then browse ini
 
   const map = page.getByRole("group", { name: /Lugares do hemiciclo/ });
   await expect(map.getByRole("button")).toHaveCount(230);
-  await map
-    .getByRole("button", { name: /Partido Socialista \(PS\)/ })
-    .first()
-    .click();
+  // A seat opens whoever sits there; the tooltip names them first.
+  const seat = map.getByRole("button", { name: /Partido Socialista \(PS\)/ }).first();
+  await seat.hover();
+  await expect(page.getByRole("tooltip")).toContainText("(aproximado)");
+  await seat.click();
+  await expect(page).toHaveURL(/deputado=\d+/);
+  await page.getByRole("button", { name: "← Bancada PS" }).click();
   await expect(page).toHaveURL(/partido=ps/);
   const bench = page.getByRole("region", { name: "Partido Socialista" });
   await expect(bench.getByText(/58 deputados/)).toBeVisible();
@@ -282,10 +290,10 @@ test("parliament: press a seat to open the bench, pick a deputy, then browse ini
   await expect(card.getByText(/assinadas/)).toBeVisible();
 
   // The keyboard reaches the seats too.
-  await map.locator('[tabindex="0"]').focus();
+  await map.locator('[role="button"][tabindex="0"]').focus();
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/partido=/);
+  await expect(page).toHaveURL(/deputado=\d+/);
 
   const initiatives = page.getByRole("region", { name: "Iniciativas" });
   await initiatives.getByRole("button", { name: "Ver votação por partido" }).first().click();
@@ -313,4 +321,37 @@ test("deputies: filter by party and open a deputy's full profile", async ({ page
   await page.getByRole("link", { name: "Ver no hemiciclo" }).click();
   await expect(page).toHaveURL(/\/parlamento\?deputado=\d+$/);
   await expect(page.getByRole("region", { name })).toBeVisible();
+});
+
+test("government: from the menu to a minister who came from Parliament, and on to their deputy record", async ({ page, isMobile }) => {
+  await page.goto("/");
+  if (isMobile) {
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: /Governo/ })
+      .click();
+  } else {
+    await page
+      .getByRole("navigation", { name: "Secções" })
+      .getByRole("link", { name: /Governo/ })
+      .click();
+  }
+  await expect(page).toHaveURL(/\/governo$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Quem governa" })).toBeVisible();
+  // At the table: pressing the Prime Minister opens their card beside it, and the address keeps the choice.
+  const table = page.getByRole("list", { name: /Lugares à mesa do Conselho de Ministros/ });
+  await table.getByRole("button", { name: /Henrique Valadares/ }).click();
+  await expect(page).toHaveURL(/membro=0+1$/);
+  const card = page.getByRole("region", { name: "Henrique Valadares" });
+  await expect(card.getByRole("link", { name: /Percurso e notícias/ })).toBeVisible();
+  await card.getByRole("button", { name: "Fechar" }).click();
+  await expect(page.getByText("Carrega numa pessoa à mesa")).toBeVisible();
+
+  await page.getByRole("link", { name: /Eleito deputado pelo PSD/ }).click();
+  await expect(page).toHaveURL(/\/governo\/[0-9a-f]{32}$/);
+  await expect(page.getByText(/suspendeu o mandato para entrar no Governo/)).toBeVisible();
+  await page.getByRole("link", { name: "Ver ficha de deputado" }).click();
+  await expect(page).toHaveURL(/\/deputados\/\d+$/);
+  await expect(page.getByRole("heading", { name: "Votações" })).toBeVisible();
 });

@@ -1,7 +1,8 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { articles, comments as seedComments, parties } from "./fixtures";
-import { deputies, deputyDetail, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
+import { government, governmentMember } from "./governmentFixtures";
+import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, parliament } from "./parliamentFixtures";
 
 export const API = "*/api/v2";
 const store = new Map(Object.entries(seedComments).map(([id, list]) => [Number(id), [...list]]));
@@ -44,6 +45,31 @@ export const handlers = [
     });
   }),
   http.get(`${API}/parliament`, () => HttpResponse.json(parliament)),
+  http.get(`${API}/deputies/:id/votes`, ({ params, request }) => {
+    const result = deputyVotes(Number(params.id));
+    if (!result) return fail(404, "not_found");
+    const search = new URL(request.url).searchParams;
+    const cursor = search.get("cursor");
+    const limit = Number(search.get("limit") ?? 20);
+    if (cursor && !/^v\d+$/.test(cursor)) return fail(400, "invalid_cursor");
+    const start = cursor ? Number(cursor.slice(1)) : 0;
+    const items = result.items.slice(start, start + limit);
+    return HttpResponse.json({
+      summary: result.summary,
+      items,
+      nextCursor: start + limit < result.items.length ? `v${start + limit}` : null,
+    });
+  }),
+  http.get(`${API}/government`, () => HttpResponse.json(government)),
+  http.get(`${API}/government/members/:id`, ({ params }) => {
+    const memberId = String(params.id);
+    if (!/^[0-9a-f]{32}$/.test(memberId)) return fail(400, "invalid_request");
+    const detail = governmentMember(
+      memberId,
+      articles.filter((article) => article.id % 13 === Number.parseInt(memberId, 16) % 13).slice(0, 10),
+    );
+    return detail ? HttpResponse.json(detail) : fail(404, "not_found");
+  }),
   http.get(`${API}/deputies/:id`, ({ params }) => {
     const id = Number(params.id);
     const detail = deputyDetail(id, articles.filter((article) => mentions(article.id, id)).slice(0, 10));
@@ -51,7 +77,9 @@ export const handlers = [
   }),
   http.get(`${API}/initiatives/:id`, ({ params }) => {
     const detail = initiativeDetails.find((item) => item.id === Number(params.id));
-    return detail ? HttpResponse.json(detail) : fail(404, "not_found");
+    if (!detail) return fail(404, "not_found");
+    const related = detail.coverage?.articles ? articles.slice(detail.id % 20, (detail.id % 20) + 3) : [];
+    return HttpResponse.json({ ...detail, legislature: "XVII", articles: related });
   }),
   http.get(`${API}/initiatives`, ({ request }) => {
     const search = new URL(request.url).searchParams;

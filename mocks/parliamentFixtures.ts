@@ -9,14 +9,115 @@ import seatMap from "./seatMap.json";
 type SeatRow = [number, string, string, number, number];
 const groups = seatMap.groups;
 
-const FIRST = ["Ana", "Rui", "Marta", "Tiago", "Inês", "Nuno", "Sofia", "Pedro", "Rita", "Miguel", "Joana", "Hugo", "Carla", "Duarte", "Beatriz", "Filipe", "Teresa", "Gonçalo", "Leonor", "André", "Catarina", "Bruno", "Helena", "Vasco", "Mariana", "Diogo", "Patrícia", "Ricardo", "Cláudia", "Jorge"];
-const LAST = ["Almeida", "Barros", "Cardoso", "Duarte", "Esteves", "Fonseca", "Gomes", "Henriques", "Lopes", "Machado", "Neves", "Oliveira", "Pacheco", "Queirós", "Rebelo", "Sampaio", "Teixeira", "Valente", "Xavier", "Zuzarte", "Antunes", "Brito", "Correia", "Faria", "Garcia", "Mendes", "Pinto", "Ramos", "Sousa", "Vieira", "Matos"];
-const CONSTITUENCIES = ["Lisboa", "Porto", "Braga", "Setúbal", "Aveiro", "Leiria", "Coimbra", "Faro", "Santarém", "Viseu", "Madeira", "Açores", "Viana do Castelo", "Vila Real", "Castelo Branco", "Évora", "Guarda", "Beja", "Bragança", "Portalegre", "Europa", "Fora da Europa"];
-const ROLES: Record<number, string> = { 0: "Presidente da Assembleia", 1: "Vice-Presidente", 120: "Vice-Presidente", 200: "Secretário da Mesa" };
+const FIRST = [
+  "Ana",
+  "Rui",
+  "Marta",
+  "Tiago",
+  "Inês",
+  "Nuno",
+  "Sofia",
+  "Pedro",
+  "Rita",
+  "Miguel",
+  "Joana",
+  "Hugo",
+  "Carla",
+  "Duarte",
+  "Beatriz",
+  "Filipe",
+  "Teresa",
+  "Gonçalo",
+  "Leonor",
+  "André",
+  "Catarina",
+  "Bruno",
+  "Helena",
+  "Vasco",
+  "Mariana",
+  "Diogo",
+  "Patrícia",
+  "Ricardo",
+  "Cláudia",
+  "Jorge",
+];
+const LAST = [
+  "Almeida",
+  "Barros",
+  "Cardoso",
+  "Duarte",
+  "Esteves",
+  "Fonseca",
+  "Gomes",
+  "Henriques",
+  "Lopes",
+  "Machado",
+  "Neves",
+  "Oliveira",
+  "Pacheco",
+  "Queirós",
+  "Rebelo",
+  "Sampaio",
+  "Teixeira",
+  "Valente",
+  "Xavier",
+  "Zuzarte",
+  "Antunes",
+  "Brito",
+  "Correia",
+  "Faria",
+  "Garcia",
+  "Mendes",
+  "Pinto",
+  "Ramos",
+  "Sousa",
+  "Vieira",
+  "Matos",
+];
+const CONSTITUENCIES = [
+  "Lisboa",
+  "Porto",
+  "Braga",
+  "Setúbal",
+  "Aveiro",
+  "Leiria",
+  "Coimbra",
+  "Faro",
+  "Santarém",
+  "Viseu",
+  "Madeira",
+  "Açores",
+  "Viana do Castelo",
+  "Vila Real",
+  "Castelo Branco",
+  "Évora",
+  "Guarda",
+  "Beja",
+  "Bragança",
+  "Portalegre",
+  "Europa",
+  "Fora da Europa",
+];
+const ROLES: Record<number, string> = {
+  0: "Presidente da Assembleia",
+  1: "Vice-Presidente",
+  120: "Vice-Presidente",
+  200: "Secretário da Mesa",
+};
+
+// Like the backend, each party's deputies are given its official seats, the first ones (the most important)
+// in the front rows. Who sits where is an estimate, so every seat is marked as such.
+const rows = seatMap.seats as SeatRow[];
+const frontFirst = (slug: string) =>
+  rows
+    .filter((row) => row[2] === slug)
+    .sort((a, b) => Math.hypot(a[3] - 0.5, seatMap.height - a[4]) - Math.hypot(b[3] - 0.5, seatMap.height - b[4]))
+    .map((row) => row[0]);
+const seatsByParty = new Map(groups.map((group) => [group.party.slug, frontFirst(group.party.slug)]));
 
 let order = 0;
 const generated = groups.flatMap((group) =>
-  Array.from({ length: group.seats }, () => {
+  Array.from({ length: group.seats }, (_, index) => {
     const n = order++;
     const first = FIRST[(n * 7) % FIRST.length]!;
     const last = LAST[(n * 11 + 3) % LAST.length]!;
@@ -27,7 +128,9 @@ const generated = groups.flatMap((group) =>
       group: group.group,
       party: group.party.slug,
       constituency: CONSTITUENCIES[(n * 3) % CONSTITUENCIES.length]!,
-      seat: null,
+      seat: seatsByParty.get(group.party.slug)![index]!,
+      seatEstimated: true,
+      positions: index === 0 ? ["Líder do grupo parlamentar"] : index === 1 ? ["Vice-presidente do grupo parlamentar"] : [],
       parliamentRole: ROLES[n] ?? null,
       photoUrl: null,
     };
@@ -86,9 +189,20 @@ export const initiativeDetails: ApiInitiativeDetailInput[] = Array.from({ length
     textUrl: `http://app.parlamento.pt/webutils/docs/doc.pdf?mock=${id}`,
     authors: government
       ? { parties: [], deputies: [], other: "Governo" }
-      : { parties: [party], deputies: [author, coAuthor].map((deputy) => ({ id: deputy.id, name: deputy.name, party: deputy.party })), other: null },
+      : {
+          parties: [party],
+          deputies: [author, coAuthor].map((deputy) => ({ id: deputy.id, name: deputy.name, party: deputy.party })),
+          other: null,
+        },
+    // A few initiatives have related news (the handler attaches the articles).
+    coverage: index % 5 === 0 ? { articles: 3, sources: 2, lastAt: "2026-11-14T20:20:00.000Z" } : { articles: 0, sources: 0, lastAt: null },
     lastVote: voted
-      ? { date: voteDate, phase: status === "approved" ? "Votação final global" : "Votação na generalidade", result: status === "approved" ? "Aprovado" : "Rejeitado", unanimous: index % 10 === 0 }
+      ? {
+          date: voteDate,
+          phase: status === "approved" ? "Votação final global" : "Votação na generalidade",
+          result: status === "approved" ? "Aprovado" : "Rejeitado",
+          unanimous: index % 10 === 0,
+        }
       : null,
     votes: voted
       ? [
@@ -102,6 +216,7 @@ export const initiativeDetails: ApiInitiativeDetailInput[] = Array.from({ length
             // A split group: only one of its deputies voted against.
             against: [...against.map((slug) => ({ party: slug, count: null })), ...(index % 4 === 0 ? [{ party: "ps", count: 1 }] : [])],
             abstention: abstain.map((slug) => ({ party: slug, count: null })),
+            absent: index % 6 === 0 ? [{ party: "jpp", count: null }] : [],
             named: index % 4 === 0 ? [{ name: generated[150]!.name, group: "PS", position: "against" }] : [],
           },
         ]
@@ -122,11 +237,21 @@ export const parliament: ApiParliamentInput = {
     source: seatMap.source,
     width: seatMap.width,
     height: seatMap.height,
-    seats: (seatMap.seats as SeatRow[]).map(([number, group, party, x, y]) => ({ number, group, party, x, y, deputyId: null })),
+    seats: rows.map(([number, group, party, x, y]) => ({
+      number,
+      group,
+      party,
+      x,
+      y,
+      deputyId: generated.find((deputy) => deputy.seat === number)?.id ?? null,
+      estimated: true,
+    })),
   },
   groups,
   deputies: byName,
-  initiativeCounts: Object.fromEntries(STATUSES.map((status) => [status, initiativeDetails.filter((item) => item.status === status).length])),
+  initiativeCounts: Object.fromEntries(
+    STATUSES.map((status) => [status, initiativeDetails.filter((item) => item.status === status).length]),
+  ),
 };
 
 export const deputies = byName;
@@ -154,5 +279,50 @@ export function deputyDetail(id: number, articles: ApiDeputyDetailInput["article
       latest: authored.slice(0, 10),
     },
     articles,
+  };
+}
+
+type Position = "favor" | "against" | "abstention";
+
+/** How one deputy voted, worked out from their group's position as the backend does. */
+export function deputyVotes(id: number) {
+  const deputy = generated.find((item) => item.id === id);
+  if (!deputy) return null;
+  const items = initiativeDetails.flatMap((detail) =>
+    (detail.votes ?? []).map((vote) => {
+      const named = vote.named?.find((item) => item.name === deputy.name);
+      const inGroup = (list: { party: string; count: number | null }[] | null | undefined) =>
+        list?.some((item) => item.party === deputy.party);
+      const whole = (list: { party: string; count: number | null }[] | null | undefined) =>
+        list?.some((item) => item.party === deputy.party && item.count === null);
+      let position: Position | null = null;
+      let basis: "named" | "group" | "unanimous" | "absent" | "unknown" = "unknown";
+      if (named) [position, basis] = [named.position as Position, "named"];
+      else if (vote.unanimous) [position, basis] = ["favor", "unanimous"];
+      else if (inGroup(vote.absent)) basis = "absent";
+      else {
+        const split = (["favor", "against", "abstention"] as const).filter((key) => inGroup(vote[key]));
+        const only = (["favor", "against", "abstention"] as const).find((key) => whole(vote[key]));
+        if (split.length === 1 && only) [position, basis] = [only, "group"];
+      }
+      return {
+        initiative: { id: detail.id, type: detail.type, number: detail.number, title: detail.title, status: detail.status },
+        vote: { id: vote.id, date: vote.date, phase: vote.phase, result: vote.result },
+        position,
+        basis,
+      };
+    }),
+  );
+  const count = (test: (item: (typeof items)[number]) => boolean) => items.filter(test).length;
+  return {
+    summary: {
+      favor: count((item) => item.position === "favor"),
+      against: count((item) => item.position === "against"),
+      abstention: count((item) => item.position === "abstention"),
+      absent: count((item) => item.basis === "absent"),
+      unknown: count((item) => item.basis === "unknown"),
+      brokeRanks: count((item) => item.basis === "named"),
+    },
+    items,
   };
 }

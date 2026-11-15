@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "@/lib/format";
 import { ageOn, partyColor, STATUS_LABELS } from "@/lib/parliament";
+import { photoSource } from "@/lib/photos";
 import type { DeputyDetail, DeputySummary } from "@/lib/types";
 
 const initials = (name: string) =>
@@ -18,14 +19,6 @@ const initials = (name: string) =>
 
 const SIZES = { sm: "size-14 text-base", md: "size-16 text-lg", lg: "size-28 text-3xl" } as const;
 const PIXELS = { sm: 56, md: 64, lg: 112 } as const;
-
-const PARLIAMENT_PHOTO = /^https:\/\/app\.parlamento\.pt\/webutils\/getimage\.aspx\?/;
-
-/** Photos from the Parliament go through our cached route; any other address is used as given. */
-function photoSource(deputy: Pick<DeputySummary, "id" | "photoUrl">): string | null {
-  if (!deputy.photoUrl) return null;
-  return PARLIAMENT_PHOTO.test(deputy.photoUrl) ? `/fotos/deputados/${deputy.id}` : deputy.photoUrl;
-}
 
 /** The deputy's photo with a ring in the party's colour, or their initials when there is no photo or it fails. */
 export function DeputyPortrait({
@@ -68,7 +61,8 @@ export function DeputyFacts({ summary, detail }: { summary: DeputySummary; detai
   const legislatures = detail ? detail.pastLegislatures.length + 1 : null;
   const facts: [string, string | null][] = [
     ["Círculo", summary.constituency],
-    ["Cargo", summary.role],
+    ["Cargo", summary.role ?? summary.positions[0] ?? null],
+    ["Lugar", summary.seat !== null ? `${summary.seat}${summary.seatEstimated ? " (aproximado)" : ""}` : null],
     ["Situação", detail && !detail.active ? detail.situation : null],
     ["Idade", age !== null ? `${age} anos` : null],
     ["Profissão", detail?.profession ?? null],
@@ -150,6 +144,15 @@ export function DeputyCareer({ detail }: { detail: DeputyDetail }) {
                   <span className="text-muted"> · {committee.role ?? committee.membership}</span>
                 )}
               </li>
+            ))}
+          </ul>
+        </Block>
+      )}
+      {detail.positions.length > 0 && (
+        <Block title="Cargos atuais">
+          <ul className="space-y-1">
+            {detail.positions.map((position) => (
+              <li key={position}>{position}</li>
             ))}
           </ul>
         </Block>

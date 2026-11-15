@@ -49,6 +49,8 @@ export const deputySummarySchema = z.object({
   party: z.string().nullable(),
   constituency: z.string(),
   seat: z.number().nullish(),
+  seatEstimated: z.boolean().nullish(),
+  positions: list(z.string()),
   parliamentRole: z.string().nullish(),
   photoUrl: z.string().nullish(),
 });
@@ -61,7 +63,15 @@ export const parliamentSchema = z.object({
     width: z.number().positive(),
     height: z.number().positive(),
     seats: z.array(
-      z.object({ number: z.number(), group: z.string(), party: z.string(), x: z.number(), y: z.number(), deputyId: z.number().nullish() }),
+      z.object({
+        number: z.number(),
+        group: z.string(),
+        party: z.string(),
+        x: z.number(),
+        y: z.number(),
+        deputyId: z.number().nullish(),
+        estimated: z.boolean().nullish(),
+      }),
     ),
   }),
   groups: z.array(z.object({ group: z.string(), party: articlePartySchema, seats: z.number() })),
@@ -86,11 +96,14 @@ export const initiativeSchema = z.object({
     other: z.string().nullish(),
   }),
   lastVote: z.object({ date: z.string().nullish(), phase: z.string().nullish(), result: z.string(), unanimous: z.boolean() }).nullish(),
+  /** How much news we found about it. Approximate: matched by keywords from the title. */
+  coverage: z.object({ articles: z.number(), sources: z.number(), lastAt: z.string().nullish() }).nullish(),
 });
 
 const positionSchema = z.object({ party: z.string(), count: z.number().nullable() });
 
 export const initiativeDetailSchema = initiativeSchema.extend({
+  articles: list(articleSchema),
   votes: list(
     z.object({
       id: z.string(),
@@ -101,6 +114,7 @@ export const initiativeDetailSchema = initiativeSchema.extend({
       favor: list(positionSchema),
       against: list(positionSchema),
       abstention: list(positionSchema),
+      absent: list(positionSchema),
       named: list(z.object({ name: z.string(), group: z.string(), position: z.string() })),
     }),
   ),
@@ -128,6 +142,82 @@ export const deputyDetailSchema = deputySummarySchema.extend({
   articles: list(articleSchema),
 });
 
+const voteBasisSchema = z.enum(["named", "group", "unanimous", "absent", "unknown"]);
+
+export const deputyVotesPageSchema = z.object({
+  summary: z.object({
+    favor: z.number(),
+    against: z.number(),
+    abstention: z.number(),
+    absent: z.number(),
+    unknown: z.number(),
+    brokeRanks: z.number(),
+  }),
+  items: z.array(
+    z.object({
+      initiative: z.object({ id: z.number(), type: z.string(), number: z.string().nullish(), title: z.string(), status: statusSchema }),
+      vote: z.object({ id: z.string(), date: z.string().nullish(), phase: z.string().nullish(), result: z.string() }),
+      position: z.enum(["favor", "against", "abstention"]).nullable(),
+      basis: voteBasisSchema,
+    }),
+  ),
+  nextCursor: z.string().nullable(),
+});
+
+const memberKindSchema = z.enum(["prime_minister", "minister", "secretary_of_state"]);
+
+export const governmentMemberSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  title: z.string(),
+  kind: memberKindSchema,
+  gender: z.enum(["M", "F"]).nullish(),
+  photoUrl: z.string().nullish(),
+  startDate: z.string().nullish(),
+  endDate: z.string().nullish(),
+  deputyId: z.number().nullish(),
+  party: z.string().nullish(),
+  areaName: z.string().nullish(),
+});
+
+export const governmentSchema = z.object({
+  government: z.object({ code: z.string(), name: z.string(), startDate: z.string().nullish(), updatedAt: z.string().nullish() }),
+  primeMinister: governmentMemberSchema.nullable(),
+  ministries: list(
+    z.object({
+      area: z.string(),
+      name: z.string(),
+      minister: governmentMemberSchema.nullable(),
+      secretaries: list(governmentMemberSchema),
+    }),
+  ),
+  former: list(governmentMemberSchema),
+});
+
+export const governmentMemberDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  gender: z.enum(["M", "F"]).nullish(),
+  photoUrl: z.string().nullish(),
+  bio: list(z.string()),
+  links: list(z.object({ network: z.string(), url: z.string() })),
+  inOffice: z.boolean(),
+  deputy: z.object({ id: z.number(), name: z.string(), party: z.string().nullish() }).nullish(),
+  positions: list(
+    z.object({
+      title: z.string(),
+      kind: memberKindSchema,
+      area: z.string().nullish(),
+      areaName: z.string().nullish(),
+      government: z.string().nullish(),
+      startDate: z.string().nullish(),
+      endDate: z.string().nullish(),
+      url: z.string().nullish(),
+    }),
+  ),
+  articles: list(articleSchema),
+});
+
 export const errorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });
@@ -145,3 +235,10 @@ export type ApiParliamentInput = z.input<typeof parliamentSchema>;
 export type ApiInitiativeInput = z.input<typeof initiativeSchema>;
 export type ApiInitiativeDetailInput = z.input<typeof initiativeDetailSchema>;
 export type ApiDeputyDetailInput = z.input<typeof deputyDetailSchema>;
+export type ApiDeputyVotesPage = z.infer<typeof deputyVotesPageSchema>;
+export type ApiDeputyVotesPageInput = z.input<typeof deputyVotesPageSchema>;
+export type ApiGovernment = z.infer<typeof governmentSchema>;
+export type ApiGovernmentInput = z.input<typeof governmentSchema>;
+export type ApiGovernmentMember = z.infer<typeof governmentMemberSchema>;
+export type ApiGovernmentMemberDetail = z.infer<typeof governmentMemberDetailSchema>;
+export type ApiGovernmentMemberDetailInput = z.input<typeof governmentMemberDetailSchema>;
