@@ -78,13 +78,17 @@ describe("plain language", () => {
       sentAt: null,
       promulgatedAt: "2026-10-09",
       vetoedAt: null,
-      courtRequestedAt: null,
-      courtRuledAt: null,
+      promulgationRecorded: true,
+      vetoKind: null,
+      constitutionalCourt: [],
+      vetoes: [],
       by: null,
     };
     expect(presidencyLabel(presidency)).toBe("Promulgada");
     expect(presidencyLabel({ ...presidency, vetoedAt: "2026-06-15" })).toBe("Vetada e depois promulgada");
-    expect(presidencyLabel({ ...presidency, status: "constitutional_court", promulgatedAt: null })).toBe("No Tribunal Constitucional");
+    expect(presidencyLabel({ ...presidency, status: "vetoed", promulgatedAt: null, vetoKind: "unconstitutionality" })).toBe(
+      "Vetada por inconstitucionalidade",
+    );
   });
 });
 
@@ -92,8 +96,7 @@ describe("presidency api", () => {
   it("loads the President and filters initiatives by the President's decision and topic", async () => {
     const data = await getPresidency();
     expect(data.president.name).toBe("Teresa Albuquerque");
-    expect(data.legislation.pendingNow.every((item) => ["pending", "constitutional_court"].includes(item.presidency!.status))).toBe(true);
-    expect(data.legislation.pendingNow.some((item) => item.presidency!.status === "constitutional_court")).toBe(true);
+    expect(data.legislation.pendingNow.every((item) => item.presidency?.status === "pending")).toBe(true);
 
     const vetoed = await getInitiatives({ presidency: "vetoed" });
     expect(vetoed.initiatives.length).toBeGreaterThan(0);

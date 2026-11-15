@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Chamber } from "@/components/Chamber";
-import { ApiError, getElectionResult, getElections, getParties } from "@/lib/api/client";
+import { ApiError, getElectionResult, getElectionsMenu, getParties } from "@/lib/api/client";
 import {
   chamberOrder,
   ELECTION_TYPES,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/elections";
 import { formatLongDate, formatPercent } from "@/lib/format";
 import { majority } from "@/lib/parliament";
-import type { Election, ElectionResult, Party } from "@/lib/types";
+import type { Election, ElectionResult, Party, UpcomingElection } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Eleições",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
 };
 
 /** Null while the API does not serve elections yet, so the page can say so calmly. */
-async function loadElections(): Promise<Election[] | null> {
+async function loadElections(): Promise<{ elections: Election[]; upcoming: UpcomingElection[] } | null> {
   try {
-    return await getElections();
+    return await getElectionsMenu();
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
@@ -39,15 +39,19 @@ const CARDS = 6;
 
 export default async function ElectionsPage() {
   await connection();
-  const [elections, parties] = await Promise.all([loadElections(), getParties().catch((): Party[] => [])]);
-  const sorted = [...(elections ?? [])].sort(newestFirst);
+  const [menu, parties] = await Promise.all([loadElections(), getParties().catch((): Party[] => [])]);
+  const sorted = [...(menu?.elections ?? [])].sort(newestFirst);
+  const upcoming = menu?.upcoming ?? [];
   const latest = sorted.find((election) => election.imported) ?? null;
   const latestResult = latest ? await getElectionResult(latest.id).catch(() => null) : null;
-  // Elections dated after today are the next ones: shown by their date, not as results.
+  // The next of each kind comes from the API's `upcoming`; an election in the list dated after today counts too.
   const today = new Date().toISOString().slice(0, 10);
   const types = ELECTION_TYPES.map((item) => {
     const ofType = sorted.filter((election) => election.type === item.type);
-    const next = ofType.filter((election) => election.date > today).at(-1) ?? null;
+    const dated = ofType.filter((election) => election.date > today).at(-1) ?? null;
+    const next: NextElection | null =
+      upcoming.find((election) => election.type === item.type) ??
+      (dated ? { name: dated.name, date: dated.date, confirmed: true, window: null, basis: null } : null);
     return { ...item, next, elections: ofType.filter((election) => election.date <= today) };
   }).filter((item) => item.elections.length > 0 || item.next);
   const since = sorted
@@ -86,6 +90,8 @@ export default async function ElectionsPage() {
 
           {latest && latestResult && <Featured election={latest} result={latestResult} parties={parties} />}
 
+          {upcoming.length > 0 && <Upcoming elections={upcoming} />}
+
           <div className="space-y-14">
             {types.map(({ type, label, about, next, elections: ofType }) => (
               <section key={type} aria-labelledby={`tipo-${type}`}>
@@ -99,12 +105,7 @@ export default async function ElectionsPage() {
                 </div>
                 <div className="mb-5 mt-3 flex flex-wrap items-end justify-between gap-4">
                   <div className="max-w-xl">
-                    {next && (
-                      <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-ink px-3 py-1 font-mono text-xs">
-                        <span className="font-bold">Próximas eleições</span>
-                        <time dateTime={next.date}>{formatLongDate(next.date)}</time>
-                      </p>
-                    )}
+                    {next && <NextPill next={next} />}
                     <p className="text-sm text-muted">{about}</p>
                   </div>
                   <TurnoutBars elections={ofType} />
@@ -324,7 +325,7 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
 }
 
 const DEPTH: Record<NonNullable<Election["deepestLevel"]>, string | null> = {
-  national: "só o resultado nacional",
+  country: "só o resultado nacional",
   district: "até ao distrito",
   municipality: "até ao concelho",
   parish: null,
@@ -399,5 +400,52 @@ function OlderElections({ type, label, elections, parties }: { type: string; lab
         ))}
       </div>
     </div>
+  );
+}
+
+type NextElection = Pick<UpcomingElection, "name" | "date" | "confirmed" | "window" | "basis">;
+
+/** The next election of a kind: its date once set, otherwise when the law says it must be. */
+function NextPill({ next }: { next: NextElection }) {
+  return (
+    <p className="mb-2 inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-2xl border border-ink px-3 py-1 font-mono text-xs">
+      <span className="font-bold">Próximas eleições</span>
+      {next.date ? (
+        <>
+          <time dateTime={next.date}>{formatLongDate(next.date)}</time>
+          {!next.confirmed && <span className="text-muted">(data por confirmar)</span>}
+        </>
+      ) : (
+        next.window && <span>{next.window}</span>
+      )}
+    </p>
+  );
+}
+
+/** Every coming election, regionais included, soonest first: none has an official date until the decree. */
+function Upcoming({ elections }: { elections: UpcomingElection[] }) {
+  return (
+    <section aria-labelledby="proximas" className="mb-14">
+      <h2 id="proximas" className="mb-3 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
+        Próximas eleições
+      </h2>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {elections.map((election) => (
+          <li key={election.name} className="rounded-2xl border border-dashed border-line p-4">
+            <p className="font-bold">{election.name}</p>
+            {election.date ? (
+              <p className="mt-1 font-mono text-xs">
+                <time dateTime={election.date}>{formatLongDate(election.date)}</time>
+                {!election.confirmed && <span className="text-muted"> · data por confirmar</span>}
+              </p>
+            ) : (
+              <p className="mt-1 font-mono text-xs text-muted">Ainda sem data marcada</p>
+            )}
+            {election.window && <p className="mt-2 text-sm leading-snug">{election.window}</p>}
+            {election.basis && <p className="mt-2 font-mono text-[11px] text-muted">{election.basis}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -49,7 +49,7 @@ describe("elections API", () => {
     const legislativas = await getElections("legislativas");
     expect(legislativas.every((election) => election.type === "legislativas")).toBe(true);
     expect(legislativas.find((election) => !election.imported)?.id).toBe("legislativas-2019");
-    expect(legislativas.find((election) => election.id === "legislativas-1976")?.deepestLevel).toBe("national");
+    expect(legislativas.find((election) => election.id === "legislativas-1976")?.deepestLevel).toBe("country");
     expect(legislativas[0]!.deepestLevel).toBeNull();
   });
 

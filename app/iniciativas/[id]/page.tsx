@@ -184,14 +184,43 @@ export default async function InitiativePage({ params }: Props) {
           </p>
           <ol className="mt-3 flex flex-col gap-2 border-l-2 border-line pl-4 text-sm">
             {presidency.sentAt && <li>Enviada para Belém a {formatDate(presidency.sentAt)}</li>}
-            {presidency.courtRequestedAt && <li>Enviada ao Tribunal Constitucional a {formatDate(presidency.courtRequestedAt)}</li>}
-            {presidency.courtRuledAt && <li>O Tribunal Constitucional decidiu a {formatDate(presidency.courtRuledAt)}</li>}
-            {presidency.vetoedAt && <li>Vetada a {formatDate(presidency.vetoedAt)}</li>}
+            {(presidency.vetoes.length > 0
+              ? presidency.vetoes
+              : presidency.vetoedAt
+                ? [{ date: presidency.vetoedAt, kind: presidency.vetoKind, constitutionalCourt: presidency.constitutionalCourt }]
+                : []
+            ).map((veto, index) => (
+              <li key={`${veto.date}-${index}`}>
+                {veto.kind === "unconstitutionality" ? "Vetada por inconstitucionalidade" : "Vetada"}
+                {veto.date && ` a ${formatDate(veto.date)}`}
+                {veto.constitutionalCourt.length > 0 && (
+                  <>
+                    , depois {veto.constitutionalCourt.length === 1 ? "do acórdão" : "dos acórdãos"} do Tribunal Constitucional{" "}
+                    {veto.constitutionalCourt.map((item, at) => (
+                      <span key={item.ruling}>
+                        {at > 0 && ", "}
+                        {item.url ? (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-link underline">
+                            n.º {item.ruling}
+                            <span className="sr-only"> (abre num novo separador)</span>
+                          </a>
+                        ) : (
+                          `n.º ${item.ruling}`
+                        )}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </li>
+            ))}
             {presidency.promulgatedAt && <li>Promulgada a {formatDate(presidency.promulgatedAt)}</li>}
-            {presidency.status === "pending" && <li className="text-muted">À espera da decisão do Presidente</li>}
-            {presidency.status === "constitutional_court" && (
-              <li className="text-muted">À espera do acórdão; o prazo do Presidente fica suspenso até lá</li>
+            {presidency.status === "promulgated" && !presidency.promulgationRecorded && (
+              <li>
+                Promulgada{initiative.publishedAt && <>; publicada em Diário da República a {formatDate(initiative.publishedAt)}</>}
+                <span className="block text-xs text-muted">O registo do Parlamento não tem a data da promulgação.</span>
+              </li>
             )}
+            {presidency.status === "pending" && <li className="text-muted">À espera da decisão do Presidente</li>}
           </ol>
           <p className="mt-3 text-sm text-muted">
             <Link href="/presidente" className="text-link underline">

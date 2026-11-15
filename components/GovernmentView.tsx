@@ -97,7 +97,7 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
   const ministerSeats = seats.filter((item) => item.member.kind === "minister");
   const secretaries = seats.reduce((sum, item) => sum + item.secretaries.length, 0);
   const council = seats.map((item) => item.member);
-  const deputies = council.filter((item) => item.partySlug).length;
+  const deputies = council.filter((item) => item.deputyId !== null || item.partySource === "deputy").length;
   const toneOf = (area: string) =>
     TONES[
       Math.max(
@@ -147,7 +147,7 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
               <span className="min-w-0 flex-1">
                 <span className="block font-mono text-xs uppercase tracking-widest text-muted">Primeiro-Ministro</span>
                 <span className="block text-2xl font-bold leading-tight">{pmSeat.member.name}</span>
-                {partyOf(pmSeat.member.partySlug) && <PartyTag party={partyOf(pmSeat.member.partySlug)!} gender={pmSeat.member.gender} />}
+                {partyOf(pmSeat.member.partySlug) && <PartyTag party={partyOf(pmSeat.member.partySlug)!} member={pmSeat.member} />}
               </span>
               <span className="hidden font-mono text-xs font-bold sm:block" aria-hidden="true">
                 Ver →
@@ -327,7 +327,13 @@ function MemberCard({
           <div>
             <dt className="font-mono text-[11px] uppercase tracking-wider text-muted">Partido</dt>
             <dd className="font-bold">
-              {party ? <PartyTag party={party} gender={member.gender} /> : <span className="font-normal text-muted">Não publicado</span>}
+              {party ? (
+                <PartyTag party={party} member={member} />
+              ) : member.independent ? (
+                "Independente"
+              ) : (
+                <span className="font-normal text-muted">Não publicado</span>
+              )}
             </dd>
           </div>
         </dl>
@@ -451,7 +457,7 @@ function MembersTable({ seats, partyOf }: { seats: CouncilSeat[]; partyOf: (slug
                 Ministério
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                Deputado eleito
+                Partido
               </th>
             </tr>
           </thead>
@@ -476,9 +482,11 @@ function MembersTable({ seats, partyOf }: { seats: CouncilSeat[]; partyOf: (slug
                         <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: partyColor(party.slug) }} />
                         {party.acronym}
                       </span>
+                    ) : row.member.independent ? (
+                      <span>Independente</span>
                     ) : (
                       <span className="text-muted">
-                        —<span className="sr-only">não</span>
+                        —<span className="sr-only">não publicado</span>
                       </span>
                     )}
                   </td>
@@ -492,12 +500,13 @@ function MembersTable({ seats, partyOf }: { seats: CouncilSeat[]; partyOf: (slug
   );
 }
 
-/** Only for members who were elected deputies; otherwise their party isn't published. */
-export function PartyTag({ party, gender }: { party: Party; gender: GovernmentMember["gender"] }) {
+/** Their party, said as the source has it: elected for it, or a member of it. Unknown parties aren't shown. */
+export function PartyTag({ party, member }: { party: Party; member: Pick<GovernmentMember, "gender" | "partySource"> }) {
+  const elected = member.gender === "F" ? "Eleita deputada" : "Eleito deputado";
   return (
     <span className="mt-1 flex items-center gap-1.5 font-mono text-[11px] font-normal text-muted">
       <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: partyColor(party.slug) }} />
-      {gender === "F" ? "Eleita deputada" : "Eleito deputado"} pelo {party.acronym}
+      {member.partySource === "deputy" ? `${elected} pelo ${party.acronym}` : `Militante do ${party.acronym}`}
     </span>
   );
 }

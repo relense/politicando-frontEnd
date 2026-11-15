@@ -8,8 +8,7 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();
   const desk = page.getByRole("region", { name: /Na secretária do Presidente/ });
-  await expect(desk.getByText("No Tribunal Constitucional").first()).toBeVisible();
-  await expect(desk.getByText(/prazo para decidir fica suspenso/).first()).toBeVisible();
+  await expect(desk.getByText(/dia \d+ de 20|À espera de decisão/).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "O que faz o Presidente da República" })).toBeVisible();
   await expect(page.getByText("Jorge Vilalobos")).toBeVisible();
 
@@ -21,7 +20,7 @@ test("president page: profile, the laws in this term, the explainer and former P
 
   const vetoes = page.getByRole("region", { name: "Vetos" });
   await vetoes.getByRole("link", { name: "Ver todos os vetos" }).click();
-  await expect(page).toHaveURL(/\/iniciativas\?presidente=vetoed$/);
+  await expect(page).toHaveURL(/\/iniciativas\?fase=vetoed$/);
   await expect(page.locator("a:visible", { hasText: /^Vetada/ }).first()).toHaveAttribute("aria-current", "page");
 });
 
@@ -44,12 +43,15 @@ test("initiatives: plain titles, topic and status filters, more on demand, and t
     await expect(article.getByRole("link", { name: "Saúde", exact: true })).toBeVisible();
 
   // The phases: pills above the list on phones, "o caminho de uma lei" beside it on larger screens.
-  await page
-    .locator("a:visible", { hasText: /^Aprovada no Parlamento/ })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/tema=saude&estado=approved/);
+  await page.locator('a:visible[href$="fase=published"]').first().click();
+  await expect(page).toHaveURL(/tema=saude&fase=published/);
   await expect(page.getByRole("link", { name: /Tema: Saúde/ })).toBeVisible();
+  // The phase says what it means, and the path keeps each phase's number.
+  await expect(page.getByText(/^Lei: Publicada em Diário da República/)).toBeVisible();
+  // Old addresses still land on the same phase.
+  await page.goto("/iniciativas?presidente=vetoed");
+  await expect(page.locator("a:visible", { hasText: /^Vetada/ }).first()).toHaveAttribute("aria-current", "page");
+  await page.goto("/iniciativas?tema=saude");
 
   await list.getByRole("heading").first().getByRole("link").click();
   await expect(page).toHaveURL(/\/iniciativas\/\d+$/);

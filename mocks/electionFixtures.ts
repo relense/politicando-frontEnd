@@ -132,7 +132,7 @@ const ELECTIONS = [
     date: "1999-10-10",
     organs: ["AR"],
     imported: true,
-    deepestLevel: "national",
+    deepestLevel: "country",
   },
   {
     id: "legislativas-1995",
@@ -141,7 +141,7 @@ const ELECTIONS = [
     date: "1995-10-01",
     organs: ["AR"],
     imported: true,
-    deepestLevel: "national",
+    deepestLevel: "country",
   },
   {
     id: "legislativas-1987",
@@ -150,7 +150,7 @@ const ELECTIONS = [
     date: "1987-07-19",
     organs: ["AR"],
     imported: true,
-    deepestLevel: "national",
+    deepestLevel: "country",
   },
   {
     id: "legislativas-1983",
@@ -159,7 +159,7 @@ const ELECTIONS = [
     date: "1983-04-25",
     organs: ["AR"],
     imported: true,
-    deepestLevel: "national",
+    deepestLevel: "country",
   },
   {
     id: "legislativas-1976",
@@ -168,7 +168,7 @@ const ELECTIONS = [
     date: "1976-04-25",
     organs: ["AR"],
     imported: true,
-    deepestLevel: "national",
+    deepestLevel: "country",
   },
   { id: "autarquicas-2021", type: "autarquicas", name: "Autárquicas 2021", date: "2021-09-26", organs: ["CM", "AM", "AF"], imported: true },
   // Already scheduled: shown on the menu by its date.
@@ -226,6 +226,37 @@ const winnerOf = (votes: number[]) => {
   return { list: top.list, partySlugs: top.partySlugs, votes: top.votes, validPct: top.validPct };
 };
 
+/** The next of each kind, as the API sends them: dates only once the decree sets them. */
+const UPCOMING = [
+  {
+    type: "regionais",
+    name: "Regionais dos Açores 2028",
+    year: 2028,
+    date: null,
+    confirmed: false,
+    window: "Até ao fim de 2028, quatro anos depois das de fevereiro de 2024, salvo dissolução",
+    basis: "Estatuto Político-Administrativo da Região Autónoma dos Açores",
+  },
+  {
+    type: "legislativas",
+    name: "Legislativas 2029",
+    year: 2029,
+    date: null,
+    confirmed: false,
+    window: "Entre 14 de setembro e 14 de outubro de 2029, no fim da legislatura, salvo dissolução",
+    basis: "Lei Eleitoral da Assembleia da República, artigo 19.º",
+  },
+  {
+    type: "autarquicas",
+    name: "Autárquicas 2029",
+    year: 2029,
+    date: "2029-10-07",
+    confirmed: true,
+    window: "Entre 22 de setembro e 14 de outubro de 2029",
+    basis: "Lei Eleitoral dos Órgãos das Autarquias Locais, artigo 15.º",
+  },
+];
+
 export const elections: ApiElectionsInput = {
   items: ELECTIONS.map((election) => {
     const votes = votesOf(TREE, election.id === "legislativas-2024");
@@ -237,6 +268,7 @@ export const elections: ApiElectionsInput = {
       winner: lists(votes, withMandates)[0]!,
     };
   }),
+  upcoming: UPCOMING,
 };
 
 export type ElectionLookup = { status: 200; body: ApiElectionResultInput } | { status: 400 | 404; code: string };

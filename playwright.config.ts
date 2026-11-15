@@ -4,7 +4,6 @@ const env = {
   NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v2",
   NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
   NEXT_PUBLIC_CAPTCHA_MODE: "mock",
-  NEXT_PUBLIC_INITIATIVE_SEARCH: "on",
 };
 
 export default defineConfig({
@@ -19,6 +18,12 @@ export default defineConfig({
   ],
   webServer: [
     { command: "npm run mock:api", url: "http://localhost:4000/api/v2/parties", reuseExistingServer: !process.env.CI },
-    { command: "npm run build && npm run start", url: "http://localhost:3000", env, timeout: 240_000, reuseExistingServer: !process.env.CI },
+    {
+      command: "npm run build && npm run start",
+      url: "http://localhost:3000",
+      env,
+      timeout: 240_000,
+      reuseExistingServer: !process.env.CI,
+    },
   ],
 });

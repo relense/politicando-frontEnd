@@ -454,7 +454,8 @@ test("elections: each type shows the date of its next election when one is sched
   await expect(local.locator('time[datetime="2029-10-07"]')).toBeVisible();
   // A scheduled election has no results yet, so it isn't one of the cards.
   await expect(local.getByRole("link", { name: /Autárquicas 2029/ })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Legislativas" }).getByText("Próximas eleições")).toHaveCount(0);
+  // Without a date yet, the next legislativas show the legal window instead.
+  await expect(page.getByRole("region", { name: "Legislativas", exact: true }).locator('time[datetime^="2029"]')).toHaveCount(0);
 });
 
 test("elections: the latest of each type as cards, older ones one per line by decade", async ({ page }) => {
@@ -465,6 +466,22 @@ test("elections: the latest of each type as cards, older ones one per line by de
   await expect(seventies.getByText("só o resultado nacional")).toBeVisible();
   await legislativas.getByRole("region", { name: "Anos 80" }).getByRole("link", { name: "Legislativas 1987" }).click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-1987$/);
+
+  // Its results stop at the country: a district has no list or map of places inside.
+  await page.goto("/eleicoes/legislativas-1987/LOCAL-010000");
+  await expect(page.getByRole("heading", { level: 1, name: "Aveiro" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Por concelho" })).toHaveCount(0);
+  await page.goto("/eleicoes/legislativas-2025/LOCAL-010000");
+  await expect(page.getByRole("heading", { name: "Por concelho" })).toBeVisible();
+});
+
+test("elections: the coming ones, regionais included, with the law's window until there is a date", async ({ page }) => {
+  await page.goto("/eleicoes");
+  const coming = page.getByRole("region", { name: "Próximas eleições" });
+  await expect(coming.getByText("Regionais dos Açores 2028")).toBeVisible();
+  await expect(coming.getByText(/Até ao fim de 2028/)).toBeVisible();
+  const legislativas = page.getByRole("region", { name: "Legislativas", exact: true });
+  await expect(legislativas.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();
 });
 
 test("elections: unknown elections, places and bodies are real 404s", async ({ request }) => {

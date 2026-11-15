@@ -94,9 +94,22 @@ export function stageTone(stage: PlainStage | null | undefined, makesLaw = true)
 /** `var(--stage-debate)` and the like, for inline styles. */
 export const toneColor = (tone: StageTone) => `var(--stage-${tone})`;
 
+/** The API's phases (`stage` on /initiatives), in the order a law goes through them; `end` for where it stops. */
+export const INITIATIVE_STAGES = [
+  { key: "submitted", label: "Entregue", tone: "submitted", end: false },
+  { key: "debate", label: "Em debate", tone: "debate", end: false },
+  { key: "approved", label: "Aprovada", tone: "approved", end: false },
+  { key: "president", label: "No Presidente", tone: "president", end: false },
+  { key: "published", label: "Lei", tone: "law", end: false },
+  { key: "vetoed", label: "Vetada", tone: "stopped", end: true },
+  { key: "rejected", label: "Rejeitada", tone: "stopped", end: true },
+  { key: "withdrawn", label: "Retirada", tone: "withdrawn", end: true },
+] as const satisfies readonly { key: string; label: string; tone: StageTone; end: boolean }[];
+
+export type InitiativeStageKey = (typeof INITIATIVE_STAGES)[number]["key"];
+
 export const PRESIDENCY_LABELS: Record<InitiativePresidency["status"], string> = {
   pending: "À espera do Presidente",
-  constitutional_court: "No Tribunal Constitucional",
   promulgated: "Promulgada",
   vetoed: "Vetada",
 };
@@ -104,5 +117,6 @@ export const PRESIDENCY_LABELS: Record<InitiativePresidency["status"], string> =
 /** "Vetada e depois promulgada" when Parliament passed it again after a veto. */
 export function presidencyLabel(presidency: InitiativePresidency): string {
   if (presidency.status === "promulgated" && presidency.vetoedAt) return "Vetada e depois promulgada";
+  if (presidency.status === "vetoed" && presidency.vetoKind === "unconstitutionality") return "Vetada por inconstitucionalidade";
   return PRESIDENCY_LABELS[presidency.status];
 }

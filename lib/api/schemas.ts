@@ -128,9 +128,20 @@ export const initiativeSchema = z.object({
       status: z.string(),
       sentAt: z.string().nullish(),
       promulgatedAt: z.string().nullish(),
+      /** False when the Parliament's record skips the promulgation, which is then deduced from publication. */
+      promulgationRecorded: z.boolean().nullish(),
       vetoedAt: z.string().nullish(),
-      courtRequestedAt: z.string().nullish(),
-      courtRuledAt: z.string().nullish(),
+      vetoKind: z.enum(["political", "unconstitutionality"]).nullish().catch(null),
+      constitutionalCourt: z.array(z.object({ ruling: z.string(), url: z.string().nullish() })).nullish(),
+      vetoes: z
+        .array(
+          z.object({
+            date: z.string().nullish(),
+            kind: z.enum(["political", "unconstitutionality"]).nullish().catch(null),
+            constitutionalCourt: z.array(z.object({ ruling: z.string(), url: z.string().nullish() })).nullish(),
+          }),
+        )
+        .nullish(),
       by: z.string().nullish(),
     })
     .nullish(),
@@ -162,6 +173,7 @@ export const initiativePageSchema = z.object({
   nextCursor: z.string().nullable(),
   /** How many match the filters, when the API counts them. */
   total: z.number().nullish(),
+  stages: z.array(z.object({ key: z.string(), label: z.string(), plain: z.string().nullish(), count: z.number() })).nullish(),
 });
 
 export const deputyDetailSchema = deputySummarySchema.extend({
@@ -216,6 +228,10 @@ export const governmentMemberSchema = z.object({
   endDate: z.string().nullish(),
   deputyId: z.number().nullish(),
   party: z.string().nullish(),
+  /** Where the party comes from: their deputy record, or a short list of public party membership. */
+  partySource: z.enum(["deputy", "curated"]).nullish().catch(null),
+  /** True when public record says they belong to no party; false with no party means unknown. */
+  independent: z.boolean().nullish(),
   areaName: z.string().nullish(),
 });
 
@@ -292,7 +308,7 @@ const electionSummarySchema = z.object({
   organs: list(z.string()),
   sourceUrl: z.string().nullish(),
   /** How far down the results go: older elections often have them only for the country or by district. */
-  deepestLevel: z.enum(["national", "district", "municipality", "parish"]).nullish().catch(null),
+  deepestLevel: z.enum(["country", "district", "municipality", "parish"]).nullish().catch(null),
   /** Presidenciais: 1 or 2. */
   round: z.number().int().nullish().catch(null),
 });
@@ -303,6 +319,18 @@ export const electionsSchema = z.object({
       turnout: turnoutSchema.nullish(),
       winner: electionListSchema.nullish(),
       imported: z.boolean().nullish(),
+    }),
+  ),
+  /** The next election of each kind, regionais included; `date` null until the decree sets it. */
+  upcoming: list(
+    z.object({
+      type: z.string(),
+      name: z.string(),
+      year: z.number().nullish(),
+      date: z.string().nullish(),
+      confirmed: z.boolean().nullish(),
+      window: z.string().nullish(),
+      basis: z.string().nullish(),
     }),
   ),
 });

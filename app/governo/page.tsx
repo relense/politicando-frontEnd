@@ -94,8 +94,8 @@ export default async function GovernmentPage({ searchParams }: Props) {
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">
         Fonte: portal do Governo (portugal.gov.pt)
-        {government?.updatedAt && ` · atualizado em ${formatDate(government.updatedAt)}`}. O partido só aparece quando a pessoa foi eleita
-        deputada; o portal não o publica e muitos membros são independentes.
+        {government?.updatedAt && ` · atualizado em ${formatDate(government.updatedAt)}`}. O portal não publica o partido: mostramos o
+        partido por que a pessoa foi eleita deputada, ou a filiação quando é pública. Sem fonte, não mostramos nenhum.
       </p>
     </div>
   );

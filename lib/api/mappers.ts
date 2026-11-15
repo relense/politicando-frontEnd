@@ -211,16 +211,26 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
             status: initiative.presidency.status as PresidencyStatus,
             sentAt: initiative.presidency.sentAt ?? null,
             promulgatedAt: initiative.presidency.promulgatedAt ?? null,
+            promulgationRecorded: initiative.presidency.promulgationRecorded ?? true,
             vetoedAt: initiative.presidency.vetoedAt ?? null,
-            courtRequestedAt: initiative.presidency.courtRequestedAt ?? null,
-            courtRuledAt: initiative.presidency.courtRuledAt ?? null,
+            vetoKind: initiative.presidency.vetoKind ?? null,
+            constitutionalCourt: mapRulings(initiative.presidency.constitutionalCourt),
+            vetoes: (initiative.presidency.vetoes ?? []).map((veto) => ({
+              date: veto.date ?? null,
+              kind: veto.kind ?? null,
+              constitutionalCourt: mapRulings(veto.constitutionalCourt),
+            })),
             by: initiative.presidency.by ?? null,
           }
         : null,
   };
 }
 
-const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "constitutional_court", "promulgated", "vetoed"];
+const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "promulgated", "vetoed"];
+
+/** The Constitutional Court's rulings, with a link only when it is a web address. */
+const mapRulings = (rulings: { ruling: string; url?: string | null }[] | null | undefined) =>
+  (rulings ?? []).map((item) => ({ ruling: item.ruling, url: safeHttpUrl(item.url) }));
 const STAGES: readonly PlainStage[] = [
   "submitted",
   "committee",
@@ -308,6 +318,8 @@ export function mapGovernmentMember(member: ApiGovernmentMember): GovernmentMemb
     endDate: member.endDate ?? null,
     deputyId: member.deputyId ?? null,
     partySlug: member.party ?? null,
+    partySource: member.party ? (member.partySource ?? null) : null,
+    independent: !member.party && member.independent === true,
     areaName: member.areaName ?? null,
   };
 }

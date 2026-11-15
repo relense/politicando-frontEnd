@@ -64,12 +64,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   };
 }
 
+/** How deep each level is, to compare a place's level with the deepest one an election has results for. */
+const LEVEL_DEPTH: Record<string, number> = { global: 0, national: 0, foreign: 0, country: 0, district: 1, municipality: 2, parish: 3 };
+
 export default async function ElectionPage(props: Props) {
   await connection();
   const [result, parties] = await Promise.all([resolve(props), getParties().catch((): Party[] => [])]);
   if (!result) notFound();
 
-  const { election, organ, place, breadcrumb, turnout, lists, children } = result;
+  const { election, organ, place, breadcrumb, turnout, lists, children: inside } = result;
   const mainOrgan = election.organs[0];
   // The main body stays out of the address.
   const organParam = organ === mainOrgan ? null : organ;
@@ -82,6 +85,9 @@ export default async function ElectionPage(props: Props) {
   const sameType = await getElections(election.type).catch((): Election[] => []);
   const timeline = sameType.filter((item) => item.imported).sort((a, b) => a.date.localeCompare(b.date));
   const at = timeline.findIndex((item) => item.id === election.id);
+  // Places only down to the level this election has results for: no map or list of places with nothing in them.
+  const deepest = sameType.find((item) => item.id === election.id)?.deepestLevel ?? null;
+  const children = inside.length > 0 && deepest && (LEVEL_DEPTH[inside[0]!.level] ?? 0) > (LEVEL_DEPTH[deepest] ?? 9) ? [] : inside;
   const previous = at > 0 ? timeline[at - 1] : undefined;
   const next = at >= 0 ? timeline[at + 1] : undefined;
   // The same place and body in the previous election, to show what changed; nothing when either is missing there.
