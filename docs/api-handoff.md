@@ -26,3 +26,9 @@ The frontend targets the rewritten API at `/api/v2`. Only `lib/api/` knows its s
 - Photos are loaded only when a deputy's card opens.
 - If the API doesn't serve `/parliament` (404), the page says the data is coming soon.
 - The production API must list this site's origin in `CORS_ORIGINS`, because the deputy card, initiatives and votes load from the browser.
+
+## Party page
+`/partido/[slug]` shows the party's seats, its result in the latest legislativas (`/elections`), its leader and tabs for its deputies, initiatives (`/initiatives?party=`) and votes.
+
+- **Votes by party:** there is no party endpoint yet, so the page reads one of the party's deputies' votes (`/deputies/:id/votes`) and keeps those with `basis` `group` or `unanimous`, the party's own position. A `GET /parties/:slug/votes` with the same items and `position` per party would be simpler and would also cover votes where the bench split.
+- **Leader:** read from the deputies' `positions` ("Presidente do CHEGA", "Secretário-Geral do PCP"), so a leader who isn't a deputy (PSD now) isn't shown. A `leader: { name, title, deputyId|null }` on `/parties` would fix that.

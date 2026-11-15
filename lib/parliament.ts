@@ -47,3 +47,19 @@ export function ageOn(birthDate: string | null, now: Date): number | null {
   const hadBirthday = now.getMonth() + 1 > month || (now.getMonth() + 1 === month && now.getDate() >= day);
   return now.getFullYear() - year - (hadBirthday ? 0 : 1);
 }
+
+const LEADER = /^(Presidente|Secretári[oa]-Geral|Porta-voz|Coordenador[a]?)\b(?!.*(Assembleia|Comiss|Grupo))/;
+
+/**
+ * The party's leader and its leader in Parliament, when they sit as deputies. No open data says who leads each party,
+ * so this reads the posts in their Parliament records ("Presidente do CHEGA", "Líder do grupo parlamentar").
+ */
+export function partyLeaders<T extends { partySlug: string | null; positions: string[] }>(deputies: readonly T[], slug: string) {
+  const own = deputies.filter((deputy) => deputy.partySlug === slug);
+  const leader = own.find((deputy) => deputy.positions.some((position) => LEADER.test(position))) ?? null;
+  const benchLeader = own.find((deputy) => deputy.positions.some((position) => /^Líder do grupo parlamentar/i.test(position))) ?? null;
+  return {
+    leader: leader ? { deputy: leader, title: leader.positions.find((position) => LEADER.test(position))! } : null,
+    benchLeader,
+  };
+}
