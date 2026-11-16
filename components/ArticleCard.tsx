@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { commentLinkLabel, excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
+import { excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
 import { CommentIcon } from "./icons";
@@ -42,10 +42,13 @@ export function ArticleCard({ article }: { article: Article }) {
           <PartyChips parties={article.parties} />
           <Link
             href={`${articlePath}#comentarios`}
-            className="ml-auto flex items-center gap-1.5 font-mono text-sm text-muted hover:text-ink hover:underline"
+            className={`ml-auto flex items-center gap-1.5 font-mono text-sm hover:text-ink hover:underline ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
           >
             <CommentIcon />
-            {commentLinkLabel(article.commentsCount)}
+            <span>
+              <span className="font-bold tabular-nums">{article.commentsCount}</span>{" "}
+              {article.commentsCount === 1 ? "comentário" : "comentários"}
+            </span>
           </Link>
         </div>
       </div>

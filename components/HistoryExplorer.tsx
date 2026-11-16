@@ -1,20 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { electionPath } from "@/lib/elections";
 import { formatDate } from "@/lib/format";
 import {
   accentOf,
-  decadeTicks,
   durationLabel,
   END_LABELS,
   endOf,
   endTone,
-  fillOf,
   groupsOf,
-  REVOLUTION,
-  spanOnAxis,
   timelineByDecade,
   TONE_COLOR,
   type HistoryGroup,
@@ -59,17 +55,13 @@ function jump(event: React.MouseEvent<HTMLAnchorElement>) {
   target.scrollIntoView({ behavior: window.matchMedia(MOTION).matches ? "auto" : "smooth", block: "start" });
 }
 
+/** "Anos 2020", and "1974–79" for the first, which starts with the revolution. */
+const decadeName = (year: number) => (year === 1970 ? "1974–79" : `Anos ${year}`);
+
 /** 2020 for the decade of these entries. */
 const decadeYear = (entries: readonly { date: string }[]) => Math.floor(Number(entries.at(-1)!.date.slice(0, 4)) / 10) * 10;
 
 const MOTION = "(prefers-reduced-motion: reduce)";
-const prefersReducedMotion = () => window.matchMedia(MOTION).matches;
-const subscribeMotion = (onChange: () => void) => {
-  const query = window.matchMedia(MOTION);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-};
-
 const presidentName = (title: string) => title.replace(/^Presidente da República:\s*/, "");
 
 type Props = {
@@ -91,28 +83,7 @@ type Props = {
  */
 export function HistoryExplorer({ governments, presidents, elections, parliaments, today, children }: Props) {
   const [filter, setFilter] = useState<HistoryGroup | "all">("all");
-  const [selected, setSelected] = useState(governments[0]?.code ?? "");
-  const [chosenMode, setMode] = useState<"playing" | "full" | null>(null);
-  // Without motion, the full view straight away; the animation is a press away.
-  const reduced = useSyncExternalStore(subscribeMotion, prefersReducedMotion, () => false);
-  const mode = chosenMode ?? (reduced ? "full" : "playing");
-  const focusFull = useRef(false);
-  const fullHeading = useRef<HTMLHeadingElement>(null);
-  const ordered = [...governments].reverse();
-
-  useEffect(() => {
-    if (mode === "full" && focusFull.current) {
-      focusFull.current = false;
-      fullHeading.current?.focus();
-    }
-  }, [mode]);
-  const onEnd = useCallback((byReader: boolean) => {
-    focusFull.current = byReader;
-    setMode("full");
-  }, []);
   const matches = (government: HistoricalGovernment) => filter === "all" || groupsOf(government).includes(filter);
-  const index = governments.findIndex((item) => item.code === selected);
-  const current = governments[index] ?? governments[0]!;
   const [active, setActive] = useState<string | null>(null);
   // The decade being read, for the rail beside the timeline.
   useEffect(() => {
@@ -128,167 +99,19 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
     return () => observer.disconnect();
   }, [filter]);
   const entries = timelineByDecade(governments.filter(matches), filter === "all" ? [...elections, ...presidents] : []);
-  const presidentAt = (day: string) => presidents.find((president) => president.date <= day && (president.endDate ?? "9999") > day) ?? null;
-  const president = presidentAt(current.start);
 
   return (
     <>
-      <section aria-labelledby="de-1974" className="rounded-2xl border border-line p-4 sm:p-5">
+      <section aria-labelledby="de-1974" className="scroll-mt-24 rounded-2xl border border-line p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="de-1974" ref={fullHeading} tabIndex={-1} className="font-mono text-xs font-bold uppercase tracking-widest outline-none">
+          <h2 id="de-1974" className="font-mono text-xs font-bold uppercase tracking-widest">
             De 1974 a hoje
           </h2>
-          {mode === "playing" ? (
-            <span className="font-mono text-[11px] text-muted">
-              50 anos de democracia em pouco mais de um minuto. Arrasta para andar no tempo.
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setMode("playing")}
-              className="rounded-lg border border-line px-3 py-1 font-mono text-xs font-bold hover:bg-surface"
-            >
-              ▶ Ver a animação outra vez
-            </button>
-          )}
+          <span className="font-mono text-[11px] text-muted">
+            50 anos de democracia em pouco mais de um minuto. Arrasta ou carrega na barra para andar no tempo.
+          </span>
         </div>
-        {mode === "playing" ? (
-          <HistoryPlayback
-            governments={governments}
-            presidents={presidents}
-            elections={elections}
-            parliaments={parliaments}
-            today={today}
-            onEnd={onEnd}
-          />
-        ) : (
-          <>
-            <p className="mb-3 font-mono text-[11px] text-muted">
-              Cada bloco é um governo, do tamanho do tempo que durou. Carrega para ver.
-            </p>
-            <div className="relative h-14 overflow-hidden rounded-md bg-surface">
-              {ordered.map((government) => {
-                const { left, width } = spanOnAxis(government.start, endOf(government, today), REVOLUTION, today);
-                const chosen = government.code === current.code;
-                return (
-                  <button
-                    key={government.code}
-                    type="button"
-                    aria-pressed={chosen}
-                    aria-label={`${government.name}: ${government.primeMinister}, ${durationLabel(government.start, endOf(government, today))}`}
-                    title={`${government.name}: ${government.primeMinister}`}
-                    onClick={() => setSelected(government.code)}
-                    className={`absolute inset-y-0 border-r border-paper transition-opacity focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-ink ${
-                      matches(government) ? "" : "opacity-15"
-                    } ${chosen ? "z-10 outline outline-2 outline-offset-[-2px] outline-ink" : ""}`}
-                    style={{ left: `${left}%`, width: `${width}%`, background: fillOf(government) }}
-                  />
-                );
-              })}
-            </div>
-            {presidents.length > 0 && (
-              <div aria-hidden="true" className="relative mt-1 h-6">
-                {presidents.map((item, position) => {
-                  const { left, width } = spanOnAxis(item.date, item.endDate ?? today, REVOLUTION, today);
-                  return (
-                    <div
-                      key={item.date}
-                      title={item.title}
-                      className={`absolute inset-y-0 flex items-center overflow-hidden rounded-sm border-r border-paper px-1.5 ${position % 2 ? "bg-line" : "bg-surface"}`}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                    >
-                      <span className="truncate font-mono text-[10px] text-ink">{presidentName(item.title).split(" ").at(-1)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="relative mt-1 h-5" aria-hidden="true">
-              {decadeTicks(REVOLUTION, today).map((year) => {
-                const { left } = spanOnAxis(`${year}-01-01`, `${year}-01-01`, REVOLUTION, today);
-                return (
-                  <span key={year} className="absolute -translate-x-1/2 font-mono text-[11px] text-muted" style={{ left: `${left}%` }}>
-                    {year}
-                  </span>
-                );
-              })}
-            </div>
-            {presidents.length > 0 && <p className="font-mono text-[11px] text-muted">Por baixo: o Presidente da República.</p>}
-
-            <article
-              aria-labelledby="governo-escolhido"
-              aria-live="polite"
-              className="mt-4 grid gap-4 rounded-xl border border-l-4 border-line bg-surface/50 p-4 md:grid-cols-[minmax(0,1fr)_auto]"
-              style={{ borderLeftColor: accentOf(current) }}
-            >
-              <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
-                  {current.name}
-                  <EndBadge government={current} />
-                </p>
-                <h3 id="governo-escolhido" className="mt-1 text-2xl font-bold leading-tight">
-                  {current.primeMinister}
-                </h3>
-                <p className="mt-1 font-mono text-xs text-muted">
-                  {formatDate(current.start)} → {current.end ? formatDate(current.end) : "hoje"} ·{" "}
-                  {durationLabel(current.start, endOf(current, today))}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {current.parties.map((party) => (
-                    <span
-                      key={party.slug}
-                      className="flex items-center gap-1.5 rounded-full border border-line py-0.5 pl-0.5 pr-2.5 font-mono text-xs font-bold"
-                    >
-                      <span className="flex size-5 items-center justify-center overflow-hidden rounded-full bg-white">
-                        <PartyLogo slug={party.slug} acronym={party.acronym} size={16} />
-                      </span>
-                      {party.acronym}
-                    </span>
-                  ))}
-                  {current.support && <span className="text-sm text-muted">{current.support}</span>}
-                </div>
-                {current.endNote && <p className="mt-3 text-sm leading-relaxed">{current.endNote}</p>}
-                {president && (
-                  <p className="mt-2 font-mono text-[11px] text-muted">
-                    Presidente da República quando tomou posse: {presidentName(president.title)}
-                  </p>
-                )}
-                {(current.current || current.portalUrl) && (
-                  <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs">
-                    {current.current && (
-                      <Link href="/governo" className="font-bold text-link underline">
-                        Quem governa agora →
-                      </Link>
-                    )}
-                    {current.portalUrl && (
-                      <a href={current.portalUrl} className="text-link underline" target="_blank" rel="noopener noreferrer">
-                        No portal do Governo<span className="sr-only"> (abre noutra janela)</span>
-                      </a>
-                    )}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-start gap-2 md:flex-col md:items-end">
-                <button
-                  type="button"
-                  disabled={index >= governments.length - 1}
-                  onClick={() => setSelected(governments[index + 1]!.code)}
-                  className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs font-bold hover:bg-surface disabled:opacity-40"
-                >
-                  ← Anterior
-                </button>
-                <button
-                  type="button"
-                  disabled={index <= 0}
-                  onClick={() => setSelected(governments[index - 1]!.code)}
-                  className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs font-bold hover:bg-surface disabled:opacity-40"
-                >
-                  Seguinte →
-                </button>
-              </div>
-            </article>
-          </>
-        )}
+        <HistoryPlayback governments={governments} presidents={presidents} elections={elections} parliaments={parliaments} today={today} />
       </section>
 
       {children}
@@ -320,7 +143,7 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
             </button>
           ))}
         </div>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_9rem]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-w-0">
             {entries.map((decade) => {
               const year = decadeYear(decade.entries);
@@ -380,42 +203,78 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
           </div>
           <nav
             aria-label="Ir para"
-            className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto overscroll-contain no-scrollbar lg:block"
+            className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto overscroll-contain rounded-2xl border border-line p-3 no-scrollbar lg:block"
           >
-            <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">Ir para</p>
-            <ol className="space-y-3 border-l-2 border-line">
+            <div className="mb-2 flex items-baseline justify-between gap-2 border-b border-line px-1 pb-2">
+              <p className="font-mono text-[11px] font-bold uppercase tracking-widest">Ir para</p>
+              {active && (
+                <p className="font-mono text-[11px] text-muted">
+                  a ver: <span className="font-bold text-[var(--stage-debate)]">{decadeName(Number(active)).toLowerCase()}</span>
+                </p>
+              )}
+            </div>
+            <ol className="space-y-1">
               {entries.map((decade) => {
                 const year = decadeYear(decade.entries);
-                const years = [...new Set(decade.entries.map((entry) => entry.date.slice(0, 4)))];
+                const inDecade = decade.entries.flatMap((entry) => (entry.kind === "government" ? [entry.government] : []));
                 const current = active === String(year);
                 return (
-                  <li key={decade.label} className="-ml-0.5 pl-3" style={current ? { boxShadow: "inset 2px 0 0 var(--ink)" } : undefined}>
+                  <li key={decade.label}>
                     <a
                       href={`#decada-${year}`}
                       onClick={jump}
                       aria-current={current ? "location" : undefined}
-                      className={`font-mono text-sm font-bold hover:underline ${current ? "" : "text-muted"}`}
+                      className={`block rounded-xl border-l-4 px-2.5 py-2 hover:bg-surface ${current ? "border-[var(--stage-debate)] bg-surface" : "border-transparent"}`}
                     >
-                      {year}
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className={`text-xl font-bold leading-tight ${current ? "" : "text-ink/85"}`}>{decadeName(year)}</span>
+                        <span className="font-mono text-[11px] text-muted">
+                          {inDecade.length} {inDecade.length === 1 ? "governo" : "governos"}
+                        </span>
+                      </span>
+                      <span aria-hidden="true" className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-line">
+                        {[...inDecade].reverse().map((government) => (
+                          <span
+                            key={government.code}
+                            className="border-r border-paper last:border-0"
+                            style={{ flexGrow: Math.max(government.days, 30), backgroundColor: accentOf(government) }}
+                          />
+                        ))}
+                      </span>
                     </a>
-                    <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                      {years.map((item) => (
-                        <a
-                          key={item}
-                          href={`#ano-${item}`}
-                          onClick={jump}
-                          className="font-mono text-[11px] text-muted hover:text-ink hover:underline"
-                        >
-                          {item}
-                        </a>
-                      ))}
-                    </p>
+                    {current && inDecade.length > 0 && (
+                      <ol className="my-1 ml-4 space-y-0.5 border-l border-line pl-2">
+                        {inDecade.map((government) => (
+                          <li key={government.code}>
+                            <a
+                              href={`#${government.code}`}
+                              onClick={jump}
+                              className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-surface"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="size-2 shrink-0 rounded-full"
+                                style={{ backgroundColor: accentOf(government) }}
+                              />
+                              <span className="min-w-0 flex-1 truncate">{government.primeMinister}</span>
+                              <span className="whitespace-nowrap font-mono text-[10px] text-muted">
+                                {government.name.split(" ")[0]} · {government.start.slice(0, 4)}
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
                   </li>
                 );
               })}
             </ol>
-            <a href="#de-1974" onClick={jump} className="mt-4 block font-mono text-[11px] text-link underline">
-              ↑ Voltar ao início
+            <a
+              href="#de-1974"
+              onClick={jump}
+              className="mt-3 block rounded-xl border border-line px-3 py-2.5 text-center font-mono text-xs font-bold hover:bg-surface"
+            >
+              ↑ Voltar à cronologia
             </a>
           </nav>
         </div>

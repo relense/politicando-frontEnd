@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { formatLongDate } from "@/lib/format";
 import { accentOf, decadeTicks, endOf, fillOf, REVOLUTION, spanOnAxis } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
@@ -20,8 +20,14 @@ type Props = {
   elections: TimelineEvent[];
   parliaments: HistoryParliament[];
   today: string;
-  /** The animation reached today, or the reader skipped to it. */
-  onEnd: (byReader: boolean) => void;
+};
+
+const MOTION = "(prefers-reduced-motion: reduce)";
+const prefersReducedMotion = () => window.matchMedia(MOTION).matches;
+const subscribeMotion = (onChange: () => void) => {
+  const query = window.matchMedia(MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
 };
 
 /** Seconds from 1974 to today. */
@@ -40,24 +46,39 @@ type Happening = { date: string; text: string; color: string };
 /**
  * Fifty years in forty seconds: the date runs from the revolution to today, and with it who governs, who is President,
  * the years each party has spent in government and, once the results exist, the seats in Parliament. A slider moves
- * through time; the reader can pause, start over, or skip to the end.
+ * through time; the reader can pause, start over, or skip to the end, and it stays there, the whole bar drawn.
+ * Without motion it opens at the end, paused.
  */
-export function HistoryPlayback({ governments, presidents, elections, parliaments, today, onEnd }: Props) {
+export function HistoryPlayback({ governments, presidents, elections, parliaments, today }: Props) {
   const first = dayNumber(REVOLUTION);
   const last = dayNumber(today);
-  const [day, setDay] = useState(first);
-  const [playing, setPlaying] = useState(true);
-  const frame = useRef<number | null>(null);
-  const ended = useRef(false);
-
-  // Advance with the clock while playing; stop at today and hand over to the full view.
+  const reduced = useSyncExternalStore(subscribeMotion, prefersReducedMotion, () => false);
+  // Null until the reader acts: then it plays from the start, or sits at the end without motion.
+  const [chosenDay, setDay] = useState<number | null>(null);
+  const [chosenPlaying, setPlaying] = useState<boolean | null>(null);
+  const day = chosenDay ?? (reduced ? last : first);
+  const playing = chosenPlaying ?? !reduced;
+  const atEnd = day >= last;
+  const position = useRef(day);
   useEffect(() => {
-    if (!playing) return;
+    position.current = day;
+  }, [day]);
+  const frame = useRef<number | null>(null);
+
+  // Advance with the clock while playing, and stop at today.
+  useEffect(() => {
+    if (!playing || position.current >= last) return;
     let previous = performance.now();
     const step = (now: number) => {
       const elapsed = Math.min(now - previous, 100);
       previous = now;
-      setDay((current) => Math.min(last, current + ((last - first) * elapsed) / (DURATION * 1000)));
+      const next = Math.min(last, position.current + ((last - first) * elapsed) / (DURATION * 1000));
+      position.current = next;
+      setDay(next);
+      if (next >= last) {
+        setPlaying(false);
+        return;
+      }
       frame.current = requestAnimationFrame(step);
     };
     frame.current = requestAnimationFrame(step);
@@ -66,13 +87,10 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
     };
   }, [playing, first, last]);
 
-  useEffect(() => {
-    if (day >= last && !ended.current) {
-      ended.current = true;
-      setPlaying(false);
-      onEnd(false);
-    }
-  }, [day, last, onEnd]);
+  const restart = () => {
+    setDay(first);
+    setPlaying(true);
+  };
 
   const ordered = useMemo(() => [...governments].reverse(), [governments]);
   const parties = useMemo(() => {
@@ -129,7 +147,6 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
 
   const seek = (value: number) => {
     setPlaying(false);
-    ended.current = value >= last;
     setDay(value);
   };
 
@@ -233,7 +250,15 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
       </div>
 
       <div className="mt-5">
-        <div aria-hidden="true" className="relative h-8 overflow-hidden rounded-md bg-surface">
+        {/* A press on the bar jumps there; the slider below is the same for the keyboard. */}
+        <div
+          aria-hidden="true"
+          onClick={(event) => {
+            const box = event.currentTarget.getBoundingClientRect();
+            seek(Math.round(first + ((event.clientX - box.left) / box.width) * (last - first)));
+          }}
+          className="relative h-8 cursor-pointer overflow-hidden rounded-md bg-surface"
+        >
           <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}>
             {ordered.map((item) => {
               const { left, width } = spanOnAxis(item.start, endOf(item, today), REVOLUTION, today);
@@ -277,39 +302,30 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => {
-            if (day >= last) {
-              ended.current = false;
-              setDay(first);
-            }
-            setPlaying((value) => !value);
-          }}
-          className="rounded-lg bg-ink px-4 py-2 font-mono text-xs font-bold text-paper"
+          disabled={atEnd}
+          onClick={() => setPlaying(!playing)}
+          className="rounded-lg bg-ink px-4 py-2 font-mono text-xs font-bold text-paper disabled:opacity-40"
         >
           {playing ? "❚❚ Pausa" : "▶ Continuar"}
         </button>
         <button
           type="button"
-          onClick={() => {
-            ended.current = false;
-            setDay(first);
-            setPlaying(true);
-          }}
+          onClick={restart}
           className="rounded-lg border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface"
         >
           ↺ Recomeçar
         </button>
+        {/* The same place for both, so nothing moves: skip while it runs, watch again once it ends. */}
         <button
           type="button"
           onClick={() => {
-            ended.current = true;
+            if (atEnd) return restart();
             setPlaying(false);
             setDay(last);
-            onEnd(true);
           }}
           className="ml-auto rounded-lg border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface"
         >
-          Saltar para o fim ⏭
+          {atEnd ? "▶ Ver a animação outra vez" : "Saltar para o fim ⏭"}
         </button>
       </div>
     </div>

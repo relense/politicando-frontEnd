@@ -635,14 +635,13 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await page.getByRole("slider", { name: "Data na animação" }).fill(String(Math.round(Date.parse("1990-06-01") / 86_400_000)));
   await expect(page.getByRole("slider", { name: "Data na animação" })).toHaveAttribute("aria-valuetext", /de 1990$/);
   await page.getByRole("button", { name: "Saltar para o fim ⏭" }).click();
+  // At the end it stays put: the same buttons, the last one now to watch it again.
   await expect(page.getByRole("button", { name: "▶ Ver a animação outra vez" })).toBeVisible();
-
-  // Then the full view: the government in office first, the one before a press away.
+  await expect(page.getByRole("button", { name: "↺ Recomeçar" })).toBeVisible();
+  await page.getByRole("button", { name: "▶ Ver a animação outra vez" }).click();
+  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeVisible();
   const chosen = page.getByRole("article", { name: "Henrique Valadares" }).first();
   await expect(chosen.getByText("Em funções")).toBeVisible();
-  await page.getByRole("button", { name: "← Anterior" }).click();
-  await expect(page.getByRole("button", { name: "Seguinte →" })).toBeEnabled();
-  await page.getByRole("button", { name: "Seguinte →" }).click();
   // Filters narrow the timeline.
   const all = await page.getByRole("region", { name: "Governo a governo" }).getByRole("article").count();
   await page.getByRole("button", { name: "Provisórios" }).click();
@@ -651,7 +650,10 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
   // On wide screens a rail beside the timeline jumps to a decade or a year.
   if (!isMobile) {
-    await page.getByRole("navigation", { name: "Ir para" }).getByRole("link", { name: "1970", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Ir para" })
+      .getByRole("link", { name: /^1974–79/ })
+      .click();
     await expect(page.getByRole("heading", { level: 3, name: "Anos 1970" })).toBeInViewport();
   }
   // A kind of event the site doesn't know yet is left out; elections link to their results.

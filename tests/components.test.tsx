@@ -114,7 +114,7 @@ describe("ArticleCard", () => {
 
   it("invites the first comment", () => {
     render(<ArticleCard article={article({ id: 7 })} />);
-    expect(screen.getByRole("link", { name: "Comentar" })).toHaveAttribute("href", "/article/7#comentarios");
+    expect(screen.getByRole("link", { name: "0 comentários" })).toHaveAttribute("href", "/article/7#comentarios");
   });
 
   it("drops a javascript: source link", () => {

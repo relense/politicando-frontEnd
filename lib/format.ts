@@ -58,9 +58,9 @@ export function commentsLabel(count: number): string {
   return count === 1 ? "1 Comentário" : `${count} Comentários`;
 }
 
-/** The feed link invites the first comment instead of announcing none. */
+/** The feed link: always the number, so a reader sees at a glance which news has a conversation. */
 export function commentLinkLabel(count: number): string {
-  return count === 0 ? "Comentar" : commentsLabel(count);
+  return count === 1 ? "1 comentário" : `${formatNumber(count)} comentários`;
 }
 
 export function repliesLabel(count: number): string {

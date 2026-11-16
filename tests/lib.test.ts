@@ -172,7 +172,7 @@ describe("format", () => {
 
   it("labels comments in Portuguese", () => {
     expect([0, 1, 2].map(commentsLabel)).toEqual(["Comentários", "1 Comentário", "2 Comentários"]);
-    expect([0, 3].map(commentLinkLabel)).toEqual(["Comentar", "3 Comentários"]);
+    expect([0, 1, 3].map(commentLinkLabel)).toEqual(["0 comentários", "1 comentário", "3 comentários"]);
   });
 
   it("shows recent dates relative to now, and older ones as a date", () => {

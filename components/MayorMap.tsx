@@ -865,30 +865,7 @@ function PlaceCard({ place, level, onClose }: { place: MayorMapPlace; level: "mu
             </div>
           )}
 
-          {chamber && winner && (
-            <div className="mt-4">
-              <p className="flex justify-between gap-2 font-mono text-[11px] text-muted">
-                <span>Vereadores na câmara</span>
-                <span>
-                  {winner.mandates} de {chamber.totalMandates} · {winner.mandates * 2 > chamber.totalMandates ? "maioria" : "sem maioria"}
-                </span>
-              </p>
-              <ul aria-label="Vereadores por lista" className="mt-1.5 flex flex-wrap gap-1">
-                {seats.flatMap((seat) =>
-                  Array.from({ length: seat.mandates }, (_, index) => (
-                    <li
-                      key={`${seat.list}-${index}`}
-                      title={`${seat.label}: ${seat.mandates}`}
-                      aria-label={index === 0 ? `${seat.label}: ${seat.mandates}` : undefined}
-                      aria-hidden={index === 0 ? undefined : true}
-                      className="h-4 w-4 rounded-[3px]"
-                      style={{ backgroundColor: seat.parties[0] ? partyColor(seat.parties[0]) : "var(--muted)" }}
-                    />
-                  )),
-                )}
-              </ul>
-            </div>
-          )}
+          {chamber && winner && <ChamberSplit seats={seats} total={chamber.totalMandates} />}
           {detail.isPending && <p className="mt-4 font-mono text-xs text-muted">A carregar a câmara…</p>}
         </>
       ) : (
@@ -931,5 +908,64 @@ function PlaceCard({ place, level, onClose }: { place: MayorMapPlace; level: "mu
         ))}
       </ul>
     </section>
+  );
+}
+
+type Seat = { list: string; label: string; mandates: number; parties: string[] };
+
+/**
+ * How the câmara's councillors split between lists, in words first: whether the mayor's list (the most voted one)
+ * has a majority, then each list with its seats on one bar, the majority marked.
+ */
+function ChamberSplit({ seats, total }: { seats: Seat[]; total: number }) {
+  const winner = seats[0]!;
+  const majority = Math.floor(total / 2) + 1;
+  const colorOf = (seat: Seat) => (seat.parties[0] ? partyColor(seat.parties[0]) : "var(--muted)");
+  const shown = seats.filter((seat) => seat.mandates > 0);
+  return (
+    <div className="mt-4">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Vereadores na câmara</p>
+      <p className="mt-1 text-sm leading-relaxed">
+        A lista do presidente elegeu <b>{winner.mandates}</b> dos {total} vereadores.{" "}
+        {winner.mandates >= majority ? (
+          <>Tem maioria absoluta: aprova as decisões sozinha.</>
+        ) : (
+          <>Não tem maioria (são precisos {majority}): para aprovar decisões, precisa dos votos de vereadores de outras listas.</>
+        )}
+      </p>
+      <div aria-hidden="true" className="relative mt-3">
+        <div className="flex h-3 overflow-hidden rounded-full">
+          {shown.map((seat) => (
+            <span
+              key={seat.list}
+              className="border-r-2 border-paper last:border-0"
+              style={{ width: `${(seat.mandates / total) * 100}%`, backgroundColor: colorOf(seat) }}
+            />
+          ))}
+        </div>
+        <span className="absolute -top-1 bottom-[-4px] w-0.5 bg-ink" style={{ left: `calc(${(majority / total) * 100}% - 1px)` }} />
+        <span
+          className="absolute top-4 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] text-muted"
+          style={{ left: `${(majority / total) * 100}%` }}
+        >
+          maioria: {majority}
+        </span>
+      </div>
+      <ul aria-label="Vereadores por lista" className="mt-7 space-y-1.5">
+        {shown.map((seat, index) => (
+          <li key={seat.list} className="flex items-start gap-2 text-sm">
+            <span aria-hidden="true" className="mt-1.5 size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: colorOf(seat) }} />
+            <span className="min-w-0 flex-1 leading-snug">
+              {seat.label}
+              {index === 0 && <span className="ml-1.5 font-mono text-[10px] text-muted">lista do presidente</span>}
+            </span>
+            <span className="font-mono text-sm font-bold">
+              {seat.mandates}
+              <span className="sr-only"> {seat.mandates === 1 ? "vereador" : "vereadores"}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
