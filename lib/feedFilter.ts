@@ -3,6 +3,11 @@
  * (one value, as in older links, still works), and saved as the reader's own feed in a cookie of the same shape.
  */
 export type FeedFilter = { parties: string[]; sources: string[] };
+/** Newest first, or the most commented of the last week (`?ordem=comentadas`). */
+export type FeedSort = "recentes" | "comentadas";
+export const sortOf = (value: string | string[] | undefined): FeedSort => (value === "comentadas" ? "comentadas" : "recentes");
+/** How far back "Mais comentadas" looks, in hours. */
+export const COMMENTED_HOURS = 24 * 7;
 
 export const FEED_COOKIE = "feed";
 /** A year; the reader can change or forget it at any time. */

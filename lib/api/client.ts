@@ -148,6 +148,9 @@ export type FeedQuery = {
   source?: string | string[];
   cursor?: string;
   limit?: number;
+  /** Newest first (default), or most commented first among those published in the last `since` hours. */
+  sort?: "comments";
+  since?: number;
 };
 
 /** News per page on the feeds: a screenful or three, then a button for more. */
@@ -161,11 +164,19 @@ const LISTS_RETRY_MS = 10 * 60_000;
 /** How many pages to read while looking for matches, before handing back what was found and the cursor to go on. */
 const SCAN_PAGES = 6;
 
-export async function getFeedPage({ party, deputy, q, source, cursor, limit }: FeedQuery = {}): Promise<ArticlePage> {
+export async function getFeedPage({ party, deputy, q, source, cursor, limit, sort, since }: FeedQuery = {}): Promise<ArticlePage> {
   const parties = listOf(party);
   const sources = listOf(source);
   const fetchPage = async (values: { party?: string; source?: string; cursor?: string }) => {
-    const search = searchOf({ ...values, deputy, q: q || undefined, cursor: values.cursor, limit });
+    const search = searchOf({
+      ...values,
+      deputy,
+      q: q || undefined,
+      cursor: values.cursor,
+      limit,
+      sort,
+      since: since ? `${since}h` : undefined,
+    });
     const page = await request(`/articles${search}`, articlePageSchema, cached);
     return { items: page.items, nextCursor: page.nextCursor };
   };

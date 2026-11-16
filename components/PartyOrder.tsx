@@ -54,7 +54,13 @@ export function PartyOrderProvider({ standings, children }: { standings: Record<
 export function useOrderedParties(parties: readonly Party[]) {
   const { standings, order } = useContext(PartyOrderContext);
   const ordered = useMemo(() => sortParties(parties, standings, order), [parties, standings, order]);
-  return { ordered, order, standingOf: (slug: string) => (order === "votes" ? standingLabel(standings[slug]) : null) };
+  return {
+    ordered,
+    order,
+    standingOf: (slug: string) => (order === "votes" ? standingLabel(standings[slug]) : null),
+    /** Seats in Parliament now, or null when the standings are unavailable. */
+    seatsOf: (slug: string): number | null => (Object.keys(standings).length > 0 ? (standings[slug]?.seats ?? 0) : null),
+  };
 }
 
 /** "58 deputados · 22,8%", or "em coligação" for a partner whose votes are the coalition's. */

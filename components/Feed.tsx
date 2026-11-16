@@ -3,19 +3,35 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Fragment } from "react";
 import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/api/client";
+import { COMMENTED_HOURS } from "@/lib/feedFilter";
 import { formatDayHeading, lisbonDay } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
 import type { ArticlePage } from "@/lib/types";
 import { ArticleCard } from "./ArticleCard";
 
 /** `partySlug` and `source` take one value or several (any of them). */
-type Props = { initialPage: ArticlePage; partySlug?: string | string[]; q?: string; source?: string | string[] };
+type Props = {
+  initialPage: ArticlePage;
+  partySlug?: string | string[];
+  q?: string;
+  source?: string | string[];
+  /** Most commented of the last week first, instead of newest first. */
+  commented?: boolean;
+};
 
-export function Feed({ initialPage, partySlug, q = "", source = "" }: Props) {
+export function Feed({ initialPage, partySlug, q = "", source = "", commented = false }: Props) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
     // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
-    queryKey: ["feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(",")],
-    queryFn: ({ pageParam }) => getFeedPage({ party: partySlug, q, source, cursor: pageParam, limit: FEED_PAGE_SIZE }),
+    queryKey: ["feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), commented],
+    queryFn: ({ pageParam }) =>
+      getFeedPage({
+        party: partySlug,
+        q,
+        source,
+        cursor: pageParam,
+        limit: FEED_PAGE_SIZE,
+        ...(commented ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: { pages: [initialPage], pageParams: [undefined] },
@@ -47,7 +63,8 @@ export function Feed({ initialPage, partySlug, q = "", source = "" }: Props) {
         {articles.map((article, index) => {
           // A heading whenever the day changes, as in a printed paper's sections.
           const day = lisbonDay(article.publishedAt);
-          const newDay = day !== null && day !== lisbonDay(articles[index - 1]?.publishedAt);
+          // Ordered by comments, days are mixed: each card already shows its own.
+          const newDay = !commented && day !== null && day !== lisbonDay(articles[index - 1]?.publishedAt);
           return (
             <Fragment key={article.id}>
               {newDay && (

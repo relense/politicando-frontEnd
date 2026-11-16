@@ -4,16 +4,21 @@ import { connection } from "next/server";
 import { Feed } from "@/components/Feed";
 import { loadHighlights } from "@/components/Highlights";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
-import { NewsSearch } from "@/components/NewsSearch";
 import { FeedFilters } from "@/components/FeedFilters";
 import { FEED_PAGE_SIZE, getFeedPage, getParties, getSources } from "@/lib/api/client";
 import { tidyName } from "@/lib/elections";
-import { FEED_COOKIE, isEmpty, parseFilter, readSavedFilter } from "@/lib/feedFilter";
+import { COMMENTED_HOURS, FEED_COOKIE, isEmpty, parseFilter, readSavedFilter, sortOf } from "@/lib/feedFilter";
 import { ofParty, partyPath } from "@/lib/parties";
 import { SOURCE_COUNT, sourceName } from "@/lib/sources";
 
 type Props = {
-  searchParams: Promise<{ partido?: string | string[]; q?: string | string[]; fonte?: string | string[]; tudo?: string | string[] }>;
+  searchParams: Promise<{
+    partido?: string | string[];
+    q?: string | string[];
+    fonte?: string | string[];
+    tudo?: string | string[];
+    ordem?: string | string[];
+  }>;
 };
 
 const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : "");
@@ -42,6 +47,7 @@ export default async function HomePage({ searchParams }: Props) {
     cookies(),
   ]);
   const { q } = searchOf(params);
+  const sort = sortOf(params.ordem);
   const saved = readSavedFilter(jar.get(FEED_COOKIE)?.value);
   const asked = parseFilter(params);
   // The front page opens with the reader's saved feed, unless the address asks for something (or for everything).
@@ -64,7 +70,13 @@ export default async function HomePage({ searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   const [page, highlights, sidebar] = await Promise.all([
-    getFeedPage({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }),
+    getFeedPage({
+      party: chosen.parties,
+      q,
+      source: chosen.sources,
+      limit: FEED_PAGE_SIZE,
+      ...(sort === "comentadas" ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
+    }),
     loadHighlights(),
     loadNewsSidebar(),
   ]);
@@ -104,18 +116,19 @@ export default async function HomePage({ searchParams }: Props) {
       <FeedFilters
         key={fromSaved ? "guardado" : "endereco"}
         parties={parties}
-        sources={sources.map((item) => ({ domain: item.domain, name: sourceName(item.domain) }))}
+        sources={sources.map((item) => ({ domain: item.domain, name: sourceName(item.domain), count: item.count }))}
         filter={chosen}
         saved={saved}
         q={q}
+        sort={sort}
       />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <NewsSearch key={q} q={q} filter={chosen} />
           <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
             {q ? `Notícias com «${q}»` : filtered ? "Notícias" : "Todas as notícias"}
-            {filtered && ` · ${label}`}, mais recentes primeiro
+            {filtered && ` · ${label}`}
+            {sort === "comentadas" ? ", as mais comentadas dos últimos 7 dias primeiro" : ", mais recentes primeiro"}
           </p>
           {/* On smaller screens the blog's box comes before the news, and the rest of the column is left out. */}
           {spotlight && (
@@ -124,11 +137,12 @@ export default async function HomePage({ searchParams }: Props) {
             </div>
           )}
           <Feed
-            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}`}
+            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${sort}`}
             initialPage={page}
             partySlug={chosen.parties}
             q={q}
             source={chosen.sources}
+            commented={sort === "comentadas"}
           />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">

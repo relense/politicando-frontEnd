@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import {
   FEED_COOKIE,
   FEED_COOKIE_MAX_AGE,
@@ -11,81 +11,270 @@ import {
   serializeFilter,
   toggle,
   type FeedFilter,
+  type FeedSort,
 } from "@/lib/feedFilter";
+import { fold } from "@/lib/format";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
-import { SourceLogo } from "./SourceLogo";
 import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
+import { SourceLogo } from "./SourceLogo";
+
+type Source = { domain: string; name: string; count: number };
 
 type Props = {
   parties: Party[];
-  sources: { domain: string; name: string }[];
+  sources: Source[];
   filter: FeedFilter;
   /** The reader's saved feed, if any; the front page opens with it. */
   saved: FeedFilter | null;
-  /** Words being searched, kept while the filter changes. */
   q: string;
+  sort: FeedSort;
 };
 
-const chip = (pressed: boolean) =>
-  `flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-mono text-xs font-bold ${
+const pill = (pressed: boolean) =>
+  `inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border pl-1 pr-2.5 font-mono text-xs font-bold ${
     pressed ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"
   }`;
 
-/** A row of chips that scrolls sideways, with arrows on wide screens. */
-function ChipRow({ label, children, more }: { label: string; children: React.ReactNode; more: string }) {
-  const listRef = useRef<HTMLUListElement>(null);
-  const [edges, setEdges] = useState({ start: true, end: true });
+/** A button that opens a panel below it; closes on Escape, on a click outside, or when the choice is applied. */
+function Dropdown({
+  label,
+  count,
+  title,
+  children,
+}: {
+  label: string;
+  count: number;
+  title: string;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const id = useId();
   useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const update = () => setEdges({ start: list.scrollLeft <= 1, end: list.scrollLeft + list.clientWidth >= list.scrollWidth - 1 });
-    const observer = new ResizeObserver(update);
-    observer.observe(list);
-    list.addEventListener("scroll", update, { passive: true });
-    return () => {
-      observer.disconnect();
-      list.removeEventListener("scroll", update);
+    if (!open) return;
+    const onClick = (event: MouseEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
     };
-  }, []);
-  const arrow = (direction: 1 | -1) => (
-    <button
-      type="button"
-      onClick={() => listRef.current?.scrollBy({ left: direction * listRef.current.clientWidth * 0.8, behavior: "smooth" })}
-      disabled={direction === -1 ? edges.start : edges.end}
-      aria-label={direction === -1 ? `${more} anteriores` : `Mais ${more.toLowerCase()}`}
-      className="hidden size-9 shrink-0 items-center justify-center rounded-full border border-line hover:bg-surface disabled:opacity-30 lg:flex"
-    >
-      <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current stroke-2">
-        <path d={direction === -1 ? "M12 5l-5 5 5 5" : "M8 5l5 5-5 5"} />
-      </svg>
-    </button>
-  );
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
   return (
-    <div className="flex items-center gap-2">
-      {arrow(-1)}
-      <ul ref={listRef} aria-label={label} className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-        {children}
-      </ul>
-      {arrow(1)}
+    <div ref={box} className="sm:relative">
+      <button
+        ref={button}
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen(!open)}
+        className={`flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-xs font-bold ${
+          count > 0 || open ? "border-ink" : "border-line hover:bg-surface"
+        }`}
+      >
+        {label}
+        {count > 0 && (
+          <span className="flex size-5 items-center justify-center rounded-full bg-[var(--marker)] text-[10px] text-ink">
+            {count}
+            <span className="sr-only"> escolhidos</span>
+          </span>
+        )}
+        <svg aria-hidden="true" viewBox="0 0 20 20" className={`size-3.5 fill-none stroke-current stroke-2 ${open ? "rotate-180" : ""}`}>
+          <path d="M5 8l5 5 5-5" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          id={id}
+          role="dialog"
+          aria-label={title}
+          className="absolute inset-x-0 z-30 mt-2 rounded-2xl border border-line bg-paper p-4 shadow-xl sm:left-auto sm:right-0 sm:w-[34rem]"
+        >
+          {children(() => setOpen(false))}
+        </div>
+      )}
     </div>
   );
 }
 
+/** A choice in a panel: a checkbox row with the icon, the name and a number. */
+function CheckRow({
+  checked,
+  onChange,
+  icon,
+  label,
+  note,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  icon: ReactNode;
+  label: string;
+  note?: string | number | null;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 font-mono text-xs font-bold ${
+        checked ? "border-ink bg-surface" : "border-line hover:bg-surface"
+      }`}
+    >
+      <input type="checkbox" checked={checked} onChange={onChange} className="size-3.5 accent-[var(--ink)]" />
+      {icon}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {note !== undefined && note !== null && <span className="font-normal text-muted">{note}</span>}
+    </label>
+  );
+}
+
+function PanelFooter({ onClear, clearLabel, onApply }: { onClear: () => void; clearLabel: string; onApply: () => void }) {
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+      <button type="button" onClick={onClear} className="font-mono text-xs text-muted underline hover:text-ink">
+        {clearLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onApply}
+        className="rounded-full bg-ink px-4 py-2 font-mono text-xs font-bold text-paper hover:opacity-90"
+      >
+        Mostrar notícias
+      </button>
+    </div>
+  );
+}
+
+const heading = "mb-2 mt-4 font-mono text-[11px] font-bold uppercase tracking-widest text-muted first:mt-0";
+
+function PartiesPanel({ parties, chosen, onApply }: { parties: Party[]; chosen: string[]; onApply: (parties: string[]) => void }) {
+  const { ordered, seatsOf } = useOrderedParties(parties);
+  const [draft, setDraft] = useState(chosen);
+  const [query, setQuery] = useState("");
+  const words = fold(query.trim());
+  const shown = ordered.filter((party) => !words || fold(`${party.acronym} ${party.name}`).includes(words));
+  const seated = shown.filter((party) => (seatsOf(party.slug) ?? 1) > 0);
+  const others = shown.filter((party) => (seatsOf(party.slug) ?? 1) === 0);
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Procurar partido"
+          aria-label="Procurar partido"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 font-mono text-xs"
+        />
+        <PartyOrderToggle />
+      </div>
+      <div className="mt-4 max-h-[55vh] overflow-y-auto overscroll-contain">
+        {seated.length > 0 && (
+          <fieldset>
+            <legend className={heading}>{others.length > 0 ? `Com deputados · ${seated.length}` : `Partidos · ${seated.length}`}</legend>
+            <div className="grid gap-1.5 sm:grid-cols-3">
+              {seated.map((party) => (
+                <CheckRow
+                  key={party.slug}
+                  checked={draft.includes(party.slug)}
+                  onChange={() => setDraft(toggle(draft, party.slug))}
+                  icon={<PartyLogo slug={party.slug} acronym={party.acronym} size={18} />}
+                  label={party.acronym}
+                  note={seatsOf(party.slug)}
+                />
+              ))}
+            </div>
+          </fieldset>
+        )}
+        {others.length > 0 && (
+          <fieldset className="mt-4">
+            <legend className={heading}>Sem deputados · {others.length}</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {others.map((party) => {
+                const checked = draft.includes(party.slug);
+                return (
+                  <label key={party.slug} className={`${pill(checked)} cursor-pointer`}>
+                    <input type="checkbox" checked={checked} onChange={() => setDraft(toggle(draft, party.slug))} className="sr-only" />
+                    <PartyLogo slug={party.slug} acronym={party.acronym} size={20} />
+                    {party.acronym}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+        {shown.length === 0 && <p className="py-4 text-center text-sm text-muted">Nenhum partido com esse nome.</p>}
+      </div>
+      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar partidos" onApply={() => onApply(draft)} />
+    </>
+  );
+}
+
+function SourcesPanel({ sources, chosen, onApply }: { sources: Source[]; chosen: string[]; onApply: (sources: string[]) => void }) {
+  const [draft, setDraft] = useState(chosen);
+  const [query, setQuery] = useState("");
+  const words = fold(query.trim());
+  const shown = sources.filter((source) => !words || fold(`${source.name} ${source.domain}`).includes(words));
+  return (
+    <>
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Procurar jornal"
+        aria-label="Procurar jornal"
+        className="h-9 w-full rounded-lg border border-line bg-paper px-3 font-mono text-xs"
+      />
+      <fieldset className="mt-4 max-h-[55vh] overflow-y-auto overscroll-contain">
+        <legend className={heading}>Jornais · {sources.length}</legend>
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {shown.map((source) => (
+            <CheckRow
+              key={source.domain}
+              checked={draft.includes(source.domain)}
+              onChange={() => setDraft(toggle(draft, source.domain))}
+              icon={<SourceLogo domain={source.domain} name={source.name} size={18} />}
+              label={source.name}
+              note={source.count > 0 ? source.count.toLocaleString("pt-PT") : null}
+            />
+          ))}
+        </div>
+        {shown.length === 0 && <p className="py-4 text-center text-sm text-muted">Nenhum jornal com esse nome.</p>}
+      </fieldset>
+      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar jornais" onApply={() => onApply(draft)} />
+    </>
+  );
+}
+
 /**
- * Filters the news by any number of parties and of outlets, in place. Each chip switches on or off; the choice can be
- * saved as the reader's own feed, which the front page then opens with (kept in a cookie, never sent anywhere else).
+ * The news toolbar: words, parties and papers (any number of each), and the order. The parties in Parliament are also
+ * one tap away below it. The choice can be saved as the reader's own feed, which the front page then opens with (kept
+ * in a cookie, never sent anywhere else).
  */
-export function FeedFilters({ parties, sources, filter, saved, q }: Props) {
+export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
-  const { ordered, standingOf } = useOrderedParties(parties);
+  const { ordered, seatsOf } = useOrderedParties(parties);
   const isSaved = saved !== null && sameFilter(filter, saved);
+  const quick = ordered.filter((party) => (seatsOf(party.slug) ?? 0) > 0);
 
-  const go = (next: FeedFilter) => {
+  const go = (next: FeedFilter, extra: { q?: string; sort?: FeedSort } = {}) => {
+    const words = extra.q ?? q;
+    const order = extra.sort ?? sort;
     // With a saved feed, "everything" needs saying, or the front page would open the saved one again.
-    const query = filterQuery(next, { q, ...(isEmpty(next) && saved ? { tudo: "1" } : {}) });
+    const query = filterQuery(next, {
+      q: words,
+      ordem: order === "comentadas" ? "comentadas" : "",
+      ...(isEmpty(next) && saved ? { tudo: "1" } : {}),
+    });
     startTransition(() => router.push(query ? `${pathname}?${query}` : pathname, { scroll: false }));
   };
   const save = (value: FeedFilter | null) => {
@@ -95,113 +284,191 @@ export function FeedFilters({ parties, sources, filter, saved, q }: Props) {
     startTransition(() => router.refresh());
   };
 
-  if (parties.length === 0 && sources.length === 0) return null;
-  const partyNames = filter.parties.map((slug) => parties.find((party) => party.slug === slug)?.acronym ?? slug);
-  const sourceNames = filter.sources.map((domain) => sources.find((item) => item.domain === domain)?.name ?? domain);
+  const partyOf = (slug: string) => parties.find((party) => party.slug === slug);
+  const sourceOf = (domain: string) => sources.find((source) => source.domain === domain);
 
   return (
-    <nav aria-label="Filtrar notícias" className="mb-6 rounded-2xl border border-line p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-muted">Partidos</h2>
-        <PartyOrderToggle />
-      </div>
-      <ChipRow label="Partidos" more="Partidos">
-        <li className="shrink-0">
+    <nav aria-label="Filtrar notícias" className="mb-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <form
+          role="search"
+          action="/"
+          method="get"
+          className="relative min-w-0 flex-[1_1_18rem]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const words = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+            go(filter, { q: words });
+          }}
+        >
+          {filter.parties.length > 0 && <input type="hidden" name="partido" value={filter.parties.join(",")} />}
+          {filter.sources.length > 0 && <input type="hidden" name="fonte" value={filter.sources.join(",")} />}
+          <label>
+            <span className="sr-only">Procurar nas notícias</span>
+            <input
+              key={q}
+              type="search"
+              name="q"
+              defaultValue={q}
+              maxLength={100}
+              placeholder="Procurar nas notícias, ex.: «habitação»"
+              className="h-10 w-full rounded-full border border-line bg-paper pl-10 pr-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
+            />
+          </label>
           <button
-            type="button"
-            aria-pressed={filter.parties.length === 0}
-            onClick={() => go({ ...filter, parties: [] })}
-            className={chip(filter.parties.length === 0)}
+            type="submit"
+            aria-label="Procurar"
+            className="absolute left-1 top-1 flex size-8 items-center justify-center rounded-full text-muted hover:text-ink"
           >
-            Todos
+            <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4">
+              <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
-        </li>
-        {ordered.map((party) => {
-          const pressed = filter.parties.includes(party.slug);
-          return (
-            <li key={party.slug} className="shrink-0">
-              <button
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => go({ ...filter, parties: toggle(filter.parties, party.slug) })}
-                title={standingOf(party.slug) ?? undefined}
-                className={`${chip(pressed)} pl-1.5`}
-              >
-                <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />
-                {party.acronym}
-              </button>
-            </li>
-          );
-        })}
-      </ChipRow>
+        </form>
+        {parties.length > 0 && (
+          <Dropdown label="Partidos" count={filter.parties.length} title="Escolher partidos">
+            {(close) => (
+              <PartiesPanel
+                parties={parties}
+                chosen={filter.parties}
+                onApply={(next) => {
+                  close();
+                  go({ ...filter, parties: next });
+                }}
+              />
+            )}
+          </Dropdown>
+        )}
+        {sources.length > 0 && (
+          <Dropdown label="Jornais" count={filter.sources.length} title="Escolher jornais">
+            {(close) => (
+              <SourcesPanel
+                sources={sources}
+                chosen={filter.sources}
+                onApply={(next) => {
+                  close();
+                  go({ ...filter, sources: next });
+                }}
+              />
+            )}
+          </Dropdown>
+        )}
+        <div
+          role="group"
+          aria-label="Ordenar notícias"
+          className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold"
+        >
+          {(
+            [
+              ["recentes", "Recentes"],
+              ["comentadas", "Mais comentadas"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={sort === value}
+              onClick={() => go(filter, { sort: value })}
+              className={`px-4 ${sort === value ? "bg-ink text-paper" : "hover:bg-surface"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {sources.length > 0 && (
-        <>
-          <h2 className="mb-3 mt-4 font-mono text-xs font-bold uppercase tracking-widest text-muted">Jornais</h2>
-          <ChipRow label="Jornais" more="Jornais">
-            <li className="shrink-0">
-              <button
-                type="button"
-                aria-pressed={filter.sources.length === 0}
-                onClick={() => go({ ...filter, sources: [] })}
-                className={chip(filter.sources.length === 0)}
-              >
-                Todos
-              </button>
-            </li>
-            {sources.map((source) => {
-              const pressed = filter.sources.includes(source.domain);
+      {quick.length > 0 && (
+        <div className="mt-3 flex items-center gap-2">
+          <span className="shrink-0 font-mono text-[11px] text-muted">Com deputados</span>
+          <ul aria-label="Partidos com deputados" className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5">
+            {quick.map((party) => {
+              const pressed = filter.parties.includes(party.slug);
               return (
-                <li key={source.domain} className="shrink-0">
+                <li key={party.slug} className="shrink-0">
                   <button
                     type="button"
                     aria-pressed={pressed}
-                    onClick={() => go({ ...filter, sources: toggle(filter.sources, source.domain) })}
-                    className={`${chip(pressed)} pl-1.5`}
+                    onClick={() => go({ ...filter, parties: toggle(filter.parties, party.slug) })}
+                    className={pill(pressed)}
                   >
-                    <SourceLogo domain={source.domain} name={source.name} size={22} />
-                    {source.name}
+                    <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />
+                    {party.acronym}
                   </button>
                 </li>
               );
             })}
-          </ChipRow>
-        </>
+          </ul>
+        </div>
       )}
 
       {(!isEmpty(filter) || saved) && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-          <p className="min-w-0 text-sm" aria-live="polite">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-y border-line py-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             {isEmpty(filter) ? (
-              <span className="text-muted">A mostrar tudo. O teu feed guardado abre quando voltas à página inicial.</span>
+              <span className="text-sm text-muted">A mostrar tudo. O teu feed abre quando voltas à página inicial.</span>
             ) : (
               <>
-                {isSaved && <b>O teu feed: </b>}
-                <span className="text-muted">
-                  {partyNames.length > 0 ? partyNames.join(", ") : "Todos os partidos"} ·{" "}
-                  {sourceNames.length > 0 ? sourceNames.join(", ") : "todos os jornais"}
-                </span>
+                {isSaved && <span className="mr-1 font-mono text-xs font-bold">★ O teu feed</span>}
+                <ul aria-label="Filtros escolhidos" className="flex flex-wrap gap-1.5">
+                  {filter.parties.map((slug) => {
+                    const party = partyOf(slug);
+                    return (
+                      <li key={slug}>
+                        <button
+                          type="button"
+                          onClick={() => go({ ...filter, parties: filter.parties.filter((item) => item !== slug) })}
+                          className={pill(false)}
+                        >
+                          <PartyLogo slug={slug} acronym={party?.acronym ?? slug} size={20} />
+                          <span>
+                            <span className="sr-only">Tirar </span>
+                            {party?.acronym ?? slug}
+                          </span>
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {filter.sources.map((domain) => {
+                    const source = sourceOf(domain);
+                    return (
+                      <li key={domain}>
+                        <button
+                          type="button"
+                          onClick={() => go({ ...filter, sources: filter.sources.filter((item) => item !== domain) })}
+                          className={pill(false)}
+                        >
+                          <SourceLogo domain={domain} name={source?.name ?? domain} size={20} />
+                          <span>
+                            <span className="sr-only">Tirar </span>
+                            {source?.name ?? domain}
+                          </span>
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => go({ parties: [], sources: [] })}
+                  className="ml-1 font-mono text-xs text-muted underline hover:text-ink"
+                >
+                  Limpar tudo
+                </button>
               </>
             )}
-          </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-bold">
             {!isEmpty(filter) && !isSaved && (
-              <button type="button" onClick={() => save(filter)} className="rounded-full bg-ink px-3 py-1.5 text-paper hover:opacity-90">
-                Guardar como o meu feed
+              <button type="button" onClick={() => save(filter)} className="rounded-full border border-ink px-3 py-1.5 hover:bg-surface">
+                ☆ Guardar como o meu feed
               </button>
             )}
             {saved && (isSaved || isEmpty(filter)) && (
               <button type="button" onClick={() => save(null)} className="rounded-full border border-line px-3 py-1.5 hover:bg-surface">
                 Esquecer o meu feed
-              </button>
-            )}
-            {!isEmpty(filter) && (
-              <button
-                type="button"
-                onClick={() => go({ parties: [], sources: [] })}
-                className="rounded-full border border-line px-3 py-1.5 hover:bg-surface"
-              >
-                Ver tudo
               </button>
             )}
           </div>

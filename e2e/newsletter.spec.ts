@@ -5,16 +5,23 @@ test("search the news by words and by outlet", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("search");
   await search.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("código");
-  await search.getByRole("button", { name: "Procurar" }).click();
+  await search.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/[?&]q=c%C3%B3digo/);
   await expect(page.getByText("Notícias com «código»")).toBeVisible();
   await expect(page.getByRole("link", { name: /Título com código/ }).first()).toBeVisible();
   // Picking a paper keeps the words.
-  await page.getByRole("list", { name: "Jornais" }).getByRole("button", { name: "Observador" }).click();
+  await page.getByRole("button", { name: /^Jornais/ }).click();
+  await page
+    .getByRole("dialog", { name: "Escolher jornais" })
+    .getByRole("checkbox", { name: /Observador/ })
+    .check();
+  await page.getByRole("dialog", { name: "Escolher jornais" }).getByRole("button", { name: "Mostrar notícias" }).click();
   await expect(page).toHaveURL(/fonte=observador\.pt&q=/);
   await expect(page.getByText("Notícias com «código» · Observador")).toBeVisible();
   await noSeriousA11yIssues(page);
-  await page.getByRole("link", { name: "Limpar" }).click();
+  // Emptying the words keeps the paper.
+  await search.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("");
+  await search.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/\/\?fonte=observador\.pt$/);
   // Nothing found is said in words.
   await page.goto("/?q=zzzzzz");
