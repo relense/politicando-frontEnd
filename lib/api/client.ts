@@ -336,11 +336,20 @@ export async function getTimeline(kinds: ("election" | "president")[] = ["electi
   return mapTimeline(await request(`/timeline?kinds=${kinds.join(",")}`, timelineSchema, hourly));
 }
 
-export type EditorialQuery = { featured?: boolean; kind?: EditorialKind; tag?: string; page?: number; limit?: number };
+export type EditorialQuery = {
+  featured?: boolean;
+  kind?: EditorialKind;
+  tag?: string;
+  page?: number;
+  limit?: number;
+  /** The most read over the last `days`. */
+  sort?: "popular";
+  days?: number;
+};
 
 /** Our own posts, newest first. */
-export async function getEditorial({ featured, kind, tag, page, limit }: EditorialQuery = {}): Promise<EditorialPage> {
-  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit });
+export async function getEditorial({ featured, kind, tag, page, limit, sort, days }: EditorialQuery = {}): Promise<EditorialPage> {
+  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit, sort, days });
   const result = await request(`/editorial${query}`, editorialPageSchema, cached);
   return { items: result.items.map(mapEditorialPost), total: result.total };
 }

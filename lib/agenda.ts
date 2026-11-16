@@ -9,6 +9,7 @@ export const AGENDA_KINDS = [
   "local",
   "election",
   "european",
+  "media",
   "other",
 ] as const;
 export type AgendaKind = (typeof AGENDA_KINDS)[number];
@@ -22,6 +23,7 @@ export const KIND_LABELS: Record<AgendaKind, { label: string; plural: string; co
   local: { label: "Autarquia", plural: "Autarquias", color: "var(--end-censure)" },
   election: { label: "Eleições", plural: "Eleições", color: "var(--stage-stopped)" },
   european: { label: "União Europeia", plural: "União Europeia", color: "var(--link)" },
+  media: { label: "TV e rádio", plural: "TV e rádio", color: "var(--end-programme)" },
   other: { label: "Outro", plural: "Outros", color: "var(--muted)" },
 };
 
@@ -103,7 +105,7 @@ const icsText = (text: string) =>
 
 /** One event as an iCalendar file, for "Adicionar ao calendário". */
 export function toIcs(item: AgendaItem, pageUrl: string, now = new Date()): string {
-  const where = item.place ? [item.place.name, item.place.address, item.place.municipality].filter(Boolean).join(", ") : null;
+  const where = item.place ? placeLabel(item.place) : null;
   const notes = [item.summary, item.attend.how, item.online?.url ? `Em direto: ${item.online.url}` : null, pageUrl]
     .filter(Boolean)
     .join("\n\n");
@@ -139,4 +141,16 @@ export function mapUrl(place: AgendaPlace): string {
   }
   const query = [place.name, place.address, place.municipality].filter(Boolean).join(", ");
   return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`;
+}
+
+/** "Assembleia da República, Palácio de São Bento, Lisboa": each part once, leaving out any already said by an earlier one. */
+export function placeLabel(place: AgendaPlace): string {
+  const parts: string[] = [];
+  for (const part of [place.name, place.address, place.municipality]) {
+    for (const piece of (part ?? "").split(/,\s*/)) {
+      const text = piece.trim();
+      if (text && !parts.some((seen) => seen.toLowerCase().includes(text.toLowerCase()))) parts.push(text);
+    }
+  }
+  return parts.join(", ");
 }

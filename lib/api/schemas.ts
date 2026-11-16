@@ -438,6 +438,8 @@ export const editorialPostSchema = z.object({
   featured: z.boolean().nullish(),
   publishedAt: z.string(),
   readingMinutes: z.number().int().positive().nullish(),
+  /** Reads over the asked period, only with `sort=popular`. */
+  views: z.number().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

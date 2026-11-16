@@ -1,27 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NewsletterForm } from "@/components/NewsletterForm";
 import { connection } from "next/server";
 import { ArticleImage } from "@/components/ArticleImage";
-import { EditorialCard } from "@/components/EditorialCard";
-import { ApiError, getEditorial } from "@/lib/api/client";
+import { NewsletterForm } from "@/components/NewsletterForm";
+import { PartyLogo } from "@/components/PartyLogo";
+import { ApiError, getEditorial, getParties } from "@/lib/api/client";
 import { EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
-import { formatLongDate } from "@/lib/format";
-import { localPosts, withLocalPosts } from "@/lib/localPosts";
-import { loadHighlights } from "@/components/Highlights";
-import type { EditorialKind, EditorialPage, EditorialPost } from "@/lib/types";
+import { fold, formatDayHeading, formatTime, lisbonDay } from "@/lib/format";
+import { localPosts } from "@/lib/localPosts";
+import type { EditorialKind, EditorialPost, Party } from "@/lib/types";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
+/** The blog is small: it is read whole (up to this many pages of 50), then searched and counted here. */
+const MAX_PAGES = 4;
+const POPULAR_DAYS = 7;
 
-type Props = { searchParams: Promise<{ tipo?: string | string[]; pagina?: string | string[] }> };
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 const kindOf = (value: unknown) => EDITORIAL_KINDS.find((kind) => kind === value) ?? null;
 const pageOf = (value: unknown) => (typeof value === "string" && /^[1-9]\d{0,3}$/.test(value) ? Number(value) : 1);
 
-function pathOf(kind: EditorialKind | null, page = 1) {
+type View = { kind: EditorialKind | null; tag: string | null; q: string; popular: boolean; page: number };
+
+function pathOf(view: View, change: Partial<View> = {}) {
+  const next = { ...view, page: 1, ...change };
   const query = new URLSearchParams();
-  if (kind) query.set("tipo", kind);
-  if (page > 1) query.set("pagina", String(page));
+  if (next.q) query.set("q", next.q);
+  if (next.kind) query.set("tipo", next.kind);
+  if (next.tag) query.set("tema", next.tag);
+  if (next.popular) query.set("ordem", "lidos");
+  if (next.page > 1) query.set("pagina", String(next.page));
   return query.size > 0 ? `/editorial?${query}` : "/editorial";
 }
 
@@ -46,275 +55,491 @@ const KINDS: Record<EditorialKind, { color: string; icon: string; soon: string }
   video: { color: "var(--stage-approved)", icon: "▶", soon: "Explicadores curtos: como funciona uma votação, um veto ou uma eleição." },
 };
 
-/** Tags that name a section of the site link to it. */
-const SECTIONS: Record<string, string> = {
-  parlamento: "/parlamento",
-  governo: "/governo",
-  presidente: "/presidente",
-  partidos: "/partidos",
-  iniciativas: "/iniciativas",
-  eleições: "/eleicoes",
-  eleicoes: "/eleicoes",
-  autarquias: "/sitios",
-  contratos: "/contratos",
-  história: "/historia",
-};
-
 const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The time of this request, for "Hoje" and "Ontem". */
+const requestTime = () => Date.now();
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { tipo, pagina } = await searchParams;
-  const kind = kindOf(tipo);
+  const params = await searchParams;
+  const kind = kindOf(first(params.tipo));
+  const filtered = Boolean(first(params.q) || first(params.tema) || first(params.ordem));
   return {
     title: kind ? `${KIND_PLURALS[kind]} · Blog` : "Blog",
     description: "Artigos, opinião, entrevistas, podcasts e vídeos da redação do Politicando e de autores convidados.",
-    alternates: { canonical: pathOf(kind, pageOf(pagina)) },
+    alternates: { canonical: kind ? `/editorial?tipo=${kind}` : "/editorial" },
+    ...(filtered ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
-/** Empty while the API doesn't serve posts yet, so the page can say so calmly. */
-async function loadPage(kind: EditorialKind | null, page: number, limit = PAGE_SIZE): Promise<EditorialPage> {
+/** Every published post, ours included, newest first; empty while the API serves none. */
+async function loadAll(): Promise<EditorialPost[]> {
+  const posts: EditorialPost[] = [];
   try {
-    return await getEditorial({ kind: kind ?? undefined, page, limit });
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const result = await getEditorial({ page, limit: 50 });
+      posts.push(...result.items);
+      if (posts.length >= result.total || result.items.length === 0) break;
+    }
   } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return { items: [], total: 0 };
-    throw error;
+    if (!(error instanceof ApiError && (error.status === 404 || error.status === 400))) throw error;
   }
+  const own = localPosts().filter((post) => !posts.some((item) => item.slug === post.slug));
+  return [...posts, ...own].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
-/** How many posts of each kind, ours included, for the filter. */
-async function loadCounts(): Promise<Record<EditorialKind, number>> {
-  const totals = await Promise.all(
-    EDITORIAL_KINDS.map(async (kind) => (await loadPage(kind, 1, 1).catch(() => ({ total: 0 }))).total + localPosts({ kind }).length),
-  );
-  return Object.fromEntries(EDITORIAL_KINDS.map((kind, index) => [kind, totals[index]!])) as Record<EditorialKind, number>;
+/** The most read in the last days, when the API counts reads; null until then. */
+async function loadPopular(): Promise<EditorialPost[] | null> {
+  try {
+    const { items } = await getEditorial({ sort: "popular", days: POPULAR_DAYS, limit: 50 });
+    return items.length > 0 && items.every((post) => typeof post.views === "number") ? items : null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function EditorialIndexPage({ searchParams }: Props) {
   await connection();
-  const { tipo, pagina } = await searchParams;
-  const kind = kindOf(tipo);
-  const page = pageOf(pagina);
-  const [fromApi, counts] = await Promise.all([loadPage(kind, page), loadCounts()]);
-  const { items, total } = withLocalPosts(fromApi, { kind, number: page });
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const all = EDITORIAL_KINDS.reduce((sum, item) => sum + counts[item], 0);
-  // The large box on the first page: the featured post the front page shows too, or with a kind chosen the newest featured
-  // of that kind; without any, the newest. The rest follow as cards.
-  const highlight = page === 1 && !kind ? ((await loadHighlights())[0] ?? null) : null;
-  const lead = page === 1 ? (highlight ?? items.find((post) => post.featured) ?? items[0] ?? null) : null;
-  const rest = items.filter((post) => post.slug !== lead?.slug);
-  const soon = EDITORIAL_KINDS.filter((item) => counts[item] === 0);
-  const pill = (active: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs font-bold ${
+  const params = await searchParams;
+  const [all, popular, parties] = await Promise.all([loadAll(), loadPopular(), getParties().catch((): Party[] => [])]);
+  const tags = tagCounts(all, parties);
+  const view: View = {
+    kind: kindOf(first(params.tipo)),
+    tag: tags.find(([tag]) => tag === first(params.tema))?.[0] ?? null,
+    q: (first(params.q) ?? "").trim().slice(0, 100),
+    popular: Boolean(popular) && first(params.ordem) === "lidos",
+    page: pageOf(first(params.pagina)),
+  };
+  const words = fold(view.q).split(/\s+/).filter(Boolean);
+  const matches = (post: EditorialPost, kind = view.kind) =>
+    (!kind || post.kind === kind) &&
+    (!view.tag || post.tags.includes(view.tag)) &&
+    words.every((word) => fold(`${post.title} ${post.subtitle ?? ""} ${post.tags.join(" ")} ${post.authorName ?? ""}`).includes(word));
+  const counts = Object.fromEntries(EDITORIAL_KINDS.map((kind) => [kind, all.filter((post) => matches(post, kind)).length])) as Record<
+    EditorialKind,
+    number
+  >;
+  const views = new Map((popular ?? []).map((post) => [post.slug, post.views ?? 0]));
+  const shown = all.filter((post) => matches(post));
+  if (view.popular) shown.sort((a, b) => (views.get(b.slug) ?? 0) - (views.get(a.slug) ?? 0));
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const onPage = shown.slice((view.page - 1) * PAGE_SIZE, view.page * PAGE_SIZE);
+  const filtered = Boolean(view.kind || view.tag || view.q);
+  const soon = EDITORIAL_KINDS.filter((kind) => !all.some((post) => post.kind === kind));
+  const partyOf = (tag: string) => parties.find((party) => party.slug === tag || party.acronym.toLowerCase() === tag) ?? null;
+  const now = requestTime();
+  const chip = (active: boolean) =>
+    `inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs font-bold ${
       active ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"
     }`;
-  const count = (value: number, active: boolean) => (
-    <span className={`rounded-full px-1.5 font-normal ${active ? "bg-paper/20" : "bg-surface"}`}>{value}</span>
-  );
 
   return (
     <div data-wide>
       <header className="mb-6">
-        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Da redação</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Da redação · artigos, opinião e podcasts</p>
+        <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
           <span className={MARKER}>Blog</span>
         </h1>
-        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted">
           Artigos, opinião, entrevistas, podcasts e vídeos, escritos pela redação e por autores convidados. A opinião vincula apenas quem a
           assina.
         </p>
       </header>
 
-      <nav aria-label="Tipo de publicação" className="mb-8">
-        <ul className="flex flex-wrap gap-2">
-          <li>
-            <Link href={pathOf(null)} aria-current={kind ? undefined : "page"} className={pill(!kind)}>
-              Tudo {count(all, !kind)}
-            </Link>
-          </li>
-          {EDITORIAL_KINDS.map((item) => (
-            <li key={item}>
-              <Link href={pathOf(item)} aria-current={kind === item ? "page" : undefined} className={pill(kind === item)}>
-                <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: KINDS[item].color }} />
-                {KIND_PLURALS[item]} {count(counts[item], kind === item)}
+      <nav aria-label="Filtrar o blog" className="mb-6 border-b border-line pb-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <form role="search" action="/editorial" className="relative min-w-0 basis-full sm:flex-[1_1_18rem]">
+            {view.kind && <input type="hidden" name="tipo" value={view.kind} />}
+            {view.tag && <input type="hidden" name="tema" value={view.tag} />}
+            {view.popular && <input type="hidden" name="ordem" value="lidos" />}
+            <label>
+              <span className="sr-only">Procurar no blog</span>
+              <input
+                type="search"
+                name="q"
+                defaultValue={view.q}
+                maxLength={100}
+                placeholder="Procurar no blog, ex.: «Orçamento»"
+                className="h-10 w-full rounded-full border border-line bg-paper pl-10 pr-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
+              />
+            </label>
+            <button
+              type="submit"
+              aria-label="Procurar"
+              className="absolute left-1 top-1 flex size-8 items-center justify-center rounded-full text-muted hover:text-ink"
+            >
+              <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4">
+                <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </form>
+          {tags.length > 0 && (
+            <details className="group relative">
+              <summary
+                className={`flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border px-3 font-mono text-xs font-bold sm:px-4 [&::-webkit-details-marker]:hidden ${
+                  view.tag ? "border-ink" : "border-line hover:bg-surface"
+                }`}
+              >
+                {view.tag ? capital(view.tag) : "Temas"}
+                <svg aria-hidden="true" viewBox="0 0 20 20" className="size-3.5 fill-none stroke-current stroke-2 group-open:rotate-180">
+                  <path d="M5 8l5 5 5-5" />
+                </svg>
+              </summary>
+              <ul
+                aria-label="Temas"
+                className="absolute left-0 z-30 mt-2 max-h-80 w-64 overflow-y-auto rounded-2xl border border-line bg-paper p-2 shadow-xl sm:left-auto sm:right-0"
+              >
+                {view.tag && (
+                  <li>
+                    <Link
+                      href={pathOf(view, { tag: null })}
+                      className="block rounded-lg px-3 py-2 font-mono text-xs underline hover:bg-surface"
+                    >
+                      Todos os temas
+                    </Link>
+                  </li>
+                )}
+                {tags.map(([tag, count]) => (
+                  <li key={tag}>
+                    <Link
+                      href={pathOf(view, { tag })}
+                      aria-current={view.tag === tag ? "true" : undefined}
+                      className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.tag === tag ? "font-bold" : ""}`}
+                    >
+                      {capital(tag)}
+                      <span className="font-mono text-[11px] text-muted">{count}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {popular && (
+            <div className="ml-auto flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold sm:ml-0">
+              <Link
+                href={pathOf(view, { popular: false })}
+                aria-current={view.popular ? undefined : "true"}
+                className={`flex items-center px-4 ${view.popular ? "hover:bg-surface" : "bg-ink text-paper"}`}
+              >
+                Recentes
+              </Link>
+              <Link
+                href={pathOf(view, { popular: true })}
+                aria-current={view.popular ? "true" : undefined}
+                className={`flex items-center px-4 ${view.popular ? "bg-ink text-paper" : "hover:bg-surface"}`}
+              >
+                Mais lidos
+              </Link>
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="shrink-0 font-mono text-[11px] text-muted">Formato</span>
+          <ul aria-label="Formato" className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5">
+            <li>
+              <Link href={pathOf(view, { kind: null })} aria-current={view.kind ? undefined : "true"} className={chip(!view.kind)}>
+                Tudo <span className="font-normal opacity-70">{EDITORIAL_KINDS.reduce((sum, kind) => sum + counts[kind], 0)}</span>
               </Link>
             </li>
-          ))}
-        </ul>
+            {EDITORIAL_KINDS.map((kind) => (
+              <li key={kind}>
+                <Link
+                  href={pathOf(view, { kind })}
+                  aria-current={view.kind === kind ? "true" : undefined}
+                  className={chip(view.kind === kind)}
+                >
+                  <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: KINDS[kind].color }} />
+                  {KIND_PLURALS[kind]} <span className="font-normal opacity-70">{counts[kind]}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </nav>
 
-      {items.length === 0 && (kind || page > 1) && (
-        <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-          {kind && counts[kind] === 0 ? <>Em breve. {KINDS[kind].soon}</> : "Não há publicações aqui."}
-        </p>
-      )}
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0">
+          <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
+            {filtered ? (
+              <>
+                <b className="text-ink">{shown.length === 1 ? "1 publicação" : `${shown.length} publicações`}</b>
+                {view.q && ` com «${view.q}»`}
+                {view.kind && ` · ${KIND_PLURALS[view.kind]}`}
+                {view.tag && ` · ${capital(view.tag)}`}
+                {" · "}
+                <Link href="/editorial" className="underline hover:text-ink">
+                  Ver tudo
+                </Link>
+              </>
+            ) : view.popular ? (
+              `Os mais lidos dos últimos ${POPULAR_DAYS} dias`
+            ) : (
+              "Tudo o que a redação publicou, mais recente primeiro"
+            )}
+          </p>
 
-      {lead && <Lead post={lead} />}
-
-      {rest.length > 0 && (
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rest.map((post) => (
-            <li key={post!.id}>
-              <EditorialCard post={post!} color={KINDS[post!.kind].color} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {pages > 1 && (
-        <nav aria-label="Páginas" className="mt-8 flex items-center justify-between font-mono text-sm">
-          {page > 1 ? (
-            <Link href={pathOf(kind, page - 1)} rel="prev" className="text-link underline">
-              ← Mais recentes
-            </Link>
+          {onPage.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+              {view.kind && soon.includes(view.kind) ? <>Em breve. {KINDS[view.kind].soon}</> : "Não há publicações aqui."}
+            </p>
+          ) : view.popular ? (
+            <ol>
+              {onPage.map((post) => (
+                <li key={post.slug}>
+                  <BlogRow post={post} partyOf={partyOf} />
+                </li>
+              ))}
+            </ol>
           ) : (
-            <span />
-          )}
-          <span className="text-muted">
-            Página {page} de {pages}
-          </span>
-          {page < pages ? (
-            <Link href={pathOf(kind, page + 1)} rel="next" className="text-link underline">
-              Mais antigas →
-            </Link>
-          ) : (
-            <span />
-          )}
-        </nav>
-      )}
-
-      {/* Under "Tudo": the formats still to come, and how we write. */}
-      {!kind && page === 1 && (
-        <div className="mt-10 grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="min-w-0">
-            {soon.length > 0 && (
-              <section aria-labelledby="a-caminho">
-                <h2 id="a-caminho" className="border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
-                  A caminho
+            byDay(onPage).map(({ day, posts }) => (
+              <section key={day} aria-labelledby={`dia-${day}`} className="mb-2">
+                <h2 id={`dia-${day}`} className="border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+                  {formatDayHeading(posts[0]!.publishedAt, now)}
                 </h2>
-                <p className="mb-4 mt-2 text-sm text-muted">Os formatos que vão chegar ao blog.</p>
-                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {soon.map((item) => (
-                    <li key={item} className="rounded-2xl border border-line p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="flex size-8 items-center justify-center rounded-lg font-bold"
-                          style={{ color: KINDS[item].color, backgroundColor: `color-mix(in srgb, ${KINDS[item].color} 16%, transparent)` }}
-                        >
-                          {KINDS[item].icon}
-                        </span>
-                        <span
-                          className="rounded-full border border-dashed px-2 py-0.5 font-mono text-[11px]"
-                          style={{ color: KINDS[item].color, borderColor: KINDS[item].color }}
-                        >
-                          Em breve
-                        </span>
-                      </div>
-                      <h3 className="mt-3 text-lg font-bold">{KIND_PLURALS[item]}</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-muted">{KINDS[item].soon}</p>
+                <ul>
+                  {posts.map((post) => (
+                    <li key={post.slug}>
+                      <BlogRow post={post} partyOf={partyOf} />
                     </li>
                   ))}
                 </ul>
               </section>
-            )}
-          </div>
-          <aside aria-labelledby="como-escrevemos" className="self-start rounded-2xl border border-line p-4">
+            ))
+          )}
+
+          {pages > 1 && (
+            <nav aria-label="Páginas" className="mt-6 flex items-center justify-between font-mono text-sm">
+              {view.page > 1 ? (
+                <Link href={pathOf(view, { page: view.page - 1 })} rel="prev" className="text-link underline">
+                  ← Mais recentes
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span className="text-muted">
+                Página {view.page} de {pages}
+              </span>
+              {view.page < pages ? (
+                <Link href={pathOf(view, { page: view.page + 1 })} rel="next" className="text-link underline">
+                  Mais antigas →
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
+          )}
+
+          {!filtered && view.page === 1 && soon.length > 0 && (
+            <section aria-labelledby="em-breve" className="mt-10">
+              <h2 id="em-breve" className="border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+                Em breve no blog
+              </h2>
+              <ul className="divide-y divide-line border-b border-line">
+                {soon.map((kind) => (
+                  <li key={kind} className="flex items-center gap-4 py-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-lg font-bold"
+                      style={{ color: KINDS[kind].color, backgroundColor: `color-mix(in srgb, ${KINDS[kind].color} 16%, transparent)` }}
+                    >
+                      {KINDS[kind].icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <b className="block text-lg leading-tight">{KIND_PLURALS[kind]}</b>
+                      <span className="block text-sm text-muted">{KINDS[kind].soon}</span>
+                    </span>
+                    <span
+                      className="shrink-0 rounded-full border border-dashed px-2 py-0.5 font-mono text-[11px]"
+                      style={{ color: KINDS[kind].color, borderColor: KINDS[kind].color }}
+                    >
+                      Em breve
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <aside aria-label="Mais do blog" className="flex flex-col gap-4 xl:sticky xl:top-20">
+          <section
+            aria-labelledby="newsletter"
+            className="rounded-2xl border border-[color-mix(in_srgb,var(--marker)_70%,var(--line))] bg-[color-mix(in_srgb,var(--marker)_18%,transparent)] p-4"
+          >
+            <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--stage-debate)]">Newsletter</p>
+            <h2 id="newsletter" className="mt-1 text-2xl font-bold leading-tight">
+              Recebe os novos artigos no email
+            </h2>
+            <p className="mb-3 mt-2 text-sm leading-relaxed">Um email quando sai algo novo. Sem spam, cancelas quando quiseres.</p>
+            <NewsletterForm compact />
+          </section>
+
+          {popular && (
+            <section aria-labelledby="mais-lidos" className="rounded-2xl border border-line p-4">
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h2 id="mais-lidos" className="font-mono text-xs font-bold uppercase tracking-widest">
+                  Mais lidos
+                </h2>
+                <span className="font-mono text-[11px] text-muted">últimos {POPULAR_DAYS} dias</span>
+              </div>
+              <ol className="divide-y divide-line">
+                {popular.slice(0, 5).map((post, index) => (
+                  <li key={post.slug} className="flex gap-3 py-2.5">
+                    <span className="w-5 shrink-0 text-xl font-bold text-[var(--stage-debate)]">{index + 1}</span>
+                    <span className="min-w-0">
+                      <Link href={editorialPath(post.slug)} className="block font-bold leading-snug hover:underline">
+                        {post.title}
+                      </Link>
+                      <span className="font-mono text-[11px] text-muted">
+                        {KIND_LABELS[post.kind]}
+                        {readingLabel(post) && ` · ${readingLabel(post)!.replace(" de leitura", "")}`}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          <section aria-labelledby="como-escrevemos" className="rounded-2xl border border-line p-4">
             <h2 id="como-escrevemos" className="font-mono text-xs font-bold uppercase tracking-widest">
               Como escrevemos
             </h2>
-            <ul className="mt-3 space-y-3 text-sm leading-relaxed">
-              {[
-                { color: KINDS.article.color, title: "Artigos e guias", text: "explicam; não tomam partido." },
-                { color: KINDS.opinion.color, title: "Opinião", text: "vem sempre assinada e marcada como tal." },
-                { color: KINDS.interview.color, title: "Fontes", text: "ligadas em cada artigo." },
-              ].map((item) => (
-                <li key={item.title} className="flex gap-2">
-                  <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span>
-                    <strong>{item.title}</strong> {item.text}
-                  </span>
-                </li>
-              ))}
+            <ul className="mt-2 divide-y divide-line text-sm leading-relaxed">
+              <li className="flex gap-2 py-2.5">
+                <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full" style={{ backgroundColor: KINDS.article.color }} />
+                <span>
+                  <b>Artigos e guias</b> explicam; não tomam partido.
+                </span>
+              </li>
+              <li className="flex gap-2 py-2.5">
+                <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full" style={{ backgroundColor: KINDS.opinion.color }} />
+                <span>
+                  <b>Opinião</b> vem sempre assinada e marcada como tal.
+                </span>
+              </li>
+              <li className="flex gap-2 py-2.5">
+                <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full" style={{ backgroundColor: KINDS.interview.color }} />
+                <span>
+                  <b>Fontes</b> ligadas em cada artigo, e as{" "}
+                  <Link href="/feedback/correcoes" className="underline hover:text-link">
+                    correções ficam registadas
+                  </Link>
+                  .
+                </span>
+              </li>
             </ul>
-            <div className="mt-4 border-t border-line pt-4">
-              <h2 id="newsletter" className="font-mono text-xs font-bold uppercase tracking-widest">
-                Newsletter
-              </h2>
-              <p className="mb-3 mt-1 text-sm leading-relaxed text-muted">O que mudou na política, no teu email. Sem publicidade.</p>
-              <NewsletterForm compact />
-            </div>
-          </aside>
-        </div>
-      )}
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
 
-/** The newest post, large: the cover, or a drawing of the chamber when there is none, beside the title. */
-function Lead({ post }: { post: EditorialPost }) {
+/** Topics in use, most used first; party names are shown as parties on the posts, not offered as topics. */
+function tagCounts(posts: EditorialPost[], parties: Party[]): [string, number][] {
+  const isParty = (tag: string) => parties.some((party) => party.slug === tag || party.acronym.toLowerCase() === tag);
+  const counts = new Map<string, number>();
+  for (const post of posts) for (const tag of post.tags) if (!isParty(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt"));
+}
+
+function byDay(posts: EditorialPost[]): { day: string; posts: EditorialPost[] }[] {
+  const days = new Map<string, EditorialPost[]>();
+  for (const post of posts) {
+    const day = lisbonDay(post.publishedAt) ?? post.publishedAt.slice(0, 10);
+    days.set(day, [...(days.get(day) ?? []), post]);
+  }
+  return [...days].map(([day, list]) => ({ day, posts: list }));
+}
+
+/** One post in the list, like a news card: kind, byline, title, subtitle, parties or topics, and the cover beside. */
+function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string) => Party | null }) {
   const href = editorialPath(post.slug);
   const { color } = KINDS[post.kind];
-  const related = post.tags.filter((tag) => SECTIONS[tag.toLowerCase()]);
-  const kindTag = post.tags.find((tag) => !SECTIONS[tag.toLowerCase()]);
+  const partyTags = post.tags.flatMap((tag) => {
+    const party = partyOf(tag);
+    return party ? [party] : [];
+  });
+  const topics = post.tags.filter((tag) => !partyOf(tag));
+  const subtype = topics[0];
   return (
-    <article className="grid overflow-hidden rounded-2xl border border-line md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_11rem]">
+      <div className="min-w-0">
+        <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
+          <span
+            className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 font-bold"
+            style={{ color, backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)` }}
+          >
+            <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+            {KIND_LABELS[post.kind]}
+            {subtype && post.kind === "article" && <> · {capital(subtype)}</>}
+          </span>
+          {post.featured && <span className="rounded bg-[var(--marker)] px-1.5 py-0.5 font-bold text-ink">Em destaque</span>}
+          {post.authorName && <b className="text-ink">{post.authorName}</b>}
+          <span aria-hidden="true">·</span>
+          <time dateTime={post.publishedAt}>{formatTime(post.publishedAt)}</time>
+          {readingLabel(post) && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{readingLabel(post)}</span>
+            </>
+          )}
+        </p>
+        <h3 className="text-xl font-bold leading-snug sm:text-2xl">
+          <Link href={href} className="hover:underline">
+            {post.title}
+          </Link>
+        </h3>
+        {post.subtitle && <p className="mt-2 leading-relaxed text-muted">{post.subtitle}</p>}
+        {(partyTags.length > 0 || topics.length > 0) && (
+          <ul aria-label="Temas" className="mt-3 flex flex-wrap gap-1.5">
+            {partyTags.map((party) => (
+              <li key={party.slug}>
+                <Link
+                  href={`/partido/${party.slug}`}
+                  className="flex items-center gap-1.5 rounded-full border border-line py-0.5 pl-0.5 pr-2.5 font-mono text-xs font-bold hover:bg-surface"
+                >
+                  <span className="flex size-6 items-center justify-center overflow-hidden rounded-full bg-white">
+                    <PartyLogo slug={party.slug} acronym={party.acronym} size={18} />
+                  </span>
+                  {party.acronym}
+                </Link>
+              </li>
+            ))}
+            {partyTags.length === 0 &&
+              topics.slice(0, 3).map((tag) => (
+                <li key={tag}>
+                  <Link
+                    href={`/editorial?tema=${encodeURIComponent(tag)}`}
+                    className="block rounded-full border border-line px-3 py-1 font-mono text-xs hover:bg-surface"
+                  >
+                    {capital(tag)}
+                  </Link>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
       {post.coverImageUrl ? (
-        <ArticleImage src={post.coverImageUrl} href={href} className="block min-h-56 bg-surface" imageClassName="size-full object-cover" />
+        <ArticleImage
+          src={post.coverImageUrl}
+          href={href}
+          className="order-first block aspect-[16/10] overflow-hidden rounded-xl bg-surface sm:order-none"
+          imageClassName="size-full object-cover"
+        />
       ) : (
         <Link
           href={href}
           tabIndex={-1}
           aria-hidden="true"
-          className="relative flex min-h-56 items-center justify-center bg-[repeating-linear-gradient(135deg,var(--surface)_0_1px,transparent_1px_14px)]"
+          className="hidden aspect-[16/10] items-center justify-center rounded-xl border border-line bg-[repeating-linear-gradient(135deg,var(--surface)_0_1px,transparent_1px_12px)] sm:flex"
         >
           <Chamber color={color} />
         </Link>
       )}
-      <div className="p-5 sm:p-8">
-        <p className="flex flex-wrap items-center gap-2 font-mono text-xs">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-bold"
-            style={{ color, backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)` }}
-          >
-            <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-            {KIND_LABELS[post.kind]}
-            {kindTag && <> · {kindTag[0]!.toUpperCase() + kindTag.slice(1)}</>}
-          </span>
-          <span className="text-muted">{post.featured ? "Em destaque" : "Mais recente"}</span>
-        </p>
-        <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">
-          <Link href={href} className="hover:underline">
-            {post.title}
-          </Link>
-        </h2>
-        {post.subtitle && <p className="mt-3 leading-relaxed text-muted">{post.subtitle}</p>}
-        <p className="mt-3 font-mono text-xs text-muted">
-          {post.authorName && <>{post.authorName} · </>}
-          <time dateTime={post.publishedAt}>{formatLongDate(post.publishedAt)}</time>
-          {readingLabel(post) && <> · {readingLabel(post)}</>}
-        </p>
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <Link href={href} className="rounded-lg bg-[var(--marker)] px-4 py-2 font-mono text-xs font-bold text-ink hover:opacity-90">
-            {post.kind === "podcast" ? "Ouvir o episódio" : post.kind === "video" ? "Ver o vídeo" : "Ler o artigo"} →
-          </Link>
-          {related.length > 0 && (
-            <>
-              <span className="ml-2 font-mono text-xs text-muted">Relacionado:</span>
-              {related.map((tag) => (
-                <Link
-                  key={tag}
-                  href={SECTIONS[tag.toLowerCase()]!}
-                  className="rounded-full border border-line px-2.5 py-1 font-mono text-xs hover:bg-surface"
-                >
-                  {tag[0]!.toUpperCase() + tag.slice(1)}
-                </Link>
-              ))}
-            </>
-          )}
-        </div>
-      </div>
     </article>
   );
 }
@@ -327,7 +552,7 @@ function Chamber({ color }: { color: string }) {
     { radius: 34, count: 7 },
   ];
   return (
-    <svg viewBox="-90 -90 180 100" className="w-48" aria-hidden="true">
+    <svg viewBox="-90 -90 180 100" className="w-24" aria-hidden="true">
       {rows.flatMap(({ radius, count }) =>
         Array.from({ length: count }, (_, index) => {
           const angle = Math.PI - (index / (count - 1)) * Math.PI;

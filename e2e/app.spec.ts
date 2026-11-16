@@ -154,9 +154,23 @@ test("news from several parties and several papers, saved as the reader's own fe
   await page.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("número");
   await page.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt&q=n%C3%BAmero$/);
-  await filters.getByRole("button", { name: "Mais comentadas" }).click();
+  // On a phone the order is a small menu beside Partidos and Jornais.
+  const openOrder = async () => {
+    if (await filters.getByRole("button", { name: "Recentes", exact: true }).isVisible()) {
+      if (await filters.getByRole("dialog", { name: "Ordenar notícias" }).isHidden()) {
+        if ((await filters.getByRole("button", { name: "Recentes", exact: true }).getAttribute("aria-expanded")) !== null) {
+          await filters.getByRole("button", { name: "Recentes", exact: true }).click();
+        }
+      }
+    }
+  };
+  await openOrder();
+  await filters.getByRole("button", { name: /^Mais comentadas/ }).click();
   await expect(page).toHaveURL(/&ordem=comentadas$/);
-  await expect(filters.getByRole("button", { name: "Mais comentadas" })).toHaveAttribute("aria-pressed", "true");
+  if (await filters.getByRole("button", { name: "Comentadas", exact: true }).isVisible()) {
+    await filters.getByRole("button", { name: "Comentadas", exact: true }).click();
+  }
+  await expect(filters.getByRole("button", { name: /^Mais comentadas/ })).toHaveAttribute("aria-pressed", "true");
 
   // Saved, the front page opens with it; "Limpar tudo" shows everything without forgetting it.
   await page.goto("/?partido=be,il&fonte=publico.pt,rtp.pt");
@@ -207,7 +221,12 @@ test("news have no party column: the party filter sits above the feed, the blog 
     await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
   }
   const filter = page.getByRole("navigation", { name: "Filtrar notícias" });
-  await expect(filter.getByRole("button", { name: "Recentes" })).toHaveAttribute("aria-pressed", "true");
+  if (isMobile) {
+    // On a phone the order is a small menu showing the current one.
+    await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-expanded", "false");
+  } else {
+    await expect(filter.getByRole("button", { name: "Recentes" })).toHaveAttribute("aria-pressed", "true");
+  }
   // Party pages have no filter row: they are reached from the parties page.
   await page.goto("/partido/ps");
   await expect(page.getByRole("navigation", { name: "Filtrar notícias" })).toHaveCount(0);
@@ -758,8 +777,21 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await contents.getByRole("link", { name: /Os 22 círculos/ }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Os 22 círculos" })).toBeInViewport();
 
+  // The blog reads like the news: a toolbar, formats with counts, posts by day.
+  await page.goto("/editorial");
+  const formats = page.getByRole("list", { name: "Formato" });
+  await expect(formats.getByRole("link", { name: /^Tudo/ })).toHaveAttribute("aria-current", "true");
+  await page.getByRole("searchbox", { name: "Procurar no blog" }).fill("orçamento");
+  await page.getByRole("searchbox", { name: "Procurar no blog" }).press("Enter");
+  await expect(page).toHaveURL(/q=or%C3%A7amento/);
+  await expect(page.getByText(/publicaç(ão|ões)/).first()).toBeVisible();
+  await expect(page.getByRole("article").first()).toContainText(/Orçamento/i);
   await page.goto("/editorial?tipo=podcast");
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
+  await expect(page.getByRole("list", { name: "Formato" }).getByRole("link", { name: /^Podcasts/ })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  await expect(page.getByRole("article")).toHaveCount(1);
   await page.getByRole("link", { name: "Orçamento do Estado: o que muda?" }).click();
   // Nothing from Spotify until the reader asks; "always" is remembered and can be undone on the cookies page.
   const player = page.locator('iframe[src^="https://open.spotify.com/embed/"]');

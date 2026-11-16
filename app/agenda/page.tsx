@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { AddToCalendar } from "@/components/AddToCalendar";
 import { PartyLogo } from "@/components/PartyLogo";
-import { AGENDA_KINDS, DISTRICTS, isAgendaKind, KIND_LABELS, mapUrl, type AgendaItem, type AgendaKind } from "@/lib/agenda";
+import { AGENDA_KINDS, DISTRICTS, isAgendaKind, KIND_LABELS, mapUrl, placeLabel, type AgendaItem, type AgendaKind } from "@/lib/agenda";
 import { getAgenda } from "@/lib/api/agenda";
 import { getElectionsMenu } from "@/lib/api/client";
 import { formatDayHeading, formatLongDate, formatTime, lisbonDay } from "@/lib/format";
@@ -249,17 +249,17 @@ function AgendaCard({ item }: { item: AgendaItem }) {
               Aberto ao público
             </span>
           )}
-          {item.organizer && <span className="text-muted">{item.organizer}</span>}
+          {item.organizer && !item.title.includes(item.organizer) && <span className="text-muted">{item.organizer}</span>}
         </p>
         <h3 id={`evento-${item.id}-titulo`} className={`mt-1 text-lg font-bold leading-snug ${off ? "line-through decoration-2" : ""}`}>
           {item.title}
         </h3>
-        {item.summary && <p className="mt-1 leading-relaxed">{item.summary}</p>}
+        {item.summary && <p className="mt-1 whitespace-pre-line leading-relaxed">{item.summary}</p>}
         {item.place && (
           <p className="mt-2 text-sm">
             <span aria-hidden="true">📍 </span>
             <a href={mapUrl(item.place)} target="_blank" rel="noopener noreferrer" className="underline hover:text-link">
-              {[item.place.name, item.place.address, item.place.municipality].filter(Boolean).join(", ")}
+              {placeLabel(item.place)}
               <span className="sr-only"> (mapa, abre num novo separador)</span>
             </a>
           </p>

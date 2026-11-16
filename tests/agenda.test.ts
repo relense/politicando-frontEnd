@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapUrl, toIcs, type AgendaItem } from "@/lib/agenda";
+import { mapUrl, placeLabel, toIcs, type AgendaItem } from "@/lib/agenda";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll } from "vitest";
 import { getAgenda, getNextEvent, mapAgendaItem } from "@/lib/api/agenda";
@@ -66,5 +66,23 @@ describe("agenda", () => {
     const page = await getAgenda({ kinds: ["party"] });
     expect(page?.items.map((item) => item.kind)).toEqual(["party"]);
     expect((await getNextEvent())?.id).toBe("plenario-1");
+  });
+
+  it("says each part of a place once", () => {
+    const place = {
+      name: "Assembleia da República",
+      address: "Palácio de São Bento, Lisboa",
+      municipality: "Lisboa",
+      district: "Lisboa",
+      lat: null,
+      lng: null,
+    };
+    expect(placeLabel(place)).toBe("Assembleia da República, Palácio de São Bento, Lisboa");
+    const hall = {
+      ...place,
+      name: "Salão Nobre da Câmara Municipal de Lisboa",
+      address: "Salão Nobre da Câmara Municipal de Lisboa, Lisboa",
+    };
+    expect(placeLabel(hall)).toBe("Salão Nobre da Câmara Municipal de Lisboa");
   });
 });
