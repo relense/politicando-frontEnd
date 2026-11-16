@@ -1,41 +1,43 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Fragment, useEffect, useRef } from "react";
-import { getFeedPage } from "@/lib/api/client";
+import { Fragment } from "react";
+import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/api/client";
+import { COMMENTED_HOURS } from "@/lib/feedFilter";
 import { formatDayHeading, lisbonDay } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
 import type { ArticlePage } from "@/lib/types";
 import { ArticleCard } from "./ArticleCard";
 
-type Props = { initialPage: ArticlePage; partySlug?: string };
+/** `partySlug` and `source` take one value or several (any of them). */
+type Props = {
+  initialPage: ArticlePage;
+  partySlug?: string | string[];
+  q?: string;
+  source?: string | string[];
+  /** Most commented of the last week first, instead of newest first. */
+  commented?: boolean;
+};
 
-export function Feed({ initialPage, partySlug }: Props) {
+export function Feed({ initialPage, partySlug, q = "", source = "", commented = false }: Props) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
     // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
-    queryKey: ["feed", partySlug ?? "home"],
-    queryFn: ({ pageParam }) => getFeedPage({ party: partySlug, cursor: pageParam }),
+    queryKey: ["feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), commented],
+    queryFn: ({ pageParam }) =>
+      getFeedPage({
+        party: partySlug,
+        q,
+        source,
+        cursor: pageParam,
+        limit: FEED_PAGE_SIZE,
+        ...(commented ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: { pages: [initialPage], pageParams: [undefined] },
   });
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const now = useNow();
-  const canAutoLoad = hasNextPage && !isFetchingNextPage && !isFetchNextPageError;
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !canAutoLoad) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) void fetchNextPage();
-      },
-      { rootMargin: "400px" },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [canAutoLoad, fetchNextPage]);
 
   // Cursor pages can overlap if new articles arrive while scrolling.
   const seen = new Set<number>();
@@ -45,8 +47,14 @@ export function Feed({ initialPage, partySlug }: Props) {
     return true;
   });
 
-  if (articles.length === 0) {
-    return <p className="py-12 text-center text-muted">Ainda não há notícias aqui.</p>;
+  if (articles.length === 0 && !hasNextPage) {
+    return (
+      <p className="py-12 text-center text-muted">
+        {q || source?.length
+          ? "Nenhuma notícia encontrada. Experimenta outras palavras, outros partidos ou outros jornais."
+          : "Ainda não há notícias aqui."}
+      </p>
+    );
   }
 
   return (
@@ -55,7 +63,8 @@ export function Feed({ initialPage, partySlug }: Props) {
         {articles.map((article, index) => {
           // A heading whenever the day changes, as in a printed paper's sections.
           const day = lisbonDay(article.publishedAt);
-          const newDay = day !== null && day !== lisbonDay(articles[index - 1]?.publishedAt);
+          // Ordered by comments, days are mixed: each card already shows its own.
+          const newDay = !commented && day !== null && day !== lisbonDay(articles[index - 1]?.publishedAt);
           return (
             <Fragment key={article.id}>
               {newDay && (
@@ -71,30 +80,27 @@ export function Feed({ initialPage, partySlug }: Props) {
           );
         })}
       </div>
-      <div ref={sentinelRef} aria-live="polite" className="py-8 text-center font-mono text-sm text-muted">
-        {isFetchingNextPage && (
-          <span className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="flex gap-1">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="size-1.5 animate-pulse rounded-full bg-[var(--stage-debate)]"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </span>
-            A carregar mais notícias…
-          </span>
-        )}
-        {isFetchNextPageError && (
+      {/* No endless scrolling: a page of news, then a button, so the footer can be reached. */}
+      <div aria-live="polite" className="py-8 text-center font-mono text-sm text-muted">
+        {isFetchNextPageError ? (
           <span role="alert">
             Não foi possível carregar mais notícias.{" "}
             <button type="button" onClick={() => void fetchNextPage()} className="text-link underline">
               Tentar novamente
             </button>
           </span>
+        ) : hasNextPage ? (
+          <button
+            type="button"
+            onClick={() => void fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="rounded-full border border-ink px-5 py-2.5 font-mono text-xs font-bold text-ink hover:bg-surface disabled:opacity-60"
+          >
+            {isFetchingNextPage ? "A carregar…" : articles.length === 0 ? "Procurar em notícias mais antigas" : "Carregar mais notícias"}
+          </button>
+        ) : (
+          "Não há mais notícias."
         )}
-        {!hasNextPage && "Não há mais notícias."}
       </div>
     </>
   );

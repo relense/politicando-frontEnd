@@ -60,6 +60,11 @@ test("the map: find a place, it is framed and its card opens beside the map; zoo
   await expect(map).not.toHaveAttribute("viewBox", before!);
   await page.getByRole("button", { name: /^PSD/ }).click();
   await expect(page.getByRole("button", { name: /^PSD/ })).toHaveAttribute("aria-pressed", "true");
+  // The card lists its câmaras, and stops lighting it.
+  const lit = page.getByRole("region", { name: "PSD" });
+  await expect(lit.getByText(/\d+ concelhos?/)).toBeVisible();
+  await lit.getByRole("button", { name: "Deixar de destacar" }).click();
+  await expect(page.getByRole("button", { name: /^PSD/ })).toHaveAttribute("aria-pressed", "false");
 
   // Pressing a place opens it too, and the card closes.
   await page.getByRole("button", { name: /^Sintra: Helena Seixas/ }).focus();
@@ -92,4 +97,17 @@ test("places pages have no serious accessibility issues", async ({ page }) => {
     await page.goto(path);
     await noSeriousA11yIssues(page);
   }
+});
+
+test("the map: 'Usar a minha localização' opens the concelho you are in", async ({ page, context }) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 40.57, longitude: -8.44 });
+  await page.goto("/sitios");
+  await page.getByRole("button", { name: "Usar a minha localização" }).click();
+  await expect(page.getByRole("heading", { level: 3, name: "Águeda" })).toBeVisible();
+  await expect(page).toHaveURL(/local=LOCAL-010100/);
+  // Outside Portugal: said in words, nothing opens.
+  await context.setGeolocation({ latitude: 48.85, longitude: 2.35 });
+  await page.getByRole("button", { name: "Usar a minha localização" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "não estás em Portugal" })).toBeVisible();
 });

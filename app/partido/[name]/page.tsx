@@ -11,7 +11,7 @@ import { PartyLogo } from "@/components/PartyLogo";
 import { PartyVoteSummary } from "@/components/PartyVoteSummary";
 import { PartyProfile } from "@/components/PartyProfile";
 import { PartyVotes } from "@/components/PartyVotes";
-import { getElections, getFeedPage, getInitiatives, getParliament, getParties, getPartyStandings } from "@/lib/api/client";
+import { FEED_PAGE_SIZE, getElections, getFeedPage, getInitiatives, getParliament, getParties, getPartyStandings } from "@/lib/api/client";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { partyLeaders } from "@/lib/parliament";
 import { getPartyVoteSummary } from "@/lib/api/partyVotes";
@@ -71,7 +71,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
   const { leader } = partyLeaders(deputies, party.slug);
 
   const [page, initiatives, votes] = await Promise.all([
-    tab === "noticias" ? getFeedPage({ party: party.slug }) : null,
+    tab === "noticias" ? getFeedPage({ party: party.slug, limit: FEED_PAGE_SIZE }) : null,
     seats > 0 && (tab === "noticias" || tab === "iniciativas") ? getInitiatives({ party: party.slug }).catch(() => null) : null,
     seats > 0 ? getPartyVoteSummary(party.slug) : null,
   ]);

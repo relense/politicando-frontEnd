@@ -1,3 +1,4 @@
+import { getLegislatures, legislaturePath } from "@/lib/api/legislatures";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -70,8 +71,14 @@ const LEVEL_DEPTH: Record<string, number> = { global: 0, national: 0, foreign: 0
 
 export default async function ElectionPage(props: Props) {
   await connection();
-  const [result, parties] = await Promise.all([resolve(props), getParties().catch((): Party[] => [])]);
+  const [result, parties, legislatures] = await Promise.all([
+    resolve(props),
+    getParties().catch((): Party[] => []),
+    getLegislatures().catch(() => []),
+  ]);
   if (!result) notFound();
+  // The Parliament this election chose, for legislativas.
+  const legislature = legislatures.find((item) => item.elections.includes(result.election.id)) ?? null;
 
   const { election, organ, place, breadcrumb, turnout, lists, children: inside } = result;
   const mainOrgan = election.organs[0];
@@ -235,6 +242,11 @@ export default async function ElectionPage(props: Props) {
         {PLACE_KEY.test(place.key) && ["district", "municipality", "parish"].includes(place.level) && (
           <Link href={placePath(place.key)} className="mt-3 inline-block font-mono text-sm text-link underline">
             Quem governa {place.name} →
+          </Link>
+        )}
+        {isTop && legislature && (
+          <Link href={legislaturePath(legislature.id)} className="mt-3 inline-block font-mono text-sm text-link underline">
+            A legislatura que elegeu: {legislature.name} →
           </Link>
         )}
       </header>

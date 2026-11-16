@@ -1,3 +1,4 @@
+import { partyColor } from "./parliament";
 import type { GovernmentEndReason, HistoricalGovernment, TimelineEvent } from "./types";
 
 /** The day of the revolution, where the history starts. */
@@ -131,3 +132,60 @@ export function decadeTicks(from: string, to: string): number[] {
   for (let year = first; year <= parseDay(to).year; year += 10) ticks.push(year);
   return ticks;
 }
+
+export type HistoryGroup = "ps" | "psd" | "coalition" | "presidential" | "provisional";
+
+/** Who led it: PS or PSD (with partners or not), a President's own initiative, or a provisional government. */
+export function groupsOf(government: HistoricalGovernment): HistoryGroup[] {
+  if (government.kind === "provisional") return ["provisional"];
+  if (government.parties.length === 0) return ["presidential"];
+  const groups: HistoryGroup[] = [];
+  const leader = government.parties[0]!.slug;
+  if (leader === "ps" || leader === "psd") groups.push(leader);
+  if (government.parties.length > 1) groups.push("coalition");
+  return groups;
+}
+
+/** The colour of each way a government ended. */
+export const TONE_COLOR: Record<EndTone, string> = {
+  lasted: "var(--stage-law)",
+  fell: "var(--stage-stopped)",
+  early: "var(--stage-debate)",
+  current: "var(--ink)",
+  provisional: "var(--muted)",
+  unknown: "var(--muted)",
+};
+
+/** One colour per way a government ended, for the history page's breakdown. */
+export const END_COLOR: Record<GovernmentEndReason, string> = {
+  end_of_term: "var(--stage-law)",
+  early_election: "var(--stage-debate)",
+  resignation: "var(--stage-submitted)",
+  confidence_rejected: "var(--stage-stopped)",
+  censure: "var(--end-censure)",
+  programme_rejected: "var(--end-programme)",
+  dismissed: "var(--stage-president)",
+  death: "var(--stage-withdrawn)",
+  provisional: "var(--muted)",
+  in_office: "var(--ink)",
+};
+
+/** A party's colour, stripes of each partner for a coalition, hatching for governments without parties. */
+export function fillOf(government: HistoricalGovernment): string {
+  const colors = government.parties.map((party) => partyColor(party.slug));
+  if (colors.length === 0) {
+    const color = government.kind === "provisional" ? "var(--muted)" : "var(--stage-president)";
+    return `repeating-linear-gradient(135deg, ${color} 0 2px, transparent 2px 6px)`;
+  }
+  if (colors.length === 1) return colors[0]!;
+  const stripe = 5;
+  const stops = colors.map((color, index) => `${color} ${index * stripe}px ${(index + 1) * stripe}px`).join(", ");
+  return `repeating-linear-gradient(135deg, ${stops})`;
+}
+
+export const accentOf = (government: HistoricalGovernment) =>
+  government.parties[0]
+    ? partyColor(government.parties[0].slug)
+    : government.kind === "provisional"
+      ? "var(--muted)"
+      : "var(--stage-president)";

@@ -8,6 +8,7 @@ import { becomeDeputyHandlers } from "./becomeDeputyFixtures";
 import { editorialPosts } from "./editorialFixtures";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
+import { legislatureHandlers } from "./legislatureFixtures";
 import { forumHandlers } from "./forumFixtures";
 import { presidencyHandlers } from "./presidencyFixtures";
 import { peopleHandlers } from "./peopleFixtures";
@@ -111,25 +112,61 @@ export const handlers = [
       ).map((party) => ({ ...party, leader: leaders[party.slug] ?? null })),
     ),
   ),
+  http.get(`${API}/articles/sources`, () => {
+    const counts = new Map<string, number>();
+    for (const article of articles) counts.set(article.source, (counts.get(article.source) ?? 0) + 1);
+    return HttpResponse.json({ items: [...counts].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count) });
+  }),
+  http.post(`${API}/newsletter/subscribe`, async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { email?: unknown; recaptchaToken?: unknown } | null;
+    if (!body?.recaptchaToken) return fail(400, "invalid_request");
+    if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return fail(400, "invalid_email");
+    return HttpResponse.json({ status: "pending" }, { status: 202 });
+  }),
+  // Mainland Portugal's box: anywhere inside is Águeda, the fixtures' first municipality.
+  http.get(`${API}/places/locate`, ({ request }) => {
+    const search = new URL(request.url).searchParams;
+    const lat = Number(search.get("lat"));
+    const lon = Number(search.get("lon"));
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || search.get("lat") === null) return fail(400, "invalid_request");
+    if (lat < 36.9 || lat > 42.2 || lon < -9.6 || lon > -6.1) return fail(404, "not_found");
+    return HttpResponse.json({ key: "LOCAL-010100", name: "Águeda", level: "municipality", parentKey: "LOCAL-010000", dicofre: "0101" });
+  }),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
-    const party = search.get("party");
+    const words = (search.get("q") ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().split(/\s+/).filter(Boolean);
+    // Lists, as asked of the backend: "party=ps,psd&source=publico.pt,expresso.pt" match any of each.
+    const sources = (search.get("source") ?? "").split(",").filter(Boolean);
+    const byComments = search.get("sort") === "comments";
+    const folded = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+    const partyList = (search.get("party") ?? "").split(",").filter(Boolean);
     const deputy = search.get("deputy");
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
-    if (party && !parties.some((item) => item.slug === party)) return fail(404, "not_found");
+    if (partyList.some((slug) => !parties.some((item) => item.slug === slug))) return fail(404, "not_found");
     if (cursor && !/^c\d+$/.test(cursor)) return fail(400, "invalid_cursor");
 
     if (deputy && !deputies.some((item) => item.id === Number(deputy))) return fail(404, "not_found");
 
     const matching = articles
-      .filter((article) => !party || article.parties.some((item) => item.slug === party))
+      .filter((article) => partyList.length === 0 || article.parties.some((item) => partyList.includes(item.slug)))
       .filter((article) => !deputy || mentions(article.id, Number(deputy)))
+      .filter((article) => words.every((word) => folded(`${article.title} ${article.excerpt}`).includes(word)))
+      .filter((article) => sources.length === 0 || sources.includes(article.source))
+      .filter((article) => !byComments || article.commentCount > 0)
       .filter((article) => !cursor || article.id < Number(cursor.slice(1)));
+    if (byComments) matching.sort((x, y) => y.commentCount - x.commentCount);
     const page = matching.slice(0, limit);
     return HttpResponse.json({
       items: page,
       nextCursor: matching.length > limit ? `c${page.at(-1)!.id}` : null,
+      // Counted before the cursor, so it is the same on every page.
+      total: articles
+        .filter((article) => partyList.length === 0 || article.parties.some((item) => partyList.includes(item.slug)))
+        .filter((article) => !deputy || mentions(article.id, Number(deputy)))
+        .filter((article) => words.every((word) => folded(`${article.title} ${article.excerpt}`).includes(word)))
+        .filter((article) => sources.length === 0 || sources.includes(article.source))
+        .filter((article) => !byComments || article.commentCount > 0).length,
     });
   }),
   http.get(`${API}/parliament`, () => HttpResponse.json(parliament)),
@@ -215,7 +252,10 @@ export const handlers = [
     const id = Number(params.id);
     if (!Number.isInteger(id) || id <= 0 || id > 2_147_483_647) return fail(400, "invalid_request");
     const article = articles.find((item) => item.id === id);
-    return article ? HttpResponse.json(article) : fail(404, "not_found");
+    if (!article) return fail(404, "not_found");
+    // Article 100 mentions an initiative, for the context box beside it.
+    const mentioned = id === 100 && initiatives[0] ? [{ id: initiatives[0].id, title: initiatives[0].title }] : [];
+    return HttpResponse.json({ ...article, initiatives: mentioned });
   }),
   http.post(`${API}/articles/:id/comments`, async ({ params, request }) => {
     const parsed = newCommentSchema.safeParse(await request.json());
@@ -240,6 +280,7 @@ export const handlers = [
   }),
   ...contractHandlers,
   ...placeHandlers,
+  ...legislatureHandlers,
   ...forumHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,

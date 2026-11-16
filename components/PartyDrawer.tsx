@@ -32,7 +32,7 @@ export function PartyDrawer({ ref }: { ref: Ref<HTMLDialogElement> }) {
               <p aria-hidden="true" className="px-3 pb-1 pt-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
                 {group.title}
               </p>
-              <ul aria-label={group.title} className="grid grid-cols-2">
+              <ul aria-label={group.title} className="flex flex-col">
                 {group.items.map((item) => (
                   <li key={item.label}>
                     <SectionLink item={item} compact onNavigate={(event) => event.currentTarget.closest("dialog")?.close()} />

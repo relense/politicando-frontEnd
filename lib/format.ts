@@ -58,9 +58,9 @@ export function commentsLabel(count: number): string {
   return count === 1 ? "1 Comentário" : `${count} Comentários`;
 }
 
-/** The feed link invites the first comment instead of announcing none. */
+/** The feed link: always the number, so a reader sees at a glance which news has a conversation. */
 export function commentLinkLabel(count: number): string {
-  return count === 0 ? "Comentar" : commentsLabel(count);
+  return count === 1 ? "1 comentário" : `${formatNumber(count)} comentários`;
 }
 
 export function repliesLabel(count: number): string {
@@ -157,3 +157,21 @@ export const fold = (text: string) =>
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
+
+const weekdayFormatter = new Intl.DateTimeFormat("pt-PT", { weekday: "long", timeZone: "Europe/Lisbon" });
+
+/** "Segunda-feira, 16 de novembro de 2026 · 09:39", in Lisbon time. */
+export function formatFullDateTime(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const weekday = weekdayFormatter.format(date);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${formatLongDate(value)} · ${formatTime(value)}`;
+}
+
+/** "dom., 15 nov. · 21:41": the day and time on a news card, so the date is never lost while scrolling. */
+export function formatCardWhen(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = dayParts(date);
+  return `${p.weekday!.slice(0, 3)}., ${p.day} ${p.month!.slice(0, 3)}. · ${formatTime(value)}`;
+}

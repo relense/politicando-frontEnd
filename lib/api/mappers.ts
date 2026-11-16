@@ -111,9 +111,11 @@ export function mapArticle(article: ApiArticle): Article {
     publishedAt: article.publishedAt,
     url: safeHttpUrl(article.url),
     source: sourceName(article.source),
+    sourceDomain: article.source,
     imageUrl: safeHttpUrl(article.imageUrl),
     parties: article.parties,
     commentsCount: article.commentCount,
+    initiatives: (article.initiatives ?? []).map((item) => ({ id: item.id, title: decode(item.title) })),
   };
 }
 
@@ -353,6 +355,9 @@ export function mapGovernmentMemberDetail(member: ApiGovernmentMemberDetail): Go
       return url ? [{ network: link.network, url }] : [];
     }),
     inOffice: member.inOffice,
+    partySlug: member.party ?? member.deputy?.party ?? null,
+    partySource: member.partySource === "deputy" || member.partySource === "curated" ? member.partySource : null,
+    independent: member.independent ?? false,
     deputy: member.deputy ? { id: member.deputy.id, name: member.deputy.name, partySlug: member.deputy.party ?? null } : null,
     positions: member.positions.map((position) => ({
       title: position.title,
@@ -513,6 +518,7 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     tags: api.tags ?? [],
     featured: api.featured ?? false,
     publishedAt: api.publishedAt,
+    readingMinutes: api.readingMinutes ?? null,
   };
 }
 

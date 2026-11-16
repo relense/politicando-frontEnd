@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { InitiativeList } from "@/components/InitiativeList";
+import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getInitiatives, getParliament, type InitiativeQuery } from "@/lib/api/client";
 import { getInitiativeTopics, type TopicCount } from "@/lib/api/presidency";
+import { tidyName } from "@/lib/elections";
 import { formatNumber } from "@/lib/format";
 import { INITIATIVE_STAGES, toneColor, type InitiativeStageKey, type StageTone } from "@/lib/initiatives";
-import type { InitiativePage, Parliament } from "@/lib/types";
+import { partyColor } from "@/lib/parliament";
+import { ofParty, partyPath } from "@/lib/parties";
+import type { ArticleParty, InitiativePage, Parliament } from "@/lib/types";
 
 type Search = {
   tema?: string | string[];
+  partido?: string | string[];
   fase?: string | string[];
   q?: string | string[];
   ordem?: string | string[];
@@ -32,27 +37,32 @@ const LEGACY: Record<string, InitiativeStageKey> = {
 
 type Filters = {
   topic: string | null;
+  /** A party in Parliament, by slug. */
+  party: string | null;
   stage: InitiativeStageKey | null;
   /** Words from the title, or the initiative's number. */
   q: string | null;
   oldest: boolean;
 };
 
-function filtersOf(search: Search, topics: readonly TopicCount[]): Filters {
+function filtersOf(search: Search, topics: readonly TopicCount[], parties: readonly ArticleParty[]): Filters {
   const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : null);
   const topic = one(search.tema);
+  const party = one(search.partido);
   const asked = one(search.fase) ?? LEGACY[one(search.estado) ?? ""] ?? LEGACY[one(search.presidente) ?? ""] ?? null;
   const q = one(search.q)?.trim().slice(0, 100) ?? "";
   return {
     topic: topics.some((item) => item.slug === topic) ? topic : null,
+    party: parties.some((item) => item.slug === party) ? party : null,
     stage: INITIATIVE_STAGES.find((item) => item.key === asked)?.key ?? null,
     q: q || null,
     oldest: one(search.ordem) === "antigas",
   };
 }
 
-function pathOf({ topic, stage, q, oldest }: Filters) {
+function pathOf({ topic, party, stage, q, oldest }: Filters) {
   const query = new URLSearchParams();
+  if (party) query.set("partido", party);
   if (topic) query.set("tema", topic);
   if (stage) query.set("fase", stage);
   if (q) query.set("q", q);
@@ -61,13 +71,21 @@ function pathOf({ topic, stage, q, oldest }: Filters) {
 }
 
 const loadTopics = () => getInitiativeTopics().catch(() => ({ items: [] as TopicCount[], untagged: 0 }));
+const loadParliament = () => getParliament().catch((): Parliament | null => null);
+
+/** The parties in Parliament, most seats first: the ones that propose initiatives. */
+const partiesOf = (parliament: Parliament | null) =>
+  [...(parliament?.groups ?? [])].sort((a, b) => b.seats - a.seats).map((group) => group.party);
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const [search, topics] = await Promise.all([searchParams, loadTopics()]);
-  const filters = filtersOf(search, topics.items);
+  const [search, topics, parliament] = await Promise.all([searchParams, loadTopics(), loadParliament()]);
+  const parties = partiesOf(parliament);
+  const filters = filtersOf(search, topics.items, parties);
   const topic = topics.items.find((item) => item.slug === filters.topic);
+  const party = parties.find((item) => item.slug === filters.party);
+  const where = party ? `Iniciativas ${ofParty(party.name)} ${tidyName(party.name)}` : "Iniciativas no Parlamento";
   return {
-    title: topic ? `${topic.label} · Iniciativas no Parlamento` : "Iniciativas no Parlamento",
+    title: topic ? `${topic.label} · ${where}` : where,
     description:
       "As propostas de lei e recomendações que entram no Parlamento, explicadas em linguagem simples: o que são, em que fase estão, quem as propôs e como se votou.",
     // A search or another order is the same list again: point to it without them, and keep searches out of the index.
@@ -91,22 +109,33 @@ const TOPICS_SHOWN = 10;
 
 export default async function InitiativesPage({ searchParams }: Props) {
   await connection();
-  const [search, topics, parliament] = await Promise.all([
-    searchParams,
-    loadTopics(),
-    getParliament().catch((): Parliament | null => null),
-  ]);
-  const filters = filtersOf(search, topics.items);
+  const [search, topics, parliament] = await Promise.all([searchParams, loadTopics(), loadParliament()]);
+  const parties = partiesOf(parliament);
+  const filters = filtersOf(search, topics.items, parties);
+  const party = parties.find((item) => item.slug === filters.party) ?? null;
   const query: Omit<InitiativeQuery, "cursor"> = {
     topic: filters.topic ?? undefined,
+    party: filters.party ?? undefined,
     stage: filters.stage ?? undefined,
     q: filters.q ?? undefined,
     sort: filters.oldest ? "oldest" : undefined,
     limit: 20,
   };
   const filtered = Boolean(filters.topic || filters.q);
-  // The figures at the top are for everything; with a topic or a search, they need a page of their own.
-  const [page, everything] = await Promise.all([loadPage(query), filtered ? loadPage({ limit: 1 }) : null]);
+  // The figures at the top are for everything, or for the chosen party; with a topic or a search, they need a page of
+  // their own. Each party's count follows the other filters.
+  const [page, everything, partyCounts] = await Promise.all([
+    loadPage(query),
+    filtered ? loadPage({ party: filters.party ?? undefined, limit: 1 }) : null,
+    Promise.all(
+      parties.map((item) =>
+        getInitiatives({ ...query, party: item.slug, limit: 1 })
+          .then((result) => [item.slug, result.total] as const)
+          .catch(() => [item.slug, null] as const),
+      ),
+    ),
+  ]);
+  const countOf = new Map(partyCounts);
 
   // The API counts each phase with every filter but the phase, so the path keeps its numbers.
   const counted = new Map((page?.stages ?? []).map((item) => [item.key, item]));
@@ -149,8 +178,34 @@ export default async function InitiativesPage({ searchParams }: Props) {
         </p>
       </header>
 
+      {party && (
+        <section
+          aria-labelledby="partido-escolhido"
+          className="mb-4 flex flex-wrap items-center gap-4 rounded-2xl border border-l-4 border-line p-4"
+          style={{ borderLeftColor: partyColor(party.slug) }}
+        >
+          <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
+            <PartyLogo slug={party.slug} acronym={party.acronym} size={40} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-muted">O que propôs nesta legislatura</p>
+            <h2 id="partido-escolhido" className="text-2xl font-bold leading-tight">
+              {tidyName(party.name)}
+            </h2>
+            <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs">
+              <Link href={partyPath(party.slug)} className="text-link underline">
+                Página do partido →
+              </Link>
+              <Link href={pathOf({ ...filters, party: null })} className="text-muted underline hover:text-ink">
+                Ver as de todos os partidos
+              </Link>
+            </p>
+          </div>
+        </section>
+      )}
+
       {cards.length > 0 && (
-        <ul aria-label="Em números" className="mb-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <ul aria-label={party ? `Em números: ${party.acronym}` : "Em números"} className="mb-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {cards.map((card) => (
             <li
               key={card.label}
@@ -199,6 +254,36 @@ export default async function InitiativesPage({ searchParams }: Props) {
             </ul>
           </nav>
 
+          {parties.length > 0 && (
+            <nav aria-label="Partido que propôs" className="mb-4 lg:hidden">
+              <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
+                <li>
+                  <Link
+                    href={pathOf({ ...filters, party: null })}
+                    aria-current={!filters.party ? "page" : undefined}
+                    className={pill(!filters.party)}
+                  >
+                    Todos os partidos
+                  </Link>
+                </li>
+                {parties.map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      href={pathOf({ ...filters, party: item.slug })}
+                      aria-current={filters.party === item.slug ? "page" : undefined}
+                      className={`${pill(filters.party === item.slug)} inline-flex items-center gap-1.5`}
+                    >
+                      <span className="flex size-4 items-center justify-center overflow-hidden rounded-full bg-white">
+                        <PartyLogo slug={item.slug} acronym={item.acronym} size={14} />
+                      </span>
+                      {item.acronym}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+
           <SearchBar filters={filters} />
 
           <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-2 border-b-2 border-ink pb-2 font-mono text-xs">
@@ -216,6 +301,12 @@ export default async function InitiativesPage({ searchParams }: Props) {
               <Link href={pathOf({ ...filters, q: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
                 Pesquisa: «{filters.q}» <span aria-hidden="true">×</span>
                 <span className="sr-only"> (tirar a pesquisa)</span>
+              </Link>
+            )}
+            {party && (
+              <Link href={pathOf({ ...filters, party: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
+                Partido: {party.acronym} <span aria-hidden="true">×</span>
+                <span className="sr-only"> (tirar o filtro)</span>
               </Link>
             )}
             {topic && (
@@ -263,6 +354,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
             </ol>
           </nav>
 
+          {parties.length > 0 && <PartyBars parties={parties} counts={countOf} filters={filters} />}
           {topics.items.length > 0 && <TopicBars topics={topics.items} filters={filters} />}
         </aside>
       </div>
@@ -307,6 +399,54 @@ function PathLink({
       <span className="flex-1">{label}</span>
       {count !== null && <span className="text-muted">{formatNumber(count)}</span>}
     </Link>
+  );
+}
+
+/** The parties in Parliament by how many initiatives they put forward (with the other filters), each a filter. */
+function PartyBars({ parties, counts, filters }: { parties: ArticleParty[]; counts: Map<string, number | null>; filters: Filters }) {
+  const sorted = [...parties].sort((a, b) => (counts.get(b.slug) ?? -1) - (counts.get(a.slug) ?? -1));
+  const max = Math.max(...sorted.map((item) => counts.get(item.slug) ?? 0), 1);
+  return (
+    <nav aria-labelledby="quem-propos" className="hidden rounded-2xl border border-line p-4 lg:block">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 id="quem-propos" className="font-mono text-xs font-bold uppercase tracking-widest">
+          Quem propôs
+        </h2>
+        <span className="font-mono text-[11px] text-muted">por n.º de iniciativas</span>
+      </div>
+      <p className="mb-2 text-xs text-muted">Toca num partido para ver o que tem proposto.</p>
+      <ul className="flex flex-col gap-1">
+        {sorted.map((item) => {
+          const active = filters.party === item.slug;
+          const count = counts.get(item.slug) ?? null;
+          return (
+            <li key={item.slug}>
+              <Link
+                href={pathOf({ ...filters, party: active ? null : item.slug })}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-2 rounded px-1 py-1 font-mono text-xs hover:bg-surface ${active ? "bg-surface font-bold" : ""}`}
+              >
+                <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-white">
+                  <PartyLogo slug={item.slug} acronym={item.acronym} size={16} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex justify-between gap-2">
+                    <span>{item.acronym}</span>
+                    {count !== null && <span className="text-muted">{formatNumber(count)}</span>}
+                  </span>
+                  <span className="mt-1 block h-0.5 rounded-full bg-line">
+                    <span
+                      className="block h-full rounded-full"
+                      style={{ width: `${((count ?? 0) / max) * 100}%`, backgroundColor: partyColor(item.slug) }}
+                    />
+                  </span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
@@ -357,7 +497,7 @@ function TopicBars({ topics, filters }: { topics: TopicCount[]; filters: Filters
 
 /** A plain form, so it works before the page's scripts load: the words, plus the filters already chosen, and the order. */
 function SearchBar({ filters }: { filters: Filters }) {
-  const keep = { tema: filters.topic, fase: filters.stage, ordem: filters.oldest ? "antigas" : null };
+  const keep = { partido: filters.party, tema: filters.topic, fase: filters.stage, ordem: filters.oldest ? "antigas" : null };
   const order = (oldest: boolean) =>
     `inline-flex h-10 items-center rounded-full border px-4 font-mono text-xs font-bold ${filters.oldest === oldest ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
   return (

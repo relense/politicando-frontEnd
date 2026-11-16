@@ -1,5 +1,6 @@
+import { SourceLogo } from "./SourceLogo";
 import Link from "next/link";
-import { commentLinkLabel, excerpt, formatDateTime, formatTime } from "@/lib/format";
+import { excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
 import { CommentIcon } from "./icons";
@@ -15,18 +16,27 @@ export function ArticleCard({ article }: { article: Article }) {
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (
-            <a href={article.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink hover:underline">
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-bold text-ink hover:underline"
+            >
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
               {article.source}
               <span aria-hidden="true"> ↗</span>
               <span className="sr-only"> (abre num novo separador)</span>
             </a>
           ) : (
-            <span className="font-bold text-ink">{article.source}</span>
+            <span className="inline-flex items-center gap-1.5 font-bold text-ink">
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
+              {article.source}
+            </span>
           )}
           <span aria-hidden="true">·</span>
-          {/* The feed is grouped by day, so the clock time is enough. */}
+          {/* The day too, not only the feed's day heading: it scrolls away. */}
           <time dateTime={article.publishedAt} title={formatDateTime(article.publishedAt) ?? undefined}>
-            {formatTime(article.publishedAt)}
+            {formatCardWhen(article.publishedAt)}
           </time>
         </div>
 
@@ -42,10 +52,13 @@ export function ArticleCard({ article }: { article: Article }) {
           <PartyChips parties={article.parties} />
           <Link
             href={`${articlePath}#comentarios`}
-            className="ml-auto flex items-center gap-1.5 font-mono text-sm text-muted hover:text-ink hover:underline"
+            className={`ml-auto flex items-center gap-1.5 font-mono text-sm hover:text-ink hover:underline ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
           >
             <CommentIcon />
-            {commentLinkLabel(article.commentsCount)}
+            <span>
+              <span className="font-bold tabular-nums">{article.commentsCount}</span>{" "}
+              {article.commentsCount === 1 ? "comentário" : "comentários"}
+            </span>
           </Link>
         </div>
       </div>

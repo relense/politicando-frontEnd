@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
-import { ContractList, ContractsSource, percentOf, Ranking } from "@/components/ContractViews";
+import { ContractRankings } from "@/components/ContractRankings";
+import { COMPETITION_COLOR, ContractList, ContractsSource, percentOf } from "@/components/ContractViews";
 import { CountUp } from "@/components/CountUp";
 import { MoreContracts } from "@/components/MoreContracts";
 import { ApiError } from "@/lib/api/client";
@@ -11,6 +12,7 @@ import {
   directAwardTotals,
   eurosScale,
   contractsLabel,
+  formatEurosCompact,
   formatEurosShort,
   getContracts,
   getContractStats,
@@ -40,10 +42,22 @@ const PROCEDURE_OPTIONS = [
 ];
 
 const COMPETITION = [
-  { key: "open", label: "Concorrência aberta", hint: "Concursos públicos e limitados", className: "bg-paper border border-ink" },
-  { key: "limited", label: "Pouca ou nenhuma concorrência", hint: "Ajustes diretos e consultas prévias", className: "bg-ink" },
-  { key: "other", label: "Outros", hint: "Acordos-quadro, contratação excluída e outros", className: "bg-muted" },
+  { key: "open", label: "Concorrência aberta", hint: "Concursos públicos e limitados" },
+  { key: "limited", label: "Pouca ou nenhuma concorrência", hint: "Ajustes diretos e consultas prévias" },
+  { key: "other", label: "Outros", hint: "Acordos-quadro, contratação excluída e outros" },
 ] as const;
+
+const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
+
+/** A share in words: "quase metade", "um décimo"… for the headline over the two bars. */
+function shareWords(value: number): string {
+  if (value >= 55) return "mais de metade";
+  if (value >= 45) return "quase metade";
+  if (value >= 30) return "cerca de um terço";
+  if (value >= 20) return "cerca de um quarto";
+  if (value >= 8) return "uma pequena parte";
+  return "uma parte muito pequena";
+}
 
 async function placeName(key: string | undefined): Promise<string | null> {
   if (!key || !isPlaceKey(key)) return null;
@@ -113,12 +127,15 @@ export default async function ContractsPage({ searchParams }: Props) {
 
   return (
     <div data-wide>
-      <header className="mb-8">
-        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Dinheiro público</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Contratos públicos{where}</h1>
+      <header className="mb-6">
+        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Dinheiro público · Portal BASE</p>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          Contratos <span className={MARKER}>públicos</span>
+          {where}
+        </h1>
         <p className="mt-2 max-w-2xl leading-relaxed text-muted">
-          Todos os contratos que as entidades públicas publicam no Portal BASE: o que compraram, a quem e por quanto. Quanto vai para
-          ajustes diretos, em que a entidade escolhe a empresa sem concurso aberto?
+          Tudo o que as entidades públicas publicam no Portal BASE: o que compraram, a quem e por quanto. E quanto vai para ajustes diretos,
+          em que a entidade escolhe a empresa sem concurso aberto.
         </p>
         {name && (
           <p className="mt-3 font-mono text-sm">
@@ -130,42 +147,102 @@ export default async function ContractsPage({ searchParams }: Props) {
         )}
       </header>
 
-      <section aria-labelledby="contador" className="rounded-2xl border border-t-4 border-line border-t-ink p-6 sm:p-8">
-        <h2 id="contador" className="font-mono text-xs uppercase tracking-widest text-muted">
+      <section aria-labelledby="contador">
+        <h2 id="contador" className="sr-only">
           Ajustes diretos{where}
           {since ? ` desde ${since}` : ""}
         </h2>
-        <div className="mt-4 grid gap-6 sm:grid-cols-2">
-          <p>
-            <CountUp value={direct.count} className="block text-4xl font-bold leading-none sm:text-6xl" />
-            <span className="mt-2 block text-muted">contratos sem concorrência aberta</span>
-          </p>
-          <p>
-            <CountUp value={direct.total} divisor={scale.divisor} className="block text-4xl font-bold leading-none sm:text-6xl" />
-            <span className="mt-2 block text-muted">{scale.unit} em ajustes diretos, sem IVA</span>
-          </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-line p-5">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Contratos publicados</p>
+            <CountUp value={direct.allCount} className="mt-2 block text-3xl font-bold leading-none tabular-nums sm:text-4xl" />
+            <p className="mt-2 font-mono text-[11px] text-muted">
+              {formatEurosShort(direct.allTotal)}
+              {since ? ` desde ${since}` : ""}
+            </p>
+          </div>
+          <div
+            className="rounded-2xl border p-5"
+            style={{
+              borderColor: COMPETITION_COLOR.limited,
+              backgroundColor: `color-mix(in srgb, ${COMPETITION_COLOR.limited} 8%, transparent)`,
+            }}
+          >
+            <p className="font-mono text-[11px] uppercase tracking-widest" style={{ color: COMPETITION_COLOR.limited }}>
+              Ajustes diretos
+            </p>
+            <CountUp value={direct.count} className="mt-2 block text-3xl font-bold leading-none tabular-nums sm:text-4xl" />
+            <p className="mt-2 font-mono text-[11px] text-muted">contratos sem concorrência aberta · {formatPercent(direct.countShare)}</p>
+          </div>
+          <div className="rounded-2xl border border-[color:var(--stage-debate)]/50 bg-[color-mix(in_srgb,var(--marker)_14%,transparent)] p-5">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-[color:var(--stage-debate)]">Em ajustes diretos</p>
+            <p className="mt-2 flex items-baseline gap-2">
+              <CountUp value={direct.total} divisor={scale.divisor} className="text-3xl font-bold leading-none tabular-nums sm:text-4xl" />
+              <span className="font-mono text-sm font-bold">{scale.unit}</span>
+            </p>
+            <p className="mt-2 font-mono text-[11px] text-muted">sem IVA · {formatPercent(direct.totalShare)} do dinheiro</p>
+          </div>
         </div>
-        <p className="mt-6 max-w-2xl leading-relaxed">
-          São <strong>{formatPercent(direct.countShare)}</strong> dos {formatNumber(direct.allCount)} contratos publicados e{" "}
-          <strong>{formatPercent(direct.totalShare)}</strong> dos {formatEurosShort(direct.allTotal)} gastos. O ajuste direto é legal dentro
-          de limites de valor ou em casos previstos na lei, como urgência ou quando só uma empresa pode fazer o trabalho.
-        </p>
+
+        <div className="mt-3 grid gap-5 rounded-2xl border border-line p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center">
+          <div>
+            <h3 className="text-xl font-bold leading-snug">
+              {(() => {
+                const many = shareWords(direct.countShare);
+                return `${many.charAt(0).toUpperCase()}${many.slice(1)} dos contratos, mas só ${shareWords(direct.totalShare)} do dinheiro`;
+              })()}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Os ajustes diretos são sobretudo compras pequenas. O ajuste direto é legal dentro de limites de valor ou em casos previstos na
+              lei, como urgência ou quando só uma empresa pode fazer o trabalho.
+            </p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { label: "Do número de contratos", value: direct.countShare },
+              { label: "Do dinheiro gasto", value: direct.totalShare },
+            ].map((bar) => (
+              <div key={bar.label}>
+                <p className="flex justify-between gap-2 font-mono text-xs">
+                  <span className="text-muted">{bar.label}</span>
+                  <span className="font-bold">{formatPercent(bar.value)}</span>
+                </p>
+                <div aria-hidden="true" className="mt-1 h-2.5 rounded-full bg-surface">
+                  <div className="h-full rounded-full" style={{ width: `${bar.value}%`, backgroundColor: COMPETITION_COLOR.limited }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section aria-labelledby="como-se-gasta" className="mt-12">
-        <h2 id="como-se-gasta" className="text-2xl font-bold">
+        <h2 id="como-se-gasta" className="border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
           Como se gasta o dinheiro público
         </h2>
-        <p className="mt-1 text-muted">Os euros de todos os contratos{where}, por tipo de procedimento.</p>
-        <div aria-hidden="true" className="mt-4 flex h-6 overflow-hidden rounded-full border border-line">
-          {COMPETITION.map((group) => (
-            <div key={group.key} className={group.className} style={{ width: `${share(groups[group.key].total, direct.allTotal)}%` }} />
-          ))}
+        <p className="mt-2 text-sm text-muted">Os euros de todos os contratos{where}, por tipo de procedimento.</p>
+        <div aria-hidden="true" className="mt-4 flex h-7 overflow-hidden rounded-lg">
+          {COMPETITION.map((group) => {
+            const value = share(groups[group.key].total, direct.allTotal);
+            return (
+              <div
+                key={group.key}
+                className="flex items-center overflow-hidden px-2 font-mono text-[11px] font-bold text-paper"
+                style={{ width: `${value}%`, backgroundColor: COMPETITION_COLOR[group.key] }}
+              >
+                {value >= 8 && formatPercent(value)}
+              </div>
+            );
+          })}
         </div>
         <ul className="mt-3 grid gap-3 sm:grid-cols-3">
           {COMPETITION.map((group) => (
             <li key={group.key} className="flex gap-2 text-sm">
-              <span aria-hidden="true" className={`mt-1 size-3 shrink-0 rounded-full ${group.className}`} />
+              <span
+                aria-hidden="true"
+                className="mt-1 size-3 shrink-0 rounded-sm"
+                style={{ backgroundColor: COMPETITION_COLOR[group.key] }}
+              />
               <span>
                 <span className="font-bold">{group.label}</span>: {percentOf(groups[group.key].total, direct.allTotal) ?? "0,0%"} do
                 dinheiro
@@ -175,85 +252,133 @@ export default async function ContractsPage({ searchParams }: Props) {
           ))}
         </ul>
 
-        <ul aria-label="Procedimentos" className="mt-6 grid gap-3 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_5.5rem_7rem] gap-3 border-b border-line pb-2 font-mono text-[11px] text-muted">
+          <span>Procedimento · faixa: parte do dinheiro</span>
+          <span className="text-right">Contratos</span>
+          <span className="text-right">Valor</span>
+        </div>
+        <ul aria-label="Procedimentos" className="divide-y divide-line">
           {procedures
             .filter((item) => item.count > 0)
-            .map((item) => (
-              <li key={item.kind} className="rounded-2xl border border-line p-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="font-bold">{item.label}</h3>
-                  <span className="shrink-0 whitespace-nowrap font-mono text-sm font-bold tabular-nums">
-                    {formatEurosShort(item.total)}
+            .map((item) => {
+              const competition = competitionOf(item.kind);
+              const highlight = item.kind === "direct_award";
+              return (
+                <li
+                  key={item.kind}
+                  className={`grid grid-cols-[minmax(0,1fr)_5.5rem_7rem] items-start gap-3 py-3 ${highlight ? "-mx-3 rounded-lg px-3" : ""}`}
+                  style={highlight ? { backgroundColor: `color-mix(in srgb, ${COMPETITION_COLOR.limited} 8%, transparent)` } : undefined}
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold">
+                      {item.label}{" "}
+                      <span className="font-mono text-[11px] font-normal text-muted">
+                        · {percentOf(item.total, direct.allTotal)} do dinheiro
+                      </span>
+                    </h3>
+                    <div aria-hidden="true" className="mt-1.5 h-1.5 rounded-full bg-surface">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.max(0.5, share(item.total, direct.allTotal))}%`,
+                          backgroundColor: COMPETITION_COLOR[competition],
+                        }}
+                      />
+                    </div>
+                    {item.plain && <p className={`mt-2 text-xs leading-relaxed ${highlight ? "" : "text-muted"}`}>{item.plain}</p>}
+                  </div>
+                  <span className="text-right font-mono text-xs tabular-nums text-muted">{formatNumber(item.count)}</span>
+                  <span className="whitespace-nowrap text-right font-mono text-sm font-bold tabular-nums">
+                    {formatEurosCompact(item.total)}
                   </span>
-                </div>
-                <div aria-hidden="true" className="mt-2 h-1.5 rounded-full bg-surface">
-                  <div
-                    className={`h-full rounded-full ${competitionOf(item.kind) === "limited" ? "bg-ink" : "bg-muted"}`}
-                    style={{ width: `${Math.max(0.5, share(item.total, direct.allTotal))}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-xs text-muted">
-                  {contractsLabel(item.count)} · {percentOf(item.total, direct.allTotal)} do dinheiro
-                </p>
-                {item.plain && <p className="mt-2 text-sm leading-relaxed">{item.plain}</p>}
-              </li>
-            ))}
+                </li>
+              );
+            })}
         </ul>
       </section>
 
       {years && years.items.length > 0 && (
         <section aria-labelledby="por-ano" className="mt-12">
-          <h2 id="por-ano" className="text-2xl font-bold">
+          <h2 id="por-ano" className="border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
             Por ano
           </h2>
-          <p className="mt-1 text-muted">Todos os procedimentos, pela data de publicação.</p>
-          <ul className="mt-4 space-y-3">
-            {years.items.map((item) => (
-              <li key={item.key} className="grid grid-cols-[3.5rem_1fr] items-center gap-3 text-sm">
-                <span className="font-mono font-bold">{item.label}</span>
-                <span>
-                  <span aria-hidden="true" className="block h-4 rounded bg-surface">
-                    <span className="block h-full rounded bg-ink" style={{ width: `${Math.max(0.5, share(item.total, maxYear))}%` }} />
+          <ul className="mt-6 flex items-end gap-3">
+            {years.items.slice(-6).map((item, index, shown) => {
+              const current = item.key === String(new Date().getFullYear());
+              return (
+                <li key={item.key} className="flex min-w-0 flex-1 flex-col">
+                  <span className="mb-1 text-lg font-bold tabular-nums sm:text-2xl">{formatEurosCompact(item.total)}</span>
+                  {/* Closed years in blue, stronger the more recent; the year still running in light stripes of it. */}
+                  <span
+                    aria-hidden="true"
+                    className="block rounded-t-lg"
+                    style={{
+                      height: `${Math.max(6, share(item.total, maxYear) * 1.6)}px`,
+                      ...(current
+                        ? {
+                            backgroundImage:
+                              "repeating-linear-gradient(135deg, color-mix(in srgb, var(--stage-submitted) 55%, transparent) 0 7px, color-mix(in srgb, var(--stage-submitted) 18%, transparent) 7px 14px)",
+                            border: "1px dashed var(--stage-submitted)",
+                            borderBottom: 0,
+                          }
+                        : {
+                            backgroundColor: `color-mix(in srgb, var(--stage-submitted) ${Math.round(45 + (40 * (index + 1)) / Math.max(1, shown.length - (shown.some((y) => y.key === String(new Date().getFullYear())) ? 1 : 0)))}%, transparent)`,
+                          }),
+                    }}
+                  />
+                  <span className="mt-2 font-mono text-xs font-bold">
+                    {item.label}
+                    {current && <span className="font-normal text-muted"> · até agora</span>}
                   </span>
-                  <span className="mt-0.5 block font-mono text-xs text-muted">
-                    {formatEurosShort(item.total)} · {contractsLabel(item.count)}
-                  </span>
-                </span>
-              </li>
-            ))}
+                  <span className="font-mono text-[11px] text-muted">{contractsLabel(item.count)}</span>
+                </li>
+              );
+            })}
           </ul>
+          <p className="mt-3 font-mono text-[11px] text-muted">
+            Todos os procedimentos, pela data de celebração do contrato. O ano corrente ainda não acabou.
+          </p>
         </section>
       )}
 
       <section aria-labelledby="quem" className="mt-12">
-        <h2 id="quem" className="text-2xl font-bold">
+        <h2 id="quem" className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
           Quem contrata e quem recebe
         </h2>
-        <p className="mt-1 text-muted">Os maiores valores{where}, em todos os procedimentos.</p>
-        <div className={`mt-4 grid gap-4 ${municipalities ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
-          <Ranking
-            title="Entidades públicas que mais contrataram"
-            items={entities?.items ?? []}
-            href={(key) => (isNif(key) ? `/contratos/entidade/${key}` : null)}
-          />
-          <Ranking
-            title="Empresas e pessoas que mais receberam"
-            items={suppliers?.items ?? []}
-            href={(key) => (isNif(key) ? `/contratos/entidade/${key}` : null)}
-          />
-          {municipalities && (
-            <Ranking
-              title="Concelhos onde mais se contratou"
-              items={municipalities.items}
-              href={(key) => (isPlaceKey(key) ? `/contratos?local=${key}#lista` : null)}
-              note="Lisboa e Porto aparecem à frente em parte porque muitos organismos nacionais têm lá sede e indicam-nas como local de execução. Um contrato executado em vários concelhos conta em cada um."
-            />
-          )}
-        </div>
+        <ContractRankings
+          tabs={[
+            {
+              key: "entidades",
+              label: "Entidades",
+              title: `As entidades públicas que mais contrataram${where}, em valor.`,
+              items: entities?.items ?? [],
+              hrefs: (entities?.items ?? []).map((item) => (isNif(item.key) ? `/contratos/entidade/${item.key}` : null)),
+            },
+            {
+              key: "empresas",
+              label: "Empresas",
+              title: `As empresas e pessoas que mais receberam${where}.`,
+              items: suppliers?.items ?? [],
+              hrefs: (suppliers?.items ?? []).map((item) => (isNif(item.key) ? `/contratos/entidade/${item.key}` : null)),
+            },
+            ...(municipalities
+              ? [
+                  {
+                    key: "concelhos",
+                    label: "Concelhos",
+                    title: "Os concelhos onde mais se contratou.",
+                    items: municipalities.items,
+                    hrefs: municipalities.items.map((item) => (isPlaceKey(item.key) ? `/contratos?local=${item.key}#lista` : null)),
+                    note: "Lisboa e Porto aparecem à frente em parte porque muitos organismos nacionais têm lá sede e indicam-nas como local de execução. Um contrato executado em vários concelhos conta em cada um.",
+                  },
+                ]
+              : []),
+          ]}
+        />
       </section>
 
       <section aria-labelledby="lista-titulo" id="lista" className="mt-12 scroll-mt-20">
-        <h2 id="lista-titulo" className="text-2xl font-bold">
+        <h2 id="lista-titulo" className="border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
           Procurar contratos
         </h2>
         <form
@@ -299,7 +424,10 @@ export default async function ContractsPage({ searchParams }: Props) {
               <option value="preco">Mais caros</option>
             </select>
           </label>
-          <button type="submit" className="self-end rounded-full bg-ink px-5 py-2 font-mono text-sm font-bold text-paper hover:opacity-90">
+          <button
+            type="submit"
+            className="self-end rounded-full bg-[#f0c75e] px-5 py-2 font-mono text-sm font-bold text-[#1a1a1a] hover:opacity-90"
+          >
             Procurar
           </button>
         </form>

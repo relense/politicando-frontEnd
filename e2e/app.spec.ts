@@ -1,16 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { noSeriousA11yIssues } from "./helpers";
 
-test("feed loads more on scroll and reaches the end", async ({ page }) => {
+test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("article")).toHaveCount(10);
-  for (let i = 0; i < 6 && !(await page.getByText("Não há mais notícias.").isVisible()); i++) {
-    await page.mouse.wheel(0, 100_000);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(300);
-  }
-  await expect(page.getByText("Não há mais notícias.")).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(30);
+  // No endless scrolling: going to the bottom loads nothing by itself, so the footer can be reached.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByRole("contentinfo")).toBeInViewport();
+  await expect(page.getByRole("article")).toHaveCount(30);
+  await page.getByRole("button", { name: "Carregar mais notícias" }).click();
   await expect(page.getByRole("article")).toHaveCount(35);
+  await expect(page.getByText("Não há mais notícias.")).toBeVisible();
 });
 
 test("hostile title stays harmless text", async ({ page }) => {
@@ -50,11 +50,11 @@ test("missing and malformed articles are real 404s", async ({ request }) => {
 
 test("home scrolling still loads the home feed after visiting a party", async ({ page }) => {
   await page.goto("/partido/be");
-  await page.getByRole("link", { name: "POLITICANDO" }).click();
+  await page.getByRole("link", { name: "POLITICANDO", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("número 100");
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(page.getByRole("article").nth(10)).toContainText("número 90");
+  await page.getByRole("button", { name: "Carregar mais notícias" }).click();
+  await expect(page.getByRole("article").nth(30)).toContainText("número 70");
 });
 
 test("back navigation shows the right article", async ({ page }) => {
@@ -114,12 +114,62 @@ test("theme persists across reload without a flash", async ({ page }) => {
 
 test("the party filter narrows the news in place and marks the chosen party", async ({ page }) => {
   await page.goto("/");
-  const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
-  await filter.getByRole("link", { name: /PSD/ }).click();
+  const quick = page.getByRole("navigation", { name: "Filtrar notícias" }).getByRole("list", { name: "Partidos com deputados" });
+  await quick.getByRole("button", { name: /PSD/ }).click();
   await expect(page).toHaveURL(/\/\?partido=psd$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Notícias do PSD" })).toBeVisible();
-  await expect(filter.getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
-  await filter.getByRole("link", { name: "Todas" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Notícias do Partido Social Democrata" })).toBeVisible();
+  await expect(quick.getByRole("button", { name: /PSD/ })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Tirar PSD" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
+});
+
+test("news from several parties and several papers, saved as the reader's own feed", async ({ page }) => {
+  await page.goto("/");
+  const filters = page.getByRole("navigation", { name: "Filtrar notícias" });
+  // Parties: in a panel, with a search; ticked choices apply together.
+  await filters.getByRole("button", { name: /^Partidos/ }).click();
+  const partiesPanel = page.getByRole("dialog", { name: "Escolher partidos" });
+  await partiesPanel.getByRole("checkbox", { name: "B.E." }).check();
+  await partiesPanel.getByRole("searchbox", { name: "Procurar partido" }).fill("liberal");
+  await partiesPanel.getByRole("checkbox", { name: "IL" }).check();
+  await partiesPanel.getByRole("button", { name: /^Mostrar (\d+ )?notícias?$/ }).click();
+  await expect(page).toHaveURL(/partido=be,il$/);
+  await expect(filters.getByRole("button", { name: /^Partidos/ })).toContainText("2");
+  // Papers, the same way.
+  await filters.getByRole("button", { name: /^Jornais/ }).click();
+  const papersPanel = page.getByRole("dialog", { name: "Escolher jornais" });
+  await papersPanel.getByRole("checkbox", { name: /Público/ }).check();
+  await papersPanel.getByRole("checkbox", { name: /RTP/ }).check();
+  await papersPanel.getByRole("button", { name: /^Mostrar (\d+ )?notícias?$/ }).click();
+  await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Notícias escolhidas" })).toBeVisible();
+  // Every card is about one of the two parties, from one of the two papers.
+  const cards = page.getByRole("article");
+  await expect(cards.first()).toBeVisible();
+  for (const card of await cards.all()) {
+    await expect(card).toContainText(/B\.E\.|IL/);
+    await expect(card).toContainText(/Público|RTP/);
+  }
+  // A search stays within the choice, and so does the order.
+  await page.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("número");
+  await page.getByRole("button", { name: "Procurar", exact: true }).click();
+  await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt&q=n%C3%BAmero$/);
+  await filters.getByRole("button", { name: "Mais comentadas" }).click();
+  await expect(page).toHaveURL(/&ordem=comentadas$/);
+  await expect(filters.getByRole("button", { name: "Mais comentadas" })).toHaveAttribute("aria-pressed", "true");
+
+  // Saved, the front page opens with it; "Limpar tudo" shows everything without forgetting it.
+  await page.goto("/?partido=be,il&fonte=publico.pt,rtp.pt");
+  await filters.getByRole("button", { name: /Guardar como o meu feed/ }).click();
+  await expect(filters.getByText("★ O teu feed")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "As tuas notícias" })).toBeVisible();
+  await expect(filters.getByRole("button", { name: "Tirar IL" })).toBeVisible();
+  await filters.getByRole("button", { name: "Limpar tudo" }).click();
+  await expect(page).toHaveURL(/\?tudo=1$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
+  await filters.getByRole("button", { name: "Esquecer o meu feed" }).click();
+  await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
 });
 
@@ -156,11 +206,11 @@ test("news have no party column: the party filter sits above the feed, the blog 
     );
     await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
   }
-  const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
-  await expect(filter.getByRole("link", { name: "Todas" })).toHaveAttribute("aria-current", "page");
+  const filter = page.getByRole("navigation", { name: "Filtrar notícias" });
+  await expect(filter.getByRole("button", { name: "Recentes" })).toHaveAttribute("aria-pressed", "true");
   // Party pages have no filter row: they are reached from the parties page.
   await page.goto("/partido/ps");
-  await expect(page.getByRole("navigation", { name: "Filtrar por partido" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Filtrar notícias" })).toHaveCount(0);
 });
 
 test("drawer works by keyboard", async ({ page, isMobile }) => {
@@ -197,9 +247,20 @@ test("article page shows the excerpt and links to the original", async ({ page }
   const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
   await expect(link).toHaveAttribute("href", "https://example.com/noticia/100");
   await expect(link).toHaveAttribute("target", "_blank");
-  await expect(page.locator("article p").first()).toContainText("…");
-  await expect(page.getByRole("heading", { name: "Mais sobre PS" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Partilhar" }).first()).toBeVisible();
+  await expect(page.locator("article h1 + p")).toContainText("…");
+  await expect(page.locator("article time").first()).toContainText(/^[A-ZÁÉ][a-zçá-]+(-feira)?, \d+ de /);
+  await expect(page.getByRole("button", { name: "Copiar ligação" })).toBeVisible();
+  // Beside it: its parties with their forums, more news about each, the context in Parliament and the map.
+  const beside = page.getByRole("complementary", { name: "Sobre esta notícia" });
+  await expect(beside.getByRole("heading", { name: "Partidos nesta notícia" })).toBeVisible();
+  await expect(beside.getByRole("link", { name: /^Discutir no fórum do / }).first()).toHaveAttribute(
+    "href",
+    /\/forum\/[a-z-]+\?artigo=100#nova/,
+  );
+  const more = beside.getByRole("region", { name: "Mais sobre" });
+  await expect(more.getByRole("link", { name: /^Todas as notícias do / })).toBeVisible();
+  await expect(beside.getByRole("link", { name: /Contexto/ })).toHaveAttribute("href", /^\/iniciativas/);
+  await expect(beside.getByRole("link", { name: /Quem governa a tua câmara/ })).toHaveAttribute("href", "/sitios");
   await expect(page.getByRole("link", { name: "Últimas notícias" })).toHaveAttribute("href", "/");
 });
 
@@ -262,6 +323,12 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/editorial",
     "/editorial/a-maioria-que-nao-existe",
     "/editorial/o-que-muda-no-orcamento",
+    "/editorial/como-se-chega-a-deputado",
+    "/privacidade",
+    "/cookies",
+    "/termos",
+    "/legislaturas",
+    "/legislaturas/XVII",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -448,7 +515,7 @@ test("elections: from the menu to a district and a municipality, and back up the
   // Not imported yet: shown, but not a link.
   await expect(page.getByRole("link", { name: /Legislativas 2019/ })).toHaveCount(0);
 
-  // The latest election is featured at the top, and also listed with the others.
+  // The latest legislativas are featured at the top, and not repeated in the cards.
   await expect(page.getByRole("region", { name: "Legislativas 2025" })).toContainText("Mais recente");
   await page
     .getByRole("link", { name: /Legislativas 2025/ })
@@ -471,15 +538,14 @@ test("elections: from the menu to a district and a municipality, and back up the
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
 });
 
-test("elections: each type shows the date of its next election when one is scheduled", async ({ page }) => {
+test("elections: the coming ones sit beside the results, a scheduled date included", async ({ page }) => {
   await page.goto("/eleicoes");
+  const coming = page.getByRole("region", { name: "Próximas eleições" });
+  await expect(coming.locator('time[datetime="2029-10-07"]')).toBeVisible();
+  // A scheduled election has no results yet, so it isn't one of the cards; nor does each type repeat the next one.
   const local = page.getByRole("region", { name: "Autárquicas" });
-  await expect(local.getByText("Próximas eleições")).toBeVisible();
-  await expect(local.locator('time[datetime="2029-10-07"]')).toBeVisible();
-  // A scheduled election has no results yet, so it isn't one of the cards.
   await expect(local.getByRole("link", { name: /Autárquicas 2029/ })).toHaveCount(0);
-  // Without a date yet, the next legislativas show the legal window instead.
-  await expect(page.getByRole("region", { name: "Legislativas", exact: true }).locator('time[datetime^="2029"]')).toHaveCount(0);
+  await expect(local.getByText("Próximas eleições")).toHaveCount(0);
 });
 
 test("elections: the latest of each type as cards, older ones one per line by decade", async ({ page }) => {
@@ -504,8 +570,7 @@ test("elections: the coming ones, regionais included, with the law's window unti
   const coming = page.getByRole("region", { name: "Próximas eleições" });
   await expect(coming.getByText("Regionais dos Açores 2028")).toBeVisible();
   await expect(coming.getByText(/Até ao fim de 2028/)).toBeVisible();
-  const legislativas = page.getByRole("region", { name: "Legislativas", exact: true });
-  await expect(legislativas.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();
+  await expect(coming.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();
 });
 
 test("elections: unknown elections, places and bodies are real 404s", async ({ request }) => {
@@ -517,13 +582,20 @@ test("elections: unknown elections, places and bodies are real 404s", async ({ r
 
 test("parties can be ordered by votes, and the choice survives a reload", async ({ page }) => {
   await page.goto("/");
-  const nav = page.getByRole("navigation", { name: "Filtrar por partido" });
-  const first = nav.getByRole("link").filter({ hasNotText: "Todas" }).first();
+  const open = () =>
+    page
+      .getByRole("navigation", { name: "Filtrar notícias" })
+      .getByRole("button", { name: /^Partidos/ })
+      .click();
+  const nav = page.getByRole("dialog", { name: "Escolher partidos" });
+  const first = nav.locator("label").first();
+  await open();
   await expect(first).toContainText("B.E.");
   await nav.getByRole("button", { name: "Mais votados" }).click();
   await expect(nav.getByRole("button", { name: "Mais votados" })).toHaveAttribute("aria-pressed", "true");
   await expect(first).toContainText("PSD");
   await page.reload();
+  await open();
   await expect(first).toContainText("PSD");
   await nav.getByRole("button", { name: "A–Z" }).click();
   await expect(first).toContainText("B.E.");
@@ -601,6 +673,7 @@ test("history: from the menu to the timeline of governments, and on to the curre
   page,
   isMobile,
 }) => {
+  test.setTimeout(60_000);
   await page.goto("/");
   if (isMobile) {
     await page.getByRole("button", { name: "Abrir menu" }).click();
@@ -617,18 +690,43 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await expect(page).toHaveURL(/\/historia$/);
   await expect(page.getByRole("heading", { level: 1, name: "Os governos da democracia" })).toBeVisible();
   await expect(page.getByText("governos desde 1974", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Anos 70" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Anos 1970" })).toBeVisible();
 
-  const current = page.getByRole("article", { name: "Henrique Valadares" }).first();
-  await expect(current.getByText("Em funções")).toBeVisible();
-  // A kind of event the site doesn't know yet is left out.
-  await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
+  // An animation runs from 1974 to today: it can be paused, moved with the slider, and skipped to the end.
+  await page.getByRole("button", { name: "❚❚ Pausa" }).click();
+  await page.getByRole("slider", { name: "Data na animação" }).fill(String(Math.round(Date.parse("1990-06-01") / 86_400_000)));
+  await expect(page.getByRole("slider", { name: "Data na animação" })).toHaveAttribute("aria-valuetext", /de 1990$/);
+  await page.getByRole("button", { name: "Saltar para o fim ⏭" }).click();
+  // At the end it stays put: nothing left to skip, and it can start over.
+  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeDisabled();
+  await page.getByRole("button", { name: "↺ Recomeçar" }).click();
+  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeEnabled();
+  const chosen = page.getByRole("article", { name: "Henrique Valadares" }).first();
+  await expect(chosen.getByText("Em funções")).toBeVisible();
+  // Filters narrow the timeline.
+  const all = await page.getByRole("region", { name: "Governo a governo" }).getByRole("article").count();
+  await page.getByRole("button", { name: "Provisórios" }).click();
+  await expect(page.getByRole("region", { name: "Governo a governo" }).getByRole("article")).not.toHaveCount(all);
+  await page.getByRole("button", { name: "Todos" }).click();
   await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
-
-  await page.getByRole("link", { name: "Ver resultados →" }).first().click();
+  // On wide screens a rail beside the timeline jumps to a decade or a year.
+  if (!isMobile) {
+    await page
+      .getByRole("navigation", { name: "Ir para" })
+      .getByRole("link", { name: /^1974–79/ })
+      .click();
+    await expect(page.getByRole("heading", { level: 3, name: "Anos 1970" })).toBeInViewport();
+  }
+  // A kind of event the site doesn't know yet is left out; elections link to their results.
+  await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
+  await page
+    .getByRole("region", { name: "Governo a governo" })
+    .getByRole("link", { name: /^Legislativas 2025/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
   await page.goBack();
-  await page.getByRole("link", { name: "Quem governa agora →" }).click();
+  await page.getByRole("link", { name: "Quem governa agora →" }).first().click();
   await expect(page).toHaveURL(/\/governo$/);
 });
 
@@ -651,11 +749,56 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
   expect(ld).toMatchObject({ "@type": "OpinionNewsArticle", headline: "A maioria que não existe" });
 
+  // A long explainer: its sections listed and numbered, each a jump to its heading.
+  await page.goto("/editorial/como-se-chega-a-deputado");
+  const contents = page.getByRole("navigation", { name: "Neste artigo" }).filter({ visible: true });
+  await contents.getByRole("link", { name: /Os 22 círculos/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Os 22 círculos" })).toBeInViewport();
+
   await page.goto("/editorial?tipo=podcast");
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
   await page.getByRole("link", { name: "Orçamento do Estado: o que muda?" }).click();
-  await expect(page.locator('iframe[src^="https://open.spotify.com/embed/"]')).toBeVisible();
+  // Nothing from Spotify until the reader asks; "always" is remembered and can be undone on the cookies page.
+  const player = page.locator('iframe[src^="https://open.spotify.com/embed/"]');
+  await expect(player).toHaveCount(0);
+  await page.getByRole("button", { name: "Carregar sempre" }).click();
+  await expect(player).toBeVisible();
+  await page.reload();
+  await expect(player).toBeVisible();
+  await page.goto("/cookies");
+  await page.getByRole("button", { name: /Deixar de carregar/ }).click();
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "Carregar o Spotify" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Neste episódio" })).toBeVisible();
 
   expect((await page.goto("/editorial/nao-existe"))!.status()).toBe(404);
+});
+
+test("legislatures: the list, one opened with its chamber, governments, events by kind with sources, and its neighbours", async ({
+  page,
+}) => {
+  await page.goto("/legislaturas");
+  await page.getByRole("link", { name: /XVII Legislatura/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "XVII Legislatura" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Lugares eleitos em Legislativas 2025" })).toContainText("UDP 10");
+  await expect(page.getByRole("link", { name: "Legislativas 2025 →" })).toHaveAttribute("href", "/eleicoes/legislativas-2025");
+  await expect(page.getByRole("complementary", { name: "Quem governou" })).toContainText("Henrique Valadares");
+  // Only the month is known: no day is made up.
+  await expect(page.getByText("setembro de 2025", { exact: true })).toBeVisible();
+  // A judicial case keeps its whole summary, and its sources are links.
+  await expect(page.getByText("Em novembro de 2025 havia dois arguidos e nenhuma acusação.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Rádio Exemplo/ })).toHaveAttribute("href", "https://example.org/caso");
+  await page
+    .getByRole("group", { name: "Mostrar" })
+    .getByRole("button", { name: /Polémicas/ })
+    .click();
+  await expect(page.getByRole("heading", { level: 3, name: "Lei fictícia da habitação aprovada" })).toHaveCount(0);
+  await expect(page.getByText("ainda por decidir")).toBeVisible();
+  // An older one: the record is said to be incomplete, and undecided initiatives lapsed.
+  await page.getByRole("link", { name: /Anterior/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "III Legislatura" })).toBeVisible();
+  await expect(page.getByText(/Registo incompleto nos dados abertos do Parlamento/)).toBeVisible();
+  await expect(page.getByText("caducaram no fim")).toBeVisible();
+  await expect(page.getByText("1984", { exact: true })).toBeVisible();
+  expect((await page.goto("/legislaturas/XCIX"))!.status()).toBe(404);
 });

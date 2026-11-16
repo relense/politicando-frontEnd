@@ -62,3 +62,9 @@ export function sortParties(parties: readonly Party[], standings: Readonly<Recor
   const weight = (party: Party) => standings[party.slug] ?? { seats: 0, votes: 0 };
   return [...parties].sort((a, b) => weight(b).seats - weight(a).seats || weight(b).votes - weight(a).votes);
 }
+
+/** Names that take "da": "Notícias da Iniciativa Liberal", but "do Partido Socialista", "do Livre". */
+const FEMININE = /^(Alternativa|Iniciativa|Nova|Aliança|Coligação|Frente|Esquerda)\b/i;
+
+/** "do" or "da" before a party's name. */
+export const ofParty = (name: string) => (FEMININE.test(name.trim()) ? "da" : "do");

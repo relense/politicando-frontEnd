@@ -315,3 +315,11 @@ export function procedureFilter(value: string | undefined): { value: string; pro
 export const isNif = (value: string) => /^\d{9}$/.test(value);
 export const isPlaceKey = (value: string) => /^LOCAL-\d{6}$/.test(value);
 export const isContractId = (value: string) => /^\d{1,12}$/.test(value);
+
+/** "8,7 mil M€", "312,8 M€", "230 349 €": for narrow columns. */
+export function formatEurosCompact(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1e9) return `${oneDecimal.format(value / 1e9)} mil M€`;
+  if (abs >= 1e6) return `${oneDecimal.format(value / 1e6)} M€`;
+  return wholeEuros.format(value);
+}

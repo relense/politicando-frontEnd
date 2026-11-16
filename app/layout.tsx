@@ -1,3 +1,4 @@
+import { SiteFooter } from "@/components/SiteFooter";
 import type { Metadata, Viewport } from "next";
 import { Domine, Space_Mono } from "next/font/google";
 import Script from "next/script";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 {children}
               </main>
             </div>
+            <SiteFooter />
           </PartyOrderProvider>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}

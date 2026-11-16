@@ -87,7 +87,7 @@ test("reporting a post asks for a reason and thanks the reader", async ({ page }
 
 test("an article opens a new thread on its party's board, linked to it", async ({ page }) => {
   await page.goto("/article/100");
-  const link = page.getByRole("link", { name: /^Fórum do / }).first();
+  const link = page.getByRole("link", { name: /^Discutir no fórum do / }).first();
   await expect(link).toHaveAttribute("href", /\/forum\/[a-z-]+\?artigo=100#nova/);
   await page.goto("/forum/ps?artigo=100#nova");
   const form = page.getByRole("form", { name: /Nova discussão/ });

@@ -3,7 +3,8 @@ import { noSeriousA11yIssues } from "./helpers";
 
 test("president page: profile, the laws in this term, the explainer and former Presidents", async ({ page }) => {
   await page.goto("/presidente");
-  await expect(page.getByRole("heading", { level: 1, name: "Teresa Albuquerque" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "O Presidente da República" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Teresa Albuquerque" })).toBeVisible();
   await expect(page).toHaveTitle(/Teresa Albuquerque, Presidente da República/);
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();
@@ -105,3 +106,18 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   }
 }
+
+test("initiatives: filter by the party that proposed them", async ({ page, isMobile }) => {
+  await page.goto("/iniciativas");
+  const nav = page.getByRole("navigation", { name: isMobile ? "Partido que propôs" : "Quem propôs" });
+  await nav.getByRole("link", { name: /^PS\b/ }).click();
+  await expect(page).toHaveURL(/partido=ps/);
+  await expect(page.getByRole("heading", { level: 2, name: "Partido Socialista" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Partido: PS/ })).toBeVisible();
+  await expect(page).toHaveTitle(/Iniciativas do Partido Socialista/);
+  // The filter stays when searching or changing the order, and goes with its chip.
+  await page.getByRole("link", { name: "Mais antigas" }).click();
+  await expect(page).toHaveURL(/partido=ps&ordem=antigas/);
+  await page.getByRole("link", { name: /Partido: PS/ }).click();
+  await expect(page).not.toHaveURL(/partido=/);
+});

@@ -9,13 +9,19 @@ export type Article = {
   excerpt: string;
   publishedAt: string;
   url: string | null;
+  /** The outlet's display name ("Público"). */
   source: string;
+  /** Its domain ("publico.pt"), for its logo. */
+  sourceDomain: string;
   imageUrl: string | null;
   parties: ArticleParty[];
   commentsCount: number;
+  /** Initiatives in Parliament the article mentions (detail only; empty in lists). */
+  initiatives: { id: number; title: string }[];
 };
 
-export type ArticlePage = { articles: Article[]; nextCursor: string | null };
+/** `total`: how many match, when the API says. */
+export type ArticlePage = { articles: Article[]; nextCursor: string | null; total?: number | null };
 
 export type Comment = {
   id: number;
@@ -249,6 +255,10 @@ export type GovernmentMemberDetail = {
   bio: string[];
   links: { network: string; url: string }[];
   inOffice: boolean;
+  /** Null when unknown; see GovernmentMember. */
+  partySlug: string | null;
+  partySource: "deputy" | "curated" | null;
+  independent: boolean;
   deputy: { id: number; name: string; partySlug: string | null } | null;
   positions: {
     title: string;
@@ -430,6 +440,8 @@ export type EditorialPost = {
   tags: string[];
   featured: boolean;
   publishedAt: string;
+  /** Words ÷ 200, rounded up; null when the API doesn't say. */
+  readingMinutes: number | null;
 };
 
 export type EditorialDetail = EditorialPost & { body: string };

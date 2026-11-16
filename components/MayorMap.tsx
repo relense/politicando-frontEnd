@@ -15,6 +15,7 @@ import {
   type PointerEvent,
   type WheelEvent,
 } from "react";
+import { ApiError, locatePlace } from "@/lib/api/client";
 import { getPlaceDetail } from "@/lib/api/places";
 import { fold } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -182,6 +183,29 @@ export function MayorMap({
     [animateTo, byKey, level, home.h],
   );
 
+  /** Lights one party (or none): the rest fade, its places are outlined and framed together. */
+  function light(key: string | null) {
+    setParty(key);
+    if (!key) return animateTo(home);
+    // The card then lists the party's places instead of one place.
+    if (selected) choose(null);
+    const boxes = places
+      .filter((place) => place.group === key)
+      .flatMap((place) => {
+        const path = pathRefs.current.get(place.code);
+        return path ? [path.getBBox()] : [];
+      });
+    if (boxes.length === 0) return;
+    const x0 = Math.min(...boxes.map((box) => box.x));
+    const y0 = Math.min(...boxes.map((box) => box.y));
+    const x1 = Math.max(...boxes.map((box) => box.x + box.width));
+    const y1 = Math.max(...boxes.map((box) => box.y + box.height));
+    // Room around them, and never closer than a sixth of the country.
+    const side = Math.max(x1 - x0, y1 - y0) * 1.25;
+    const w = Math.max(side, home.h / 6);
+    animateTo({ x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - w / 2, w, h: w });
+  }
+
   function choose(key: string | null, { zoomIn = false } = {}) {
     setSelected(key);
     const url = new URL(window.location.href);
@@ -346,7 +370,7 @@ export function MayorMap({
                   <button
                     type="button"
                     aria-pressed={party === item.key}
-                    onClick={() => setParty(party === item.key ? null : item.key)}
+                    onClick={() => light(party === item.key ? null : item.key)}
                     className={`w-full rounded-lg px-2 py-1.5 text-left font-mono text-xs ${party === item.key ? "bg-surface" : "hover:bg-surface"} ${
                       party && party !== item.key ? "opacity-50" : ""
                     }`}
@@ -387,10 +411,17 @@ export function MayorMap({
                 onWheel={onWheel}
                 onDoubleClick={(event) => zoomBy(2, toMap(event.clientX, event.clientY))}
               >
-                {map.shapes.map((shape) => {
+                {/* A lit party's shapes are drawn last, so their outline is never hidden under a neighbour's. */}
+                {(party
+                  ? [...map.shapes].sort(
+                      (a, b) => Number(byCode.get(a.code)?.group === party) - Number(byCode.get(b.code)?.group === party),
+                    )
+                  : map.shapes
+                ).map((shape) => {
                   const place = byCode.get(shape.code);
                   if (!place) return null;
                   const dim = party !== null && place.group !== party;
+                  const lit = party !== null && !dim;
                   const active = place.key === selected;
                   const text = place.mayor
                     ? `${place.name}: ${place.mayor}, ${place.listLabel ?? "independente"}`
@@ -410,11 +441,11 @@ export function MayorMap({
                       aria-label={text}
                       aria-pressed={active}
                       fill={place.color ?? "var(--line)"}
-                      fillOpacity={dim ? 0.12 : active || hovered === shape.code ? 1 : 0.88}
+                      fillOpacity={dim ? 0.07 : active || lit || hovered === shape.code ? 1 : 0.88}
                       className={`cursor-pointer outline-none transition-[fill-opacity] focus-visible:stroke-ink focus-visible:[stroke-width:3] ${
-                        active ? "stroke-ink [stroke-width:2.5]" : "stroke-paper"
+                        active || lit ? "stroke-ink" : "stroke-paper"
                       }`}
-                      strokeWidth={active ? 2.5 : 0.8}
+                      strokeWidth={active ? 2.5 : lit ? 1.6 : 0.8}
                       vectorEffect="non-scaling-stroke"
                       strokeLinejoin="round"
                       onClick={() => press(place)}
@@ -498,6 +529,14 @@ export function MayorMap({
             <div className="xl:sticky xl:top-20">
               {current ? (
                 <PlaceCard key={current.key} place={current} level={level} onClose={() => choose(null)} />
+              ) : party ? (
+                <PartyPlaces
+                  item={legend.find((entry) => entry.key === party) ?? null}
+                  places={places.filter((place) => place.group === party)}
+                  unit={unit}
+                  onPick={(key) => choose(key, { zoomIn: true })}
+                  onClose={() => light(null)}
+                />
               ) : (
                 <div className="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center text-muted">
                   <p className="font-bold text-ink">Carrega num {unit[0]}</p>
@@ -511,6 +550,68 @@ export function MayorMap({
         </div>
       </section>
     </>
+  );
+}
+
+/** The lit party's câmaras, so a party with three is as easy to find as one with a hundred. */
+function PartyPlaces({
+  item,
+  places,
+  unit,
+  onPick,
+  onClose,
+}: {
+  item: LegendItem | null;
+  places: MayorMapPlace[];
+  unit: string[];
+  onPick: (key: string) => void;
+  onClose: () => void;
+}) {
+  if (!item) return null;
+  const sorted = [...places].sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  return (
+    <section
+      aria-labelledby="partido-aceso"
+      className="rounded-2xl border border-t-4 border-line p-5"
+      style={{ borderTopColor: item.color }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-mono text-xs uppercase tracking-widest text-muted">Destacado no mapa</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Deixar de destacar"
+          className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-2">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <h3 id="partido-aceso" className="mt-1 flex items-center gap-2 text-2xl font-bold leading-tight">
+        <span aria-hidden="true" className="size-3 rounded-sm" style={{ backgroundColor: item.color }} />
+        {item.label}
+      </h3>
+      <p className="mt-1 font-mono text-xs text-muted">
+        {sorted.length} {sorted.length === 1 ? unit[0] : unit[1]}
+      </p>
+      <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto">
+        {sorted.map((place) => (
+          <li key={place.key}>
+            <button
+              type="button"
+              onClick={() => onPick(place.key)}
+              className="-mx-2 w-[calc(100%+1rem)] rounded px-2 py-2 text-left hover:bg-surface"
+            >
+              <span className="block font-bold leading-snug">{place.name}</span>
+              <span className="block truncate font-mono text-xs text-muted">
+                {[place.district, place.mayor ?? place.listLabel].filter(Boolean).join(" · ")}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -538,6 +639,42 @@ function PlaceSearch({ items, popular, onFind }: { items: SearchItem[]; popular:
     onFind(item);
     setQuery("");
     setOpen(false);
+  }
+
+  // The browser asks first; the point goes to the API once, which says which concelho it is in and keeps nothing.
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+  function locate() {
+    if (!("geolocation" in navigator)) return setLocateError("Este browser não consegue dar a tua localização.");
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const place = await locatePlace(coords.latitude, coords.longitude);
+          const item = items.find((candidate) => candidate.key === place.key);
+          if (item) onFind(item);
+          else setLocateError(`Estás em ${place.name}, mas não o encontrámos no mapa.`);
+        } catch (failure) {
+          setLocateError(
+            failure instanceof ApiError && failure.status === 404
+              ? "Parece que não estás em Portugal. Procura o concelho pelo nome."
+              : "Não foi possível encontrar o teu concelho. Procura-o pelo nome.",
+          );
+        } finally {
+          setLocating(false);
+        }
+      },
+      (failure) => {
+        setLocating(false);
+        setLocateError(
+          failure.code === failure.PERMISSION_DENIED
+            ? "Sem autorização para ver a tua localização. Procura o concelho pelo nome."
+            : "Não foi possível obter a tua localização. Procura o concelho pelo nome.",
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 0 },
+    );
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -632,6 +769,25 @@ function PlaceSearch({ items, popular, onFind }: { items: SearchItem[]; popular:
           </ul>
         )}
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={locate}
+          disabled={locating}
+          className="inline-flex items-center gap-1.5 rounded-full border border-ink px-3 py-1 font-mono text-xs font-bold hover:bg-surface disabled:opacity-60"
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-3.5 fill-none stroke-current stroke-2">
+            <path d="M10 18s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10z" />
+            <circle cx="10" cy="8" r="2" />
+          </svg>
+          {locating ? "A localizar…" : "Usar a minha localização"}
+        </button>
+        {locateError && (
+          <span role="alert" className="font-mono text-xs text-danger">
+            {locateError}
+          </span>
+        )}
+      </div>
       {popular.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="font-mono text-[11px] text-muted">Mais procurados:</span>
@@ -709,30 +865,7 @@ function PlaceCard({ place, level, onClose }: { place: MayorMapPlace; level: "mu
             </div>
           )}
 
-          {chamber && winner && (
-            <div className="mt-4">
-              <p className="flex justify-between gap-2 font-mono text-[11px] text-muted">
-                <span>Vereadores na câmara</span>
-                <span>
-                  {winner.mandates} de {chamber.totalMandates} · {winner.mandates * 2 > chamber.totalMandates ? "maioria" : "sem maioria"}
-                </span>
-              </p>
-              <ul aria-label="Vereadores por lista" className="mt-1.5 flex flex-wrap gap-1">
-                {seats.flatMap((seat) =>
-                  Array.from({ length: seat.mandates }, (_, index) => (
-                    <li
-                      key={`${seat.list}-${index}`}
-                      title={`${seat.label}: ${seat.mandates}`}
-                      aria-label={index === 0 ? `${seat.label}: ${seat.mandates}` : undefined}
-                      aria-hidden={index === 0 ? undefined : true}
-                      className="h-4 w-4 rounded-[3px]"
-                      style={{ backgroundColor: seat.parties[0] ? partyColor(seat.parties[0]) : "var(--muted)" }}
-                    />
-                  )),
-                )}
-              </ul>
-            </div>
-          )}
+          {chamber && winner && <ChamberSplit seats={seats} total={chamber.totalMandates} />}
           {detail.isPending && <p className="mt-4 font-mono text-xs text-muted">A carregar a câmara…</p>}
         </>
       ) : (
@@ -775,5 +908,64 @@ function PlaceCard({ place, level, onClose }: { place: MayorMapPlace; level: "mu
         ))}
       </ul>
     </section>
+  );
+}
+
+type Seat = { list: string; label: string; mandates: number; parties: string[] };
+
+/**
+ * How the câmara's councillors split between lists, in words first: whether the mayor's list (the most voted one)
+ * has a majority, then each list with its seats on one bar, the majority marked.
+ */
+function ChamberSplit({ seats, total }: { seats: Seat[]; total: number }) {
+  const winner = seats[0]!;
+  const majority = Math.floor(total / 2) + 1;
+  const colorOf = (seat: Seat) => (seat.parties[0] ? partyColor(seat.parties[0]) : "var(--muted)");
+  const shown = seats.filter((seat) => seat.mandates > 0);
+  return (
+    <div className="mt-4">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Vereadores na câmara</p>
+      <p className="mt-1 text-sm leading-relaxed">
+        A lista do presidente elegeu <b>{winner.mandates}</b> dos {total} vereadores.{" "}
+        {winner.mandates >= majority ? (
+          <>Tem maioria absoluta: aprova as decisões sozinha.</>
+        ) : (
+          <>Não tem maioria (são precisos {majority}): para aprovar decisões, precisa dos votos de vereadores de outras listas.</>
+        )}
+      </p>
+      <div aria-hidden="true" className="relative mt-3">
+        <div className="flex h-3 overflow-hidden rounded-full">
+          {shown.map((seat) => (
+            <span
+              key={seat.list}
+              className="border-r-2 border-paper last:border-0"
+              style={{ width: `${(seat.mandates / total) * 100}%`, backgroundColor: colorOf(seat) }}
+            />
+          ))}
+        </div>
+        <span className="absolute -top-1 bottom-[-4px] w-0.5 bg-ink" style={{ left: `calc(${(majority / total) * 100}% - 1px)` }} />
+        <span
+          className="absolute top-4 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] text-muted"
+          style={{ left: `${(majority / total) * 100}%` }}
+        >
+          maioria: {majority}
+        </span>
+      </div>
+      <ul aria-label="Vereadores por lista" className="mt-7 space-y-1.5">
+        {shown.map((seat, index) => (
+          <li key={seat.list} className="flex items-start gap-2 text-sm">
+            <span aria-hidden="true" className="mt-1.5 size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: colorOf(seat) }} />
+            <span className="min-w-0 flex-1 leading-snug">
+              {seat.label}
+              {index === 0 && <span className="ml-1.5 font-mono text-[10px] text-muted">lista do presidente</span>}
+            </span>
+            <span className="font-mono text-sm font-bold">
+              {seat.mandates}
+              <span className="sr-only"> {seat.mandates === 1 ? "vereador" : "vereadores"}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

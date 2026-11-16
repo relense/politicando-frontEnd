@@ -35,11 +35,15 @@ export const articleSchema = z.object({
   publishedAt: z.string(),
   commentCount: z.number(),
   parties: z.array(articlePartySchema),
+  /** Initiatives the article mentions; only on the detail. */
+  initiatives: z.array(z.object({ id: z.number(), title: z.string() })).nullish(),
 });
 
 export const articlePageSchema = z.object({
   items: z.array(articleSchema),
   nextCursor: z.string().nullable(),
+  /** How many articles match the filters, the same on every page. */
+  total: z.number().nullish(),
 });
 
 export const commentSchema = z.object({
@@ -257,6 +261,9 @@ export const governmentMemberDetailSchema = z.object({
   bio: list(z.string()),
   links: list(z.object({ network: z.string(), url: z.string() })),
   inOffice: z.boolean(),
+  party: z.string().nullish(),
+  partySource: z.string().nullish(),
+  independent: z.boolean().nullish(),
   deputy: z.object({ id: z.number(), name: z.string(), party: z.string().nullish() }).nullish(),
   positions: list(
     z.object({
@@ -430,6 +437,7 @@ export const editorialPostSchema = z.object({
   tags: z.array(z.string()).nullish(),
   featured: z.boolean().nullish(),
   publishedAt: z.string(),
+  readingMinutes: z.number().int().positive().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

@@ -5,6 +5,7 @@ export const editorialPosts: ApiEditorialDetailInput[] = [
   {
     id: 3,
     slug: "o-que-muda-no-orcamento",
+    readingMinutes: 4,
     kind: "podcast",
     title: "Orçamento do Estado: o que muda?",
     subtitle: "Um episódio de vinte minutos sobre as contas do próximo ano.",
