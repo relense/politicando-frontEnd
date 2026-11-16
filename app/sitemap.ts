@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { getElectionResult, getElections } from "@/lib/api/client";
+import { getLegislatures, legislaturePath } from "@/lib/api/legislatures";
 import { getSitemapItems, type SitemapItem, type SitemapKind } from "@/lib/api/sitemap";
 import { editorialPath } from "@/lib/editorial";
 import { FEATURES } from "@/lib/features";
@@ -93,6 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/partidos", { changeFrequency: "weekly" }),
     at("/governo", { changeFrequency: "weekly" }),
     at("/presidente", { changeFrequency: "weekly" }),
+    at("/legislaturas", { changeFrequency: "monthly" }),
     at("/privacidade", { changeFrequency: "yearly" }),
     at("/cookies", { changeFrequency: "yearly" }),
     at("/termos", { changeFrequency: "yearly" }),
@@ -106,7 +108,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/newsletter", { changeFrequency: "yearly" }),
   ];
   const own = LOCAL_POSTS.map((post) => at(editorialPath(post.slug), { lastModified: post.publishedAt, changeFrequency: "monthly" }));
-  const [data, places] = await Promise.all([section(dataPages), section(latestElectionPlaces)]);
+  const [data, places, legislatures] = await Promise.all([
+    section(dataPages),
+    section(latestElectionPlaces),
+    section(async () =>
+      (await getLegislatures()).map((item) => at(legislaturePath(item.id), { changeFrequency: item.current ? "weekly" : "yearly" })),
+    ),
+  ]);
   const seen = new Set<string>();
-  return [...fixed, ...own, ...data, ...places].filter((entry) => !seen.has(entry.url) && Boolean(seen.add(entry.url)));
+  return [...fixed, ...own, ...data, ...places, ...legislatures].filter((entry) => !seen.has(entry.url) && Boolean(seen.add(entry.url)));
 }

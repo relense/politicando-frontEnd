@@ -111,6 +111,7 @@ export function mapArticle(article: ApiArticle): Article {
     publishedAt: article.publishedAt,
     url: safeHttpUrl(article.url),
     source: sourceName(article.source),
+    sourceDomain: article.source,
     imageUrl: safeHttpUrl(article.imageUrl),
     parties: article.parties,
     commentsCount: article.commentCount,

@@ -9,7 +9,10 @@ export type Article = {
   excerpt: string;
   publishedAt: string;
   url: string | null;
+  /** The outlet's display name ("Público"). */
   source: string;
+  /** Its domain ("publico.pt"), for its logo. */
+  sourceDomain: string;
   imageUrl: string | null;
   parties: ArticleParty[];
   commentsCount: number;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { isLegislatureId, legislaturePath } from "@/lib/api/legislatures";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
@@ -191,7 +192,21 @@ export default async function DeputyPage({ params }: Props) {
               <Fact label="Legislaturas">
                 {legislatures === 1 ? "Primeira legislatura" : `${legislatures} legislaturas`}
                 {deputy.pastLegislatures.length > 0 && (
-                  <span className="mt-0.5 block font-mono text-[10px] text-muted">antes: {deputy.pastLegislatures.join(", ")}</span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-muted">
+                    antes:{" "}
+                    {deputy.pastLegislatures.map((id, index) => (
+                      <span key={id}>
+                        {index > 0 && ", "}
+                        {isLegislatureId(id) ? (
+                          <Link href={legislaturePath(id)} className="underline hover:text-ink">
+                            {id}
+                          </Link>
+                        ) : (
+                          id
+                        )}
+                      </span>
+                    ))}
+                  </span>
                 )}
               </Fact>
             </dl>

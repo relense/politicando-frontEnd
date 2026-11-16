@@ -1,3 +1,4 @@
+import { SourceLogo } from "./SourceLogo";
 import Link from "next/link";
 import { excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
@@ -15,13 +16,22 @@ export function ArticleCard({ article }: { article: Article }) {
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (
-            <a href={article.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink hover:underline">
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-bold text-ink hover:underline"
+            >
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
               {article.source}
               <span aria-hidden="true"> ↗</span>
               <span className="sr-only"> (abre num novo separador)</span>
             </a>
           ) : (
-            <span className="font-bold text-ink">{article.source}</span>
+            <span className="inline-flex items-center gap-1.5 font-bold text-ink">
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
+              {article.source}
+            </span>
           )}
           <span aria-hidden="true">·</span>
           {/* The day too, not only the feed's day heading: it scrolls away. */}

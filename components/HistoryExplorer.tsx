@@ -283,7 +283,17 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
   );
 }
 
-function GovernmentCard({ government, today }: { government: HistoricalGovernment; today: string }) {
+export function GovernmentCard({
+  government,
+  today,
+  heading = "h4",
+}: {
+  government: HistoricalGovernment;
+  today: string;
+  /** The level of the Prime Minister's name, to follow the page's own headings. */
+  heading?: "h3" | "h4";
+}) {
+  const Heading = heading;
   return (
     <article
       aria-labelledby={`${government.code}-nome`}
@@ -294,9 +304,9 @@ function GovernmentCard({ government, today }: { government: HistoricalGovernmen
         <p className="font-mono text-[11px] text-muted">{government.name}</p>
         <EndBadge government={government} />
       </div>
-      <h4 id={`${government.code}-nome`} className="mt-1 text-xl font-bold leading-tight">
+      <Heading id={`${government.code}-nome`} className="mt-1 text-xl font-bold leading-tight">
         {government.primeMinister}
-      </h4>
+      </Heading>
       <p className="mt-1 font-mono text-xs text-muted">
         {formatDate(government.start)} → {government.end ? formatDate(government.end) : "hoje"} ·{" "}
         {durationLabel(government.start, endOf(government, today))}

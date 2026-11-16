@@ -249,7 +249,6 @@ test("article page shows the excerpt and links to the original", async ({ page }
   await expect(link).toHaveAttribute("target", "_blank");
   await expect(page.locator("article h1 + p")).toContainText("…");
   await expect(page.locator("article time").first()).toContainText(/^[A-ZÁÉ][a-zçá-]+(-feira)?, \d+ de /);
-  await expect(page.getByRole("button", { name: "Partilhar" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Copiar ligação" })).toBeVisible();
   // Beside it: its parties with their forums, more news about each, the context in Parliament and the map.
   const beside = page.getByRole("complementary", { name: "Sobre esta notícia" });
@@ -328,6 +327,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/privacidade",
     "/cookies",
     "/termos",
+    "/legislaturas",
+    "/legislaturas/XVII",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -581,7 +582,11 @@ test("elections: unknown elections, places and bodies are real 404s", async ({ r
 
 test("parties can be ordered by votes, and the choice survives a reload", async ({ page }) => {
   await page.goto("/");
-  const open = () => page.getByRole("navigation", { name: "Filtrar notícias" }).getByRole("button", { name: /^Partidos/ }).click();
+  const open = () =>
+    page
+      .getByRole("navigation", { name: "Filtrar notícias" })
+      .getByRole("button", { name: /^Partidos/ })
+      .click();
   const nav = page.getByRole("dialog", { name: "Escolher partidos" });
   const first = nav.locator("label").first();
   await open();
@@ -767,4 +772,33 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await expect(page.getByRole("heading", { level: 2, name: "Neste episódio" })).toBeVisible();
 
   expect((await page.goto("/editorial/nao-existe"))!.status()).toBe(404);
+});
+
+test("legislatures: the list, one opened with its chamber, governments, events by kind with sources, and its neighbours", async ({
+  page,
+}) => {
+  await page.goto("/legislaturas");
+  await page.getByRole("link", { name: /XVII Legislatura/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "XVII Legislatura" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Lugares eleitos em Legislativas 2025" })).toContainText("UDP 10");
+  await expect(page.getByRole("link", { name: "Legislativas 2025 →" })).toHaveAttribute("href", "/eleicoes/legislativas-2025");
+  await expect(page.getByRole("complementary", { name: "Quem governou" })).toContainText("Henrique Valadares");
+  // Only the month is known: no day is made up.
+  await expect(page.getByText("setembro de 2025", { exact: true })).toBeVisible();
+  // A judicial case keeps its whole summary, and its sources are links.
+  await expect(page.getByText("Em novembro de 2025 havia dois arguidos e nenhuma acusação.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Rádio Exemplo/ })).toHaveAttribute("href", "https://example.org/caso");
+  await page
+    .getByRole("group", { name: "Mostrar" })
+    .getByRole("button", { name: /Polémicas/ })
+    .click();
+  await expect(page.getByRole("heading", { level: 3, name: "Lei fictícia da habitação aprovada" })).toHaveCount(0);
+  await expect(page.getByText("ainda por decidir")).toBeVisible();
+  // An older one: the record is said to be incomplete, and undecided initiatives lapsed.
+  await page.getByRole("link", { name: /Anterior/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "III Legislatura" })).toBeVisible();
+  await expect(page.getByText(/Registo incompleto nos dados abertos do Parlamento/)).toBeVisible();
+  await expect(page.getByText("caducaram no fim")).toBeVisible();
+  await expect(page.getByText("1984", { exact: true })).toBeVisible();
+  expect((await page.goto("/legislaturas/XCIX"))!.status()).toBe(404);
 });

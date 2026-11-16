@@ -8,6 +8,7 @@ import { becomeDeputyHandlers } from "./becomeDeputyFixtures";
 import { editorialPosts } from "./editorialFixtures";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
+import { legislatureHandlers } from "./legislatureFixtures";
 import { forumHandlers } from "./forumFixtures";
 import { presidencyHandlers } from "./presidencyFixtures";
 import { peopleHandlers } from "./peopleFixtures";
@@ -272,6 +273,7 @@ export const handlers = [
   }),
   ...contractHandlers,
   ...placeHandlers,
+  ...legislatureHandlers,
   ...forumHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,

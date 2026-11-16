@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ShareIcon } from "./icons";
 
 const button = "inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 font-mono text-xs font-bold hover:bg-surface";
 
-/** Copy the link, or open the phone's share sheet (where there is none, it copies too). */
+/** A phone or tablet that can open its share sheet; on a computer sharing would only copy the link again. */
+const canShare = () => typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches;
+const noSubscription = () => () => {};
+
+/** Copy the link and, on a phone, open its share sheet. */
 export function ArticleActions({ title }: { title: string }) {
   const [copied, setCopied] = useState(false);
+  const shareable = useSyncExternalStore(noSubscription, canShare, () => false);
   const url = () => window.location.href.split("#")[0]!;
 
   async function copy() {
@@ -38,10 +43,12 @@ export function ArticleActions({ title }: { title: string }) {
         </svg>
         {copied ? "Ligação copiada" : "Copiar ligação"}
       </button>
-      <button type="button" onClick={() => void share()} className={button}>
-        <ShareIcon />
-        Partilhar
-      </button>
+      {shareable && (
+        <button type="button" onClick={() => void share()} className={button}>
+          <ShareIcon />
+          Partilhar
+        </button>
+      )}
       <span aria-live="polite" className="sr-only">
         {copied ? "Ligação copiada" : ""}
       </span>

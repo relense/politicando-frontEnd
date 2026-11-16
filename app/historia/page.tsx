@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { HistoryExplorer } from "@/components/HistoryExplorer";
@@ -155,6 +156,18 @@ export default async function HistoryPage() {
             color="var(--stage-debate)"
           />
         </dl>
+        <Link
+          href="/legislaturas"
+          className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line p-4 hover:bg-surface"
+        >
+          <span>
+            <span className="block font-bold">Legislatura a legislatura</span>
+            <span className="block text-sm text-muted">
+              Da Constituinte a hoje: quem foi eleito, o que se aprovou e o que aconteceu em cada Parlamento.
+            </span>
+          </span>
+          <span className="font-mono text-xs font-bold">Ver as legislaturas →</span>
+        </Link>
       </section>
 
       <HistoryExplorer governments={governments} presidents={presidents} elections={elections} parliaments={parliaments} today={today}>
