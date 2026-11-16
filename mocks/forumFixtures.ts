@@ -348,11 +348,10 @@ export const forumHandlers = [
     return HttpResponse.json({ id, posterId }, { status: 201 });
   }),
 
-  // One vote per reader; the real API dedupes by a hash of the IP. Here every vote counts, which tests need.
+  // One vote per reader on any board; the real API dedupes by a hash of the IP. Here every vote counts, which tests need.
   http.post(`${API}/forums/threads/:id/vote`, ({ params }) => {
     const thread = threads.find((item) => item.id === Number(params.id));
     if (!thread) return fail(404, "not_found");
-    if (thread.board !== "ideias") return fail(400, "votes_not_allowed");
     thread.score = (thread.score ?? 0) + 1;
     return HttpResponse.json({ score: thread.score });
   }),

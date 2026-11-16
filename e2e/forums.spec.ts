@@ -23,9 +23,12 @@ test("board lists threads with the pinned one first, and hostile text stays text
   await expect(page.getByRole("link", { name: /Notícia: Notícia de teste número 100/ })).toBeVisible();
   await noSeriousA11yIssues(page);
 
-  await page.getByRole("link", { name: "Mais respostas" }).click();
-  await expect(page).toHaveURL(/ordem=respostas/);
+  // Votes count on every board; with none yet, the most replies go first.
+  await page.getByRole("link", { name: "Mais votadas" }).click();
+  await expect(page).toHaveURL(/ordem=votadas/);
   await expect(threads.nth(1)).toContainText("O que acham do debate do orçamento?");
+  await threads.nth(1).getByRole("button", { name: /^Votar em «O que acham do debate do orçamento\?»/ }).click();
+  await expect(threads.nth(1).getByRole("button", { name: /^Votaste em/ })).toBeDisabled();
 });
 
 test("unknown board is a 404 and a thread on the wrong board moves to the right one", async ({ page }) => {

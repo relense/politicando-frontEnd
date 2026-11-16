@@ -40,6 +40,7 @@ const MESSAGE: Record<FeedbackKind, { label: string; placeholder: string }> = {
 const ERRORS: Record<string, string> = {
   rate_limited: "Enviaste várias mensagens seguidas. Espera uns minutos e tenta de novo.",
   captcha_failed: "A verificação anti-robô falhou. Tenta outra vez.",
+  captcha_unavailable: "A verificação anti-robô não está a responder. Tenta daqui a pouco.",
   file_too_large: "A captura de ecrã tem mais de 5 MB.",
   unsupported_file: "A captura de ecrã tem de ser PNG ou JPG.",
 };
