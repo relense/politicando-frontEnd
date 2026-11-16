@@ -67,5 +67,11 @@
   "allowScripts": {
     "esbuild": false,
     "fsevents": false
+  },
+  "imports": {
+    "#server-headers": {
+      "react-server": "./lib/api/serverHeaders.ts",
+      "default": "./lib/api/serverHeaders.browser.ts"
+    }
   }
 }
