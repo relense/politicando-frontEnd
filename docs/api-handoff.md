@@ -32,3 +32,48 @@ The frontend targets the rewritten API at `/api/v2`. Only `lib/api/` knows its s
 
 - **Votes by party:** there is no party endpoint yet, so the page reads one of the party's deputies' votes (`/deputies/:id/votes`) and keeps those with `basis` `group` or `unanimous`, the party's own position. A `GET /parties/:slug/votes` with the same items and `position` per party would be simpler and would also cover votes where the bench split.
 - **Leader:** read from the deputies' `positions` ("Presidente do CHEGA", "Secretário-Geral do PCP"), so a leader who isn't a deputy (PSD now) isn't shown. A `leader: { name, title, deputyId|null }` on `/parties` would fix that.
+
+## Agenda política (needed from the API)
+The `/agenda` page and the "Próximo evento" box on the front page are built against this contract, with fictional data in `mocks/agendaFixtures.ts`. Until `GET /agenda` exists (404), the page says the calendar is coming and shows the upcoming elections from `GET /elections`; the front page leaves the box out.
+
+### `GET /agenda?from=&kind=&district=&open=&cursor=&limit=`
+- `from`: a day (`2026-11-16`); default today, Lisbon time. Only what has not ended yet.
+- `kind`: one or more, comma-separated: `parliament`, `committee`, `government`, `president`, `party`, `local`, `election`, `european`, `other`.
+- `district`: one of the 18 districts, `Açores` or `Madeira`, as written in `place.district`.
+- `open=true`: only events the public can attend.
+- Soonest first; `limit` up to 100, default 50.
+
+```jsonc
+{
+  "items": [
+    {
+      "id": "ar-2026-11-17-plenario",          // stable across imports, used in links and calendar files
+      "kind": "parliament",
+      "title": "Debate quinzenal com o Primeiro-Ministro",
+      "summary": "…",                          // or null; plain text
+      "start": "2026-11-17T15:00:00+00:00",    // with offset; or a bare day "2026-11-21" when allDay
+      "end": "2026-11-17T18:00:00+00:00",      // or null; for allDay the last day, inclusive
+      "allDay": false,
+      "status": "scheduled",                   // scheduled | cancelled | postponed (keep cancelled ones a while, so people see it)
+      "place": { "name": "Assembleia da República", "address": "…", "municipality": "Lisboa", "district": "Lisboa", "lat": 38.71, "lng": -9.15 }, // or null
+      "online": { "url": "https://…", "label": "Canal Parlamento" },       // live stream, or null
+      "attend": { "open": true, "how": "Galerias abertas, com documento de identificação.", "url": null }, // url: registration page
+      "organizer": "Assembleia da República",  // or null
+      "parties": [{ "slug": "ps", "acronym": "PS" }],
+      "sourceUrl": "https://…",                // where the date comes from
+      "featured": true                          // editors' pick for the front page box
+    }
+  ],
+  "nextCursor": null,
+  "total": 4                                    // matching the filters, same on every page
+}
+```
+
+### Suggested sources
+- **Parlamento:** the plenary and committee agenda in the Assembleia da República's open data (and the "Agenda parlamentar" page): plenary sessions, hearings, votes, the Estado da Nação and Orçamento debates. Kinds `parliament` and `committee`.
+- **Governo:** the weekly Conselho de Ministros and ministers' public agenda on portugal.gov.pt. Kind `government`.
+- **Presidente:** the public agenda on presidencia.pt. Kind `president`.
+- **Partidos:** congresses, national councils, rallies and campaign events, from the parties' sites and news, curated by the editors. Kind `party`.
+- **Autarquias:** public meetings of câmaras and assembleias municipais (the law gives the public time to speak), from the municipalities' sites, starting with the largest. Kind `local`.
+- **Eleições:** election days once the decree is out, and campaign periods. Kind `election`.
+- **União Europeia:** plenaries of the European Parliament and European Council summits. Kind `european`.

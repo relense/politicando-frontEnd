@@ -39,6 +39,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
         active: (path) => path.startsWith("/editorial"),
       },
+      {
+        href: "/agenda",
+        label: "Agenda",
+        hint: "O que vem aí e onde assistir",
+        icon: icon("M4 5h12v11H4V5Zm0 4h12M7 3v4M13 3v4M7 12h2M11 12h2"),
+        active: (path) => path.startsWith("/agenda"),
+      },
     ],
   },
   {

@@ -94,6 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/partidos", { changeFrequency: "weekly" }),
     at("/governo", { changeFrequency: "weekly" }),
     at("/presidente", { changeFrequency: "weekly" }),
+    at("/agenda", { changeFrequency: "daily" }),
     at("/legislaturas", { changeFrequency: "monthly" }),
     at("/privacidade", { changeFrequency: "yearly" }),
     at("/cookies", { changeFrequency: "yearly" }),

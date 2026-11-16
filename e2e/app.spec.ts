@@ -328,6 +328,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/cookies",
     "/termos",
     "/legislaturas",
+    "/agenda",
     "/legislaturas/XVII",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
@@ -812,4 +813,49 @@ test("history: a government opens what happened in its legislature", async ({ pa
   await mandate.getByRole("link", { name: /O que aconteceu · XVII Legislatura/ }).click();
   await expect(page).toHaveURL(/\/legislaturas\/XVII#aconteceu$/);
   await expect(page.getByRole("heading", { level: 2, name: "O que aconteceu" })).toBeVisible();
+});
+
+test("agenda: what is coming by day, filters, how to attend, add to calendar, and the next event on the front page", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto("/");
+  const box = page.getByRole("region", { name: "Debate quinzenal com o Primeiro-Ministro" }).filter({ visible: true });
+  await expect(box).toContainText("Próximo evento");
+  await expect(box).toContainText("Amanhã");
+  await box.getByRole("link", { name: /Ver a agenda/ }).click();
+  await expect(page).toHaveURL(/\/agenda$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Agenda política" })).toBeVisible();
+  await expect(page.getByText("4 eventos")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^Amanhã · / })).toBeVisible();
+  const debate = page.getByRole("article", { name: "Debate quinzenal com o Primeiro-Ministro" });
+  await expect(debate).toContainText("Aberto ao público");
+  await expect(debate.getByRole("link", { name: /Assembleia da República, Palácio de São Bento/ })).toHaveAttribute(
+    "href",
+    /openstreetmap/,
+  );
+  await expect(debate.getByRole("link", { name: /Ver em direto · Canal Parlamento/ })).toBeVisible();
+  // A cancelled event says so, and can't be added to a calendar.
+  const cancelled = page.getByRole("article", { name: "Conselho de Ministros" });
+  await expect(cancelled).toContainText("Cancelado");
+  await expect(cancelled.getByRole("button", { name: /Adicionar ao calendário/ })).toHaveCount(0);
+  if (!isMobile) {
+    const download = page.waitForEvent("download");
+    await debate.getByRole("button", { name: /Adicionar ao calendário/ }).click();
+    expect((await download).suggestedFilename()).toBe("plenario-1.ics");
+  }
+  // Filters: a kind, then a district and only what is open to the public.
+  await page.getByRole("list", { name: "Tipo" }).getByRole("link", { name: "Partidos" }).click();
+  await expect(page).toHaveURL(/tipo=party/);
+  await expect(page.getByRole("article")).toHaveCount(1);
+  await expect(page.getByRole("article", { name: "Congresso Nacional do PS" })).toContainText(/Até /);
+  await page.goto("/agenda");
+  await page.getByRole("combobox", { name: "Distrito" }).selectOption("Porto");
+  await page.getByRole("checkbox", { name: "Só abertos ao público" }).check();
+  await page.getByRole("button", { name: "Aplicar" }).click();
+  await expect(page).toHaveURL(/distrito=Porto&aberto=1/);
+  await expect(page.getByRole("article")).toHaveCount(1);
+  await expect(page.getByRole("article", { name: "Reunião pública da Câmara Municipal do Porto" })).toContainText(
+    "Inscrição prévia para intervir",
+  );
 });
