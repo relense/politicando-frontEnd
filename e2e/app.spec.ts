@@ -448,7 +448,7 @@ test("elections: from the menu to a district and a municipality, and back up the
   // Not imported yet: shown, but not a link.
   await expect(page.getByRole("link", { name: /Legislativas 2019/ })).toHaveCount(0);
 
-  // The latest election is featured at the top, and also listed with the others.
+  // The latest legislativas are featured at the top, and not repeated in the cards.
   await expect(page.getByRole("region", { name: "Legislativas 2025" })).toContainText("Mais recente");
   await page
     .getByRole("link", { name: /Legislativas 2025/ })
@@ -471,15 +471,14 @@ test("elections: from the menu to a district and a municipality, and back up the
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
 });
 
-test("elections: each type shows the date of its next election when one is scheduled", async ({ page }) => {
+test("elections: the coming ones sit beside the results, a scheduled date included", async ({ page }) => {
   await page.goto("/eleicoes");
+  const coming = page.getByRole("complementary", { name: "Próximas eleições" });
+  await expect(coming.locator('time[datetime="2029-10-07"]')).toBeVisible();
+  // A scheduled election has no results yet, so it isn't one of the cards; nor does each type repeat the next one.
   const local = page.getByRole("region", { name: "Autárquicas" });
-  await expect(local.getByText("Próximas eleições")).toBeVisible();
-  await expect(local.locator('time[datetime="2029-10-07"]')).toBeVisible();
-  // A scheduled election has no results yet, so it isn't one of the cards.
   await expect(local.getByRole("link", { name: /Autárquicas 2029/ })).toHaveCount(0);
-  // Without a date yet, the next legislativas show the legal window instead.
-  await expect(page.getByRole("region", { name: "Legislativas", exact: true }).locator('time[datetime^="2029"]')).toHaveCount(0);
+  await expect(local.getByText("Próximas eleições")).toHaveCount(0);
 });
 
 test("elections: the latest of each type as cards, older ones one per line by decade", async ({ page }) => {
@@ -501,11 +500,10 @@ test("elections: the latest of each type as cards, older ones one per line by de
 
 test("elections: the coming ones, regionais included, with the law's window until there is a date", async ({ page }) => {
   await page.goto("/eleicoes");
-  const coming = page.getByRole("region", { name: "Próximas eleições" });
+  const coming = page.getByRole("complementary", { name: "Próximas eleições" });
   await expect(coming.getByText("Regionais dos Açores 2028")).toBeVisible();
   await expect(coming.getByText(/Até ao fim de 2028/)).toBeVisible();
-  const legislativas = page.getByRole("region", { name: "Legislativas", exact: true });
-  await expect(legislativas.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();
+  await expect(coming.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();
 });
 
 test("elections: unknown elections, places and bodies are real 404s", async ({ request }) => {
