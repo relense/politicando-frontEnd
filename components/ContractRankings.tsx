@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { contractsLabel, formatEurosShort, share, type ContractGroup } from "@/lib/api/contracts";
+import { contractsLabel, formatEurosCompact, share, type ContractGroup } from "@/lib/api/contracts";
 
 export type RankingTab = { key: string; label: string; title: string; items: ContractGroup[]; hrefs: (string | null)[]; note?: string };
 
@@ -56,7 +56,7 @@ export function ContractRankings({ tabs }: { tabs: RankingTab[] }) {
                         </span>
                         <span className="mt-1 block font-mono text-[11px] text-muted">{contractsLabel(item.count)}</span>
                       </span>
-                      <span className="whitespace-nowrap font-mono text-sm font-bold tabular-nums">{formatEurosShort(item.total)}</span>
+                      <span className="whitespace-nowrap font-mono text-sm font-bold tabular-nums">{formatEurosCompact(item.total)}</span>
                     </li>
                   );
                 })}

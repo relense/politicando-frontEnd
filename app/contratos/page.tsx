@@ -12,6 +12,7 @@ import {
   directAwardTotals,
   eurosScale,
   contractsLabel,
+  formatEurosCompact,
   formatEurosShort,
   getContracts,
   getContractStats,
@@ -307,7 +308,7 @@ export default async function ContractsPage({ searchParams }: Props) {
               const last = index === shown.length - 1;
               return (
                 <li key={item.key} className="flex min-w-0 flex-1 flex-col">
-                  <span className="mb-1 text-lg font-bold tabular-nums sm:text-2xl">{formatEurosShort(item.total)}</span>
+                  <span className="mb-1 text-lg font-bold tabular-nums sm:text-2xl">{formatEurosCompact(item.total)}</span>
                   <span
                     aria-hidden="true"
                     className={`block rounded-t-lg ${current ? "" : last ? "bg-ink/80" : "bg-muted/40"}`}
