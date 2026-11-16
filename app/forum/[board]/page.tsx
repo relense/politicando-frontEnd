@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { BoardBadge } from "@/components/forum/BoardBadge";
+import { IdeaVote } from "@/components/forum/IdeaVote";
 import { NewThreadForm } from "@/components/forum/NewThreadForm";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ApiError, getArticle, getInitiative } from "@/lib/api/client";
-import { getBoards, getThreads, posterName, type Board, type ThreadLink, type ThreadSort } from "@/lib/api/forums";
+import { getBoards, getThreads, IDEAS_BOARD, posterName, type Board, type ThreadLink, type ThreadSort } from "@/lib/api/forums";
 import { partyPath } from "@/lib/parties";
 
 const PAGE_SIZE = 25;
@@ -19,10 +20,11 @@ type Props = {
 const SORTS: { value: ThreadSort; param: string; label: string }[] = [
   { value: "active", param: "ativas", label: "Ativas" },
   { value: "new", param: "recentes", label: "Recentes" },
-  { value: "top", param: "respostas", label: "Mais respostas" },
+  { value: "top", param: "votadas", label: "Mais votadas" },
 ];
 
-const sortOf = (value: unknown) => SORTS.find((sort) => sort.param === value) ?? SORTS[0]!;
+// "respostas" was the old name of the top sort, when it counted replies; old links still land there.
+const sortOf = (value: unknown) => SORTS.find((sort) => sort.param === (value === "respostas" ? "votadas" : value)) ?? SORTS[0]!;
 const pageOf = (value: unknown) => (typeof value === "string" && /^[1-9]\d{0,3}$/.test(value) ? Number(value) : 1);
 const idOf = (value: unknown) => (typeof value === "string" && /^[1-9]\d{0,9}$/.test(value) ? Number(value) : null);
 
@@ -35,6 +37,8 @@ function pathOf(board: string, sort: string, page = 1) {
 
 async function loadBoard(slug: string): Promise<Board> {
   if (!/^[a-z0-9-]{1,50}$/.test(slug)) notFound();
+  // Ideas have their own page, with votes.
+  if (slug === IDEAS_BOARD) redirect("/feedback/ideias");
   const board = (await getBoards().catch(() => [])).find((item) => item.board === slug);
   if (!board) notFound();
   return board;
@@ -145,35 +149,38 @@ export default async function BoardPage({ params, searchParams }: Props) {
           <ul aria-label="Discussões" className="flex flex-col gap-3">
             {threads.items.map((thread) => (
               <li key={thread.id}>
-                <article className="relative rounded-2xl border border-line p-4 hover:bg-surface">
-                  <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
-                    {thread.pinned && <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-paper">Fixada</span>}
-                    {thread.locked && <span className="rounded-full border border-line px-2 py-0.5 font-bold text-ink">Fechada</span>}
-                    <span className="font-bold text-ink">{posterName(thread.nickname)}</span>
-                    <span>(ID: {thread.posterId})</span>
-                    <span aria-hidden="true">·</span>
-                    <RelativeTime value={thread.createdAt} />
-                  </div>
-                  <h2 className="break-words text-lg font-bold leading-snug">
-                    {/* The whole card is clickable through this link's overlay. */}
-                    <Link href={`/forum/${board.board}/${thread.id}`} className="after:absolute after:inset-0 after:rounded-2xl">
-                      {thread.title}
-                    </Link>
-                  </h2>
-                  {thread.excerpt && <p className="mt-1 line-clamp-2 break-words text-muted">{thread.excerpt}</p>}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
-                    <span>{thread.replyCount === 1 ? "1 resposta" : `${thread.replyCount} respostas`}</span>
-                    <span>
-                      Última <RelativeTime value={thread.bumpedAt} />
-                    </span>
-                    {thread.link && (
-                      <Link
-                        href={thread.link.kind === "article" ? `/article/${thread.link.id}` : `/iniciativas/${thread.link.id}`}
-                        className="relative z-10 max-w-full truncate rounded-full border border-line px-2 py-0.5 text-ink hover:border-ink"
-                      >
-                        {thread.link.kind === "article" ? "Notícia" : "Iniciativa"}: {thread.link.title}
+                <article className="relative flex gap-3 rounded-2xl border border-line p-4 hover:bg-surface">
+                  <IdeaVote id={thread.id} title={thread.title} score={thread.score ?? 0} />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
+                      {thread.pinned && <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-paper">Fixada</span>}
+                      {thread.locked && <span className="rounded-full border border-line px-2 py-0.5 font-bold text-ink">Fechada</span>}
+                      <span className="font-bold text-ink">{posterName(thread.nickname)}</span>
+                      <span>(ID: {thread.posterId})</span>
+                      <span aria-hidden="true">·</span>
+                      <RelativeTime value={thread.createdAt} />
+                    </div>
+                    <h2 className="break-words text-lg font-bold leading-snug">
+                      {/* The whole card is clickable through this link's overlay. */}
+                      <Link href={`/forum/${board.board}/${thread.id}`} className="after:absolute after:inset-0 after:rounded-2xl">
+                        {thread.title}
                       </Link>
-                    )}
+                    </h2>
+                    {thread.excerpt && <p className="mt-1 line-clamp-2 break-words text-muted">{thread.excerpt}</p>}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
+                      <span>{thread.replyCount === 1 ? "1 resposta" : `${thread.replyCount} respostas`}</span>
+                      <span>
+                        Última <RelativeTime value={thread.bumpedAt} />
+                      </span>
+                      {thread.link && (
+                        <Link
+                          href={thread.link.kind === "article" ? `/article/${thread.link.id}` : `/iniciativas/${thread.link.id}`}
+                          className="relative z-10 max-w-full truncate rounded-full border border-line px-2 py-0.5 text-ink hover:border-ink"
+                        >
+                          {thread.link.kind === "article" ? "Notícia" : "Iniciativa"}: {thread.link.title}
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </article>
               </li>

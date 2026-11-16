@@ -68,7 +68,7 @@ export default async function PartiesPage() {
               <h2 id="sem-deputados" className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
                 Sem deputados
               </h2>
-              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {others.map((party) => (
                   <li key={party.slug}>
                     <Link

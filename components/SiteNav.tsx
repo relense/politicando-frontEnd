@@ -39,6 +39,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
         active: (path) => path.startsWith("/editorial"),
       },
+      {
+        href: "/agenda",
+        label: "Agenda",
+        hint: "O que vem aí e onde assistir",
+        icon: icon("M4 5h12v11H4V5Zm0 4h12M7 3v4M13 3v4M7 12h2M11 12h2"),
+        active: (path) => path.startsWith("/agenda"),
+      },
     ],
   },
   {
@@ -123,6 +130,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         hint: "Como chegaram lá",
         icon: icon("M4 16c3-1 4-4 6-7s3-5 6-5M4 16a1.5 1.5 0 1 0 0 .01M16 4a1.5 1.5 0 1 0 0 .01"),
         active: (path) => path.startsWith("/percursos"),
+      },
+      {
+        href: "/feedback",
+        label: "Feedback",
+        hint: "Erros, ideias e correções",
+        icon: icon("M3 4h14v9H8l-4 3v-3H3V4Zm4 4h6M7 10h4"),
+        active: (path) => path.startsWith("/feedback"),
       },
     ],
   },

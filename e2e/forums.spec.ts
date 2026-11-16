@@ -23,9 +23,12 @@ test("board lists threads with the pinned one first, and hostile text stays text
   await expect(page.getByRole("link", { name: /Notícia: Notícia de teste número 100/ })).toBeVisible();
   await noSeriousA11yIssues(page);
 
-  await page.getByRole("link", { name: "Mais respostas" }).click();
-  await expect(page).toHaveURL(/ordem=respostas/);
+  // Votes count on every board; with none yet, the most replies go first.
+  await page.getByRole("link", { name: "Mais votadas" }).click();
+  await expect(page).toHaveURL(/ordem=votadas/);
   await expect(threads.nth(1)).toContainText("O que acham do debate do orçamento?");
+  await threads.nth(1).getByRole("button", { name: /^Votar em «O que acham do debate do orçamento\?»/ }).click();
+  await expect(threads.nth(1).getByRole("button", { name: /^Votaste em/ })).toBeDisabled();
 });
 
 test("unknown board is a 404 and a thread on the wrong board moves to the right one", async ({ page }) => {
@@ -112,4 +115,48 @@ test("an article comment can be reported", async ({ page }) => {
   await page.getByLabel("Insulto ou assédio").first().check();
   await page.getByRole("button", { name: "Enviar denúncia" }).click();
   await expect(page.getByRole("status").filter({ hasText: "A moderação vai rever" })).toBeVisible();
+});
+
+test("ideas board: most voted first, filter by status, vote once, propose one and read the team's answer", async ({ page }) => {
+  await page.goto("/forum/ideias");
+  await expect(page).toHaveURL(/\/feedback\/ideias$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Ideias para o Politicando" })).toBeVisible();
+  const ideas = page.getByRole("list", { name: "Ideias" }).getByRole("listitem");
+  await expect(ideas.first()).toContainText("Alertas quando um deputado do meu distrito vota");
+  await expect(ideas.first()).toContainText("Em desenvolvimento");
+  await noSeriousA11yIssues(page);
+
+  // Only the ideas already done.
+  await page.getByRole("navigation", { name: "Filtrar por estado" }).getByRole("link", { name: "Feita" }).click();
+  await expect(page).toHaveURL(/estado=feitas/);
+  await expect(ideas).toHaveCount(1);
+  await expect(ideas.first()).toContainText("Filtrar a agenda pelo meu concelho");
+  // A finished idea takes no more votes.
+  await expect(ideas.first().getByRole("button", { name: /Votar em/ })).toBeDisabled();
+
+  // A vote counts once on this device.
+  await page.goto("/feedback/ideias");
+  const vote = page.getByRole("button", { name: /^Votar em «Modo de leitura sem imagens», (\d+) votos$/ });
+  const before = Number((await vote.getAttribute("aria-label"))!.match(/(\d+) votos/)![1]);
+  await vote.click();
+  await expect(page.getByRole("button", { name: `Votaste em «Modo de leitura sem imagens», ${before + 1} votos` })).toBeDisabled();
+
+  // The team's answer shows on the idea.
+  await page.goto("/feedback/ideias/501");
+  await expect(page.getByText("Estamos a fazer: primeiro por email, depois no telemóvel.")).toBeVisible();
+  await expect(page.getByText(/Resposta da equipa/)).toBeVisible();
+
+  // Proposing one opens it, waiting for the team.
+  await page.goto("/feedback/ideias#nova");
+  const form = page.getByRole("form", { name: "Nova ideia" });
+  await form.getByLabel("Título").fill("Ideia de teste para o quadro");
+  await form.getByLabel("Explica a ideia").fill("Uma ideia escrita pelo teste.");
+  await form.getByLabel("Não sou um robô (teste)").check();
+  await form.getByRole("button", { name: "Publicar ideia" }).click();
+  await expect(page).toHaveURL(/\/feedback\/ideias\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Ideia de teste para o quadro" })).toBeVisible();
+  await expect(page.getByText("Ainda por analisar")).toBeVisible();
+  // The title streams in after a client-side navigation.
+  await expect(page).toHaveTitle(/Ideia de teste para o quadro/);
+  await noSeriousA11yIssues(page);
 });

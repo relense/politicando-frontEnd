@@ -519,6 +519,7 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     featured: api.featured ?? false,
     publishedAt: api.publishedAt,
     readingMinutes: api.readingMinutes ?? null,
+    ...(typeof api.views === "number" ? { views: api.views } : {}),
   };
 }
 

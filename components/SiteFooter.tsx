@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReportProblem } from "./ReportProblem";
 import { CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -18,6 +19,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/newsletter", label: "Newsletter" },
       { href: "/historia", label: "História" },
       { href: "/como-ser-deputado", label: "Como se chega a deputado" },
+      { href: "/feedback", label: "Feedback e correções" },
     ],
   },
   {
@@ -37,8 +39,9 @@ export function SiteFooter() {
         <div className="max-w-sm">
           <p className="font-mono text-lg font-bold tracking-[0.3em]">{SITE_NAME.toUpperCase()}</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">{SITE_DESCRIPTION}</p>
-          <p className="mt-3 text-sm">
-            Erros ou pedidos de correção:{" "}
+          <ReportProblem />
+          <p className="mt-1 text-sm text-muted">
+            Ou por email:{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-link underline">
               {CONTACT_EMAIL}
             </a>

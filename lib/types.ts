@@ -442,6 +442,8 @@ export type EditorialPost = {
   publishedAt: string;
   /** Words ÷ 200, rounded up; null when the API doesn't say. */
   readingMinutes: number | null;
+  /** Reads in the last days, when the API counts them (`sort=popular`). */
+  views?: number | null;
 };
 
 export type EditorialDetail = EditorialPost & { body: string };

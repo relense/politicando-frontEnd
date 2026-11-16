@@ -107,17 +107,19 @@ export function lisbonDay(value: string | null | undefined): string | null {
   return `${p.year}-${p.month}-${p.day}`;
 }
 
-/** "Hoje · sábado, 14 de novembro", "Ontem · …", or just the date; the year only when it isn't this year. */
+/** "Hoje · sábado, 14 de novembro", "Ontem · …", "Amanhã · …", or just the date; the year only when it isn't this year. */
 export function formatDayHeading(value: string | null | undefined, now: number): string | null {
   const date = parse(value);
   if (!date) return null;
   const p = dayParts(date);
   const today = lisbonDay(new Date(now).toISOString());
   const yesterday = lisbonDay(new Date(now - 86_400_000).toISOString());
+  const tomorrow = lisbonDay(new Date(now + 86_400_000).toISOString());
   const day = lisbonDay(value);
   const label = `${p.weekday}, ${p.day} de ${p.month}${p.year !== dayParts(new Date(now)).year ? ` de ${p.year}` : ""}`;
   if (day === today) return `Hoje · ${label}`;
   if (day === yesterday) return `Ontem · ${label}`;
+  if (day === tomorrow) return `Amanhã · ${label}`;
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 

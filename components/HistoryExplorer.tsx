@@ -72,6 +72,8 @@ type Props = {
   elections: TimelineEvent[];
   parliaments: HistoryParliament[];
   today: string;
+  /** For each government's code, the legislatures it governed in, to open what happened then. */
+  mandates?: Record<string, GovernmentMandate[]>;
   /** Shown between the bar and the list. */
   children?: ReactNode;
 };
@@ -81,7 +83,9 @@ type Props = {
  * one bar sized by time, with the chosen government in detail and the one before and after a press away. Below, the
  * timeline by decade with the elections and Presidents, filtered by who led each government.
  */
-export function HistoryExplorer({ governments, presidents, elections, parliaments, today, children }: Props) {
+export type GovernmentMandate = { id: string; name: string; events: number };
+
+export function HistoryExplorer({ governments, presidents, elections, parliaments, today, mandates = {}, children }: Props) {
   const [filter, setFilter] = useState<HistoryGroup | "all">("all");
   const matches = (government: HistoricalGovernment) => filter === "all" || groupsOf(government).includes(filter);
   const [active, setActive] = useState<string | null>(null);
@@ -181,7 +185,7 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
                                   className="absolute -left-[7px] top-4 size-3 rounded-full ring-4 ring-paper"
                                   style={{ background: accentOf(entry.government) }}
                                 />
-                                <GovernmentCard government={entry.government} today={today} />
+                                <GovernmentCard government={entry.government} today={today} mandates={mandates[entry.government.code]} />
                               </>
                             ) : (
                               <>
@@ -287,9 +291,11 @@ export function GovernmentCard({
   government,
   today,
   heading = "h4",
+  mandates = [],
 }: {
   government: HistoricalGovernment;
   today: string;
+  mandates?: GovernmentMandate[];
   /** The level of the Prime Minister's name, to follow the page's own headings. */
   heading?: "h3" | "h4";
 }) {
@@ -328,6 +334,26 @@ export function GovernmentCard({
         </div>
       )}
       {government.endNote && <p className="mt-2 text-sm leading-relaxed">{government.endNote}</p>}
+      {mandates.length > 0 && (
+        <ul className="mt-3 space-y-1.5" aria-label={`O que aconteceu no mandato de ${government.primeMinister}`}>
+          {mandates.map((mandate) => (
+            <li key={mandate.id}>
+              <Link
+                href={`/legislaturas/${encodeURIComponent(mandate.id)}#aconteceu`}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface"
+              >
+                <span className="font-bold">
+                  O que aconteceu <span className="font-normal text-muted">· {mandate.name}</span>
+                </span>
+                <span className="font-mono text-[11px] text-muted">
+                  {mandate.events > 0 ? `${mandate.events} ${mandate.events === 1 ? "acontecimento" : "acontecimentos"} · ` : ""}leis,
+                  polémicas e casos →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {(government.current || government.portalUrl) && (
         <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs">
           {government.current && (

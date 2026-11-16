@@ -12,9 +12,9 @@ export function ArticleCard({ article }: { article: Article }) {
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_11rem]">
+    <article className="relative -mx-3 grid gap-x-8 gap-y-4 rounded-2xl border-b border-line px-3 py-5 transition-colors hover:border-transparent hover:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] focus-within:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] sm:grid-cols-[minmax(0,1fr)_11rem]">
       <div className="min-w-0">
-        <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
+        <div className="relative z-10 mb-2 flex w-fit flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (
             <a
               href={article.url}
@@ -41,18 +41,19 @@ export function ArticleCard({ article }: { article: Article }) {
         </div>
 
         <h2 className="mb-2 text-lg font-bold leading-snug sm:text-xl">
-          <Link href={articlePath} className="hover:underline">
+          {/* The whole card opens the story; the links on it stay on top. */}
+          <Link href={articlePath} className="after:absolute after:inset-0 after:rounded-2xl">
             {article.title}
           </Link>
         </h2>
 
         {text && <p className="mb-3 text-[15px] leading-relaxed text-ink/80">{text}</p>}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
           <PartyChips parties={article.parties} />
           <Link
             href={`${articlePath}#comentarios`}
-            className={`ml-auto flex items-center gap-1.5 font-mono text-sm hover:text-ink hover:underline ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
+            className={`ml-auto flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 font-mono text-sm hover:bg-line hover:text-ink ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
           >
             <CommentIcon />
             <span>
@@ -68,7 +69,7 @@ export function ArticleCard({ article }: { article: Article }) {
           src={article.imageUrl}
           href={articlePath}
           caption={`Imagem · ${article.source}`}
-          className="order-first block self-start overflow-hidden rounded-lg sm:order-none"
+          className="relative z-10 order-first block self-start overflow-hidden rounded-lg sm:order-none"
           imageClassName="aspect-[3/2] w-full object-cover"
         />
       )}

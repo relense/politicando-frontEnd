@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { Feed } from "@/components/Feed";
 import { loadHighlights } from "@/components/Highlights";
+import { NextEvent } from "@/components/NextEvent";
+import { getNextEvent } from "@/lib/api/agenda";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
 import { FeedFilters } from "@/components/FeedFilters";
 import { FEED_PAGE_SIZE, getFeedPage, getParties, getSources } from "@/lib/api/client";
@@ -39,6 +41,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
 
+/** The time of this request, for "Hoje" and "Amanhã". */
+const requestTime = () => Date.now();
+
 export default async function HomePage({ searchParams }: Props) {
   await connection();
   const [params, parties, sources, jar] = await Promise.all([
@@ -70,7 +75,7 @@ export default async function HomePage({ searchParams }: Props) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const [page, highlights, sidebar] = await Promise.all([
+  const [page, highlights, sidebar, nextEvent] = await Promise.all([
     getFeedPage({
       party: chosen.parties,
       q,
@@ -80,6 +85,7 @@ export default async function HomePage({ searchParams }: Props) {
     }),
     loadHighlights(),
     loadNewsSidebar(),
+    getNextEvent(),
   ]);
   // The blog has one box beside the news, so it never pushes the news down.
   const spotlight = highlights[0] ?? null;
@@ -135,9 +141,10 @@ export default async function HomePage({ searchParams }: Props) {
             {sort === "comentadas" ? ", as mais comentadas dos últimos 7 dias primeiro" : ", mais recentes primeiro"}
           </p>
           {/* On smaller screens the blog's box comes before the news, and the rest of the column is left out. */}
-          {spotlight && (
-            <div className="mb-6 xl:hidden">
-              <BlogSpotlight post={spotlight} />
+          {(spotlight || nextEvent) && (
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:hidden">
+              {spotlight && <BlogSpotlight post={spotlight} />}
+              {nextEvent && <NextEvent item={nextEvent} now={requestTime()} headingId="proximo-evento-topo" />}
             </div>
           )}
           <Feed
@@ -152,6 +159,7 @@ export default async function HomePage({ searchParams }: Props) {
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
           <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overscroll-contain pb-2">
             {spotlight && <BlogSpotlight post={spotlight} />}
+            {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
           </div>
