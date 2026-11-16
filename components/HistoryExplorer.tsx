@@ -111,7 +111,9 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
             De 1974 a hoje
           </h2>
           {mode === "playing" ? (
-            <span className="font-mono text-[11px] text-muted">50 anos de democracia em 40 segundos. Arrasta para andar no tempo.</span>
+            <span className="font-mono text-[11px] text-muted">
+              50 anos de democracia em pouco mais de um minuto. Arrasta para andar no tempo.
+            </span>
           ) : (
             <button
               type="button"

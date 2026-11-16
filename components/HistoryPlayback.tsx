@@ -25,7 +25,7 @@ type Props = {
 };
 
 /** Seconds from 1974 to today. */
-const DURATION = 40;
+const DURATION = 75;
 const DAY = 86_400_000;
 const NO_PARTY = "sem-partido";
 const ROW = 30;
@@ -140,7 +140,6 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
           <p aria-hidden="true" className="font-mono text-6xl font-bold tabular-nums leading-none sm:text-7xl">
             {date.slice(0, 4)}
           </p>
-          <p className="mt-1 font-mono text-xs text-muted">{formatLongDate(date)}</p>
 
           <div className="mt-4 rounded-xl border border-l-4 border-line p-3" style={{ borderLeftColor: accentOf(government) }}>
             <p className="font-mono text-[11px] uppercase tracking-wider text-muted">A governar · {government.name}</p>
