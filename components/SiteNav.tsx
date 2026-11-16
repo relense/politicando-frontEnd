@@ -154,12 +154,12 @@ export function SectionLink({
       {item.icon}
       {/* Wraps instead of overflowing: the column is narrower below 2xl. */}
       <span className="min-w-0 flex-1">
-        <span className={`block break-words font-mono text-sm ${active ? "font-bold" : "font-medium"}`}>{item.label}</span>
+        <span className="block break-words font-mono text-sm font-bold">{item.label}</span>
         {!compact && <span className="block break-words text-xs leading-snug text-muted">{item.hint}</span>}
       </span>
     </>
   );
-  const base = "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors";
+  const base = "flex items-center gap-3 rounded-lg px-3 py-2";
 
   if (!item.href) {
     return (
@@ -173,41 +173,33 @@ export function SectionLink({
       href={item.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      title={compact ? item.hint : undefined}
-      className={`${base} ${active ? "bg-surface text-ink" : "text-ink/80 hover:bg-surface hover:text-ink"}`}
+      className={`${base} ${active ? "bg-surface shadow-[inset_3px_0_0_var(--ink)]" : "hover:bg-surface"}`}
     >
       {body}
     </Link>
   );
 }
 
-/** Desktop: the site's sections in a sticky column on the left, one line each, in groups that fold away. */
+/** Desktop: the site's sections in a sticky column on the left. */
 export function SiteNav() {
   return (
     <nav
       aria-label="Secções"
-      className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto overflow-x-hidden border-r border-line pb-4 pr-3 2xl:w-[var(--side-column)] lg:block"
+      className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto overflow-x-hidden pb-4 2xl:w-[var(--side-column)] lg:block"
     >
       {SITE_GROUPS.map((group, index) => (
-        <details key={group.title} open className={`group ${index > 0 ? "mt-3 border-t border-line pt-3" : ""}`}>
-          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+        <div key={group.title} className={index > 0 ? "mt-4" : undefined}>
+          <p aria-hidden="true" className="px-3 pb-1 font-mono text-xs font-bold uppercase tracking-widest text-muted">
             {group.title}
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              className="size-3.5 fill-none stroke-current stroke-2 transition-transform group-open:rotate-180"
-            >
-              <path d="M5 8l5 5 5-5" />
-            </svg>
-          </summary>
-          <ul aria-label={group.title} className="mt-1 flex flex-col gap-0.5">
+          </p>
+          <ul aria-label={group.title} className="flex flex-col gap-0.5">
             {group.items.map((item) => (
               <li key={item.label}>
-                <SectionLink item={item} compact />
+                <SectionLink item={item} />
               </li>
             ))}
           </ul>
-        </details>
+        </div>
       ))}
     </nav>
   );
