@@ -190,7 +190,9 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
         <div className="min-w-0 space-y-5">
           <div>
             <p className="font-mono text-[11px] font-bold uppercase tracking-widest">Anos no governo</p>
-            <p className="text-xs text-muted">Em coligação, cada partido conta o tempo todo.</p>
+            <p className="text-xs text-muted">
+              Quantos anos cada partido esteve no Governo até esta data. Em coligação, cada partido conta o tempo todo.
+            </p>
             <ul className="relative mt-2" style={{ height: race.length * ROW }}>
               {race.map((party, rank) => (
                 <li
@@ -209,7 +211,9 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
                       }}
                     />
                   </span>
-                  <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums">{yearsFormat.format(party.years)} a</span>
+                  <span className="w-20 shrink-0 text-right font-mono text-xs tabular-nums">
+                    {yearsFormat.format(party.years)} {yearsFormat.format(party.years) === "1,0" ? "ano" : "anos"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -219,7 +223,10 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
             <p className="font-mono text-[11px] font-bold uppercase tracking-widest">Parlamento</p>
             {parliament ? (
               <>
-                <p className="text-xs text-muted">Depois das {parliament.title}</p>
+                <p className="text-xs text-muted">
+                  {parliament.title} · {seatTotal} lugares
+                  {parliament.title.startsWith("Assembleia Constituinte") && " (escreveu a Constituição de 1976)"}
+                </p>
                 <div aria-hidden="true" className="mt-2 flex h-5 overflow-hidden rounded-md">
                   {parliament.seats.map((item) => (
                     <span
@@ -315,17 +322,17 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
         >
           ↺ Recomeçar
         </button>
-        {/* The same place for both, so nothing moves: skip while it runs, watch again once it ends. */}
+        {/* At the end there is nothing to skip: start over, or drag the slider back. */}
         <button
           type="button"
+          disabled={atEnd}
           onClick={() => {
-            if (atEnd) return restart();
             setPlaying(false);
             setDay(last);
           }}
-          className="ml-auto rounded-lg border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface"
+          className="ml-auto rounded-lg border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          {atEnd ? "▶ Ver a animação outra vez" : "Saltar para o fim ⏭"}
+          Saltar para o fim ⏭
         </button>
       </div>
     </div>

@@ -14,7 +14,7 @@ import { formatDate, formatLongDate } from "@/lib/format";
 import { tidyName } from "@/lib/elections";
 import { partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
-import type { GovernmentMemberKind } from "@/lib/types";
+import type { Government, GovernmentMember, GovernmentMemberKind } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -47,6 +47,40 @@ function roleOf(kind: GovernmentMemberKind, female: boolean) {
   return female ? "Secretária de Estado" : "Secretário de Estado";
 }
 
+type TeamGroup = { label: string; people: GovernmentMember[] };
+
+/**
+ * The people this member works with in the Government in office: the Prime Minister's ministers, a minister's
+ * secretaries of state, a secretary of state's minister and colleagues. Empty for someone no longer in it.
+ */
+function teamOf(id: string, government: Government | null): { team: TeamGroup[]; teamNote: string | null } {
+  if (!government) return { team: [], teamNote: null };
+  const pm = government.primeMinister;
+  if (pm?.id === id) {
+    const ministers = government.ministries.flatMap((ministry) => (ministry.minister ? [ministry.minister] : []));
+    return {
+      team: [{ label: "Os ministros", people: ministers }],
+      teamNote: "Quem chefia cada ministério e responde ao Primeiro-Ministro.",
+    };
+  }
+  const own = government.ministries.find((ministry) => ministry.minister?.id === id);
+  if (own) {
+    const team: TeamGroup[] = [];
+    if (own.secretaries.length > 0) team.push({ label: "Secretários de Estado", people: own.secretaries });
+    if (pm) team.push({ label: "Responde a", people: [pm] });
+    return { team, teamNote: own.name };
+  }
+  const under = government.ministries.find((ministry) => ministry.secretaries.some((person) => person.id === id));
+  if (under) {
+    const team: TeamGroup[] = [];
+    if (under.minister) team.push({ label: "Responde a", people: [under.minister] });
+    const others = under.secretaries.filter((person) => person.id !== id);
+    if (others.length > 0) team.push({ label: "Na mesma equipa", people: others });
+    return { team, teamNote: under.name };
+  }
+  return { team: [], teamNote: null };
+}
+
 /** "XXV" from "XXV Governo Constitucional". */
 const romanOf = (name: string) => name.split(" ")[0] ?? name;
 
@@ -66,6 +100,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
   const color = member.partySlug ? partyColor(member.partySlug) : "var(--ink)";
   const governmentName =
     current?.government && government?.code === current.government ? government.name : (current?.government?.toUpperCase() ?? null);
+  const { team, teamNote } = teamOf(member.id, government);
   const since =
     member.positions
       .map((position) => position.startDate)
@@ -218,7 +253,10 @@ export default async function GovernmentMemberPage({ params }: Props) {
           </Section>
         </div>
 
-        <aside aria-label={`Sobre ${member.name}`} className="flex flex-col gap-4 xl:sticky xl:top-20">
+        <aside
+          aria-label={`Sobre ${member.name}`}
+          className="flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain no-scrollbar"
+        >
           <section aria-labelledby="ficha" className="rounded-2xl border border-line p-4">
             <h2 id="ficha" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">
               Ficha
@@ -269,15 +307,34 @@ export default async function GovernmentMemberPage({ params }: Props) {
             </section>
           )}
 
-          {government && (
-            <Link href="/governo" className="group block rounded-2xl border border-line p-4 hover:bg-surface">
-              <span className="block font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--stage-submitted)]">
-                {romanOf(government.name)} Governo
-              </span>
-              <span className="mt-1 block text-lg font-bold leading-snug">Ver a equipa completa</span>
-              <span className="mt-1 block text-sm text-muted">Ministros e secretários de Estado que respondem ao Primeiro-Ministro.</span>
-              <span className="mt-2 block font-mono text-xs font-bold group-hover:underline">Abrir →</span>
-            </Link>
+          {team.length > 0 && (
+            <section aria-labelledby="equipa" className="rounded-2xl border border-line p-4">
+              <h2 id="equipa" className="font-mono text-xs font-bold uppercase tracking-widest">
+                A equipa
+              </h2>
+              {teamNote && <p className="mt-1 text-xs text-muted">{teamNote}</p>}
+              {team.map((group) => (
+                <div key={group.label} className="mt-3">
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted">{group.label}</p>
+                  <ul className="space-y-0.5">
+                    {group.people.map((person) => (
+                      <li key={person.id}>
+                        <Link
+                          href={`/governo/${person.id}`}
+                          className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-surface"
+                        >
+                          <GovernmentPortrait name={person.name} photoUrl={person.photoUrl} size="xs" />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold leading-snug">{person.name}</span>
+                            <span className="block text-xs leading-snug text-muted">{person.title}</span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
           )}
 
           <p className="font-mono text-[11px] leading-relaxed text-muted">

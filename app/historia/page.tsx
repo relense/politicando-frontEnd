@@ -45,11 +45,11 @@ async function loadParliaments(): Promise<HistoryParliament[]> {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** "PSD", "PSD/CDS", "CDU" instead of the ballot's "PPD/PSD.CDS-PP" or "PCP-PEV". */
+/** "AD", "PSD/CDS", "CDU", "PSD" instead of the ballot's "PPD/PSD.CDS-PP.PPM", "PCP-PEV" or "PPD". Lost parties keep their name. */
 function seatLabel(list: string, slugs: string[]): string {
-  if (slugs.includes("psd") && slugs.includes("cds-pp")) return "PSD/CDS";
-  if (slugs.includes("pcp")) return "CDU";
-  return list.replace("PPD/PSD", "PSD");
+  if (slugs.includes("psd") && slugs.includes("cds-pp")) return slugs.includes("ppm") ? "AD" : "PSD/CDS";
+  if (list === "PCP-PEV") return "CDU";
+  return list.replace(/^PPD\/PSD$|^PPD$/, "PSD");
 }
 
 /** Legislativas decide governments and presidenciais the President; the other elections would crowd the list. */

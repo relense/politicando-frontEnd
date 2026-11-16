@@ -635,11 +635,10 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await page.getByRole("slider", { name: "Data na animação" }).fill(String(Math.round(Date.parse("1990-06-01") / 86_400_000)));
   await expect(page.getByRole("slider", { name: "Data na animação" })).toHaveAttribute("aria-valuetext", /de 1990$/);
   await page.getByRole("button", { name: "Saltar para o fim ⏭" }).click();
-  // At the end it stays put: the same buttons, the last one now to watch it again.
-  await expect(page.getByRole("button", { name: "▶ Ver a animação outra vez" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "↺ Recomeçar" })).toBeVisible();
-  await page.getByRole("button", { name: "▶ Ver a animação outra vez" }).click();
-  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeVisible();
+  // At the end it stays put: nothing left to skip, and it can start over.
+  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeDisabled();
+  await page.getByRole("button", { name: "↺ Recomeçar" }).click();
+  await expect(page.getByRole("button", { name: "Saltar para o fim ⏭" })).toBeEnabled();
   const chosen = page.getByRole("article", { name: "Henrique Valadares" }).first();
   await expect(chosen.getByText("Em funções")).toBeVisible();
   // Filters narrow the timeline.
