@@ -51,7 +51,7 @@ export function ContractItem({ contract }: { contract: ContractSummary }) {
           <ProcedureBadge kind={contract.procedure.kind} label={contract.procedure.label} />
           <span className="font-mono text-xs text-muted">{formatDate(contract.publishedAt ?? contract.signedAt)}</span>
         </div>
-        <h3 className="mt-2 break-words font-bold leading-snug">
+        <h3 className="mt-2 line-clamp-4 break-words font-bold leading-snug">
           <Link href={`/contratos/${contract.id}`} className="hover:underline">
             {contract.object}
           </Link>

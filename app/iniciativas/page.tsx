@@ -502,7 +502,7 @@ function SearchBar({ filters }: { filters: Filters }) {
     `inline-flex h-10 items-center rounded-full border px-4 font-mono text-xs font-bold ${filters.oldest === oldest ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
-      <form action="/iniciativas" role="search" className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
+      <form action="/iniciativas" role="search" className="flex min-w-0 basis-full gap-2 sm:max-w-md sm:flex-1 sm:basis-auto">
         {Object.entries(keep).map(([name, value]) => (value ? <input key={name} type="hidden" name={name} value={value} /> : null))}
         <input
           type="search"

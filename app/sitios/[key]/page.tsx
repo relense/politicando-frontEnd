@@ -80,6 +80,8 @@ function describe(place: PlaceDetail, municipality: PlaceDetail | null): string 
   return `${mayor}Composição da câmara e da assembleia municipal.${circle}, resultados eleitorais e contratos públicos de ${place.name}.`;
 }
 
+const DEPUTIES_SHOWN = 12;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const place = await loadPlace((await params).key);
   if (place.level !== "district" && place.level !== "municipality" && place.level !== "parish") return { title: place.name };
@@ -221,29 +223,41 @@ export default async function PlacePage({ params }: Props) {
 
       {place.deputies && place.deputies.items.length > 0 && (
         <Section id="deputados" title={`Deputados eleitos por ${place.deputies.circle.name}`} note="Quem te representa no Parlamento">
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {place.deputies.items.map((deputy) => (
-              <li key={deputy.id}>
-                <Link
-                  href={`/deputados/${deputy.id}`}
-                  className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
+          {/* On a phone a big circle (Lisboa elects 48) shows the first 12; the rest open with a press, without scripts. */}
+          <div className="group/deps">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {place.deputies.items.map((deputy, index) => (
+                <li
+                  key={deputy.id}
+                  className={index >= DEPUTIES_SHOWN ? "max-sm:hidden max-sm:group-has-[input:checked]/deps:block" : undefined}
                 >
-                  <DeputyPortrait
-                    deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
-                    size="xs"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
-                    {deputy.party && (
-                      <span className="block font-mono text-[11px] text-muted">
-                        {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
-                      </span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <Link
+                    href={`/deputados/${deputy.id}`}
+                    className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
+                  >
+                    <DeputyPortrait
+                      deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
+                      size="xs"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
+                      {deputy.party && (
+                        <span className="block font-mono text-[11px] text-muted">
+                          {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {place.deputies.items.length > DEPUTIES_SHOWN && (
+              <label className="mt-3 inline-flex cursor-pointer rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface has-[:focus-visible]:outline has-[:focus-visible]:outline-2 sm:hidden group-has-[input:checked]/deps:hidden">
+                <input type="checkbox" className="sr-only" />
+                Ver os {place.deputies.items.length} deputados
+              </label>
+            )}
+          </div>
         </Section>
       )}
 
@@ -254,7 +268,7 @@ export default async function PlacePage({ params }: Props) {
               <li key={`${item.election}-${item.organ}`}>
                 <Link
                   href={electionPath(item.election, place.key)}
-                  className="-mx-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 rounded px-2 py-2.5 hover:bg-surface"
+                  className="-mx-2 grid grid-cols-1 items-baseline gap-x-3 rounded px-2 py-2.5 hover:bg-surface sm:grid-cols-[minmax(0,1fr)_auto]"
                 >
                   <span className="min-w-0">
                     <span className="block font-bold">{item.name}</span>
@@ -264,7 +278,7 @@ export default async function PlacePage({ params }: Props) {
                     </span>
                   </span>
                   {item.winner && (
-                    <span className="text-right font-mono text-xs">
+                    <span className="mt-1 font-mono text-xs sm:mt-0 sm:text-right">
                       <span className="sr-only">Mais votado: </span>
                       <span className="font-bold">{shortList(item.winner.label)}</span> {formatPercent(item.winner.validPct)}
                     </span>

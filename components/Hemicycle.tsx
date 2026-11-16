@@ -229,6 +229,9 @@ export function Hemicycle({ seatMap, groups, deputies, selectedSeat, highlighted
           </svg>
         </div>
       </div>
+      <p aria-hidden="true" className="mt-1 text-center font-mono text-xs text-muted sm:hidden">
+        ← Arrasta para ver todos os lugares →
+      </p>
 
       {shown && tip && (
         <div

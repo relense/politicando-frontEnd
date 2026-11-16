@@ -1,3 +1,4 @@
+import { serverHeaders } from "#server-headers";
 import { z } from "zod";
 import type {
   Article,
@@ -68,6 +69,8 @@ import {
 } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
+/** For the few calls made outside `request()`, such as a beacon. */
+export const API_BASE_URL = BASE_URL;
 const REVALIDATE_SECONDS = 60;
 
 export class ApiError extends Error {
@@ -81,10 +84,21 @@ export class ApiError extends Error {
   }
 }
 
+/** A request Next keeps in its shared cache: these must not carry anything about the reader. */
+const isCachedRequest = (init?: RequestInit & { next?: { revalidate?: number | false } }) =>
+  (init?.next?.revalidate !== undefined && init.next.revalidate !== 0) || init?.cache === "force-cache";
+
+const headersOf = (value: HeadersInit | undefined): Record<string, string> =>
+  value ? Object.fromEntries(new Headers(value).entries()) : {};
+
 export async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, init);
+    // On the site's server, the key (and, uncached, the reader's IP); in the browser, nothing is added.
+    // "#server-headers" is the real module only in React's server layer (package.json "imports"), an empty one elsewhere.
+    const extra = await serverHeaders(isCachedRequest(init));
+    const withHeaders = Object.keys(extra).length > 0 ? { ...init, headers: { ...headersOf(init?.headers), ...extra } } : init;
+    response = await fetch(`${BASE_URL}${path}`, withHeaders);
   } catch (cause) {
     throw new ApiError(`Network error on ${path}: ${String(cause)}`);
   }
@@ -336,11 +350,20 @@ export async function getTimeline(kinds: ("election" | "president")[] = ["electi
   return mapTimeline(await request(`/timeline?kinds=${kinds.join(",")}`, timelineSchema, hourly));
 }
 
-export type EditorialQuery = { featured?: boolean; kind?: EditorialKind; tag?: string; page?: number; limit?: number };
+export type EditorialQuery = {
+  featured?: boolean;
+  kind?: EditorialKind;
+  tag?: string;
+  page?: number;
+  limit?: number;
+  /** The most read over the last `days`. */
+  sort?: "popular";
+  days?: number;
+};
 
 /** Our own posts, newest first. */
-export async function getEditorial({ featured, kind, tag, page, limit }: EditorialQuery = {}): Promise<EditorialPage> {
-  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit });
+export async function getEditorial({ featured, kind, tag, page, limit, sort, days }: EditorialQuery = {}): Promise<EditorialPage> {
+  const query = searchOf({ featured: featured === undefined ? undefined : String(featured), kind, tag, page, limit, sort, days });
   const result = await request(`/editorial${query}`, editorialPageSchema, cached);
   return { items: result.items.map(mapEditorialPost), total: result.total };
 }

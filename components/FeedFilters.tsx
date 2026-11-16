@@ -81,7 +81,7 @@ function Dropdown({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        className={`flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-xs font-bold ${
+        className={`flex h-10 items-center gap-2 rounded-full border px-3 font-mono text-xs font-bold sm:px-4 ${
           count > 0 || open ? "border-ink" : "border-line hover:bg-surface"
         }`}
       >
@@ -333,7 +333,7 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
           role="search"
           action="/"
           method="get"
-          className="relative min-w-0 flex-[1_1_18rem]"
+          className="relative min-w-0 basis-full sm:flex-[1_1_18rem]"
           onSubmit={(event) => {
             event.preventDefault();
             const words = String(new FormData(event.currentTarget).get("q") ?? "").trim();
@@ -399,10 +399,39 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
             )}
           </Dropdown>
         )}
+        {/* On a phone the order is a small menu, so it fits on the row with Partidos and Jornais. */}
+        <div className="ml-auto sm:hidden">
+          <Dropdown label={sort === "comentadas" ? "Comentadas" : "Recentes"} count={0} title="Ordenar notícias">
+            {(close) => (
+              <div role="group" aria-label="Ordenar notícias" className="flex flex-col gap-1 font-mono text-xs font-bold">
+                {(
+                  [
+                    ["recentes", "Recentes", "As mais recentes primeiro"],
+                    ["comentadas", "Mais comentadas", "As mais comentadas dos últimos 7 dias"],
+                  ] as const
+                ).map(([value, label, hint]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={sort === value}
+                    onClick={() => {
+                      close();
+                      go(filter, { sort: value });
+                    }}
+                    className={`rounded-xl px-3 py-2.5 text-left ${sort === value ? "bg-ink text-paper" : "hover:bg-surface"}`}
+                  >
+                    {label}
+                    <span className="block font-normal opacity-70">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Dropdown>
+        </div>
         <div
           role="group"
           aria-label="Ordenar notícias"
-          className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold"
+          className="hidden h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold sm:flex"
         >
           {(
             [

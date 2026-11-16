@@ -100,15 +100,12 @@ export default async function ContractsPage({ searchParams }: Props) {
   const supplier = nif(first(params.fornecedor));
   const query: ContractQuery = { procedure: filter.procedure, q, place, entity, supplier, sort, limit: 20 };
 
-  let procedures;
-  try {
-    procedures = await getProcedureTotals({ place });
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return <ComingSoon />;
-    throw error;
-  }
-
-  const [name, years, entities, suppliers, municipalities, page] = await Promise.all([
+  // All at once: the totals no longer hold up the rest. A 404 on them means the API has no contracts yet.
+  const [totals, name, years, entities, suppliers, municipalities, page] = await Promise.all([
+    getProcedureTotals({ place }).then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error }),
+    ),
     placeName(place),
     getContractStats("year", { place }).catch(() => null),
     getContractStats("entity", { place, limit: 8 }).catch(() => null),
@@ -116,6 +113,9 @@ export default async function ContractsPage({ searchParams }: Props) {
     place ? Promise.resolve(null) : getContractStats("municipality", { limit: 8 }).catch(() => null),
     getContracts(query).catch(() => null),
   ]);
+  if (totals.error instanceof ApiError && totals.error.status === 404) return <ComingSoon />;
+  if (totals.error) throw totals.error;
+  const procedures = totals.value!;
 
   const direct = directAwardTotals(procedures);
   const scale = eurosScale(direct.total);
@@ -252,9 +252,9 @@ export default async function ContractsPage({ searchParams }: Props) {
           ))}
         </ul>
 
-        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_5.5rem_7rem] gap-3 border-b border-line pb-2 font-mono text-[11px] text-muted">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-line pb-2 font-mono text-[11px] text-muted sm:grid-cols-[minmax(0,1fr)_5.5rem_7rem]">
           <span>Procedimento · faixa: parte do dinheiro</span>
-          <span className="text-right">Contratos</span>
+          <span className="hidden text-right sm:block">Contratos</span>
           <span className="text-right">Valor</span>
         </div>
         <ul aria-label="Procedimentos" className="divide-y divide-line">
@@ -266,7 +266,7 @@ export default async function ContractsPage({ searchParams }: Props) {
               return (
                 <li
                   key={item.kind}
-                  className={`grid grid-cols-[minmax(0,1fr)_5.5rem_7rem] items-start gap-3 py-3 ${highlight ? "-mx-3 rounded-lg px-3" : ""}`}
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-3 sm:grid-cols-[minmax(0,1fr)_5.5rem_7rem] ${highlight ? "-mx-3 rounded-lg px-3" : ""}`}
                   style={highlight ? { backgroundColor: `color-mix(in srgb, ${COMPETITION_COLOR.limited} 8%, transparent)` } : undefined}
                 >
                   <div className="min-w-0">
@@ -285,12 +285,18 @@ export default async function ContractsPage({ searchParams }: Props) {
                         }}
                       />
                     </div>
-                    {item.plain && <p className={`mt-2 text-xs leading-relaxed ${highlight ? "" : "text-muted"}`}>{item.plain}</p>}
                   </div>
-                  <span className="text-right font-mono text-xs tabular-nums text-muted">{formatNumber(item.count)}</span>
+                  <span className="hidden text-right font-mono text-xs tabular-nums text-muted sm:block">{formatNumber(item.count)}</span>
                   <span className="whitespace-nowrap text-right font-mono text-sm font-bold tabular-nums">
                     {formatEurosCompact(item.total)}
+                    <span className="block text-[11px] font-normal text-muted sm:hidden">{formatNumber(item.count)} contratos</span>
                   </span>
+                  {/* Under the name on a computer; across the whole row on a phone, where the columns leave it too narrow. */}
+                  {item.plain && (
+                    <p className={`col-span-full mt-2 text-xs leading-relaxed sm:col-span-1 ${highlight ? "" : "text-muted"}`}>
+                      {item.plain}
+                    </p>
+                  )}
                 </li>
               );
             })}

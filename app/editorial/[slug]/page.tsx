@@ -1,3 +1,4 @@
+import { CountRead } from "@/components/CountRead";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -91,6 +92,7 @@ export default async function EditorialPostPage({ params }: Props) {
 
   return (
     <article data-wide>
+      <CountRead slug={post.slug} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(post) }} />
       <nav aria-label="Caminho" className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <Link href="/editorial" className="hover:text-ink hover:underline">

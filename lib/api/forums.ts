@@ -29,6 +29,11 @@ const threadFields = {
   pinned: z.boolean(),
   locked: z.boolean(),
   link: linkSchema.nullish(),
+  // Only on the ideas board.
+  score: z.number().nullish(),
+  status: z.string().nullish(),
+  answer: z.string().nullish(),
+  answeredAt: z.string().nullish(),
 };
 
 const threadSummarySchema = z.object({ ...threadFields, excerpt: z.string() });
@@ -67,6 +72,11 @@ export type ThreadSummary = {
   pinned: boolean;
   locked: boolean;
   link: ThreadLink;
+  /** Ideas board only: upvotes, what the team decided and its note; null elsewhere. */
+  score: number | null;
+  status: IdeaStatus | null;
+  answer: string | null;
+  answeredAt: string | null;
 };
 export type Thread = Omit<ThreadSummary, "excerpt"> & { body: string };
 export type ForumPost = {
@@ -81,6 +91,19 @@ export type ForumPost = {
 };
 export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean };
 export type ThreadSort = "active" | "new" | "top";
+
+/** The board where readers propose ideas for the site and vote on them. */
+export const IDEAS_BOARD = "ideias";
+export const IDEA_STATUSES = ["reviewing", "planned", "in_progress", "done", "declined"] as const;
+export type IdeaStatus = (typeof IDEA_STATUSES)[number];
+export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: string }> = {
+  reviewing: { label: "Em análise", color: "var(--muted)" },
+  planned: { label: "Planeada", color: "var(--stage-debate)" },
+  in_progress: { label: "Em desenvolvimento", color: "var(--link)" },
+  done: { label: "Feita", color: "var(--stage-approved)" },
+  declined: { label: "Não vamos fazer", color: "var(--danger)" },
+};
+const ideaStatusOf = (value: string | null | undefined): IdeaStatus | null => IDEA_STATUSES.find((status) => status === value) ?? null;
 export type ReportReason = "spam" | "insult" | "hate" | "personal_data" | "illegal" | "other";
 export type ReportKind = "thread" | "post" | "comment";
 
@@ -102,12 +125,19 @@ export function mapThreadLink(link: z.infer<typeof linkSchema> | null | undefine
   return null;
 }
 
+const ideaFields = (thread: z.infer<typeof threadSummarySchema> | z.infer<typeof threadDetailSchema>["thread"]) => ({
+  score: thread.score ?? null,
+  status: ideaStatusOf(thread.status),
+  answer: thread.answer?.trim() || null,
+  answeredAt: thread.answeredAt ?? null,
+});
+
 export function mapThreadSummary(thread: z.infer<typeof threadSummarySchema>): ThreadSummary {
-  return { ...thread, link: mapThreadLink(thread.link) };
+  return { ...thread, ...ideaFields(thread), link: mapThreadLink(thread.link) };
 }
 
 export function mapThreadDetail(detail: z.infer<typeof threadDetailSchema>): ThreadDetail {
-  return { ...detail, thread: { ...detail.thread, link: mapThreadLink(detail.thread.link) } };
+  return { ...detail, thread: { ...detail.thread, ...ideaFields(detail.thread), link: mapThreadLink(detail.thread.link) } };
 }
 
 /** "Zé (ID: Xk3_a9Qz)" or "Anónimo (ID: …)": nicknames are not unique, so the ID always goes with them. */
@@ -119,10 +149,10 @@ export async function getBoards(): Promise<Board[]> {
 
 export async function getThreads(
   board: string,
-  { sort, page, limit }: { sort?: ThreadSort; page?: number; limit?: number } = {},
+  { sort, page, limit, status }: { sort?: ThreadSort; page?: number; limit?: number; status?: IdeaStatus } = {},
 ): Promise<{ items: ThreadSummary[]; total: number }> {
   const result = await request(
-    `/forums/${encodeURIComponent(board)}/threads${searchOf({ sort, page, limit })}`,
+    `/forums/${encodeURIComponent(board)}/threads${searchOf({ sort, page, limit, status })}`,
     z.object({ items: z.array(threadSummarySchema), total: z.number() }),
     { cache: "no-store" },
   );
@@ -172,6 +202,11 @@ export async function createPost(threadId: number, input: NewPost): Promise<{ id
       recaptchaToken: input.captchaToken,
     }),
   );
+}
+
+/** An upvote on an idea; the API counts one per reader and answers with the new score. */
+export async function voteThread(id: number): Promise<number> {
+  return (await request(`/forums/threads/${id}/vote`, z.object({ score: z.number() }), { method: "POST" })).score;
 }
 
 export async function createReport(input: { kind: ReportKind; id: number; reason: ReportReason; details?: string }): Promise<void> {
