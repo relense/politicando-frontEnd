@@ -64,13 +64,13 @@ export default async function GovernmentPage({ searchParams }: Props) {
         </>
       ) : (
         <>
-          {/* The title sits in the ministries' column, so the card beside it can run from the title down. */}
+          {/* The title spans the page; the card beside the ministries starts below it. */}
+          {header}
           <GovernmentView
             government={government}
             parties={parties}
             initialMember={typeof membro === "string" ? membro : null}
             today={today()}
-            header={header}
           />
 
           {government.former.length > 0 && (
