@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleImage } from "@/components/ArticleImage";
+import { ConsentEmbed } from "@/components/ConsentEmbed";
 import { JumpLink } from "@/components/JumpLink";
 import { ApiError, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
@@ -147,19 +148,13 @@ export default async function EditorialPostPage({ params }: Props) {
         />
       )}
       {post.media && (
-        <div
+        <ConsentEmbed
+          provider={post.media.provider}
+          src={post.media.embedUrl}
+          url={post.media.url}
+          title={`${KIND_LABELS[post.kind]}: ${post.title}`}
           className={`mt-6 max-w-4xl overflow-hidden rounded-2xl bg-surface ${isAudio(post.media.provider) ? "h-[232px]" : "aspect-video"}`}
-        >
-          <iframe
-            src={post.media.embedUrl}
-            title={`${KIND_LABELS[post.kind]}: ${post.title}`}
-            className="size-full"
-            loading="lazy"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        </div>
+        />
       )}
 
       <div className={`mt-8 grid items-start gap-10 ${long ? "xl:grid-cols-[minmax(0,46rem)_16rem]" : ""}`}>

@@ -50,7 +50,7 @@ test("missing and malformed articles are real 404s", async ({ request }) => {
 
 test("home scrolling still loads the home feed after visiting a party", async ({ page }) => {
   await page.goto("/partido/be");
-  await page.getByRole("link", { name: "POLITICANDO" }).click();
+  await page.getByRole("link", { name: "POLITICANDO", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("número 100");
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -275,6 +275,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/editorial/a-maioria-que-nao-existe",
     "/editorial/o-que-muda-no-orcamento",
     "/editorial/como-se-chega-a-deputado",
+    "/privacidade",
+    "/cookies",
+    "/termos",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -697,7 +700,17 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await page.goto("/editorial?tipo=podcast");
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
   await page.getByRole("link", { name: "Orçamento do Estado: o que muda?" }).click();
-  await expect(page.locator('iframe[src^="https://open.spotify.com/embed/"]')).toBeVisible();
+  // Nothing from Spotify until the reader asks; "always" is remembered and can be undone on the cookies page.
+  const player = page.locator('iframe[src^="https://open.spotify.com/embed/"]');
+  await expect(player).toHaveCount(0);
+  await page.getByRole("button", { name: "Carregar sempre" }).click();
+  await expect(player).toBeVisible();
+  await page.reload();
+  await expect(player).toBeVisible();
+  await page.goto("/cookies");
+  await page.getByRole("button", { name: /Deixar de carregar/ }).click();
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "Carregar o Spotify" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Neste episódio" })).toBeVisible();
 
   expect((await page.goto("/editorial/nao-existe"))!.status()).toBe(404);
