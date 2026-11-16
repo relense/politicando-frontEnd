@@ -629,13 +629,24 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await expect(page.getByText("governos desde 1974", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 3, name: "Anos 70" })).toBeVisible();
 
-  const current = page.getByRole("article", { name: "Henrique Valadares" }).first();
-  await expect(current.getByText("Em funções")).toBeVisible();
-  // A kind of event the site doesn't know yet is left out.
+  // The government in office is shown first; the one before is a press away, and a block of the bar opens its own.
+  const chosen = page.getByRole("article", { name: "Henrique Valadares" }).first();
+  await expect(chosen.getByText("Em funções")).toBeVisible();
+  await page.getByRole("button", { name: "← Anterior" }).click();
+  await expect(page.getByRole("button", { name: "Seguinte →" })).toBeEnabled();
+  await page.getByRole("button", { name: "Seguinte →" }).click();
+  // Filters narrow the list.
+  const all = await page.getByRole("region", { name: "Governo a governo" }).getByRole("article").count();
+  await page.getByRole("button", { name: "Provisórios" }).click();
+  await expect(page.getByRole("region", { name: "Governo a governo" }).getByRole("article")).not.toHaveCount(all);
+  await page.getByRole("button", { name: "Todos" }).click();
+  // A kind of event the site doesn't know yet is left out; elections link to their results.
   await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
-  await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
-
-  await page.getByRole("link", { name: "Ver resultados →" }).first().click();
+  await page
+    .getByRole("region", { name: "Governo a governo" })
+    .getByRole("link", { name: /^Legislativas 2025/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
   await page.goBack();
   await page.getByRole("link", { name: "Quem governa agora →" }).click();

@@ -332,7 +332,7 @@ export default async function ContractsPage({ searchParams }: Props) {
             })}
           </ul>
           <p className="mt-3 font-mono text-[11px] text-muted">
-            Todos os procedimentos, pela data de publicação. O ano corrente ainda não acabou.
+            Todos os procedimentos, pela data de celebração do contrato. O ano corrente ainda não acabou.
           </p>
         </section>
       )}

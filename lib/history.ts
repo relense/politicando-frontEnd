@@ -131,3 +131,26 @@ export function decadeTicks(from: string, to: string): number[] {
   for (let year = first; year <= parseDay(to).year; year += 10) ticks.push(year);
   return ticks;
 }
+
+export type HistoryGroup = "ps" | "psd" | "coalition" | "presidential" | "provisional";
+
+/** Who led it: PS or PSD (with partners or not), a President's own initiative, or a provisional government. */
+export function groupsOf(government: HistoricalGovernment): HistoryGroup[] {
+  if (government.kind === "provisional") return ["provisional"];
+  if (government.parties.length === 0) return ["presidential"];
+  const groups: HistoryGroup[] = [];
+  const leader = government.parties[0]!.slug;
+  if (leader === "ps" || leader === "psd") groups.push(leader);
+  if (government.parties.length > 1) groups.push("coalition");
+  return groups;
+}
+
+/** The colour of each way a government ended. */
+export const TONE_COLOR: Record<EndTone, string> = {
+  lasted: "var(--stage-law)",
+  fell: "var(--stage-stopped)",
+  early: "var(--stage-debate)",
+  current: "var(--ink)",
+  provisional: "var(--muted)",
+  unknown: "var(--muted)",
+};
