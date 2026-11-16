@@ -1,0 +1,236 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+import { ArticleActions } from "@/components/ArticleActions";
+import { ArticleImage } from "@/components/ArticleImage";
+import { ConsentEmbed } from "@/components/ConsentEmbed";
+import { JumpLink } from "@/components/JumpLink";
+import { ApiError, getEditorialPost } from "@/lib/api/client";
+import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
+import { excerpt, formatLongDate } from "@/lib/format";
+import { localPost } from "@/lib/localPosts";
+import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import type { EditorialDetail } from "@/lib/types";
+
+type Props = { params: Promise<{ slug: string }> };
+
+async function loadPost(slug: string): Promise<EditorialDetail> {
+  const own = localPost(decodeURIComponent(slug));
+  if (own) return own;
+  try {
+    return await getEditorialPost(decodeURIComponent(slug));
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
+    throw error;
+  }
+}
+
+const describe = (post: EditorialDetail) => post.subtitle ?? (excerpt(plainText(post.body), 160) || undefined);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const post = await loadPost((await params).slug);
+  const description = describe(post);
+  const path = editorialPath(post.slug);
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: path },
+    authors: post.authorName ? [{ name: post.authorName }] : undefined,
+    keywords: post.tags.length > 0 ? post.tags : undefined,
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description,
+      url: path,
+      publishedTime: post.publishedAt,
+      authors: post.authorName ? [post.authorName] : undefined,
+      tags: post.tags,
+      images: post.coverImageUrl ? [post.coverImageUrl] : undefined,
+    },
+    twitter: { card: post.coverImageUrl ? "summary_large_image" : "summary", title: post.title, description },
+  };
+}
+
+/** Structured data for search engines; "<" is escaped so the text can never close the script tag. */
+function jsonLd(post: EditorialDetail) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type":
+      post.kind === "opinion" ? "OpinionNewsArticle" : post.kind === "article" || post.kind === "interview" ? "NewsArticle" : "Article",
+    headline: post.title,
+    description: describe(post),
+    datePublished: post.publishedAt,
+    image: post.coverImageUrl ? [post.coverImageUrl] : undefined,
+    author: post.authorName ? { "@type": "Person", name: post.authorName } : { "@type": "Organization", name: SITE_NAME },
+    publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    mainEntityOfPage: `${SITE_URL}${editorialPath(post.slug)}`,
+    keywords: post.tags.length > 0 ? post.tags.join(", ") : undefined,
+  };
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+export default async function EditorialPostPage({ params }: Props) {
+  await connection();
+  const post = await loadPost((await params).slug);
+  const date = formatLongDate(post.publishedAt);
+  const sections = post.media ? [] : sectionsOf(post.body);
+  const long = sections.length >= 3;
+  const author = post.authorName ?? "Redação Politicando";
+  const reading = readingLabel(post);
+
+  return (
+    <article data-wide>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(post) }} />
+      <nav aria-label="Caminho" className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
+        <Link href="/editorial" className="hover:text-ink hover:underline">
+          Blog
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="text-ink">{KIND_LABELS[post.kind]}</span>
+      </nav>
+
+      <header className="max-w-4xl">
+        <p className="flex flex-wrap gap-1.5 font-mono text-[11px] font-bold">
+          <span className={`rounded-md px-1.5 py-0.5 ${post.kind === "opinion" ? "bg-ink text-paper" : "bg-surface"}`}>
+            {KIND_LABELS[post.kind]}
+          </span>
+          {post.tags.slice(0, 3).map((tag) => (
+            <span key={tag} className="rounded-md border border-line px-1.5 py-0.5 font-normal">
+              {tag}
+            </span>
+          ))}
+          {reading && <span className="rounded-md border border-line px-1.5 py-0.5 font-normal">{reading}</span>}
+        </p>
+        <h1 className="mt-3 text-4xl font-bold leading-tight sm:text-5xl">{post.title}</h1>
+        {post.subtitle && <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted">{post.subtitle}</p>}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-y border-line py-3">
+          <p className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-9 items-center justify-center rounded-full bg-[#f0c75e] font-mono text-xs font-bold text-[#1a1a1a]"
+            >
+              {post.authorName ? initials(post.authorName) : "P"}
+            </span>
+            <span className="leading-tight">
+              <span className="block text-sm font-bold">{author}</span>
+              <span className="block font-mono text-[11px] text-muted">
+                <time dateTime={post.publishedAt}>{date}</time>
+                {reading && <> · {reading}</>}
+              </span>
+            </span>
+          </p>
+          <ArticleActions title={post.title} />
+        </div>
+        {post.kind === "opinion" && (
+          <p className="mt-4 rounded-lg border border-dashed border-line px-4 py-2 text-sm text-muted">
+            Texto de opinião: vincula apenas {post.authorName ? `${post.authorName}` : "quem o assina"}, não o Politicando.
+          </p>
+        )}
+      </header>
+
+      {post.coverImageUrl && !post.media && (
+        <ArticleImage
+          src={post.coverImageUrl}
+          backdrop
+          className="mt-6 block aspect-video max-w-4xl overflow-hidden rounded-2xl bg-surface"
+          imageClassName="size-full object-contain"
+        />
+      )}
+      {post.media && (
+        <ConsentEmbed
+          provider={post.media.provider}
+          src={post.media.embedUrl}
+          url={post.media.url}
+          title={`${KIND_LABELS[post.kind]}: ${post.title}`}
+          className={`mt-6 max-w-4xl overflow-hidden rounded-2xl bg-surface ${isAudio(post.media.provider) ? "h-[232px]" : "aspect-video"}`}
+        />
+      )}
+
+      <div className={`mt-8 grid items-start gap-10 ${long ? "xl:grid-cols-[minmax(0,46rem)_16rem]" : ""}`}>
+        <div className="min-w-0 max-w-[46rem]">
+          {long && (
+            <nav aria-label="Neste artigo" className="mb-8 rounded-2xl border border-line p-4 xl:hidden">
+              <Contents sections={sections} />
+            </nav>
+          )}
+          <div className={`post-body ${long ? "post-body--long" : ""}`}>{renderMarkdown(post.body)}</div>
+
+          {post.tags.includes("parlamento") && (
+            <Link
+              href="/parlamento"
+              className="mt-10 flex flex-wrap items-center gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--stage-debate)_45%,transparent)] bg-[color-mix(in_srgb,var(--stage-debate)_8%,transparent)] p-5 hover:bg-surface"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-xl font-bold">Queres ver quem são os 230?</span>
+                <span className="block text-sm text-muted">
+                  Todos os deputados no Parlamento, com o partido e o círculo por que foram eleitos.
+                </span>
+              </span>
+              <span className="font-mono text-xs font-bold text-[var(--stage-debate)]">Abrir Parlamento →</span>
+            </Link>
+          )}
+
+          {post.tags.length > 0 && (
+            <ul aria-label="Temas" className="mt-10 flex flex-wrap gap-2 border-t border-line pt-4">
+              {post.tags.map((tag) => (
+                <li key={tag} className="rounded-full border border-line px-3 py-1 font-mono text-xs">
+                  #{tag}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {long && (
+          <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain no-scrollbar xl:block">
+            <nav aria-label="Neste artigo" className="rounded-2xl border border-line p-4">
+              <Contents sections={sections} />
+            </nav>
+            <dl className="mt-4 grid grid-cols-2 gap-2">
+              <div className="flex flex-col-reverse rounded-xl border border-line p-3">
+                <dt className="font-mono text-[10px] uppercase tracking-widest text-muted">secções</dt>
+                <dd className="text-xl font-bold">{sections.length}</dd>
+              </div>
+              {post.readingMinutes && (
+                <div className="flex flex-col-reverse rounded-xl border border-line p-3">
+                  <dt className="font-mono text-[10px] uppercase tracking-widest text-muted">min. de leitura</dt>
+                  <dd className="text-xl font-bold">{post.readingMinutes}</dd>
+                </div>
+              )}
+            </dl>
+          </aside>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** The post's sections, numbered as in the text, each a link to its heading. */
+function Contents({ sections }: { sections: { id: string; title: string }[] }) {
+  return (
+    <>
+      <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-widest">Neste artigo</p>
+      <ol className="space-y-1">
+        {sections.map((section, index) => (
+          <li key={section.id}>
+            <JumpLink to={section.id} className="flex gap-2.5 rounded-lg px-1.5 py-1 text-sm leading-snug hover:bg-surface">
+              <span className="font-mono text-[11px] font-bold text-[var(--stage-debate)]">{String(index + 1).padStart(2, "0")}</span>
+              <span>{section.title}</span>
+            </JumpLink>
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}

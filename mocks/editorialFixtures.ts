@@ -1,0 +1,52 @@
+import type { ApiEditorialDetailInput } from "@/lib/api/schemas";
+
+/** Made-up posts by fictional authors for the mock API. One body tries raw HTML and a script link, which must show as text. */
+export const editorialPosts: ApiEditorialDetailInput[] = [
+  {
+    id: 3,
+    slug: "o-que-muda-no-orcamento",
+    readingMinutes: 4,
+    kind: "podcast",
+    title: "Orçamento do Estado: o que muda?",
+    subtitle: "Um episódio de vinte minutos sobre as contas do próximo ano.",
+    authorName: "Clara Mendonça",
+    coverImageUrl: null,
+    media: {
+      provider: "spotify",
+      url: "https://open.spotify.com/episode/0000000000000000000000",
+      embedUrl: "https://open.spotify.com/embed/episode/0000000000000000000000",
+    },
+    tags: ["orçamento"],
+    featured: true,
+    publishedAt: "2026-11-14T12:00:00.000Z",
+    body: "## Neste episódio\n\nFalamos de **impostos**, *pensões* e do que muda para quem trabalha.\n\n- O IRS\n- As pensões\n- A habitação",
+  },
+  {
+    id: 2,
+    slug: "a-maioria-que-nao-existe",
+    kind: "opinion",
+    title: "A maioria que não existe",
+    subtitle: null,
+    authorName: "Tomás Varela",
+    coverImageUrl: null,
+    media: { provider: "evil", url: "https://evil.example/x", embedUrl: "https://evil.example/embed" },
+    tags: ["parlamento"],
+    featured: true,
+    publishedAt: "2026-11-10T09:00:00.000Z",
+    body: "Um parágrafo com <script>window.__xssPost=1</script> e [um link perigoso](javascript:alert(1)) e [um bom](https://www.parlamento.pt).\n\n> Uma citação.",
+  },
+  {
+    id: 1,
+    slug: "como-se-faz-uma-lei",
+    kind: "article",
+    title: "Como se faz uma lei",
+    subtitle: "Da proposta à promulgação, passo a passo.",
+    authorName: null,
+    coverImageUrl: null,
+    media: null,
+    tags: [],
+    featured: false,
+    publishedAt: "2026-11-01T09:00:00.000Z",
+    body: "# Do início ao fim\n\n1. Alguém propõe\n2. O Parlamento discute\n3. O Presidente promulga",
+  },
+];
