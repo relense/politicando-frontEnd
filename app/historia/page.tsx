@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { HistoryExplorer } from "@/components/HistoryExplorer";
-import { ApiError, getGovernmentHistory, getTimeline } from "@/lib/api/client";
+import { type HistoryParliament } from "@/components/HistoryPlayback";
+import { ApiError, getElectionResult, getElections, getGovernmentHistory, getTimeline } from "@/lib/api/client";
 import { daysLabel, END_COLOR, END_LABELS, endTone, groupsOf, historyStats, TONE_COLOR, type HistoryGroup } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
 import type { GovernmentEndReason, GovernmentHistory, TimelineEvent } from "@/lib/types";
@@ -22,6 +23,35 @@ async function loadHistory(): Promise<GovernmentHistory | null> {
   }
 }
 
+/** The Parliament after each legislativas whose results load, oldest first; empty when none do. */
+async function loadParliaments(): Promise<HistoryParliament[]> {
+  const elections = await getElections("legislativas").catch(() => []);
+  const results = await Promise.all(elections.filter((item) => item.imported).map((item) => getElectionResult(item.id).catch(() => null)));
+  return results
+    .filter((result) => result !== null)
+    .map((result) => ({
+      date: result.election.date,
+      title: result.election.name,
+      seats: result.lists
+        .filter((list) => (list.mandates ?? 0) > 0)
+        .sort((a, b) => (b.mandates ?? 0) - (a.mandates ?? 0))
+        .map((list) => ({
+          key: list.list,
+          label: seatLabel(list.list, list.partySlugs),
+          color: list.partySlugs[0] ? partyColor(list.partySlugs[0]) : "var(--muted)",
+          mandates: list.mandates ?? 0,
+        })),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** "PSD", "PSD/CDS", "CDU" instead of the ballot's "PPD/PSD.CDS-PP" or "PCP-PEV". */
+function seatLabel(list: string, slugs: string[]): string {
+  if (slugs.includes("psd") && slugs.includes("cds-pp")) return "PSD/CDS";
+  if (slugs.includes("pcp")) return "CDU";
+  return list.replace("PPD/PSD", "PSD");
+}
+
 /** Legislativas decide governments and presidenciais the President; the other elections would crowd the list. */
 const SHOWN_ELECTIONS = /^(Legislativas|Presidenciais)\b/;
 const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
@@ -38,7 +68,11 @@ const oneDecimal = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, ma
 
 export default async function HistoryPage() {
   await connection();
-  const [history, events] = await Promise.all([loadHistory(), getTimeline().catch((): TimelineEvent[] => [])]);
+  const [history, events, parliaments] = await Promise.all([
+    loadHistory(),
+    getTimeline().catch((): TimelineEvent[] => []),
+    loadParliaments(),
+  ]);
   const today = new Date().toISOString().slice(0, 10);
 
   const header = (
@@ -123,7 +157,7 @@ export default async function HistoryPage() {
         </dl>
       </section>
 
-      <HistoryExplorer governments={governments} presidents={presidents} elections={elections} today={today}>
+      <HistoryExplorer governments={governments} presidents={presidents} elections={elections} parliaments={parliaments} today={today}>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <section aria-labelledby="mais-tempo" className="rounded-2xl border border-line p-4 sm:p-5">
             <h2 id="mais-tempo" className="font-mono text-xs font-bold uppercase tracking-widest">

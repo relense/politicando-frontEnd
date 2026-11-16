@@ -627,19 +627,27 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await expect(page).toHaveURL(/\/historia$/);
   await expect(page.getByRole("heading", { level: 1, name: "Os governos da democracia" })).toBeVisible();
   await expect(page.getByText("governos desde 1974", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Anos 70" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 3, name: "Anos 1970" })).toBeVisible();
 
-  // The government in office is shown first; the one before is a press away, and a block of the bar opens its own.
+  // An animation runs from 1974 to today: it can be paused, moved with the slider, and skipped to the end.
+  await page.getByRole("button", { name: "❚❚ Pausa" }).click();
+  await page.getByRole("slider", { name: "Data na animação" }).fill(String(Math.round(Date.parse("1990-06-01") / 86_400_000)));
+  await expect(page.getByRole("slider", { name: "Data na animação" })).toHaveAttribute("aria-valuetext", /de 1990$/);
+  await page.getByRole("button", { name: "Saltar para o fim ⏭" }).click();
+  await expect(page.getByRole("button", { name: "▶ Ver a animação outra vez" })).toBeVisible();
+
+  // Then the full view: the government in office first, the one before a press away.
   const chosen = page.getByRole("article", { name: "Henrique Valadares" }).first();
   await expect(chosen.getByText("Em funções")).toBeVisible();
   await page.getByRole("button", { name: "← Anterior" }).click();
   await expect(page.getByRole("button", { name: "Seguinte →" })).toBeEnabled();
   await page.getByRole("button", { name: "Seguinte →" }).click();
-  // Filters narrow the list.
+  // Filters narrow the timeline.
   const all = await page.getByRole("region", { name: "Governo a governo" }).getByRole("article").count();
   await page.getByRole("button", { name: "Provisórios" }).click();
   await expect(page.getByRole("region", { name: "Governo a governo" }).getByRole("article")).not.toHaveCount(all);
   await page.getByRole("button", { name: "Todos" }).click();
+  await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
   // A kind of event the site doesn't know yet is left out; elections link to their results.
   await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
   await page
@@ -649,7 +657,7 @@ test("history: from the menu to the timeline of governments, and on to the curre
     .click();
   await expect(page).toHaveURL(/\/eleicoes\/legislativas-2025$/);
   await page.goBack();
-  await page.getByRole("link", { name: "Quem governa agora →" }).click();
+  await page.getByRole("link", { name: "Quem governa agora →" }).first().click();
   await expect(page).toHaveURL(/\/governo$/);
 });
 

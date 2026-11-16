@@ -1,3 +1,4 @@
+import { partyColor } from "./parliament";
 import type { GovernmentEndReason, HistoricalGovernment, TimelineEvent } from "./types";
 
 /** The day of the revolution, where the history starts. */
@@ -168,3 +169,23 @@ export const END_COLOR: Record<GovernmentEndReason, string> = {
   provisional: "var(--muted)",
   in_office: "var(--ink)",
 };
+
+/** A party's colour, stripes of each partner for a coalition, hatching for governments without parties. */
+export function fillOf(government: HistoricalGovernment): string {
+  const colors = government.parties.map((party) => partyColor(party.slug));
+  if (colors.length === 0) {
+    const color = government.kind === "provisional" ? "var(--muted)" : "var(--stage-president)";
+    return `repeating-linear-gradient(135deg, ${color} 0 2px, transparent 2px 6px)`;
+  }
+  if (colors.length === 1) return colors[0]!;
+  const stripe = 5;
+  const stops = colors.map((color, index) => `${color} ${index * stripe}px ${(index + 1) * stripe}px`).join(", ");
+  return `repeating-linear-gradient(135deg, ${stops})`;
+}
+
+export const accentOf = (government: HistoricalGovernment) =>
+  government.parties[0]
+    ? partyColor(government.parties[0].slug)
+    : government.kind === "provisional"
+      ? "var(--muted)"
+      : "var(--stage-president)";

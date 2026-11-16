@@ -289,7 +289,7 @@ export default async function ContractsPage({ searchParams }: Props) {
                   </div>
                   <span className="text-right font-mono text-xs tabular-nums text-muted">{formatNumber(item.count)}</span>
                   <span className="whitespace-nowrap text-right font-mono text-sm font-bold tabular-nums">
-                    {formatEurosShort(item.total)}
+                    {formatEurosCompact(item.total)}
                   </span>
                 </li>
               );
