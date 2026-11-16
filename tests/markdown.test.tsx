@@ -57,3 +57,33 @@ describe("sectionsOf", () => {
     ]);
   });
 });
+
+describe("tables and our own addresses", () => {
+  const html = async (source: string) => {
+    const { renderMarkdown } = await import("@/lib/markdown");
+    return renderToStaticMarkup(<>{renderMarkdown(source)}</>);
+  };
+
+  it("draws a GFM table in a box that scrolls, with alignment and a row header when the corner is empty", async () => {
+    const out = await html("| | Deputados |\n|---|---:|\n| **A favor** | 91 |\n| Contra | 79 |");
+    expect(out).toContain('<div class="post-table" role="region" aria-label="Tabela" tabindex="0"><table>');
+    expect(out).toContain('<th scope="col" style="text-align:right">Deputados</th>');
+    expect(out).toContain('<th scope="row"><strong>A favor</strong></th><td style="text-align:right">91</td>');
+  });
+
+  it("opens links to politicando.pt in place, as paths, and other sites in a new tab", async () => {
+    const out = await html("[PS](https://politicando.pt/partido/ps) e [CNE](https://www.cne.pt)");
+    expect(out).toContain('<a href="/partido/ps">PS</a>');
+    expect(out).toContain('<a href="https://www.cne.pt" target="_blank" rel="noopener noreferrer">CNE</a>');
+  });
+});
+
+describe("escapes", () => {
+  it("shows a backslash-escaped mark as the character itself", async () => {
+    const { renderMarkdown, plainText } = await import("@/lib/markdown");
+    expect(renderToStaticMarkup(<>{renderMarkdown("\\* *Aprovados sobre os decididos.*")}</>)).toBe(
+      "<p>* <em>Aprovados sobre os decididos.</em></p>",
+    );
+    expect(plainText("\\* *nota*")).toBe("* nota");
+  });
+});

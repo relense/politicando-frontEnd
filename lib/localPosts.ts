@@ -18,7 +18,8 @@ const WRITTEN: Omit<EditorialDetail, "readingMinutes">[] = [
     coverImageUrl: null,
     media: null,
     tags: ["parlamento", "eleições", "explicador"],
-    featured: true,
+    // Moderators feature posts in the admin; the site's own explainer waits its turn like any other.
+    featured: false,
     publishedAt: "2026-11-15T12:00:00.000Z",
     body: `Em cada eleição legislativa escolhemos 230 deputados. Mas ninguém escreve um nome no boletim. O caminho até São Bento passa por um partido, por um círculo e por uma posição numa lista. Explicamos as regras, uma de cada vez.
 

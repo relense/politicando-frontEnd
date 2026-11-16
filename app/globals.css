@@ -230,6 +230,66 @@ article[id^="comentario-"]:target {
   border-radius: 1rem;
   max-width: 100%;
 }
+
+/* Tables in posts: scroll sideways inside their own box on a phone, so the page never does. */
+.post-body .post-table {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+}
+.post-body .post-table:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.post-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.post-body thead th {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0.6em 0.85em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: left;
+  vertical-align: bottom;
+}
+.post-body tbody td,
+.post-body tbody th {
+  padding: 0.55em 0.85em;
+  vertical-align: top;
+  text-align: left;
+}
+.post-body tbody th {
+  font-weight: 700;
+}
+.post-body tbody tr + tr {
+  border-top: 1px solid var(--line);
+}
+.post-body table a {
+  font-weight: 700;
+}
+/* A rule before the closing note ("Como fizemos: …"): the note reads as a footnote. */
 .post-body hr {
-  border-color: var(--line);
+  margin-top: 2.5em;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.post-body hr + p {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+/* A long post that opens with a heading: no rule above the first one. */
+.post-body--long > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+/* A table's first column is usually a name ("CDS-PP", "A favor"): keep it on one line. */
+.post-body tbody tr > :first-child {
+  white-space: nowrap;
 }

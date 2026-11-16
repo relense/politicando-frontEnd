@@ -8,6 +8,7 @@ import { ApiError, getEditorial } from "@/lib/api/client";
 import { EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
 import { formatLongDate } from "@/lib/format";
 import { localPosts, withLocalPosts } from "@/lib/localPosts";
+import { loadHighlights } from "@/components/Highlights";
 import type { EditorialKind, EditorialPage, EditorialPost } from "@/lib/types";
 
 const PAGE_SIZE = 12;
@@ -98,8 +99,11 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
   const { items, total } = withLocalPosts(fromApi, { kind, number: page });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const all = EDITORIAL_KINDS.reduce((sum, item) => sum + counts[item], 0);
-  // The newest gets the large box on the first page; the rest follow as cards.
-  const [lead, ...rest] = page === 1 ? items : [null, ...items];
+  // The large box on the first page: the featured post the front page shows too, or with a kind chosen the newest featured
+  // of that kind; without any, the newest. The rest follow as cards.
+  const highlight = page === 1 && !kind ? ((await loadHighlights())[0] ?? null) : null;
+  const lead = page === 1 ? (highlight ?? items.find((post) => post.featured) ?? items[0] ?? null) : null;
+  const rest = items.filter((post) => post.slug !== lead?.slug);
   const soon = EDITORIAL_KINDS.filter((item) => counts[item] === 0);
   const pill = (active: boolean) =>
     `inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs font-bold ${
@@ -152,7 +156,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rest.map((post) => (
             <li key={post!.id}>
-              <EditorialCard post={post!} />
+              <EditorialCard post={post!} color={KINDS[post!.kind].color} />
             </li>
           ))}
         </ul>
@@ -278,7 +282,7 @@ function Lead({ post }: { post: EditorialPost }) {
             {KIND_LABELS[post.kind]}
             {kindTag && <> · {kindTag[0]!.toUpperCase() + kindTag.slice(1)}</>}
           </span>
-          <span className="text-muted">Mais recente</span>
+          <span className="text-muted">{post.featured ? "Em destaque" : "Mais recente"}</span>
         </p>
         <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">
           <Link href={href} className="hover:underline">
