@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
@@ -63,6 +64,7 @@ export default async function DeputyPage({ params }: Props) {
 
   return (
     <article data-wide className="pb-4">
+      <ScrollToTop id={String(deputy.id)} />
       <nav aria-label="Caminho" className="mb-4 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <Link href="/parlamento" className="hover:text-ink hover:underline">
           ← Parlamento

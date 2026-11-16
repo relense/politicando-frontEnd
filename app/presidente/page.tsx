@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -120,6 +121,7 @@ export default async function PresidentPage() {
 
   return (
     <article data-wide>
+      <ScrollToTop id="presidente" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(data) }} />
 
       <header className="mb-6">

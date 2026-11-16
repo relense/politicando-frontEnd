@@ -71,12 +71,12 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="o.teu@email.pt"
-          className="h-10 min-w-0 flex-[1_1_14rem] rounded-full border border-line bg-paper px-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
+          className={`h-10 min-w-0 ${compact ? "w-full" : "flex-[1_1_14rem]"} rounded-full border border-line bg-paper px-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none`}
         />
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="h-10 rounded-full bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-4 font-mono text-xs font-bold ring-1 ring-ink hover:bg-surface disabled:opacity-60"
+          className="h-10 shrink-0 rounded-full bg-ink px-4 font-mono text-xs font-bold text-paper hover:opacity-90 disabled:opacity-60"
         >
           {mutation.isPending ? "A enviar…" : "Quero receber"}
         </button>
