@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { HistoryExplorer } from "@/components/HistoryExplorer";
+import { HistoryExplorer, type GovernmentMandate } from "@/components/HistoryExplorer";
+import { getLegislatures, type LegislatureSummary } from "@/lib/api/legislatures";
 import { type HistoryParliament } from "@/components/HistoryPlayback";
 import { ApiError, getElectionResult, getElections, getGovernmentHistory, getTimeline } from "@/lib/api/client";
 import { daysLabel, END_COLOR, END_LABELS, endTone, groupsOf, historyStats, TONE_COLOR, type HistoryGroup } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
-import type { GovernmentEndReason, GovernmentHistory, TimelineEvent } from "@/lib/types";
+import type { GovernmentEndReason, GovernmentHistory, HistoricalGovernment, TimelineEvent } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "História",
@@ -67,12 +68,38 @@ const LED: { key: HistoryGroup; label: string; color: string }[] = [
 
 const oneDecimal = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+const DAY = 86_400_000;
+
+/**
+ * The legislatures each government governed in, oldest first. A government sworn in days after an election, or still in
+ * office for a few days after the next Parliament sits, does not count for that one: it needs a month inside it.
+ */
+function mandatesOf(
+  governments: HistoricalGovernment[],
+  legislatures: LegislatureSummary[],
+  today: string,
+): Record<string, GovernmentMandate[]> {
+  const time = (day: string) => new Date(`${day.slice(0, 10)}T00:00:00Z`).getTime();
+  return Object.fromEntries(
+    governments.map((government) => {
+      const from = time(government.start);
+      const to = time(government.end ?? today);
+      const inside = legislatures
+        .filter((legislature) => Math.min(to, time(legislature.end ?? today)) - Math.max(from, time(legislature.start)) >= 30 * DAY)
+        .sort((a, b) => a.start.localeCompare(b.start))
+        .map((legislature) => ({ id: legislature.id, name: legislature.name, events: legislature.events }));
+      return [government.code, inside];
+    }),
+  );
+}
+
 export default async function HistoryPage() {
   await connection();
-  const [history, events, parliaments] = await Promise.all([
+  const [history, events, parliaments, legislatures] = await Promise.all([
     loadHistory(),
     getTimeline().catch((): TimelineEvent[] => []),
     loadParliaments(),
+    getLegislatures().catch((): LegislatureSummary[] => []),
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -170,7 +197,14 @@ export default async function HistoryPage() {
         </Link>
       </section>
 
-      <HistoryExplorer governments={governments} presidents={presidents} elections={elections} parliaments={parliaments} today={today}>
+      <HistoryExplorer
+        governments={governments}
+        presidents={presidents}
+        elections={elections}
+        parliaments={parliaments}
+        today={today}
+        mandates={mandatesOf(governments, legislatures, today)}
+      >
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <section aria-labelledby="mais-tempo" className="rounded-2xl border border-line p-4 sm:p-5">
             <h2 id="mais-tempo" className="font-mono text-xs font-bold uppercase tracking-widest">

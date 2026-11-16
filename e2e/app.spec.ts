@@ -802,3 +802,14 @@ test("legislatures: the list, one opened with its chamber, governments, events b
   await expect(page.getByText("1984", { exact: true })).toBeVisible();
   expect((await page.goto("/legislaturas/XCIX"))!.status()).toBe(404);
 });
+
+test("history: a government opens what happened in its legislature", async ({ page }) => {
+  await page.goto("/historia");
+  const skip = page.getByRole("button", { name: "Saltar para o fim ⏭" });
+  if (await skip.isEnabled()) await skip.click();
+  const mandate = page.getByRole("list", { name: "O que aconteceu no mandato de Henrique Valadares" });
+  await expect(mandate).toContainText("2 acontecimentos");
+  await mandate.getByRole("link", { name: /O que aconteceu · XVII Legislatura/ }).click();
+  await expect(page).toHaveURL(/\/legislaturas\/XVII#aconteceu$/);
+  await expect(page.getByRole("heading", { level: 2, name: "O que aconteceu" })).toBeVisible();
+});
