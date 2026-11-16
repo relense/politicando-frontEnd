@@ -18,6 +18,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/newsletter", label: "Newsletter" },
       { href: "/historia", label: "História" },
       { href: "/como-ser-deputado", label: "Como se chega a deputado" },
+      { href: "/feedback", label: "Feedback e correções" },
     ],
   },
   {

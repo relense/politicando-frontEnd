@@ -51,11 +51,18 @@ export default function PrivacyPage() {
         apaga o teu endereço.
       </p>
 
+      <h2>Feedback</h2>
+      <p>
+        Uma mensagem pela página de feedback pode ser anónima. Guardamos o que escreves, a página indicada e, se a juntares, a captura de
+        ecrã. O email só é pedido se quiseres resposta: usamo-lo só para te responder sobre essa mensagem e apagamo-lo quando o assunto
+        fecha. As capturas de ecrã são apagadas ao fim de 90 dias. As correções publicadas no registo não dizem quem as pediu.
+      </p>
+
       <h2>Proteção contra robôs</h2>
       <p>
-        Quando começas a escrever um comentário, uma discussão ou a inscrição na newsletter, carregamos o <b>reCAPTCHA</b> da Google para
-        confirmar que não és um robô. Só nesse momento, e só nessas páginas, a Google recebe dados do teu navegador (como o endereço IP),
-        segundo a{" "}
+        Quando começas a escrever um comentário, uma discussão, uma mensagem de feedback ou a inscrição na newsletter, carregamos o{" "}
+        <b>reCAPTCHA</b> da Google para confirmar que não és um robô. Só nesse momento, e só nessas páginas, a Google recebe dados do teu
+        navegador (como o endereço IP), segundo a{" "}
         <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
           política de privacidade
         </a>{" "}

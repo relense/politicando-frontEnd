@@ -329,6 +329,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/termos",
     "/legislaturas",
     "/agenda",
+    "/feedback",
+    "/feedback/correcoes",
     "/legislaturas/XVII",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
@@ -858,4 +860,46 @@ test("agenda: what is coming by day, filters, how to attend, add to calendar, an
   await expect(page.getByRole("article", { name: "Reunião pública da Câmara Municipal do Porto" })).toContainText(
     "Inscrição prévia para intervir",
   );
+});
+
+test("feedback: report an error with the right fact, a source and a screenshot, ask for an answer, vote an idea, see the log", async ({
+  page,
+}) => {
+  await page.goto("/feedback?pagina=Percursos&ligacao=/percursos");
+  await expect(page.getByRole("heading", { level: 1, name: /Diz-nos o que pensas/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Encontrei um erro/ })).toBeChecked();
+  await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveValue("Percursos");
+  await expect(page.getByRole("textbox", { name: /Ligação/ })).toHaveValue("/percursos");
+  // Without the message, it asks for it.
+  await page.getByRole("button", { name: "Enviar feedback →" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "O que está errado?" })).toBeVisible();
+  await page.getByRole("textbox", { name: "O que está errado?" }).fill("Falta o cargo de Presidente da Assembleia.");
+  await expect(page.getByText(/^[1-9]\d* \/ 1000$/)).toBeVisible();
+  await page.getByRole("textbox", { name: "Qual é a informação certa?" }).fill("Presidente da Assembleia desde 2024");
+  await page.getByRole("textbox", { name: /Onde se confirma/ }).fill("parlamento.pt");
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles({ name: "erro.png", mimeType: "image/png", buffer: Buffer.from("89504e47", "hex") });
+  await expect(page.getByText("erro.png")).toBeVisible();
+  await page.getByRole("radio", { name: "Quero ser avisado" }).click();
+  await page.getByRole("textbox", { name: "O teu email" }).fill("nao-e-email");
+  await page.getByLabel("Não sou um robô (teste)").check();
+  await page.getByRole("button", { name: "Enviar feedback →" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "email válido" })).toBeVisible();
+  await page.getByRole("textbox", { name: "O teu email" }).fill("leitor@example.com");
+  await page.getByRole("button", { name: "Enviar feedback →" }).click();
+  await expect(page.getByRole("status")).toContainText("Obrigado. Recebemos a tua mensagem.");
+
+  // An idea: the fields change, and the side lets the reader vote once.
+  await page.goto("/feedback");
+  await page.getByRole("radio", { name: /Tenho uma ideia/ }).check({ force: true });
+  await expect(page.getByRole("textbox", { name: "Qual é a ideia?" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveCount(0);
+  const vote = page.getByRole("button", { name: /Votar em «Comparar votações de dois partidos», 168 votos/ });
+  await vote.click();
+  await expect(page.getByRole("button", { name: /Votaste em «Comparar votações de dois partidos», 169 votos/ })).toBeDisabled();
+  await expect(page.getByText("38", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Ver tudo" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Registo de correções" })).toBeVisible();
+  await expect(page.getByText("Não confirmado")).toBeVisible();
 });

@@ -77,3 +77,28 @@ The `/agenda` page and the "Próximo evento" box on the front page are built aga
 - **Autarquias:** public meetings of câmaras and assembleias municipais (the law gives the public time to speak), from the municipalities' sites, starting with the largest. Kind `local`.
 - **Eleições:** election days once the decree is out, and campaign periods. Kind `election`.
 - **União Europeia:** plenaries of the European Parliament and European Council summits. Kind `european`.
+
+## Feedback (needed from the API)
+`/feedback` and `/feedback/correcoes` are built against this contract, with fictional data in `mocks/feedbackFixtures.ts`. Until it exists, the form shows an error with the contact email, and the side boxes and the log say they are coming.
+
+### `POST /feedback` (multipart/form-data)
+Fields: `kind` (`error | idea | broken | other`), `message` (required, up to 1000 characters), `page` (the section the reader chose, e.g. "Percursos"), `url`, `correction` (what is right), `source` (where it can be confirmed), `email` (only when the reader wants an answer), `screenshot` (PNG or JPG, up to 5 MB), `recaptchaToken`.
+- Answer `201 { "id": … }`.
+- Errors as usual, with these codes the page explains: `rate_limited`, `captcha_failed`, `file_too_large`, `unsupported_file`, `validation_failed`.
+- Privacy, as the privacy page now says: the email is used only to answer that message and deleted when it is closed; screenshots are deleted after 90 days; the public log never says who asked.
+- The editors need a way to read, answer and close messages (admin), and to turn an `error` into a correction in the log.
+
+### `GET /feedback/summary`
+```jsonc
+{
+  "stats": { "responseDays": 2, "correctionsThisMonth": 38 },  // median days to a first answer over the last 90 days (null with too few)
+  "corrections": [ /* the latest 4, as below */ ],
+  "ideas": [ { "id": "alertas", "title": "Alertas quando um partido que sigo é notícia", "votes": 215, "status": "in_progress" } ] // the most voted, up to 5; status: reviewing | planned | in_progress | done
+}
+```
+
+### `GET /corrections?cursor=&limit=`
+`{ "items": [{ "id": 4, "status": "fixed", "date": "2026-11-16", "area": "Percursos", "title": "…", "url": "/percursos" }], "nextCursor": null }`, newest first. `status`: `fixed | checking | rejected`. `url`: a path on this site or a full link, or null.
+
+### `POST /ideas/:id/vote`
+No body. One vote per idea per reader (by IP, or a hash of it); a repeat vote returns the same count without adding. Answer `{ "votes": 216 }`. The page also remembers the vote on the device.

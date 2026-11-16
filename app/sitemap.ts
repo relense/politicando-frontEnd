@@ -95,6 +95,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/governo", { changeFrequency: "weekly" }),
     at("/presidente", { changeFrequency: "weekly" }),
     at("/agenda", { changeFrequency: "daily" }),
+    at("/feedback", { changeFrequency: "monthly" }),
+    at("/feedback/correcoes", { changeFrequency: "weekly" }),
     at("/legislaturas", { changeFrequency: "monthly" }),
     at("/privacidade", { changeFrequency: "yearly" }),
     at("/cookies", { changeFrequency: "yearly" }),
