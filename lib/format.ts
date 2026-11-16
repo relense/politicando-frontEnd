@@ -167,3 +167,11 @@ export function formatFullDateTime(value: string | null | undefined): string | n
   const weekday = weekdayFormatter.format(date);
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${formatLongDate(value)} · ${formatTime(value)}`;
 }
+
+/** "dom., 15 nov. · 21:41": the day and time on a news card, so the date is never lost while scrolling. */
+export function formatCardWhen(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const p = dayParts(date);
+  return `${p.weekday!.slice(0, 3)}., ${p.day} ${p.month!.slice(0, 3)}. · ${formatTime(value)}`;
+}

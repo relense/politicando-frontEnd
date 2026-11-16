@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { HistoryExplorer } from "@/components/HistoryExplorer";
 import { ApiError, getGovernmentHistory, getTimeline } from "@/lib/api/client";
-import { daysLabel, END_LABELS, endTone, groupsOf, historyStats, TONE_COLOR, type HistoryGroup } from "@/lib/history";
+import { daysLabel, END_COLOR, END_LABELS, endTone, groupsOf, historyStats, TONE_COLOR, type HistoryGroup } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
 import type { GovernmentEndReason, GovernmentHistory, TimelineEvent } from "@/lib/types";
 
@@ -162,15 +162,18 @@ export default async function HistoryPage() {
                 <span
                   key={reason}
                   className="border-r border-paper last:border-0"
-                  style={{ width: `${(count / endingTotal) * 100}%`, backgroundColor: TONE_COLOR[endTone(reason)] }}
+                  style={{ width: `${(count / endingTotal) * 100}%`, backgroundColor: END_COLOR[reason] }}
                 />
               ))}
             </div>
             <ul className="mt-3 divide-y divide-line">
               {endingList.map(([reason, count]) => (
                 <li key={reason} className="flex items-center gap-2 py-1.5 text-sm">
-                  <span aria-hidden="true" className="size-2.5 rounded-sm" style={{ backgroundColor: TONE_COLOR[endTone(reason)] }} />
-                  <span className="flex-1">{END_LABELS[reason]}</span>
+                  <span aria-hidden="true" className="size-2.5 rounded-sm" style={{ backgroundColor: END_COLOR[reason] }} />
+                  <span className="flex-1">
+                    {END_LABELS[reason]}
+                    {endTone(reason) === "fell" && <span className="ml-2 font-mono text-[11px] text-muted">caiu no Parlamento</span>}
+                  </span>
                   <span className="font-mono text-sm font-bold">{count}</span>
                 </li>
               ))}

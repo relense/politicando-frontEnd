@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { commentLinkLabel, excerpt, formatDateTime, formatTime } from "@/lib/format";
+import { commentLinkLabel, excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
 import { CommentIcon } from "./icons";
@@ -24,9 +24,9 @@ export function ArticleCard({ article }: { article: Article }) {
             <span className="font-bold text-ink">{article.source}</span>
           )}
           <span aria-hidden="true">·</span>
-          {/* The feed is grouped by day, so the clock time is enough. */}
+          {/* The day too, not only the feed's day heading: it scrolls away. */}
           <time dateTime={article.publishedAt} title={formatDateTime(article.publishedAt) ?? undefined}>
-            {formatTime(article.publishedAt)}
+            {formatCardWhen(article.publishedAt)}
           </time>
         </div>
 

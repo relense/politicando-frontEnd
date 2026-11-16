@@ -20,6 +20,9 @@
   --stage-law: #12605a;
   --stage-stopped: #b3261e;
   --stage-withdrawn: #625d56;
+  /* Two more for how governments ended (history page). */
+  --end-censure: #9c1f5a;
+  --end-programme: #a4500c;
   --marker: #f3d27a;
 }
 
@@ -38,6 +41,8 @@
   --stage-law: #5fc4b8;
   --stage-stopped: #ff8a80;
   --stage-withdrawn: #b6b1aa;
+  --end-censure: #f27bb3;
+  --end-programme: #fdba74;
   --marker: #6b5a2a;
 }
 

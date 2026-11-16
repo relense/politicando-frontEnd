@@ -154,3 +154,17 @@ export const TONE_COLOR: Record<EndTone, string> = {
   provisional: "var(--muted)",
   unknown: "var(--muted)",
 };
+
+/** One colour per way a government ended, for the history page's breakdown. */
+export const END_COLOR: Record<GovernmentEndReason, string> = {
+  end_of_term: "var(--stage-law)",
+  early_election: "var(--stage-debate)",
+  resignation: "var(--stage-submitted)",
+  confidence_rejected: "var(--stage-stopped)",
+  censure: "var(--end-censure)",
+  programme_rejected: "var(--end-programme)",
+  dismissed: "var(--stage-president)",
+  death: "var(--stage-withdrawn)",
+  provisional: "var(--muted)",
+  in_office: "var(--ink)",
+};
