@@ -72,7 +72,20 @@ export function Feed({ initialPage, partySlug }: Props) {
         })}
       </div>
       <div ref={sentinelRef} aria-live="polite" className="py-8 text-center font-mono text-sm text-muted">
-        {isFetchingNextPage && "A carregar mais notícias…"}
+        {isFetchingNextPage && (
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="flex gap-1">
+              {[0, 150, 300].map((delay) => (
+                <span
+                  key={delay}
+                  className="size-1.5 animate-pulse rounded-full bg-[var(--stage-debate)]"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </span>
+            A carregar mais notícias…
+          </span>
+        )}
         {isFetchNextPageError && (
           <span role="alert">
             Não foi possível carregar mais notícias.{" "}

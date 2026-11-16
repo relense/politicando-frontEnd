@@ -119,7 +119,6 @@ test("the party filter narrows the news in place and marks the chosen party", as
   await expect(page).toHaveURL(/\/\?partido=psd$/);
   await expect(page.getByRole("heading", { level: 1, name: "Notícias do PSD" })).toBeVisible();
   await expect(filter.getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("region", { name: "Destaques" })).toHaveCount(0);
   await filter.getByRole("link", { name: "Todas" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
 });
@@ -139,9 +138,11 @@ test("parties page: the seated parties with their leader and seats, then the res
   await noSeriousA11yIssues(page);
 });
 
-test("news have no party column: the party filter sits above the feed", async ({ page }) => {
+test("news have no party column: the party filter sits above the feed, the blog and figures beside it", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("aside")).toHaveCount(0);
+  // No party column: the only column beside the news is the blog box and the figures.
+  await expect(page.locator("aside")).toHaveCount(1);
+  await expect(page.getByRole("complementary", { name: "Ao lado das notícias" }).getByRole("link", { name: /Filtrar|PSD/ })).toHaveCount(0);
   const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
   await expect(filter.getByRole("link", { name: "Todas" })).toHaveAttribute("aria-current", "page");
   // Party pages have no filter row: they are reached from the parties page.
@@ -506,8 +507,8 @@ test("parties can be ordered by votes, and the choice survives a reload", async 
   const nav = page.getByRole("navigation", { name: "Filtrar por partido" });
   const first = nav.getByRole("link").filter({ hasNotText: "Todas" }).first();
   await expect(first).toContainText("B.E.");
-  await nav.getByRole("button", { name: "Votos" }).click();
-  await expect(nav.getByRole("button", { name: "Votos" })).toHaveAttribute("aria-pressed", "true");
+  await nav.getByRole("button", { name: "Mais votados" }).click();
+  await expect(nav.getByRole("button", { name: "Mais votados" })).toHaveAttribute("aria-pressed", "true");
   await expect(first).toContainText("PSD");
   await page.reload();
   await expect(first).toContainText("PSD");
@@ -620,11 +621,12 @@ test("history: from the menu to the timeline of governments, and on to the curre
 
 test("blog: featured posts on the front page, the list by kind, and a post rendered safely", async ({ page }) => {
   await page.goto("/");
-  const highlights = page.getByRole("region", { name: "Destaques" });
-  // Three posts from the API and our own explainer.
-  await expect(highlights.getByRole("listitem")).toHaveCount(4);
-  await highlights.getByRole("link", { name: "A maioria que não existe" }).click();
-  await expect(page).toHaveURL(/\/editorial\/a-maioria-que-nao-existe$/);
+  // One post from the blog in a box beside the news (before it on smaller screens).
+  const spotlight = page.locator("section:visible", { has: page.getByText("Destaque · Blog") });
+  await expect(spotlight).toHaveCount(1);
+  await spotlight.getByRole("heading").getByRole("link").click();
+  await expect(page).toHaveURL(/\/editorial\/[a-z0-9-]+$/);
+  await page.goto("/editorial/a-maioria-que-nao-existe");
   await expect(page.getByRole("heading", { level: 1, name: "A maioria que não existe" })).toBeVisible();
   await expect(page.getByText(/Texto de opinião: vincula apenas Tomás Varela/)).toBeVisible();
   // Raw HTML shows as text, a script link stays plain text, and a player from an unknown host is dropped.

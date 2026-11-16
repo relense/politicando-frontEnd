@@ -68,11 +68,16 @@ export function PartyChipBar({ parties, active }: { parties: Party[]; active: st
   );
 
   return (
-    <nav aria-label="Filtrar por partido" className="-mx-4 mb-6 lg:mx-0">
-      <PartyOrderToggle className="mb-2 px-4 lg:px-0" />
+    <nav aria-labelledby="filtrar-partido" className="mb-6 rounded-2xl border border-line p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="filtrar-partido" className="font-mono text-xs font-bold uppercase tracking-widest text-muted">
+          Filtrar por partido
+        </h2>
+        <PartyOrderToggle />
+      </div>
       <div className="flex items-center gap-2">
         {arrow(-1)}
-        <ul ref={listRef} className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 lg:px-0">
+        <ul ref={listRef} className="no-scrollbar flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
           <li className="shrink-0">
             <Link href="/" scroll={false} aria-current={current(active === null)} className={chip(active === null)}>
               Todas

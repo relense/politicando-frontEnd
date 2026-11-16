@@ -86,8 +86,11 @@ export function PartyOrderToggle({ className = "" }: { className?: string }) {
       aria-label="Ordenar partidos"
       className={`inline-flex items-center gap-0.5 font-mono text-xs normal-case tracking-normal ${className}`}
     >
+      <span aria-hidden="true" className="mr-1 text-muted">
+        Ordenar
+      </span>
       {button("name", "A–Z", "Por ordem alfabética")}
-      {button("votes", "Votos", "Por deputados e votos nas últimas legislativas")}
+      {button("votes", "Mais votados", "Por deputados e votos nas últimas legislativas")}
     </span>
   );
 }
