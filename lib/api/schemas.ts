@@ -42,6 +42,8 @@ export const articleSchema = z.object({
 export const articlePageSchema = z.object({
   items: z.array(articleSchema),
   nextCursor: z.string().nullable(),
+  /** How many articles match the filters, the same on every page. */
+  total: z.number().nullish(),
 });
 
 export const commentSchema = z.object({

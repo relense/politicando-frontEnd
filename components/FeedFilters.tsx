@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import {
+  COMMENTED_HOURS,
   FEED_COOKIE,
   FEED_COOKIE_MAX_AGE,
   filterQuery,
@@ -13,7 +14,9 @@ import {
   type FeedFilter,
   type FeedSort,
 } from "@/lib/feedFilter";
-import { fold } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
+import { getFeedPage } from "@/lib/api/client";
+import { fold, formatNumber } from "@/lib/format";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
 import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
@@ -135,7 +138,39 @@ function CheckRow({
   );
 }
 
-function PanelFooter({ onClear, clearLabel, onApply }: { onClear: () => void; clearLabel: string; onApply: () => void }) {
+/** How many articles a choice would show, asked of the API as the boxes are ticked; null while unknown. */
+function useMatchCount(filter: FeedFilter, q: string, sort: FeedSort): number | null {
+  const { data } = useQuery({
+    queryKey: ["feed-count", filter.parties.join(","), filter.sources.join(","), q, sort],
+    queryFn: async () =>
+      (
+        await getFeedPage({
+          party: filter.parties,
+          source: filter.sources,
+          q,
+          limit: 1,
+          ...(sort === "comentadas" ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
+        })
+      ).total ?? null,
+    staleTime: 60_000,
+  });
+  return data ?? null;
+}
+
+const showLabel = (count: number | null) =>
+  count === null ? "Mostrar notícias" : count === 1 ? "Mostrar 1 notícia" : `Mostrar ${formatNumber(count)} notícias`;
+
+function PanelFooter({
+  onClear,
+  clearLabel,
+  onApply,
+  count,
+}: {
+  onClear: () => void;
+  clearLabel: string;
+  onApply: () => void;
+  count: number | null;
+}) {
   return (
     <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
       <button type="button" onClick={onClear} className="font-mono text-xs text-muted underline hover:text-ink">
@@ -146,7 +181,7 @@ function PanelFooter({ onClear, clearLabel, onApply }: { onClear: () => void; cl
         onClick={onApply}
         className="rounded-full bg-ink px-4 py-2 font-mono text-xs font-bold text-paper hover:opacity-90"
       >
-        Mostrar notícias
+        {showLabel(count)}
       </button>
     </div>
   );
@@ -154,9 +189,12 @@ function PanelFooter({ onClear, clearLabel, onApply }: { onClear: () => void; cl
 
 const heading = "mb-2 mt-4 font-mono text-[11px] font-bold uppercase tracking-widest text-muted first:mt-0";
 
-function PartiesPanel({ parties, chosen, onApply }: { parties: Party[]; chosen: string[]; onApply: (parties: string[]) => void }) {
+type PanelProps = { chosen: string[]; onApply: (values: string[]) => void; filter: FeedFilter; q: string; sort: FeedSort };
+
+function PartiesPanel({ parties, chosen, onApply, filter, q, sort }: PanelProps & { parties: Party[] }) {
   const { ordered, seatsOf } = useOrderedParties(parties);
   const [draft, setDraft] = useState(chosen);
+  const count = useMatchCount({ ...filter, parties: draft }, q, sort);
   const [query, setQuery] = useState("");
   const words = fold(query.trim());
   const shown = ordered.filter((party) => !words || fold(`${party.acronym} ${party.name}`).includes(words));
@@ -212,13 +250,14 @@ function PartiesPanel({ parties, chosen, onApply }: { parties: Party[]; chosen: 
         )}
         {shown.length === 0 && <p className="py-4 text-center text-sm text-muted">Nenhum partido com esse nome.</p>}
       </div>
-      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar partidos" onApply={() => onApply(draft)} />
+      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar partidos" onApply={() => onApply(draft)} count={count} />
     </>
   );
 }
 
-function SourcesPanel({ sources, chosen, onApply }: { sources: Source[]; chosen: string[]; onApply: (sources: string[]) => void }) {
+function SourcesPanel({ sources, chosen, onApply, filter, q, sort }: PanelProps & { sources: Source[] }) {
   const [draft, setDraft] = useState(chosen);
+  const count = useMatchCount({ ...filter, sources: draft }, q, sort);
   const [query, setQuery] = useState("");
   const words = fold(query.trim());
   const shown = sources.filter((source) => !words || fold(`${source.name} ${source.domain}`).includes(words));
@@ -248,7 +287,7 @@ function SourcesPanel({ sources, chosen, onApply }: { sources: Source[]; chosen:
         </div>
         {shown.length === 0 && <p className="py-4 text-center text-sm text-muted">Nenhum jornal com esse nome.</p>}
       </fieldset>
-      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar jornais" onApply={() => onApply(draft)} />
+      <PanelFooter onClear={() => setDraft([])} clearLabel="Limpar jornais" onApply={() => onApply(draft)} count={count} />
     </>
   );
 }
@@ -332,6 +371,9 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
               <PartiesPanel
                 parties={parties}
                 chosen={filter.parties}
+                filter={filter}
+                q={q}
+                sort={sort}
                 onApply={(next) => {
                   close();
                   go({ ...filter, parties: next });
@@ -346,6 +388,9 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
               <SourcesPanel
                 sources={sources}
                 chosen={filter.sources}
+                filter={filter}
+                q={q}
+                sort={sort}
                 onApply={(next) => {
                   close();
                   go({ ...filter, sources: next });

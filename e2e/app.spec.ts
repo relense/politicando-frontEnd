@@ -132,7 +132,7 @@ test("news from several parties and several papers, saved as the reader's own fe
   await partiesPanel.getByRole("checkbox", { name: "B.E." }).check();
   await partiesPanel.getByRole("searchbox", { name: "Procurar partido" }).fill("liberal");
   await partiesPanel.getByRole("checkbox", { name: "IL" }).check();
-  await partiesPanel.getByRole("button", { name: "Mostrar notícias" }).click();
+  await partiesPanel.getByRole("button", { name: /^Mostrar (\d+ )?notícias?$/ }).click();
   await expect(page).toHaveURL(/partido=be,il$/);
   await expect(filters.getByRole("button", { name: /^Partidos/ })).toContainText("2");
   // Papers, the same way.
@@ -140,7 +140,7 @@ test("news from several parties and several papers, saved as the reader's own fe
   const papersPanel = page.getByRole("dialog", { name: "Escolher jornais" });
   await papersPanel.getByRole("checkbox", { name: /Público/ }).check();
   await papersPanel.getByRole("checkbox", { name: /RTP/ }).check();
-  await papersPanel.getByRole("button", { name: "Mostrar notícias" }).click();
+  await papersPanel.getByRole("button", { name: /^Mostrar (\d+ )?notícias?$/ }).click();
   await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt$/);
   await expect(page.getByRole("heading", { level: 1, name: "Notícias escolhidas" })).toBeVisible();
   // Every card is about one of the two parties, from one of the two papers.

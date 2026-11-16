@@ -81,24 +81,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Acronyms the API gets wrong, by party slug, until the source is fixed: (A)TUA comes as "A)T", cut short.
- * Corrected wherever a party appears in a response.
- */
-const ACRONYM_FIXES: Record<string, string> = { atua: "(A)TUA" };
-
-function fixAcronyms(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    value.forEach(fixAcronyms);
-  } else if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const fix = typeof record.slug === "string" ? ACRONYM_FIXES[record.slug] : undefined;
-    if (fix && typeof record.acronym === "string") record.acronym = fix;
-    for (const child of Object.values(record)) if (child && typeof child === "object") fixAcronyms(child);
-  }
-  return value;
-}
-
 export async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
   let response: Response;
   try {
@@ -117,7 +99,7 @@ export async function request<T>(path: string, schema: z.ZodType<T>, init?: Requ
     );
   }
 
-  const parsed = schema.safeParse(fixAcronyms(json));
+  const parsed = schema.safeParse(json);
   if (!parsed.success) throw new ApiError(`Unexpected response from ${path}: ${parsed.error.message}`, response.status);
   return parsed.data;
 }
@@ -158,63 +140,20 @@ export const FEED_PAGE_SIZE = 30;
 
 const listOf = (value: string | string[] | undefined) => (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
 
-/** When the API last turned down a list: for ten minutes after, requests go straight to the filtering below. */
-let listsRefusedAt = 0;
-const LISTS_RETRY_MS = 10 * 60_000;
-/** How many pages to read while looking for matches, before handing back what was found and the cursor to go on. */
-const SCAN_PAGES = 6;
-
 export async function getFeedPage({ party, deputy, q, source, cursor, limit, sort, since }: FeedQuery = {}): Promise<ArticlePage> {
-  const parties = listOf(party);
-  const sources = listOf(source);
-  const fetchPage = async (values: { party?: string; source?: string; cursor?: string }) => {
-    const search = searchOf({
-      ...values,
-      deputy,
-      q: q || undefined,
-      cursor: values.cursor,
-      limit,
-      sort,
-      since: since ? `${since}h` : undefined,
-    });
-    const page = await request(`/articles${search}`, articlePageSchema, cached);
-    return { items: page.items, nextCursor: page.nextCursor };
-  };
-  const several = parties.length > 1 || sources.length > 1;
-
-  if (several && Date.now() - listsRefusedAt > LISTS_RETRY_MS) {
-    // Lists as the API is asked to take them: "party=ps,psd&source=publico.pt,expresso.pt".
-    try {
-      const page = await fetchPage({ party: parties.join(",") || undefined, source: sources.join(",") || undefined, cursor });
-      // An API that reads "a,b" as one outlet finds nothing rather than failing: try the other way before saying so.
-      if (page.items.length > 0 || cursor) return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor };
-    } catch (error) {
-      if (!(error instanceof ApiError) || (error.status !== 400 && error.status !== 404)) throw error;
-    }
-    listsRefusedAt = Date.now();
-  }
-
-  if (several) {
-    // Until the API takes lists: ask for the one value of a single choice, and keep only the articles that match the rest.
-    const wanted = (item: z.infer<typeof articlePageSchema>["items"][number]) =>
-      (parties.length <= 1 || item.parties.some((p) => parties.includes(p.slug))) && (sources.length <= 1 || sources.includes(item.source));
-    const found: z.infer<typeof articlePageSchema>["items"] = [];
-    let next: string | null | undefined = cursor;
-    for (let read = 0; read < SCAN_PAGES; read++) {
-      const page = await fetchPage({
-        party: parties.length === 1 ? parties[0] : undefined,
-        source: sources.length === 1 ? sources[0] : undefined,
-        cursor: next ?? undefined,
-      });
-      found.push(...page.items.filter(wanted));
-      next = page.nextCursor;
-      if (!next || found.length >= (limit ?? 10)) break;
-    }
-    return { articles: found.map(mapArticle), nextCursor: next ?? null };
-  }
-
-  const page = await fetchPage({ party: parties[0], source: sources[0], cursor });
-  return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor };
+  // Several values go as one comma-separated list: any of the parties, from any of the outlets.
+  const search = searchOf({
+    party: listOf(party).join(",") || undefined,
+    source: listOf(source).join(",") || undefined,
+    deputy,
+    q: q || undefined,
+    cursor,
+    limit,
+    sort,
+    since: since ? `${since}h` : undefined,
+  });
+  const page = await request(`/articles${search}`, articlePageSchema, cached);
+  return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor, total: page.total ?? null };
 }
 
 /** The articles with the most visible comments from the last `hours`; only those with at least one. */

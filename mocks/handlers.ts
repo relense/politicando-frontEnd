@@ -160,6 +160,13 @@ export const handlers = [
     return HttpResponse.json({
       items: page,
       nextCursor: matching.length > limit ? `c${page.at(-1)!.id}` : null,
+      // Counted before the cursor, so it is the same on every page.
+      total: articles
+        .filter((article) => partyList.length === 0 || article.parties.some((item) => partyList.includes(item.slug)))
+        .filter((article) => !deputy || mentions(article.id, Number(deputy)))
+        .filter((article) => words.every((word) => folded(`${article.title} ${article.excerpt}`).includes(word)))
+        .filter((article) => sources.length === 0 || sources.includes(article.source))
+        .filter((article) => !byComments || article.commentCount > 0).length,
     });
   }),
   http.get(`${API}/parliament`, () => HttpResponse.json(parliament)),

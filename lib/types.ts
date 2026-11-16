@@ -20,7 +20,8 @@ export type Article = {
   initiatives: { id: number; title: string }[];
 };
 
-export type ArticlePage = { articles: Article[]; nextCursor: string | null };
+/** `total`: how many match, when the API says. */
+export type ArticlePage = { articles: Article[]; nextCursor: string | null; total?: number | null };
 
 export type Comment = {
   id: number;

@@ -10,6 +10,7 @@ import { tidyName } from "@/lib/elections";
 import { COMMENTED_HOURS, FEED_COOKIE, isEmpty, parseFilter, readSavedFilter, sortOf } from "@/lib/feedFilter";
 import { ofParty, partyPath } from "@/lib/parties";
 import { SOURCE_COUNT, sourceName } from "@/lib/sources";
+import { formatNumber } from "@/lib/format";
 
 type Props = {
   searchParams: Promise<{
@@ -126,7 +127,10 @@ export default async function HomePage({ searchParams }: Props) {
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
-            {q ? `Notícias com «${q}»` : filtered ? "Notícias" : "Todas as notícias"}
+            {typeof page.total === "number" && (
+              <b className="text-ink">{page.total === 1 ? "1 notícia" : `${formatNumber(page.total)} notícias`} · </b>
+            )}
+            {q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
             {filtered && ` · ${label}`}
             {sort === "comentadas" ? ", as mais comentadas dos últimos 7 dias primeiro" : ", mais recentes primeiro"}
           </p>
