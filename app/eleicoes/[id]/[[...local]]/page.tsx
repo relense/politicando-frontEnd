@@ -32,7 +32,8 @@ import type { Election, ElectionList, ElectionResult, Party } from "@/lib/types"
 
 type Props = { params: Promise<{ id: string; local?: string[] }>; searchParams: Promise<{ orgao?: string | string[] }> };
 
-const ID = /^[a-z]+-\d{4}$/;
+// "legislativas-2025", and a second round such as "presidenciais-2026-2a-volta".
+const ID = /^[a-z]+-\d{4}(?:-[0-9a-z]+)*$/;
 const PLACE = /^(GLOBAL|LOCAL|FOREIGN)-\d{6}$/;
 
 /** One request per render, shared by the metadata and the page. Null for an unknown election, place or body. */

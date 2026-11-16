@@ -103,7 +103,7 @@ export default async function ElectionsPage() {
                     {ofType.length} {ofType.length === 1 ? "eleição" : "eleições"}
                   </span>
                 </div>
-                <div className="mb-5 mt-3 flex flex-wrap items-end justify-between gap-4">
+                <div className="mb-5 mt-3 flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-xl">
                     {next && <NextPill next={next} />}
                     <p className="text-sm text-muted">{about}</p>
@@ -224,7 +224,11 @@ function TurnoutBars({ elections }: { elections: Election[] }) {
       <figcaption className="mb-1 font-mono text-[11px] text-muted">Participação ao longo do tempo</figcaption>
       <div role="img" aria-label={label} className="flex items-end gap-1.5">
         {points.map((point, index) => (
-          <div key={point.id} aria-hidden="true" className="flex min-w-9 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted">
+          <div
+            key={point.id}
+            aria-hidden="true"
+            className="flex min-w-9 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted"
+          >
             <span>{formatPercent(point.pct)}</span>
             <span
               className={`w-5 rounded-sm ${index === points.length - 1 ? "bg-ink" : "bg-muted/50"}`}
@@ -412,18 +416,21 @@ type NextElection = Pick<UpcomingElection, "name" | "date" | "confirmed" | "wind
 
 /** The next election of a kind: its date once set, otherwise when the law says it must be. */
 function NextPill({ next }: { next: NextElection }) {
+  // The same two lines for every type, whether it has a date or only the legal window.
   return (
-    <p className="mb-2 inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-2xl border border-ink px-3 py-1 font-mono text-xs">
-      <span className="font-bold">Próximas eleições</span>
-      {next.date ? (
-        <>
-          <time dateTime={next.date}>{formatLongDate(next.date)}</time>
-          {!next.confirmed && <span className="text-muted">(data por confirmar)</span>}
-        </>
-      ) : (
-        next.window && <span>{next.window}</span>
-      )}
-    </p>
+    <div className="mb-2 max-w-xl font-mono text-xs">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Próximas eleições</p>
+      <p className="mt-0.5 leading-relaxed">
+        {next.date ? (
+          <>
+            <time dateTime={next.date}>{formatLongDate(next.date)}</time>
+            {!next.confirmed && <span className="text-muted"> · data por confirmar</span>}
+          </>
+        ) : (
+          next.window
+        )}
+      </p>
+    </div>
   );
 }
 
