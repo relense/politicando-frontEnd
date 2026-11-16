@@ -38,7 +38,7 @@ export function OrgansExplainer() {
           icon={PARLIAMENT_ICON}
           badge={<OriginBadge origin="parliament" />}
           title="Assembleia da República"
-          link={{ href: "/deputados", label: "Ver os 230 deputados →" }}
+          link={{ href: "/parlamento", label: "Ver os 230 deputados →" }}
           points={[
             "230 deputados, eleitos diretamente nas eleições legislativas.",
             "Faz e aprova as leis e o Orçamento do Estado.",
@@ -136,7 +136,7 @@ export function originOf(initiative: Pick<Initiative, "authors">): Origin {
 
 const ORIGIN_PAGES = {
   government: { href: "/governo", title: "Ver quem está no Governo" },
-  parliament: { href: "/deputados", title: "Ver os deputados" },
+  parliament: { href: "/parlamento", title: "Ver os deputados" },
 } as const;
 
 /**

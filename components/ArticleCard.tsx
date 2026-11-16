@@ -11,7 +11,7 @@ export function ArticleCard({ article }: { article: Article }) {
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_9rem]">
+    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_11rem]">
       <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           {article.url ? (

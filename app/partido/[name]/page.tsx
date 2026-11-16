@@ -68,9 +68,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
   const tab: Tab = tabs.find((item) => item.value === ver)?.value ?? "noticias";
 
   const deputies = parliament ? sortDeputies(parliament.deputies, party.slug) : [];
-  const { leader, benchLeader } = partyLeaders(deputies, party.slug);
-  // The Parliament records votes by group: any of the party's deputies gives its votes.
-  const voter = leader?.deputy ?? benchLeader ?? deputies[0] ?? null;
+  const { leader } = partyLeaders(deputies, party.slug);
 
   const [page, initiatives, votes] = await Promise.all([
     tab === "noticias" ? getFeedPage({ party: party.slug }) : null,
@@ -97,9 +95,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
                 <span className="font-bold text-ink">{party.acronym}</span> ·{" "}
                 {seats > 0 ? "com assento parlamentar" : "sem assento parlamentar"}
               </p>
-              <h1 className={`mt-1 font-bold leading-tight ${party.name.length > 22 ? "text-2xl sm:text-4xl" : "text-3xl sm:text-5xl"}`}>
-                {party.name}
-              </h1>
+              <h1 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{party.name}</h1>
               <div className="mt-3 flex flex-wrap gap-2">
                 {party.website && (
                   <a href={party.website} target="_blank" rel="noopener noreferrer" className={pill}>
@@ -169,9 +165,9 @@ export default async function PartyPage({ params, searchParams }: Props) {
                 <SidePanel title="Deputados" more={{ href: tabPath(party.slug, "deputados"), label: `Ver os ${seats}` }}>
                   <Faces deputies={deputies} />
                 </SidePanel>
-                {voter && (
+                {votes && (
                   <SidePanel title="Como votou" more={{ href: tabPath(party.slug, "votacoes"), label: "Todas" }}>
-                    <PartyVotes deputyId={voter.id} acronym={party.acronym} compact />
+                    <PartyVotes slug={party.slug} acronym={party.acronym} compact />
                   </SidePanel>
                 )}
                 <SidePanel title="Iniciativas" more={{ href: tabPath(party.slug, "iniciativas"), label: "Todas" }}>
@@ -183,17 +179,17 @@ export default async function PartyPage({ params, searchParams }: Props) {
         )}
         {tab === "deputados" && <DeputyGrid deputies={deputies} party={party} />}
         {tab === "iniciativas" && (
-          <section aria-label={`Iniciativas do ${party.acronym}`} className="max-w-3xl">
+          <section aria-label={`Iniciativas do ${party.acronym}`}>
             <PartyInitiatives slug={party.slug} acronym={party.acronym} initialPage={initiatives} />
           </section>
         )}
-        {tab === "votacoes" && voter && (
-          <section aria-label={`Votações do ${party.acronym}`} className="max-w-3xl">
+        {tab === "votacoes" && (
+          <section aria-label={`Votações do ${party.acronym}`}>
             <p className="mb-4 text-sm text-muted">
-              O Parlamento regista os votos por bancada. Aqui aparecem as votações em que a bancada do {party.acronym} votou toda no mesmo
-              sentido.
+              O Parlamento regista os votos por bancada: aqui está o sentido de voto da bancada do {party.acronym} nas votações que decidem
+              uma iniciativa (na generalidade e votação final global). Quando parte da bancada votou de outra forma, é assinalado.
             </p>
-            <PartyVotes deputyId={voter.id} acronym={party.acronym} />
+            <PartyVotes slug={party.slug} acronym={party.acronym} summary={votes} />
           </section>
         )}
       </div>

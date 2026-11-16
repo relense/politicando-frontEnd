@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { COALITIONS, majority, partyColor, SEAT_ORDER } from "@/lib/parliament";
 import type { DeputySummary, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
 import { DeputyPanel } from "./DeputyPanel";
+import { DeputySearch } from "./DeputySearch";
 import { Hemicycle } from "./Hemicycle";
 import { OrgansExplainer } from "./OrgansExplainer";
 
@@ -43,7 +44,8 @@ export function ParliamentView({ parliament, initialSelection, header }: Props) 
     window.history.replaceState(window.history.state, "", url);
     // On a phone the card is below the map, so bring it into view.
     if (next && !window.matchMedia("(min-width: 1280px)").matches) {
-      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // After the render that shows the card, which is hidden on a phone while nothing is chosen.
+      requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
   }
 
@@ -85,17 +87,22 @@ export function ParliamentView({ parliament, initialSelection, header }: Props) 
             senta em cada cadeira é aproximado, porque o Parlamento não o publica: os deputados com cargos mais importantes vão à frente.
           </p>
         </div>
-        {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. */}
-        <div ref={panelRef} className="relative min-h-[28rem] scroll-mt-20 xl:min-h-0">
-          <div className="h-full xl:absolute xl:inset-0">
-            <DeputyPanel
-              group={group}
-              deputies={bench}
-              deputy={deputy}
-              onDeputy={openDeputy}
-              onBackToGroup={() => group && choose({ party: group.party.slug, deputy: null })}
-              onClose={() => choose(null)}
-            />
+        {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. On a
+            phone, where it sits below the map, the empty invitation is left out: it would only be a blank box. */}
+        <div className="flex flex-col gap-3">
+          {/* A quicker way to someone than finding their seat: the card below opens on them. */}
+          <DeputySearch deputies={deputies} groups={groupBySlug} onPick={openDeputy} />
+          <div ref={panelRef} className={`relative min-h-[28rem] scroll-mt-20 xl:block xl:min-h-0 xl:flex-1 ${selection ? "" : "hidden"}`}>
+            <div className="h-full xl:absolute xl:inset-0">
+              <DeputyPanel
+                group={group}
+                deputies={bench}
+                deputy={deputy}
+                onDeputy={openDeputy}
+                onBackToGroup={() => group && choose({ party: group.party.slug, deputy: null })}
+                onClose={() => choose(null)}
+              />
+            </div>
           </div>
         </div>
       </div>

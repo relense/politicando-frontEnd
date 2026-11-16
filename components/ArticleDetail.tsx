@@ -27,7 +27,7 @@ export function ArticleDetail({ article }: { article: Article }) {
         )}
       </div>
 
-      <h1 className="mb-4 text-2xl font-bold leading-tight sm:text-[1.75rem]">{article.title}</h1>
+      <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl">{article.title}</h1>
 
       <PartyChips parties={article.parties} className="mb-5" />
 

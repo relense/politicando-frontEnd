@@ -135,7 +135,7 @@ export default async function PlacePage({ params }: Props) {
   const district = districtName(place);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(place, trail) }} />
       <nav aria-label="Caminho" className="mb-4 flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
         <Link href="/sitios" className="underline hover:text-ink">
@@ -161,8 +161,8 @@ export default async function PlacePage({ params }: Props) {
           {place.level === "municipality" && district && <> · Distrito de {district}</>}
           {place.level === "parish" && municipality && <> · Concelho de {municipality.name}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">{place.name}</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">{intro(place, municipality, parties)}</p>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{place.name}</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">{intro(place, municipality, parties)}</p>
       </header>
 
       {place.level === "municipality" && place.mayor && (

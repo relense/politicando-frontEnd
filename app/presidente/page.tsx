@@ -111,7 +111,12 @@ export default async function PresidentPage() {
   const now = requestTime();
   const lead = president.bio.slice(0, BIO_LEAD);
   const rest = president.bio.slice(BIO_LEAD);
-  const facts = bioFacts(president.bio);
+  const born = president.birthDate ? atNoon(president.birthDate) : null;
+  const facts = [
+    born && !Number.isNaN(born.getTime()) ? { label: "Nasceu", value: shortDate(born) } : null,
+    president.birthPlace ? { label: "Natural de", value: president.birthPlace } : null,
+    president.residence ? { label: "Reside em", value: president.residence } : null,
+  ].filter((fact): fact is { label: string; value: string } => fact !== null);
 
   return (
     <article data-wide>
@@ -154,8 +159,8 @@ export default async function PresidentPage() {
               Chefe de Estado
             </span>
           </p>
-          <h1 className="text-4xl font-bold leading-none tracking-tight sm:text-6xl">{president.name}</h1>
-          <p className="mt-3 text-lg">
+          <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{president.name}</h1>
+          <p className="mt-2 leading-relaxed text-muted">
             Presidente da República desde <time dateTime={president.termStart}>{formatLongDate(president.termStart)}</time>
           </p>
           {president.fullName !== president.name && (
@@ -169,7 +174,7 @@ export default async function PresidentPage() {
         <h2 id="leis" className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
           As leis do Parlamento neste mandato
         </h2>
-        <LawsSummary legislation={legislation} />
+        <LawsSummary legislation={legislation} termStart={president.termStart} />
 
         <Pending items={legislation.pendingNow} total={legislation.pending} now={now} />
 
@@ -188,7 +193,7 @@ export default async function PresidentPage() {
             count={legislation.promulgated}
             items={legislation.latestPromulgated.slice(0, Math.max(3, legislation.latestVetoes.length + 1))}
             empty="Ainda não promulgou nenhuma lei."
-            more={{ status: "promulgated", label: `Ver as ${formatNumber(legislation.promulgated)}` }}
+            more={{ status: "promulgated", label: "Ver todas as leis publicadas" }}
           />
         </div>
       </section>
@@ -370,7 +375,7 @@ function TermBar({ start, now }: { start: string; now: number }) {
 }
 
 /** One bar for every decree that reached Belém, split by what the President did, and the three figures beside it. */
-function LawsSummary({ legislation }: { legislation: Presidency["legislation"] }) {
+function LawsSummary({ legislation, termStart }: { legislation: Presidency["legislation"]; termStart: string }) {
   const parts: { key: string; value: number; label: string; tone: StageTone }[] = [
     {
       key: "promulgated",
@@ -421,6 +426,7 @@ function LawsSummary({ legislation }: { legislation: Presidency["legislation"] }
           ))}
         </dl>
       </div>
+      {legislation.allTime && <AllTime allTime={legislation.allTime} termStart={termStart} />}
       <p className="mt-3 text-xs text-muted">
         Só decretos da Assembleia da República. Os vetos incluem leis que o Parlamento voltou a aprovar. Os decretos do Governo ainda não
         estão incluídos.
@@ -460,8 +466,15 @@ function Pending({ items, total, now }: { items: Initiative[]; total: number; no
 }
 
 function PendingItem({ initiative, now }: { initiative: Initiative; now: number }) {
-  const sent = initiative.presidency?.sentAt ? atNoon(initiative.presidency.sentAt) : null;
-  const days = sent && !Number.isNaN(sent.getTime()) ? Math.max(0, Math.floor((now - sent.getTime()) / DAY)) : null;
+  const presidency = initiative.presidency;
+  const daysSince = (date: string | null | undefined) => {
+    const from = date ? atNoon(date) : null;
+    return from && !Number.isNaN(from.getTime()) ? Math.max(0, Math.floor((now - from.getTime()) / DAY)) : null;
+  };
+  const days = daysSince(presidency?.sentAt);
+  // Past the twenty days the clock may well be stopped: a request to the Constitutional Court stops it, and the
+  // Parliament's record doesn't show those requests. So it just waits, never "late".
+  const counting = days !== null && days <= DECISION_DAYS;
   const color = toneColor("president");
   const options = [
     { label: "Promulga", tone: "law" as const, mark: "✓" },
@@ -484,21 +497,31 @@ function PendingItem({ initiative, now }: { initiative: Initiative; now: number 
         </Link>
       </h4>
       <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        {days !== null && (
+        {counting ? (
           <div>
             <p className="flex justify-between gap-2 font-mono text-xs">
               <span className="font-bold">Prazo para decidir</span>
-              <span style={{ color }}>{days <= DECISION_DAYS ? `dia ${days} de ${DECISION_DAYS}` : `há ${formatNumber(days)} dias`}</span>
+              <span style={{ color }}>
+                dia {days} de {DECISION_DAYS}
+              </span>
             </p>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface" aria-hidden="true">
-              <span
-                className="block h-full rounded-full"
-                style={{ width: `${(Math.min(days, DECISION_DAYS) / DECISION_DAYS) * 100}%`, backgroundColor: color }}
-              />
+              <span className="block h-full rounded-full" style={{ width: `${(days / DECISION_DAYS) * 100}%`, backgroundColor: color }} />
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              A Constituição dá {DECISION_DAYS} dias para promulgar ou vetar um decreto do Parlamento
-              {days > DECISION_DAYS ? "; o prazo fica suspenso se o Presidente o enviar ao Tribunal Constitucional." : "."}
+              A Constituição dá {DECISION_DAYS} dias para promulgar ou vetar um decreto do Parlamento.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="font-mono text-xs">
+              <span className="rounded-full px-2.5 py-1 font-bold" style={tinted("president")}>
+                À espera de decisão
+              </span>
+            </p>
+            <p className="mt-2 text-xs text-muted">
+              A Constituição dá {DECISION_DAYS} dias para promulgar ou vetar. O prazo para quando o Presidente pede ao Tribunal
+              Constitucional que verifique a lei, e o registo do Parlamento não mostra esses pedidos.
             </p>
           </div>
         )}
@@ -539,7 +562,11 @@ function Authors({ initiative, className = "" }: { initiative: Initiative; class
   );
 }
 
-const DECISION_TONE: Record<string, StageTone> = { vetoed: "stopped", promulgated: "law", pending: "president" };
+const DECISION_TONE: Record<string, StageTone> = {
+  vetoed: "stopped",
+  promulgated: "law",
+  pending: "president",
+};
 
 function DecisionGroup({
   id,
@@ -577,12 +604,15 @@ function DecisionGroup({
               </li>
             ))}
           </ul>
-          <Link
-            href={`/iniciativas?presidente=${more.status}`}
-            className="mt-2 inline-block rounded-full border border-ink px-4 py-1.5 font-mono text-sm font-bold hover:bg-surface"
-          >
-            {more.label}
-          </Link>
+          {/* Only when there are more than these: a veto Parliament overrode is no longer in the "Vetada" phase. */}
+          {count > items.length && (
+            <Link
+              href={`/iniciativas?fase=${more.status === "vetoed" ? "vetoed" : "published"}`}
+              className="mt-2 inline-block rounded-full border border-ink px-4 py-1.5 font-mono text-sm font-bold hover:bg-surface"
+            >
+              {more.label}
+            </Link>
+          )}
         </>
       )}
     </section>
@@ -593,7 +623,9 @@ function DecisionGroup({
 function DecisionItem({ initiative }: { initiative: Initiative }) {
   const { presidency } = initiative;
   const tone = DECISION_TONE[presidency?.status ?? "pending"]!;
-  const when = presidency?.status === "vetoed" ? presidency.vetoedAt : (presidency?.promulgatedAt ?? initiative.phaseDate);
+  // When the promulgation isn't in the Parliament's record, the date shown is the publication's.
+  const when =
+    presidency?.status === "vetoed" ? presidency.vetoedAt : (presidency?.promulgatedAt ?? initiative.publishedAt ?? initiative.phaseDate);
   return (
     <article>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
@@ -618,20 +650,33 @@ function DecisionItem({ initiative }: { initiative: Initiative }) {
   );
 }
 
-/** Birth and home, when the official biography says them in its usual words; nothing is guessed. */
-function bioFacts(bio: string[]): { label: string; value: string }[] {
-  const text = bio.join(" ");
-  const facts: { label: string; value: string }[] = [];
-  const born = text.match(/nasceu (?:a|em) (\d{1,2}) de ([a-zç]+) de (\d{4})/i);
-  const month = born ? MONTHS.findIndex((item) => born[2]!.toLowerCase().startsWith(item.slice(0, 3))) : -1;
-  if (born && month >= 0) facts.push({ label: "Nasceu", value: `${born[1]} ${MONTHS[month]} ${born[3]}` });
-  else {
-    const year = text.match(/nasceu em (\d{4})/i);
-    if (year) facts.push({ label: "Nasceu", value: year[1]! });
-  }
-  const place = text.match(/nasceu [^.]*?\d{4}, em ([A-ZÀ-Ý][\p{L}' -]+?)(?=[,.;]| \()/u);
-  if (place) facts.push({ label: "Natural de", value: place[1]! });
-  const home = text.match(/reside (?:n[ao]s?|em) ([A-ZÀ-Ý][\p{L}' -]+?)(?=[,.;]| \()/u);
-  if (home) facts.push({ label: "Reside em", value: home[1]! });
-  return facts;
+const MONTH_NAMES = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+/** Every President since the data starts: "Desde julho de 2025", never "desde sempre". */
+function AllTime({ allTime, termStart }: { allTime: NonNullable<Presidency["legislation"]["allTime"]>; termStart: string }) {
+  const since = allTime.since ? atNoon(allTime.since) : null;
+  const from =
+    since && !Number.isNaN(since.getTime()) ? `Desde ${MONTH_NAMES[since.getUTCMonth()]} de ${since.getUTCFullYear()}` : "No total";
+  const unconstitutional = allTime.vetoedUnconstitutional;
+  return (
+    <p className="mt-3 font-mono text-xs">
+      <span className="font-bold">{from}</span>
+      {allTime.since && allTime.since < termStart ? ", contando com o Presidente anterior" : ""}: {formatNumber(allTime.promulgated)}{" "}
+      promulgadas e {formatNumber(allTime.vetoed)} vetadas
+      {unconstitutional ? `, ${formatNumber(unconstitutional)} delas por inconstitucionalidade` : ""}.
+    </p>
+  );
 }

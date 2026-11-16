@@ -25,10 +25,7 @@ export function DeputyPanel({ group, deputies, deputy, onDeputy, onBackToGroup, 
   return (
     <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center text-muted">
       <p className="font-bold text-ink">Carrega num lugar</p>
-      <p className="mt-1 text-sm">para ver quem lá se senta: quem é, o que propôs e o que dizem as notícias.</p>
-      <Link href="/deputados" className="mt-4 font-mono text-sm text-link underline">
-        Ver todos os deputados
-      </Link>
+      <p className="mt-1 text-sm">ou procura pelo nome, para ver quem lá se senta: quem é, o que propôs e o que dizem as notícias.</p>
     </div>
   );
 }
@@ -99,20 +96,15 @@ function GroupCard({
             <button
               type="button"
               onClick={() => onDeputy(deputy.id)}
-              className="flex w-full items-baseline justify-between gap-3 rounded px-2 py-1.5 text-left hover:bg-surface"
+              className="flex w-full items-center gap-3 rounded px-2 py-1.5 text-left hover:bg-surface"
             >
-              <span className="font-bold">{deputy.name}</span>
-              <span className="shrink-0 font-mono text-xs text-muted">{deputy.role ?? deputy.constituency}</span>
+              <DeputyPortrait deputy={deputy} size="xs" />
+              <span className="min-w-0 flex-1 font-bold leading-snug">{deputy.name}</span>
+              <span className="shrink-0 text-right font-mono text-xs text-muted">{deputy.role ?? deputy.constituency}</span>
             </button>
           </li>
         ))}
       </ul>
-      <Link
-        href={`/deputados?partido=${group.party.slug}`}
-        className="mt-4 block rounded-lg border border-line py-2.5 text-center font-mono text-sm font-bold hover:bg-surface"
-      >
-        Ver a bancada com fotografias →
-      </Link>
     </Card>
   );
 }

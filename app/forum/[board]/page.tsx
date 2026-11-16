@@ -100,7 +100,7 @@ export default async function BoardPage({ params, searchParams }: Props) {
         <header className="mb-6 flex items-center gap-4">
           <BoardBadge board={board} size={56} />
           <div>
-            <h1 className="text-3xl font-bold leading-tight">{boardTitle(board)}</h1>
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{boardTitle(board)}</h1>
             <p className="text-muted">
               {board.acronym ? (
                 <>

@@ -134,16 +134,39 @@ export type PlainInitiative = {
 
 export type PresidencyStatus = "pending" | "promulgated" | "vetoed";
 
+/** "unconstitutionality": vetoed after the Constitutional Court found it unconstitutional. */
+export type VetoKind = "political" | "unconstitutionality";
+export type CourtRuling = { ruling: string; url: string | null };
+
 export type InitiativePresidency = {
   status: PresidencyStatus;
   sentAt: string | null;
   promulgatedAt: string | null;
   /** Kept after a veto that Parliament overcame, so "vetado e depois promulgado" can be shown. */
+  /**
+   * False when the Parliament's record skips the promulgation: it is deduced from publication in the Diário da
+   * República, and `promulgatedAt` is null, so the publication date is shown instead.
+   */
+  promulgationRecorded: boolean;
   vetoedAt: string | null;
+  /** The latest veto's kind, and the rulings it cites. */
+  vetoKind: VetoKind | null;
+  constitutionalCourt: CourtRuling[];
+  /** Every veto, oldest first. */
+  vetoes: { date: string | null; kind: VetoKind | null; constitutionalCourt: CourtRuling[] }[];
   by: string | null;
 };
 
-export type InitiativePage = { initiatives: Initiative[]; nextCursor: string | null };
+/** One phase with how many initiatives are in it, counted with every filter but the phase. */
+export type InitiativeStageCount = { key: string; label: string; plain: string; count: number };
+
+export type InitiativePage = {
+  initiatives: Initiative[];
+  nextCursor: string | null;
+  /** How many match the filters; null when the API doesn't count them. */
+  total: number | null;
+  stages: InitiativeStageCount[];
+};
 
 /** A party's position in a vote. `count` null means the whole group; a number means only that many deputies. */
 export type VotePosition = { partySlug: string; count: number | null };
@@ -198,8 +221,12 @@ export type GovernmentMember = {
   endDate: string | null;
   /** Set when they were elected to this legislature and left their seat to join the Government. */
   deputyId: number | null;
-  /** Only known through a deputy record; most members' party isn't published. */
+  /** Null when unknown: the Government's portal doesn't publish it. */
   partySlug: string | null;
+  /** "deputy": they were elected for it; "curated": public party membership. */
+  partySource: "deputy" | "curated" | null;
+  /** Public record says they belong to no party. Without it, no party means unknown, never "independente". */
+  independent: boolean;
   /** For former members: the ministry they were in. */
   areaName: string | null;
 };
@@ -281,7 +308,30 @@ export type ElectionList = {
 
 export type Place = { key: string; name: string; level: PlaceLevel; dicofre: string | null };
 
-export type ElectionSummary = { id: string; type: ElectionType; name: string; date: string; organs: string[]; sourceUrl: string | null };
+export type ElectionSummary = {
+  id: string;
+  type: ElectionType;
+  name: string;
+  date: string;
+  organs: string[];
+  sourceUrl: string | null;
+  /** How far down the results go; null when the API doesn't say (then as far as there are places). */
+  deepestLevel: "country" | "district" | "municipality" | "parish" | null;
+  /** Presidenciais: the first or second round; null otherwise. */
+  round: number | null;
+};
+
+/** A coming election: its date once the decree sets it (`confirmed`), else when the law says it must happen. */
+export type UpcomingElection = {
+  type: string;
+  name: string;
+  year: number | null;
+  date: string | null;
+  confirmed: boolean;
+  /** "Entre 14 de setembro e 14 de outubro de 2029, no fim da legislatura, salvo dissolução". */
+  window: string | null;
+  basis: string | null;
+};
 
 export type Election = ElectionSummary & { turnout: ElectionTurnout | null; winner: ElectionList | null; imported: boolean };
 

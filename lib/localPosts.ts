@@ -101,7 +101,7 @@ Fonte: [Constituição, arts. 171.º e 172.º](${CONSTITUICAO}).
 
 ---
 
-Quer ver quem são os 230? Estão todos em [Deputados](/deputados), com o círculo por onde foram eleitos e o que fizeram desde então.`,
+Quer ver quem são os 230? Estão todos no [Parlamento](/parlamento), com o círculo por onde foram eleitos e o que fizeram desde então.`,
   },
 ];
 

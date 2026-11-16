@@ -1,5 +1,8 @@
 import { z } from "zod";
+import type { Initiative } from "@/lib/types";
 import { cached, request } from "./client";
+import { mapInitiative } from "./mappers";
+import { initiativeSchema } from "./schemas";
 
 /** How a party's group voted in this legislature: totals and how often it voted with each other party. */
 const summarySchema = z.object({
@@ -54,4 +57,67 @@ export async function getPartyVoteSummary(slug: string): Promise<PartyVoteSummar
   } catch {
     return null;
   }
+}
+
+export type PartyVotePosition = "favor" | "against" | "abstention";
+/** What the list can be filtered by: a position, or the votes where the group split. */
+export type PartyVoteFilter = PartyVotePosition | "split";
+
+export type PartyVote = {
+  initiative: Initiative;
+  vote: { id: string; date: string | null; phase: string | null; result: string | null; unanimous: boolean };
+  /** What the group as a whole did; null when it isn't in the record. */
+  position: PartyVotePosition | null;
+  /** Part of the group voted otherwise. */
+  split: boolean;
+  basis: "group" | "unanimous" | "absent" | "unknown";
+};
+
+const listSchema = z.object({
+  items: z.array(
+    z.object({
+      initiative: initiativeSchema,
+      vote: z.object({
+        id: z.union([z.string(), z.number()]).transform(String),
+        date: z.string().nullish(),
+        phase: z.string().nullish(),
+        result: z.string().nullish(),
+        unanimous: z.boolean().nullish(),
+      }),
+      position: z.enum(["favor", "against", "abstention"]).nullish().catch(null),
+      split: z.boolean().nullish(),
+      basis: z.enum(["group", "unanimous", "absent", "unknown"]).catch("unknown"),
+    }),
+  ),
+  total: z.number(),
+});
+
+export type ApiPartyVoteListInput = z.input<typeof listSchema>;
+
+/** One page of the party's votes, newest first; the API pages by number and says how many match. */
+export async function getPartyVotes(
+  slug: string,
+  { filter, page = 1, limit = 20 }: { filter?: PartyVoteFilter | null; page?: number; limit?: number } = {},
+): Promise<{ votes: PartyVote[]; total: number; page: number; pages: number }> {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (filter) query.set("position", filter);
+  const raw = await request(`/parties/${encodeURIComponent(slug)}/votes?${query}`, listSchema);
+  return {
+    votes: raw.items.map((item) => ({
+      initiative: mapInitiative(item.initiative),
+      vote: {
+        id: item.vote.id,
+        date: item.vote.date ?? null,
+        phase: item.vote.phase ?? null,
+        result: item.vote.result ?? null,
+        unanimous: item.vote.unanimous ?? false,
+      },
+      position: item.position ?? null,
+      split: item.split ?? false,
+      basis: item.basis,
+    })),
+    total: raw.total,
+    page,
+    pages: Math.max(1, Math.ceil(raw.total / limit)),
+  };
 }

@@ -5,8 +5,8 @@ test("the map of mayors leads to a municipality, its parishes and back up to the
   await page.goto("/sitios");
   await expect(page.getByRole("heading", { level: 1, name: "Quem governa a tua terra" })).toBeVisible();
   // The legend counts câmaras per party; the independents' group counts as one.
-  await expect(page.getByText("Câmaras por partido")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Sintra: Helena Seixas, independente" })).toBeAttached();
+  await expect(page.getByText("Toca num partido para o destacar no mapa")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Sintra: Helena Seixas/ })).toBeAttached();
 
   // The search narrows the list.
   await page.getByRole("searchbox", { name: "Procurar concelho" }).fill("agueda");
@@ -38,11 +38,46 @@ test("the map of mayors leads to a municipality, its parishes and back up to the
   await expect(page.getByRole("link", { name: "Ovar Luísa Barreto PSD" })).toBeVisible();
 });
 
+test("the map: find a place, it is framed and its card opens beside the map; zoom and the islands", async ({ page }) => {
+  await page.goto("/sitios");
+  const map = page.getByRole("group", { name: /Mapa dos concelhos/ });
+  const before = await map.getAttribute("viewBox");
+
+  // The search finds a municipality without accents, and opens it on the map.
+  await page.getByRole("combobox", { name: "Procurar concelho, distrito ou presidente" }).fill("agueda");
+  await page.getByRole("option", { name: /Águeda/ }).click();
+  await expect(page).toHaveURL(/local=LOCAL-010100/);
+  const card = page.getByRole("region", { name: "Águeda" });
+  await expect(card.getByText("Marta Quintela")).toBeVisible();
+  await expect(card.getByRole("list", { name: "Vereadores por lista" })).toBeVisible();
+  await expect(card.getByRole("link", { name: /Câmara e assembleia municipal/ })).toHaveAttribute("href", "/sitios/LOCAL-010100#orgaos");
+  await expect(map).not.toHaveAttribute("viewBox", before!);
+
+  // Back to the whole mainland, then the buttons and a party lit in the legend.
+  await page.getByRole("button", { name: "Ver o continente inteiro" }).click();
+  await expect(map).toHaveAttribute("viewBox", before!);
+  await page.getByRole("button", { name: "Aproximar" }).click();
+  await expect(map).not.toHaveAttribute("viewBox", before!);
+  await page.getByRole("button", { name: /^PSD/ }).click();
+  await expect(page.getByRole("button", { name: /^PSD/ })).toHaveAttribute("aria-pressed", "true");
+
+  // Pressing a place opens it too, and the card closes.
+  await page.getByRole("button", { name: /^Sintra: Helena Seixas/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("region", { name: "Sintra" })).toBeVisible();
+  await page.getByRole("region", { name: "Sintra" }).getByRole("button", { name: "Fechar" }).click();
+  await expect(page.getByText("Carrega num concelho", { exact: true })).toBeVisible();
+
+  // An address with a place opens on it.
+  await page.goto("/sitios?local=LOCAL-010100");
+  await expect(page.getByRole("region", { name: "Águeda" })).toBeVisible();
+});
+
 test("the district map, the election link and unknown places", async ({ page }) => {
   await page.goto("/sitios");
   await page.getByRole("link", { name: "Distritos" }).click();
   await expect(page).toHaveURL(/mapa=distritos/);
-  await expect(page.getByRole("link", { name: "Aveiro: PSD lidera 2 de 3 câmaras" })).toBeAttached();
+  await expect(page.getByRole("button", { name: "Aveiro: PSD lidera 2 de 3 câmaras" })).toBeAttached();
 
   await page.goto("/eleicoes/legislativas-2025/LOCAL-010100");
   await page.getByRole("link", { name: "Quem governa Águeda →" }).click();

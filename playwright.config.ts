@@ -18,6 +18,12 @@ export default defineConfig({
   ],
   webServer: [
     { command: "npm run mock:api", url: "http://localhost:4000/api/v2/parties", reuseExistingServer: !process.env.CI },
-    { command: "npm run build && npm run start", url: "http://localhost:3000", env, timeout: 240_000, reuseExistingServer: !process.env.CI },
+    {
+      command: "npm run build && npm run start",
+      url: "http://localhost:3000",
+      env,
+      timeout: 240_000,
+      reuseExistingServer: !process.env.CI,
+    },
   ],
 });

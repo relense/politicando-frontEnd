@@ -32,7 +32,8 @@ import type { Election, ElectionList, ElectionResult, Party } from "@/lib/types"
 
 type Props = { params: Promise<{ id: string; local?: string[] }>; searchParams: Promise<{ orgao?: string | string[] }> };
 
-const ID = /^[a-z]+-\d{4}$/;
+// "legislativas-2025", and a second round such as "presidenciais-2026-2a-volta".
+const ID = /^[a-z]+-\d{4}(?:-[0-9a-z]+)*$/;
 const PLACE = /^(GLOBAL|LOCAL|FOREIGN)-\d{6}$/;
 
 /** One request per render, shared by the metadata and the page. Null for an unknown election, place or body. */
@@ -64,12 +65,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   };
 }
 
+/** How deep each level is, to compare a place's level with the deepest one an election has results for. */
+const LEVEL_DEPTH: Record<string, number> = { global: 0, national: 0, foreign: 0, country: 0, district: 1, municipality: 2, parish: 3 };
+
 export default async function ElectionPage(props: Props) {
   await connection();
   const [result, parties] = await Promise.all([resolve(props), getParties().catch((): Party[] => [])]);
   if (!result) notFound();
 
-  const { election, organ, place, breadcrumb, turnout, lists, children } = result;
+  const { election, organ, place, breadcrumb, turnout, lists, children: inside } = result;
   const mainOrgan = election.organs[0];
   // The main body stays out of the address.
   const organParam = organ === mainOrgan ? null : organ;
@@ -82,6 +86,9 @@ export default async function ElectionPage(props: Props) {
   const sameType = await getElections(election.type).catch((): Election[] => []);
   const timeline = sameType.filter((item) => item.imported).sort((a, b) => a.date.localeCompare(b.date));
   const at = timeline.findIndex((item) => item.id === election.id);
+  // Places only down to the level this election has results for: no map or list of places with nothing in them.
+  const deepest = sameType.find((item) => item.id === election.id)?.deepestLevel ?? null;
+  const children = inside.length > 0 && deepest && (LEVEL_DEPTH[inside[0]!.level] ?? 0) > (LEVEL_DEPTH[deepest] ?? 9) ? [] : inside;
   const previous = at > 0 ? timeline[at - 1] : undefined;
   const next = at >= 0 ? timeline[at + 1] : undefined;
   // The same place and body in the previous election, to show what changed; nothing when either is missing there.
@@ -173,7 +180,7 @@ export default async function ElectionPage(props: Props) {
   const share = (part: number | null) => (part !== null && turnout?.voters ? formatPercent((part / turnout.voters) * 100) : null);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Caminho" className="flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
           <Link href="/eleicoes" className="underline hover:text-ink">
@@ -223,8 +230,8 @@ export default async function ElectionPage(props: Props) {
           {typeLabel(election.type)} · {formatLongDate(election.date)}
           {!isTop && <> · {election.name}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">{isTop ? election.name : place.name}</h1>
-        {sentence && <p className="mt-3 max-w-2xl leading-relaxed">{sentence}</p>}
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{isTop ? election.name : place.name}</h1>
+        {sentence && <p className="mt-2 max-w-2xl leading-relaxed text-muted">{sentence}</p>}
         {PLACE_KEY.test(place.key) && ["district", "municipality", "parish"].includes(place.level) && (
           <Link href={placePath(place.key)} className="mt-3 inline-block font-mono text-sm text-link underline">
             Quem governa {place.name} →

@@ -19,11 +19,23 @@ export const presidencySchema = z.object({
     bio: many(z.string()),
     photoUrl: z.string().nullish(),
     url: z.string().nullish(),
+    birthDate: z.string().nullish(),
+    birthPlace: z.string().nullish(),
+    residence: z.string().nullish(),
   }),
   legislation: z.object({
     promulgated: z.number(),
     vetoed: z.number(),
     pending: z.number(),
+    allTime: z
+      .object({
+        since: z.string().nullish(),
+        promulgated: z.number(),
+        vetoed: z.number(),
+        vetoedUnconstitutional: z.number().nullish(),
+        pending: z.number().nullish(),
+      })
+      .nullish(),
     latestVetoes: many(initiativeSchema),
     latestPromulgated: many(initiativeSchema),
     pendingNow: many(initiativeSchema),
@@ -44,6 +56,9 @@ export type President = {
   /** Only https photos, which the image optimiser accepts. */
   photoUrl: string | null;
   url: string | null;
+  birthDate: string | null;
+  birthPlace: string | null;
+  residence: string | null;
 };
 
 export type Presidency = {
@@ -54,6 +69,11 @@ export type Presidency = {
     /** Includes laws Parliament later passed again. */
     vetoed: number;
     pending: number;
+    /**
+     * Every President's decisions on Parliament's decrees since the data starts (`since`, July 2025): never say
+     * "desde sempre".
+     */
+    allTime: { since: string | null; promulgated: number; vetoed: number; vetoedUnconstitutional: number | null } | null;
     latestVetoes: Initiative[];
     latestPromulgated: Initiative[];
     pendingNow: Initiative[];
@@ -74,11 +94,22 @@ export function mapPresidency(data: z.infer<typeof presidencySchema>): Presidenc
       bio: president.bio.map((paragraph) => paragraph.trim()).filter(Boolean),
       photoUrl: photo?.startsWith("https://") ? photo : null,
       url: safeHttpUrl(president.url),
+      birthDate: president.birthDate ?? null,
+      birthPlace: president.birthPlace ?? null,
+      residence: president.residence ?? null,
     },
     legislation: {
       promulgated: legislation.promulgated,
       vetoed: legislation.vetoed,
       pending: legislation.pending,
+      allTime: legislation.allTime
+        ? {
+            since: legislation.allTime.since ?? null,
+            promulgated: legislation.allTime.promulgated,
+            vetoed: legislation.allTime.vetoed,
+            vetoedUnconstitutional: legislation.allTime.vetoedUnconstitutional ?? null,
+          }
+        : null,
       latestVetoes: legislation.latestVetoes.map(mapInitiative),
       latestPromulgated: legislation.latestPromulgated.map(mapInitiative),
       pendingNow: legislation.pendingNow.map(mapInitiative),

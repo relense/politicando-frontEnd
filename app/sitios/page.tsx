@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
-import { ElectionMap, type MapPlace } from "@/components/ElectionMap";
+import { MayorMap, type MayorMapPlace, type SearchItem } from "@/components/MayorMap";
 import { PlaceFinder, type FinderGroup } from "@/components/PlaceFinder";
 import { ApiError, getParties } from "@/lib/api/client";
 import { getPlaces, type PlaceSummary } from "@/lib/api/places";
 import { placeMap } from "@/lib/maps";
-import { electionName, INDEPENDENT_LABEL, mainParty, mayorColor, mayorLegend, placePath, type LegendItem } from "@/lib/places";
+import { electionName, mainParty, mayorColor, mayorLegend, mayorListLabel, placePath } from "@/lib/places";
 import type { Party } from "@/lib/types";
 
-type Props = { searchParams: Promise<{ mapa?: string | string[] }> };
+type Props = { searchParams: Promise<{ mapa?: string | string[]; local?: string | string[] }> };
 
 export const metadata: Metadata = {
   title: "Quem governa a tua terra? Presidentes de câmara dos 308 concelhos",
@@ -34,11 +33,11 @@ async function load() {
 
 export default async function PlacesPage({ searchParams }: Props) {
   await connection();
-  const [data, { mapa }] = await Promise.all([load(), searchParams]);
+  const [data, { mapa, local }] = await Promise.all([load(), searchParams]);
   if (!data) {
     return (
-      <div data-wide className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold sm:text-5xl">Quem governa a tua terra</h1>
+      <div data-wide>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem governa a tua terra</h1>
         <p className="mt-4 text-muted">Em breve: o mapa dos presidentes de câmara ainda não está disponível.</p>
       </div>
     );
@@ -51,33 +50,40 @@ export default async function PlacesPage({ searchParams }: Props) {
   const election = withMayor.find((place) => place.mayor?.election)?.mayor?.election ?? null;
   const inDistrict = (key: string) => municipalities.filter((place) => place.parentKey === key);
 
-  const municipalityPlaces: MapPlace[] = municipalities.flatMap((place) =>
+  const districtName = new Map(districts.map((district) => [district.key, district.name]));
+  const municipalityPlaces: MayorMapPlace[] = municipalities.flatMap((place) =>
     place.dicofre
       ? [
           {
+            key: place.key,
             code: place.dicofre,
             name: place.name,
             href: placePath(place.key),
+            district: place.parentKey ? (districtName.get(place.parentKey) ?? null) : null,
             color: mayorColor(place.mayor),
-            winner: mainParty(place.mayor, parties) ?? (place.mayor ? INDEPENDENT_LABEL : null),
-            pct: null,
-            label: place.mayor ? `${place.name}: ${place.mayor.name}, ${mainParty(place.mayor, parties) ?? "independente"}` : place.name,
+            group: place.mayor ? (place.mayor.parties[0] ?? "independentes") : null,
+            listLabel: place.mayor ? mayorListLabel(place.mayor, parties) : null,
+            mayor: place.mayor?.name ?? null,
           },
         ]
       : [],
   );
-  const districtPlaces: MapPlace[] = districts.flatMap((district) => {
+  const districtPlaces: MayorMapPlace[] = districts.flatMap((district) => {
     if (!district.dicofre) return [];
-    const top = mayorLegend(inDistrict(district.key), parties)[0];
+    const breakdown = mayorLegend(inDistrict(district.key), parties);
+    const top = breakdown[0];
     return [
       {
+        key: district.key,
         code: district.dicofre,
         name: district.name,
         href: placePath(district.key),
+        district: null,
         color: top?.color ?? null,
-        winner: top?.label ?? null,
-        pct: null,
-        label: top ? `${district.name}: ${top.label} lidera ${top.count} de ${inDistrict(district.key).length} câmaras` : district.name,
+        group: top?.key ?? null,
+        listLabel: top ? `${top.label} lidera ${top.count} de ${inDistrict(district.key).length} câmaras` : null,
+        mayor: null,
+        breakdown,
       },
     ];
   });
@@ -88,6 +94,24 @@ export default async function PlacesPage({ searchParams }: Props) {
     level,
     shown.map((place) => place.code),
   );
+  const searchItems: SearchItem[] = [
+    ...municipalityPlaces.map((place) => ({
+      key: place.key,
+      name: place.name,
+      kind: "municipality" as const,
+      district: place.district,
+      mayor: place.mayor,
+      color: place.color,
+    })),
+    ...districtPlaces.map((place) => ({
+      key: place.key,
+      name: place.name,
+      kind: "district" as const,
+      district: null,
+      mayor: null,
+      color: place.color,
+    })),
+  ];
 
   const groups: FinderGroup[] = [...districts]
     .sort((a, b) => a.name.localeCompare(b.name, "pt"))
@@ -109,69 +133,47 @@ export default async function PlacesPage({ searchParams }: Props) {
     .filter((group) => group.places.length > 0);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Poder local{election && <> · {electionName(election)}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Quem governa a tua terra</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          Quem governa a{" "}
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">tua terra</span>
+        </h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Os presidentes das {withMayor.length} câmaras municipais, pelo partido da lista que venceu. Carrega num concelho para ver a câmara
           e a assembleia municipal, os deputados eleitos pelo distrito, as últimas eleições e os contratos públicos.
         </p>
       </header>
 
-      <section aria-labelledby="mapa" className="mb-12">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-2">
-          <h2 id="mapa" className="font-mono text-sm font-bold uppercase tracking-widest">
-            Presidentes de câmara por partido
-          </h2>
-          <nav aria-label="Ver o mapa por" className="flex gap-2">
-            {[
-              { href: "/sitios", label: "Concelhos", current: !byDistrict },
-              { href: "/sitios?mapa=distritos", label: "Distritos", current: byDistrict },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                scroll={false}
-                aria-current={item.current ? "page" : undefined}
-                className={`rounded-full border px-3 py-1 font-mono text-xs font-bold ${
-                  item.current ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div className="grid items-start gap-8 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          {map ? (
-            <ElectionMap
-              map={map}
-              places={shown}
-              solid
-              label={
-                byDistrict
-                  ? "Mapa dos distritos, pelo partido com mais câmaras"
-                  : "Mapa dos concelhos, pelo partido do presidente da câmara"
-              }
-              caption={
-                <figcaption className="mt-2 font-mono text-[11px] text-muted">
-                  {byDistrict
-                    ? "Cada distrito com a cor do partido que lidera mais câmaras."
-                    : "Cor do partido principal da lista vencedora; coligações pelo primeiro partido."}{" "}
-                  Limites: {map.source}.
-                </figcaption>
-              }
-            />
-          ) : (
-            <p className="text-muted">Mapa indisponível.</p>
-          )}
-          <Legend items={legend} total={withMayor.length} />
-        </div>
-      </section>
+      {map ? (
+        <MayorMap
+          key={level}
+          map={map}
+          places={shown}
+          level={level}
+          legend={byDistrict ? mayorLegend(municipalities, parties) : legend}
+          total={withMayor.length}
+          initialKey={typeof local === "string" ? local : null}
+          label={
+            byDistrict ? "Mapa dos distritos, pelo partido com mais câmaras" : "Mapa dos concelhos, pelo partido do presidente da câmara"
+          }
+          caption={`${
+            byDistrict
+              ? "Cada distrito com a cor do partido que lidera mais câmaras."
+              : "Cor do partido principal da lista vencedora; coligações pelo primeiro partido."
+          } Limites: ${map.source}.`}
+          searchItems={searchItems}
+          views={[
+            { href: "/sitios", label: "Concelhos", current: !byDistrict },
+            { href: "/sitios?mapa=distritos", label: "Distritos", current: byDistrict },
+          ]}
+        />
+      ) : (
+        <p className="mb-12 text-muted">Mapa indisponível.</p>
+      )}
 
       <section aria-labelledby="concelhos" className="mb-12">
         <h2 id="concelhos" className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
@@ -183,32 +185,6 @@ export default async function PlacesPage({ searchParams }: Props) {
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">
         Fonte: resultados oficiais do Ministério da Administração Interna{election && <> ({electionName(election)})</>}.
       </p>
-    </div>
-  );
-}
-
-/** Câmaras per party, biggest first, as bars. */
-function Legend({ items, total }: { items: LegendItem[]; total: number }) {
-  if (items.length === 0) return null;
-  const top = items[0]!.count;
-  return (
-    <div>
-      <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-widest text-muted">Câmaras por partido</h3>
-      <ul className="space-y-1.5">
-        {items.map((item) => (
-          <li key={item.key} className="grid grid-cols-[6.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 font-mono text-xs">
-            <span className="truncate font-bold">{item.label}</span>
-            <span aria-hidden="true" className="h-3 overflow-hidden rounded-sm bg-surface">
-              <span className="block h-full rounded-sm" style={{ width: `${(item.count / top) * 100}%`, backgroundColor: item.color }} />
-            </span>
-            <span className="text-right">
-              {item.count}
-              <span className="sr-only"> de {total} câmaras</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 font-mono text-[11px] text-muted">De {total} câmaras. Independentes: listas de grupos de cidadãos.</p>
     </div>
   );
 }

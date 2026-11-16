@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Chamber } from "@/components/Chamber";
-import { ApiError, getElectionResult, getElections, getParties } from "@/lib/api/client";
+import { ApiError, getElectionResult, getElectionsMenu, getParties } from "@/lib/api/client";
 import {
   chamberOrder,
   ELECTION_TYPES,
@@ -15,19 +15,18 @@ import {
 } from "@/lib/elections";
 import { formatLongDate, formatPercent } from "@/lib/format";
 import { majority } from "@/lib/parliament";
-import type { Election, ElectionResult, Party } from "@/lib/types";
+import type { Election, ElectionResult, Party, UpcomingElection } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Eleições",
-  description:
-    "Os resultados das eleições em Portugal desde 2011: legislativas, autárquicas, presidenciais e europeias, do país à freguesia.",
+  description: "Os resultados das eleições em Portugal: legislativas, autárquicas, presidenciais e europeias, do país à freguesia.",
   alternates: { canonical: "/eleicoes" },
 };
 
 /** Null while the API does not serve elections yet, so the page can say so calmly. */
-async function loadElections(): Promise<Election[] | null> {
+async function loadElections(): Promise<{ elections: Election[]; upcoming: UpcomingElection[] } | null> {
   try {
-    return await getElections();
+    return await getElectionsMenu();
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
@@ -35,28 +34,39 @@ async function loadElections(): Promise<Election[] | null> {
 }
 
 const newestFirst = (a: Election, b: Election) => b.date.localeCompare(a.date);
+/** The latest of each type get a card; the older ones a line each, by decade. */
+const CARDS = 6;
 
 export default async function ElectionsPage() {
   await connection();
-  const [elections, parties] = await Promise.all([loadElections(), getParties().catch((): Party[] => [])]);
-  const sorted = [...(elections ?? [])].sort(newestFirst);
+  const [menu, parties] = await Promise.all([loadElections(), getParties().catch((): Party[] => [])]);
+  const sorted = [...(menu?.elections ?? [])].sort(newestFirst);
+  const upcoming = menu?.upcoming ?? [];
   const latest = sorted.find((election) => election.imported) ?? null;
   const latestResult = latest ? await getElectionResult(latest.id).catch(() => null) : null;
-  // Elections dated after today are the next ones: shown by their date, not as results.
+  // The next of each kind comes from the API's `upcoming`; an election in the list dated after today counts too.
   const today = new Date().toISOString().slice(0, 10);
   const types = ELECTION_TYPES.map((item) => {
     const ofType = sorted.filter((election) => election.type === item.type);
-    const next = ofType.filter((election) => election.date > today).at(-1) ?? null;
+    const dated = ofType.filter((election) => election.date > today).at(-1) ?? null;
+    const next: NextElection | null =
+      upcoming.find((election) => election.type === item.type) ??
+      (dated ? { name: dated.name, date: dated.date, confirmed: true, window: null, basis: null } : null);
     return { ...item, next, elections: ofType.filter((election) => election.date <= today) };
   }).filter((item) => item.elections.length > 0 || item.next);
+  const since = sorted
+    .filter((election) => election.date <= today)
+    .at(-1)
+    ?.date.slice(0, 4);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide>
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Resultados oficiais</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Eleições</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
-          Quem ganhou, com quantos votos e onde, desde 2011. Escolhe uma eleição e desce do país ao distrito, ao concelho e à freguesia.
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Eleições</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
+          Quem ganhou, com quantos votos e onde{since ? `, desde ${since}` : ""}. Escolhe uma eleição e desce do país ao distrito, ao
+          concelho e à freguesia, até onde houver resultados.
         </p>
       </header>
 
@@ -80,6 +90,8 @@ export default async function ElectionsPage() {
 
           {latest && latestResult && <Featured election={latest} result={latestResult} parties={parties} />}
 
+          {upcoming.length > 0 && <Upcoming elections={upcoming} />}
+
           <div className="space-y-14">
             {types.map(({ type, label, about, next, elections: ofType }) => (
               <section key={type} aria-labelledby={`tipo-${type}`}>
@@ -91,25 +103,21 @@ export default async function ElectionsPage() {
                     {ofType.length} {ofType.length === 1 ? "eleição" : "eleições"}
                   </span>
                 </div>
-                <div className="mb-5 mt-3 flex flex-wrap items-end justify-between gap-4">
+                <div className="mb-5 mt-3 flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-xl">
-                    {next && (
-                      <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-ink px-3 py-1 font-mono text-xs">
-                        <span className="font-bold">Próximas eleições</span>
-                        <time dateTime={next.date}>{formatLongDate(next.date)}</time>
-                      </p>
-                    )}
+                    {next && <NextPill next={next} />}
                     <p className="text-sm text-muted">{about}</p>
                   </div>
                   <TurnoutBars elections={ofType} />
                 </div>
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {ofType.map((election) => (
+                  {ofType.slice(0, CARDS).map((election) => (
                     <li key={election.id}>
                       <ElectionCard election={election} parties={parties} />
                     </li>
                   ))}
                 </ul>
+                {ofType.length > CARDS && <OlderElections type={type} label={label} elections={ofType.slice(CARDS)} parties={parties} />}
               </section>
             ))}
           </div>
@@ -139,7 +147,7 @@ function Featured({ election, result, parties }: { election: Election; result: E
             <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-paper">Mais recente</span>
             {ELECTION_TYPES.find((item) => item.type === election.type)?.label} · {formatLongDate(election.date)}
           </p>
-          <h2 id="mais-recente" className="mt-2 text-2xl font-bold sm:text-4xl">
+          <h2 id="mais-recente" className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
             <Link href={electionPath(election.id)} className="hover:underline">
               {election.name}
             </Link>
@@ -202,7 +210,12 @@ function Featured({ election, result, parties }: { election: Election; result: E
 function TurnoutBars({ elections }: { elections: Election[] }) {
   const points = elections
     .filter((election) => election.imported && election.turnout?.turnoutPct != null)
-    .map((election) => ({ year: election.date.slice(0, 4), pct: election.turnout!.turnoutPct! }))
+    // Presidenciais can have two rounds in one year: the second says so.
+    .map((election) => ({
+      id: election.id,
+      year: `${election.date.slice(0, 4)}${election.round === 2 ? " 2.ª" : ""}`,
+      pct: election.turnout!.turnoutPct!,
+    }))
     .reverse();
   if (points.length < 2) return null;
   const label = `Participação ao longo do tempo: ${points.map((point) => `${point.year}, ${formatPercent(point.pct)}`).join("; ")}`;
@@ -211,7 +224,11 @@ function TurnoutBars({ elections }: { elections: Election[] }) {
       <figcaption className="mb-1 font-mono text-[11px] text-muted">Participação ao longo do tempo</figcaption>
       <div role="img" aria-label={label} className="flex items-end gap-1.5">
         {points.map((point, index) => (
-          <div key={point.year} aria-hidden="true" className="flex w-9 flex-col items-center gap-1 font-mono text-[10px] text-muted">
+          <div
+            key={point.id}
+            aria-hidden="true"
+            className="flex min-w-9 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted"
+          >
             <span>{formatPercent(point.pct)}</span>
             <span
               className={`w-5 rounded-sm ${index === points.length - 1 ? "bg-ink" : "bg-muted/50"}`}
@@ -269,7 +286,12 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
           <span className="rounded-full border border-line px-2 py-0.5 text-ink">A importar</span>
         )}
       </span>
-      <span className="mt-1 block text-xl font-bold">{election.name}</span>
+      <span className="mt-1 block text-xl font-bold">
+        {election.name}
+        {election.round === 2 && !/volta/i.test(election.name) && (
+          <span className="ml-2 align-middle font-mono text-[11px] font-normal text-muted">2.ª volta</span>
+        )}
+      </span>
       {winner && (
         <>
           <span className="mt-2 flex items-center gap-2 text-sm font-bold">
@@ -308,5 +330,134 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
     </Link>
   ) : (
     <div className={`${classes} border-dashed`}>{content}</div>
+  );
+}
+
+const DEPTH: Record<NonNullable<Election["deepestLevel"]>, string | null> = {
+  country: "só o resultado nacional",
+  district: "até ao distrito",
+  municipality: "até ao concelho",
+  parish: null,
+};
+
+/** The older elections of a type, one line each, by decade: when, who won, by how much, and how far the results go. */
+function OlderElections({ type, label, elections, parties }: { type: string; label: string; elections: Election[]; parties: Party[] }) {
+  const decades = new Map<string, Election[]>();
+  for (const election of elections) {
+    const decade = `${election.date.slice(0, 3)}0`;
+    decades.set(decade, [...(decades.get(decade) ?? []), election]);
+  }
+  return (
+    <div className="mt-6">
+      <h3 id={`antes-${type}`} className="mb-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+        {label} anteriores
+      </h3>
+      <div className="space-y-4">
+        {[...decades].map(([decade, items]) => (
+          <section key={decade} aria-label={`Anos ${decade.slice(2)}`}>
+            <h4 className="mb-1 font-mono text-[11px] text-muted">Anos {decade.slice(2)}</h4>
+            <ul className="divide-y divide-line rounded-2xl border border-line">
+              {items.map((election) => {
+                const { winner } = election;
+                const depth = election.deepestLevel ? DEPTH[election.deepestLevel] : null;
+                const name = (
+                  <>
+                    <span className="font-bold">{election.name}</span>
+                    {election.round === 2 && !/volta/i.test(election.name) && <span className="text-muted"> · 2.ª volta</span>}
+                  </>
+                );
+                return (
+                  <li
+                    key={election.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:grid-cols-[9rem_minmax(0,1fr)_auto_auto]"
+                  >
+                    {election.imported ? (
+                      <Link href={electionPath(election.id)} className="hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      <span>{name}</span>
+                    )}
+                    <span className="order-3 col-span-2 flex min-w-0 items-center gap-2 sm:order-none sm:col-span-1">
+                      {winner ? (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className="size-2.5 shrink-0 rounded-sm"
+                            style={{ backgroundColor: listColor(winner) }}
+                          />
+                          <span className="sr-only">Mais votado: </span>
+                          <span className="min-w-0 truncate">{listName(winner, parties)}</span>
+                          <span className="shrink-0 font-mono text-xs font-bold">{formatPercent(winner.validPct)}</span>
+                          {winner.mandates ? (
+                            <span className="shrink-0 font-mono text-xs text-muted">{winner.mandates} mandatos</span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="text-muted">{election.imported ? "Sem resultados" : "A importar"}</span>
+                      )}
+                    </span>
+                    <span className="hidden font-mono text-[11px] text-muted sm:block">
+                      {election.turnout?.turnoutPct != null && <>Participação {formatPercent(election.turnout.turnoutPct)}</>}
+                    </span>
+                    <span className="text-right font-mono text-[11px] text-muted">{depth ?? formatLongDate(election.date)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type NextElection = Pick<UpcomingElection, "name" | "date" | "confirmed" | "window" | "basis">;
+
+/** The next election of a kind: its date once set, otherwise when the law says it must be. */
+function NextPill({ next }: { next: NextElection }) {
+  // The same two lines for every type, whether it has a date or only the legal window.
+  return (
+    <div className="mb-2 max-w-xl font-mono text-xs">
+      <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Próximas eleições</p>
+      <p className="mt-0.5 leading-relaxed">
+        {next.date ? (
+          <>
+            <time dateTime={next.date}>{formatLongDate(next.date)}</time>
+            {!next.confirmed && <span className="text-muted"> · data por confirmar</span>}
+          </>
+        ) : (
+          next.window
+        )}
+      </p>
+    </div>
+  );
+}
+
+/** Every coming election, regionais included, soonest first: none has an official date until the decree. */
+function Upcoming({ elections }: { elections: UpcomingElection[] }) {
+  return (
+    <section aria-labelledby="proximas" className="mb-14">
+      <h2 id="proximas" className="mb-3 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
+        Próximas eleições
+      </h2>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {elections.map((election) => (
+          <li key={election.name} className="rounded-2xl border border-dashed border-line p-4">
+            <p className="font-bold">{election.name}</p>
+            {election.date ? (
+              <p className="mt-1 font-mono text-xs">
+                <time dateTime={election.date}>{formatLongDate(election.date)}</time>
+                {!election.confirmed && <span className="text-muted"> · data por confirmar</span>}
+              </p>
+            ) : (
+              <p className="mt-1 font-mono text-xs text-muted">Ainda sem data marcada</p>
+            )}
+            {election.window && <p className="mt-2 text-sm leading-snug">{election.window}</p>}
+            {election.basis && <p className="mt-2 font-mono text-[11px] text-muted">{election.basis}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

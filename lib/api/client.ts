@@ -6,6 +6,7 @@ import type {
   DeputyDetail,
   DeputyVotesPage,
   Election,
+  UpcomingElection,
   ElectionResult,
   ElectionType,
   Government,
@@ -165,6 +166,12 @@ export type InitiativeQuery = {
   party?: string;
   presidency?: PresidencyStatus;
   topic?: string;
+  /** A phase, as the API names them (see INITIATIVE_STAGES). */
+  stage?: string;
+  /** Words from the title, or the initiative's number. */
+  q?: string;
+  /** Newest first unless "oldest". */
+  sort?: "newest" | "oldest";
   cursor?: string;
   limit?: number;
 };
@@ -175,12 +182,20 @@ export async function getInitiatives({
   party,
   presidency,
   topic,
+  stage,
+  q,
+  sort,
   cursor,
   limit,
 }: InitiativeQuery = {}): Promise<InitiativePage> {
-  const query = searchOf({ status, deputy, party, presidency, topic, cursor, limit });
+  const query = searchOf({ status, deputy, party, presidency, topic, stage, q, sort: sort === "oldest" ? sort : undefined, cursor, limit });
   const page = await request(`/initiatives${query}`, initiativePageSchema, cached);
-  return { initiatives: page.items.map(mapInitiative), nextCursor: page.nextCursor };
+  return {
+    initiatives: page.items.map(mapInitiative),
+    nextCursor: page.nextCursor,
+    total: page.total ?? null,
+    stages: (page.stages ?? []).map((item) => ({ ...item, plain: item.plain ?? "" })),
+  };
 }
 
 export async function getInitiative(id: number): Promise<InitiativeDetail> {
@@ -205,6 +220,23 @@ export const hourly = { next: { revalidate: 3600 } };
 export async function getElections(type?: ElectionType): Promise<Election[]> {
   const query = type ? `?type=${type}` : "";
   return mapElections(await request(`/elections${query}`, electionsSchema, hourly));
+}
+
+/** The elections menu: every election, and the next one of each kind. */
+export async function getElectionsMenu(): Promise<{ elections: Election[]; upcoming: UpcomingElection[] }> {
+  const data = await request("/elections", electionsSchema, hourly);
+  return {
+    elections: mapElections(data),
+    upcoming: data.upcoming.map((item) => ({
+      type: item.type,
+      name: item.name,
+      year: item.year ?? null,
+      date: item.date ?? null,
+      confirmed: item.confirmed ?? false,
+      window: item.window ?? null,
+      basis: item.basis ?? null,
+    })),
+  };
 }
 
 /** Results in one place (the top level without `place`) for one body (`organ`, the main one by default). */

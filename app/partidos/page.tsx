@@ -34,11 +34,11 @@ export default async function PartiesPage() {
   const others = (parties ?? []).filter((party) => party.seats === 0).sort(byName);
 
   return (
-    <div data-wide className="mx-auto max-w-5xl">
+    <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Partidos políticos</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Partidos</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Partidos</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Quem os lidera, quantos deputados têm e como votaram neles nas últimas legislativas. Carrega num partido para ver as notícias, as
           votações no Parlamento e o fórum.
         </p>

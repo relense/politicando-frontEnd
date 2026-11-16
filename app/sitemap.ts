@@ -90,7 +90,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fixed = [
     at("/", { changeFrequency: "hourly" }),
     at("/parlamento", { changeFrequency: "daily" }),
-    at("/deputados", { changeFrequency: "weekly" }),
     at("/partidos", { changeFrequency: "weekly" }),
     at("/governo", { changeFrequency: "weekly" }),
     at("/presidente", { changeFrequency: "weekly" }),

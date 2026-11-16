@@ -34,15 +34,15 @@ export default async function GovernmentPage({ searchParams }: Props) {
   const [government, parties, { membro }] = await Promise.all([loadGovernment(), getParties().catch((): Party[] => []), searchParams]);
 
   const header = (
-    <header className="mb-6">
+    <header key="header" className="mb-6">
       <p className="mb-2 flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted">
         <OriginBadge origin="government" />
         {government?.name}
       </p>
-      <h1 className="text-3xl font-bold leading-tight sm:text-5xl">
+      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
         Quem <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">governa</span>
       </h1>
-      <p className="mt-3 max-w-2xl text-muted">
+      <p className="mt-2 max-w-2xl leading-relaxed text-muted">
         {government?.startDate && `Em funções desde ${formatLongDate(government.startDate)}. `}O Governo não é o Parlamento: é nomeado, não
         é eleito, e quem vem do Parlamento suspende o mandato de deputado.{" "}
         <Link href="/parlamento#orgaos-titulo" className="text-link underline">
@@ -55,18 +55,22 @@ export default async function GovernmentPage({ searchParams }: Props) {
   return (
     // data-wide lets this page use the full width, like the Parliament page.
     <div data-wide>
-      {header}
       {!government ? (
-        <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-          Os dados do Governo estarão disponíveis em breve.
-        </p>
+        <>
+          {header}
+          <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+            Os dados do Governo estarão disponíveis em breve.
+          </p>
+        </>
       ) : (
         <>
+          {/* The title sits in the ministries' column, so the card beside it can run from the title down. */}
           <GovernmentView
             government={government}
             parties={parties}
             initialMember={typeof membro === "string" ? membro : null}
             today={today()}
+            header={header}
           />
 
           {government.former.length > 0 && (
@@ -94,8 +98,8 @@ export default async function GovernmentPage({ searchParams }: Props) {
 
       <p className="mt-12 border-t border-line pt-4 font-mono text-xs text-muted">
         Fonte: portal do Governo (portugal.gov.pt)
-        {government?.updatedAt && ` · atualizado em ${formatDate(government.updatedAt)}`}. O partido só aparece quando a pessoa foi eleita
-        deputada; o portal não o publica e muitos membros são independentes.
+        {government?.updatedAt && ` · atualizado em ${formatDate(government.updatedAt)}`}. O portal não publica o partido: mostramos o
+        partido por que a pessoa foi eleita deputada, ou a filiação quando é pública. Sem fonte, não mostramos nenhum.
       </p>
     </div>
   );

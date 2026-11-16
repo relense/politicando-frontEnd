@@ -201,9 +201,48 @@ function presidencyOf(index: number, type: string, status: string) {
   if (status !== "approved" || !PLAIN_TYPES[type]!.makesLaw) return null;
   const sentAt = day(index * 2 + 10);
   if (index % 4 === 0) return { status: "pending", sentAt, promulgatedAt: null, vetoedAt: null, by: "Teresa Albuquerque" };
-  if (index % 5 === 1) return { status: "vetoed", sentAt, promulgatedAt: null, vetoedAt: day(index * 2 + 5), by: "Teresa Albuquerque" };
+  if (index % 10 === 1) {
+    // Vetoed after the Constitutional Court found it unconstitutional, citing its ruling.
+    const constitutionalCourt = [
+      { ruling: `${100 + index}/2026`, url: `https://www.tribunalconstitucional.pt/tc/acordaos/2026${100 + index}.html` },
+    ];
+    const vetoedAt = day(index * 2 + 5);
+    return {
+      status: "vetoed",
+      sentAt,
+      promulgatedAt: null,
+      vetoedAt,
+      vetoKind: "unconstitutionality" as const,
+      constitutionalCourt,
+      vetoes: [{ date: vetoedAt, kind: "unconstitutionality" as const, constitutionalCourt }],
+      by: "Teresa Albuquerque",
+    };
+  }
+  if (index % 5 === 1) {
+    const vetoedAt = day(index * 2 + 5);
+    return {
+      status: "vetoed",
+      sentAt,
+      promulgatedAt: null,
+      vetoedAt,
+      vetoKind: "political" as const,
+      vetoes: [{ date: vetoedAt, kind: "political" as const }],
+      by: "Teresa Albuquerque",
+    };
+  }
+  if (index % 9 === 2)
+    // The Parliament's record skips the promulgation; it is deduced from the publication.
+    return { status: "promulgated", sentAt, promulgatedAt: null, promulgationRecorded: false, vetoedAt: null, by: "Teresa Albuquerque" };
   const vetoedAt = index % 7 === 3 ? day(index * 2 + 30) : null;
-  return { status: "promulgated", sentAt, promulgatedAt: day(index * 2 + 4), vetoedAt, by: "Teresa Albuquerque" };
+  return {
+    status: "promulgated",
+    sentAt,
+    promulgatedAt: day(index * 2 + 4),
+    vetoedAt,
+    vetoKind: vetoedAt ? ("political" as const) : null,
+    vetoes: vetoedAt ? [{ date: vetoedAt, kind: "political" as const }] : [],
+    by: "Teresa Albuquerque",
+  };
 }
 
 const STAGE_LABELS: Record<string, string> = {

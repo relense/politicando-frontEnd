@@ -62,7 +62,7 @@ export default async function BecomeDeputyPage({ searchParams }: Props) {
 
   if (!explainer) {
     return (
-      <div className="mx-auto max-w-4xl">
+      <div>
         {header}
         <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
           Esta explicação estará disponível em breve.
@@ -149,7 +149,7 @@ export default async function BecomeDeputyPage({ searchParams }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       {header}
 
       <nav aria-label="Nesta página" className="mb-10 rounded-2xl border border-line p-4">

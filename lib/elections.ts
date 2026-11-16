@@ -162,15 +162,48 @@ export type ListChange = { previousPct: number | null; change: number | null };
 
 type Comparable = Pick<ElectionList, "list" | "partySlugs" | "validPct">;
 
-const slugSet = (item: Pick<ElectionList, "partySlugs">) => [...item.partySlugs].sort().join("+");
+/**
+ * Small partners that come and go from a coalition without changing what it is: AD was PSD, CDS-PP and PPM in 2024
+ * and PSD and CDS-PP in 2025. Left out when deciding whether two lists are the same.
+ */
+const MINOR_PARTNERS = new Set(["ppm", "pev", "mpt"]);
+
+const slugSet = (item: Pick<ElectionList, "partySlugs">) => {
+  const core = item.partySlugs.filter((slug) => !MINOR_PARTNERS.has(slug));
+  return [...(core.length > 0 ? core : item.partySlugs)].sort().join("+");
+};
+
+/**
+ * The same parties running as more than one list (AD on the mainland, and PSD with CDS-PP in Madeira) count as one,
+ * with their shares added, so a small regional list is never taken for the national one.
+ */
+function mergeForComparison(lists: readonly Comparable[]): Comparable[] {
+  const merged = new Map<string, Comparable & { biggest: number }>();
+  for (const item of lists) {
+    const key = item.partySlugs.length > 0 ? slugSet(item) : `lista:${bare(item.list)}`;
+    const current = merged.get(key);
+    const share = item.validPct ?? 0;
+    if (!current) {
+      merged.set(key, { ...item, biggest: share });
+      continue;
+    }
+    merged.set(key, {
+      ...(share > current.biggest ? item : current),
+      biggest: Math.max(share, current.biggest),
+      validPct: current.validPct === null && item.validPct === null ? null : (current.validPct ?? 0) + share,
+    });
+  }
+  return [...merged.values()];
+}
 
 /**
  * Matches each list with the same list in the previous election, one to one: first the same ballot name and the same
- * parties, then the same parties (AD under a new name), then the same ballot name for lists none of ours is in
- * (citizens' groups, and candidates in presidenciais). A coalition is never matched with its parties running alone,
- * nor the other way round: those numbers are not comparable, so such lists have no change.
+ * parties, then the same parties (AD under a new name, or without a small partner), then the same ballot name for
+ * lists none of ours is in (citizens' groups, and candidates in presidenciais). A coalition is never matched with its
+ * parties running alone, nor the other way round: those numbers are not comparable, so such lists have no change.
  */
-export function compareLists<T extends Comparable>(current: readonly T[], previous: readonly Comparable[]): Map<T, ListChange> {
+export function compareLists<T extends Comparable>(current: readonly T[], previousLists: readonly Comparable[]): Map<T, ListChange> {
+  const previous = mergeForComparison(previousLists);
   const used = new Set<number>();
   const matched = new Map<T, number>();
   const passes: ((a: T, b: Comparable) => boolean)[] = [

@@ -195,7 +195,8 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
     topics: initiative.topics,
     plain: initiative.plain
       ? {
-          title: plainText(initiative.plain.title),
+          // Empty when there is no plain version: headlineOf() then falls back to the official title.
+          title: plainText(initiative.plain.title ?? ""),
           type: {
             label: initiative.plain.type.label,
             explainer: initiative.plain.type.explainer ?? "",
@@ -210,7 +211,15 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
             status: initiative.presidency.status as PresidencyStatus,
             sentAt: initiative.presidency.sentAt ?? null,
             promulgatedAt: initiative.presidency.promulgatedAt ?? null,
+            promulgationRecorded: initiative.presidency.promulgationRecorded ?? true,
             vetoedAt: initiative.presidency.vetoedAt ?? null,
+            vetoKind: initiative.presidency.vetoKind ?? null,
+            constitutionalCourt: mapRulings(initiative.presidency.constitutionalCourt),
+            vetoes: (initiative.presidency.vetoes ?? []).map((veto) => ({
+              date: veto.date ?? null,
+              kind: veto.kind ?? null,
+              constitutionalCourt: mapRulings(veto.constitutionalCourt),
+            })),
             by: initiative.presidency.by ?? null,
           }
         : null,
@@ -218,6 +227,10 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
 }
 
 const PRESIDENCY_STATUSES: readonly PresidencyStatus[] = ["pending", "promulgated", "vetoed"];
+
+/** The Constitutional Court's rulings, with a link only when it is a web address. */
+const mapRulings = (rulings: { ruling: string; url?: string | null }[] | null | undefined) =>
+  (rulings ?? []).map((item) => ({ ruling: item.ruling, url: safeHttpUrl(item.url) }));
 const STAGES: readonly PlainStage[] = [
   "submitted",
   "committee",
@@ -305,6 +318,8 @@ export function mapGovernmentMember(member: ApiGovernmentMember): GovernmentMemb
     endDate: member.endDate ?? null,
     deputyId: member.deputyId ?? null,
     partySlug: member.party ?? null,
+    partySource: member.party ? (member.partySource ?? null) : null,
+    independent: !member.party && member.independent === true,
     areaName: member.areaName ?? null,
   };
 }
@@ -391,6 +406,8 @@ const mapElectionSummary = (election: ApiElectionResult["election"]) => ({
   date: election.date,
   organs: election.organs,
   sourceUrl: safeHttpUrl(election.sourceUrl),
+  deepestLevel: election.deepestLevel ?? null,
+  round: election.round ?? null,
 });
 
 export function mapElections(api: ApiElections): Election[] {

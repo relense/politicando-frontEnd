@@ -45,18 +45,25 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
     title: "Quem manda",
     items: [
       {
-        href: "/parlamento",
-        label: "Parlamento",
-        hint: "Quem está sentado onde",
-        icon: icon("M2 15a8 8 0 0 1 16 0M5.5 15a4.5 4.5 0 0 1 9 0M2 15h16"),
-        active: (path) => path.startsWith("/parlamento"),
+        href: "/presidente",
+        label: "Presidente",
+        hint: "Promulgações e vetos",
+        icon: icon("M10 2l2 4 4 .5-3 3 .8 4.5L10 12l-3.8 2 .8-4.5-3-3L8 6l2-4ZM5 18h10"),
+        active: (path) => path.startsWith("/presidente"),
       },
       {
-        href: "/deputados",
-        label: "Deputados",
-        hint: "Os 230, por partido",
-        icon: icon("M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8a6 6 0 0 1 12 0"),
-        active: (path) => path.startsWith("/deputados"),
+        href: "/governo",
+        label: "Governo",
+        hint: "Primeiro-Ministro e ministros",
+        icon: icon("M3 8l7-4 7 4M4 8v7M8 8v7M12 8v7M16 8v7M2 17h16"),
+        active: (path) => path.startsWith("/governo"),
+      },
+      {
+        href: "/parlamento",
+        label: "Parlamento",
+        hint: "Os 230 deputados e onde se sentam",
+        icon: icon("M2 15a8 8 0 0 1 16 0M5.5 15a4.5 4.5 0 0 1 9 0M2 15h16"),
+        active: (path) => path.startsWith("/parlamento") || path.startsWith("/deputados"),
       },
       {
         href: "/partidos",
@@ -72,20 +79,6 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 9h4M8 12h4M8 15h2"),
         active: (path) => path.startsWith("/iniciativas"),
       },
-      {
-        href: "/governo",
-        label: "Governo",
-        hint: "Primeiro-Ministro e ministros",
-        icon: icon("M3 8l7-4 7 4M4 8v7M8 8v7M12 8v7M16 8v7M2 17h16"),
-        active: (path) => path.startsWith("/governo"),
-      },
-      {
-        href: "/presidente",
-        label: "Presidente",
-        hint: "Promulgações e vetos",
-        icon: icon("M10 2l2 4 4 .5-3 3 .8 4.5L10 12l-3.8 2 .8-4.5-3-3L8 6l2-4ZM5 18h10"),
-        active: (path) => path.startsWith("/presidente"),
-      },
     ],
   },
   {
@@ -94,7 +87,7 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
       {
         href: "/eleicoes",
         label: "Eleições",
-        hint: "Resultados desde 2011",
+        hint: "Do país à freguesia",
         icon: icon("M4 9h12v8H4V9Zm3-5h6l1 5H6l1-5Zm1 9h4"),
         active: (path) => path.startsWith("/eleicoes"),
       },
@@ -152,9 +145,10 @@ export function SectionLink({
   const body = (
     <>
       {item.icon}
-      <span className="min-w-0">
-        <span className="block whitespace-nowrap font-mono text-sm font-bold">{item.label}</span>
-        {!compact && <span className="block whitespace-nowrap text-xs text-muted">{item.hint}</span>}
+      {/* Wraps instead of overflowing: the column is narrower below 2xl. */}
+      <span className="min-w-0 flex-1">
+        <span className="block break-words font-mono text-sm font-bold">{item.label}</span>
+        {!compact && <span className="block break-words text-xs leading-snug text-muted">{item.hint}</span>}
       </span>
     </>
   );
@@ -184,7 +178,7 @@ export function SiteNav() {
   return (
     <nav
       aria-label="Secções"
-      className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto pb-4 2xl:w-[var(--side-column)] lg:block"
+      className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto overflow-x-hidden pb-4 2xl:w-[var(--side-column)] lg:block"
     >
       {SITE_GROUPS.map((group, index) => (
         <div key={group.title} className={index > 0 ? "mt-4" : undefined}>

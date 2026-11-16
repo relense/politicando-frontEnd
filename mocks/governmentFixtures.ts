@@ -24,7 +24,7 @@ const member = (n: number, name: string, title: string, kind: Kind, gender: "M" 
   ...extra,
 });
 
-const primeMinister = member(1, "Henrique Valadares", "Primeiro-Ministro", "prime_minister", "M");
+const primeMinister = member(1, "Henrique Valadares", "Primeiro-Ministro", "prime_minister", "M", { party: "psd", partySource: "curated" });
 const MINISTRIES: [string, string, [string, "M" | "F"], [string, "M" | "F"][]][] = [
   [
     "financas",
@@ -64,7 +64,11 @@ export const government: ApiGovernmentInput = {
         `${gender === "F" ? "Ministra" : "Ministro"} ${name === "Presidência" ? "da" : "das"} ${name}`,
         "minister",
         gender,
-        minister === formerDeputy.name ? { deputyId: formerDeputy.id, party: formerDeputy.party } : {},
+        minister === formerDeputy.name
+          ? { deputyId: formerDeputy.id, party: formerDeputy.party, partySource: "deputy" }
+          : minister === "Teresa Monforte"
+            ? { independent: true }
+            : {},
       ),
       secretaries: secretaries.map(([secretary, g]) =>
         member(n++, secretary, `${g === "F" ? "Secretária" : "Secretário"} de Estado de ${name}`, "secretary_of_state", g),

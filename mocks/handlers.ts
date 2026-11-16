@@ -35,13 +35,40 @@ const newCommentSchema = z.strictObject({
 /** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
 const psLeader = deputies.find((deputy) => deputy.party === "ps")!;
 const leaders: Record<string, { name: string; title: string; deputyId: number | null; governmentMemberId: string | null }> = {
-  psd: { name: government.primeMinister!.name!, title: "Presidente do PSD", deputyId: null, governmentMemberId: government.primeMinister!.id! },
+  psd: {
+    name: government.primeMinister!.name!,
+    title: "Presidente do PSD",
+    deputyId: null,
+    governmentMemberId: government.primeMinister!.id!,
+  },
   ps: { name: psLeader.name, title: "Secretário-geral do PS", deputyId: psLeader.id, governmentMemberId: null },
   be: { name: "Marta Quintela", title: "Coordenadora do Bloco de Esquerda", deputyId: null, governmentMemberId: null },
 };
 
 const answer = (result: ReturnType<typeof electionResult>) =>
   result.status === 200 ? HttpResponse.json(result.body) : fail(result.status, result.code);
+
+/** The API's phases, as /initiatives sends them in `stages`. */
+const STAGE_KEYS = [
+  ["submitted", "Entregue", "Deu entrada no Parlamento e ainda não foi debatida."],
+  ["debate", "Em debate", "Em discussão: numa comissão, em consulta ou à espera de votação."],
+  ["approved", "Aprovada", "Aprovada pelo Parlamento, ainda não seguiu para o Presidente ou espera publicação."],
+  ["president", "No Presidente", "Enviada ao Presidente da República, que tem de promulgar ou vetar."],
+  ["vetoed", "Vetada", "O Presidente vetou e devolveu-a ao Parlamento, que pode alterá-la ou confirmá-la."],
+  ["published", "Lei", "Publicada em Diário da República: é lei, ou resolução, em vigor."],
+  ["rejected", "Rejeitada", "Chumbada numa votação, ou não admitida."],
+  ["withdrawn", "Retirada", "Os autores retiraram-na."],
+] as const;
+
+/** Which of those phases an initiative is in, from its plain status. */
+function stageOf(item: (typeof initiatives)[number]): string {
+  const stage = item.plain?.status.stage;
+  if (stage === "committee" || stage === "consultation" || stage === "approved_in_principle") return "debate";
+  if (stage === "awaiting_president") return "president";
+  if (stage === "promulgated") return "published";
+  if (stage === "not_admitted") return "rejected";
+  return stage ?? "submitted";
+}
 
 export const handlers = [
   http.get(`${API}/editorial`, ({ request }) => {
@@ -67,7 +94,7 @@ export const handlers = [
   }),
   http.get(`${API}/elections`, ({ request }) => {
     const type = new URL(request.url).searchParams.get("type");
-    return HttpResponse.json({ items: elections.items.filter((item) => !type || item.type === type) });
+    return HttpResponse.json({ items: elections.items.filter((item) => !type || item.type === type), upcoming: elections.upcoming });
   }),
   http.get(`${API}/elections/:id/places/:key`, ({ params, request }) =>
     answer(electionResult(String(params.id), String(params.key), new URL(request.url).searchParams.get("organ"))),
@@ -150,6 +177,9 @@ export const handlers = [
     const party = search.get("party");
     const presidency = search.get("presidency");
     const topic = search.get("topic");
+    const stage = search.get("stage");
+    const q = search.get("q")?.toLowerCase().trim();
+    const oldest = search.get("sort") === "oldest";
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
     if (cursor && !/^i\d+$/.test(cursor)) return fail(400, "invalid_cursor");
@@ -160,9 +190,25 @@ export const handlers = [
       .filter((item) => !party || item.authors.parties?.some((author) => author.slug === party))
       .filter((item) => !presidency || item.presidency?.status === presidency)
       .filter((item) => !topic || item.topics?.some((tag) => tag.slug === topic))
-      .filter((item) => !cursor || item.id < Number(cursor.slice(1)));
-    const page = matching.slice(0, limit);
-    return HttpResponse.json({ items: page, nextCursor: matching.length > limit ? `i${page.at(-1)!.id}` : null });
+      .filter((item) => !q || `${item.title} ${item.plain?.title ?? ""} ${item.number ?? ""}`.toLowerCase().includes(q));
+    // Each phase counted with every filter but the phase, as the API does.
+    const stages = STAGE_KEYS.map(([key, label, plain]) => ({
+      key,
+      label,
+      plain,
+      count: matching.filter((item) => stageOf(item) === key).length,
+    }));
+    const inStage = matching.filter((item) => !stage || stageOf(item) === stage);
+    const ordered = oldest ? [...inStage].reverse() : inStage;
+    const after = ordered.filter((item) => !cursor || (oldest ? item.id > Number(cursor.slice(1)) : item.id < Number(cursor.slice(1))));
+    const page = after.slice(0, limit);
+    // `total` counts every match, not just what is left after the cursor.
+    return HttpResponse.json({
+      items: page,
+      nextCursor: after.length > limit ? `i${page.at(-1)!.id}` : null,
+      total: inStage.length,
+      stages,
+    });
   }),
   http.get(`${API}/articles/:id/comments`, ({ params }) => HttpResponse.json(store.get(Number(params.id)) ?? [])),
   http.get(`${API}/articles/:id`, ({ params }) => {

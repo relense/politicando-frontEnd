@@ -45,10 +45,12 @@ const party = (slug: string, acronym: string, name = acronym): Party => ({ slug,
 
 describe("elections API", () => {
   it("lists elections and filters by type", async () => {
-    expect((await getElections()).length).toBe(5);
+    expect((await getElections()).length).toBe(15);
     const legislativas = await getElections("legislativas");
     expect(legislativas.every((election) => election.type === "legislativas")).toBe(true);
     expect(legislativas.find((election) => !election.imported)?.id).toBe("legislativas-2019");
+    expect(legislativas.find((election) => election.id === "legislativas-1976")?.deepestLevel).toBe("country");
+    expect(legislativas[0]!.deepestLevel).toBeNull();
   });
 
   it("walks down from the country to a municipality, with a breadcrumb", async () => {
@@ -142,6 +144,16 @@ describe("comparison with the previous election", () => {
     expect(changes.get(ad)!.change).toBe(1);
     expect(changes.get(adMadeira)).toEqual({ previousPct: null, change: null });
     expect(changes.get(fresh)!.change).toBeNull();
+  });
+
+  it("adds up the same parties' lists before comparing, and ignores a small partner leaving (AD 2024 to 2025)", () => {
+    const ad = item("PPD/PSD.CDS-PP", ["psd", "cds-pp"], 32.5);
+    const changes = compareLists(
+      [ad],
+      // 2024: AD with PPM on the mainland, and PSD with CDS-PP alone in Madeira, under the 2025 ballot name.
+      [item("PPD/PSD.CDS-PP.PPM", ["psd", "cds-pp", "ppm"], 29.3), item("PPD/PSD.CDS-PP", ["psd", "cds-pp"], 0.8)],
+    );
+    expect(changes.get(ad)).toEqual({ previousPct: 30.1, change: 2.4 });
   });
 
   it("writes points with a sign", () => {

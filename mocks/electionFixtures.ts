@@ -79,9 +79,107 @@ const ELECTIONS = [
   { id: "legislativas-2025", type: "legislativas", name: "Legislativas 2025", date: "2025-05-18", organs: ["AR"], imported: true },
   { id: "legislativas-2024", type: "legislativas", name: "Legislativas 2024", date: "2024-03-10", organs: ["AR"], imported: true },
   { id: "legislativas-2019", type: "legislativas", name: "Legislativas 2019", date: "2019-10-06", organs: ["AR"], imported: false },
+  // Older ones, with results only down to a certain level: listed one per line, by decade.
+  {
+    id: "legislativas-2015",
+    type: "legislativas",
+    name: "Legislativas 2015",
+    date: "2015-10-04",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "municipality",
+  },
+  {
+    id: "legislativas-2011",
+    type: "legislativas",
+    name: "Legislativas 2011",
+    date: "2011-06-05",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "municipality",
+  },
+  {
+    id: "legislativas-2009",
+    type: "legislativas",
+    name: "Legislativas 2009",
+    date: "2009-09-27",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "district",
+  },
+  {
+    id: "legislativas-2005",
+    type: "legislativas",
+    name: "Legislativas 2005",
+    date: "2005-02-20",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "district",
+  },
+  {
+    id: "legislativas-2002",
+    type: "legislativas",
+    name: "Legislativas 2002",
+    date: "2002-03-17",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "district",
+  },
+  {
+    id: "legislativas-1999",
+    type: "legislativas",
+    name: "Legislativas 1999",
+    date: "1999-10-10",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "country",
+  },
+  {
+    id: "legislativas-1995",
+    type: "legislativas",
+    name: "Legislativas 1995",
+    date: "1995-10-01",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "country",
+  },
+  {
+    id: "legislativas-1987",
+    type: "legislativas",
+    name: "Legislativas 1987",
+    date: "1987-07-19",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "country",
+  },
+  {
+    id: "legislativas-1983",
+    type: "legislativas",
+    name: "Legislativas 1983",
+    date: "1983-04-25",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "country",
+  },
+  {
+    id: "legislativas-1976",
+    type: "legislativas",
+    name: "Legislativas 1976",
+    date: "1976-04-25",
+    organs: ["AR"],
+    imported: true,
+    deepestLevel: "country",
+  },
   { id: "autarquicas-2021", type: "autarquicas", name: "Autárquicas 2021", date: "2021-09-26", organs: ["CM", "AM", "AF"], imported: true },
   // Already scheduled: shown on the menu by its date.
-  { id: "autarquicas-2029", type: "autarquicas", name: "Autárquicas 2029", date: "2029-10-07", organs: ["CM", "AM", "AF"], imported: false },
+  {
+    id: "autarquicas-2029",
+    type: "autarquicas",
+    name: "Autárquicas 2029",
+    date: "2029-10-07",
+    organs: ["CM", "AM", "AF"],
+    imported: false,
+  },
 ] as const;
 
 const summary = (election: (typeof ELECTIONS)[number]) => ({
@@ -91,6 +189,7 @@ const summary = (election: (typeof ELECTIONS)[number]) => ({
   date: election.date,
   organs: [...election.organs],
   sourceUrl: "https://www.eleicoes.mai.gov.pt/",
+  deepestLevel: "deepestLevel" in election ? election.deepestLevel : null,
 });
 
 function turnout(votes: number[], withMandates: number | null) {
@@ -127,6 +226,37 @@ const winnerOf = (votes: number[]) => {
   return { list: top.list, partySlugs: top.partySlugs, votes: top.votes, validPct: top.validPct };
 };
 
+/** The next of each kind, as the API sends them: dates only once the decree sets them. */
+const UPCOMING = [
+  {
+    type: "regionais",
+    name: "Regionais dos Açores 2028",
+    year: 2028,
+    date: null,
+    confirmed: false,
+    window: "Até ao fim de 2028, quatro anos depois das de fevereiro de 2024, salvo dissolução",
+    basis: "Estatuto Político-Administrativo da Região Autónoma dos Açores",
+  },
+  {
+    type: "legislativas",
+    name: "Legislativas 2029",
+    year: 2029,
+    date: null,
+    confirmed: false,
+    window: "Entre 14 de setembro e 14 de outubro de 2029, no fim da legislatura, salvo dissolução",
+    basis: "Lei Eleitoral da Assembleia da República, artigo 19.º",
+  },
+  {
+    type: "autarquicas",
+    name: "Autárquicas 2029",
+    year: 2029,
+    date: "2029-10-07",
+    confirmed: true,
+    window: "Entre 22 de setembro e 14 de outubro de 2029",
+    basis: "Lei Eleitoral dos Órgãos das Autarquias Locais, artigo 15.º",
+  },
+];
+
 export const elections: ApiElectionsInput = {
   items: ELECTIONS.map((election) => {
     const votes = votesOf(TREE, election.id === "legislativas-2024");
@@ -138,6 +268,7 @@ export const elections: ApiElectionsInput = {
       winner: lists(votes, withMandates)[0]!,
     };
   }),
+  upcoming: UPCOMING,
 };
 
 export type ElectionLookup = { status: 200; body: ApiElectionResultInput } | { status: 400 | 404; code: string };

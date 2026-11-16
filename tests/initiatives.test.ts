@@ -52,6 +52,12 @@ describe("plain language", () => {
     expect(bare).toMatchObject({ plain: null, topics: [], presidency: null });
     expect(headlineOf(bare)).toBe(bare.title);
     expect(hasPlainTitle(bare)).toBe(false);
+
+    // The API sends a null plain title when it couldn't make one: the official title is used, and the rest stays.
+    const untitled = mapInitiative(initiativeSchema.parse({ ...initiatives[0]!, plain: { ...initiatives[0]!.plain!, title: null } }));
+    expect(headlineOf(untitled)).toBe(untitled.title);
+    expect(hasPlainTitle(untitled)).toBe(false);
+    expect(untitled.plain?.type.label).toBeTruthy();
   });
 
   it("drops unknown stages and presidency states instead of failing", () => {
@@ -67,9 +73,22 @@ describe("plain language", () => {
   });
 
   it("says when a veto was overcome", () => {
-    const presidency = { status: "promulgated" as const, sentAt: null, promulgatedAt: "2026-10-09", vetoedAt: null, by: null };
+    const presidency = {
+      status: "promulgated" as const,
+      sentAt: null,
+      promulgatedAt: "2026-10-09",
+      vetoedAt: null,
+      promulgationRecorded: true,
+      vetoKind: null,
+      constitutionalCourt: [],
+      vetoes: [],
+      by: null,
+    };
     expect(presidencyLabel(presidency)).toBe("Promulgada");
     expect(presidencyLabel({ ...presidency, vetoedAt: "2026-06-15" })).toBe("Vetada e depois promulgada");
+    expect(presidencyLabel({ ...presidency, status: "vetoed", promulgatedAt: null, vetoKind: "unconstitutionality" })).toBe(
+      "Vetada por inconstitucionalidade",
+    );
   });
 });
 
