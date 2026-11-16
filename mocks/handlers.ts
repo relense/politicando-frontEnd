@@ -134,23 +134,24 @@ export const handlers = [
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
     const words = (search.get("q") ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().split(/\s+/).filter(Boolean);
-    const source = search.get("source");
+    // Lists, as asked of the backend: "party=ps,psd&source=publico.pt,expresso.pt" match any of each.
+    const sources = (search.get("source") ?? "").split(",").filter(Boolean);
     const byComments = search.get("sort") === "comments";
     const folded = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-    const party = search.get("party");
+    const partyList = (search.get("party") ?? "").split(",").filter(Boolean);
     const deputy = search.get("deputy");
     const cursor = search.get("cursor");
     const limit = Number(search.get("limit") ?? 10);
-    if (party && !parties.some((item) => item.slug === party)) return fail(404, "not_found");
+    if (partyList.some((slug) => !parties.some((item) => item.slug === slug))) return fail(404, "not_found");
     if (cursor && !/^c\d+$/.test(cursor)) return fail(400, "invalid_cursor");
 
     if (deputy && !deputies.some((item) => item.id === Number(deputy))) return fail(404, "not_found");
 
     const matching = articles
-      .filter((article) => !party || article.parties.some((item) => item.slug === party))
+      .filter((article) => partyList.length === 0 || article.parties.some((item) => partyList.includes(item.slug)))
       .filter((article) => !deputy || mentions(article.id, Number(deputy)))
       .filter((article) => words.every((word) => folded(`${article.title} ${article.excerpt}`).includes(word)))
-      .filter((article) => !source || article.source === source)
+      .filter((article) => sources.length === 0 || sources.includes(article.source))
       .filter((article) => !byComments || article.commentCount > 0)
       .filter((article) => !cursor || article.id < Number(cursor.slice(1)));
     if (byComments) matching.sort((x, y) => y.commentCount - x.commentCount);

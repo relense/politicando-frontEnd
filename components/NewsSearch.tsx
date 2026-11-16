@@ -1,27 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { filterQuery, type FeedFilter } from "@/lib/feedFilter";
 
-type Props = {
-  q: string;
-  source: string;
-  partySlug: string | null;
-  /** Domains with their display names, most articles first. */
-  sources: { domain: string; name: string }[];
-};
+type Props = { q: string; filter: FeedFilter };
 
 /**
- * A plain GET form, so it works before the page's script loads: the words go in `q`, the outlet in `fonte`.
- * Picking an outlet sends the form straight away.
+ * A plain GET form for words, so it works before the page's script loads. The parties and outlets chosen above ride
+ * along as hidden fields, so a search stays within them.
  */
-export function NewsSearch({ q, source, partySlug, sources }: Props) {
-  const form = useRef<HTMLFormElement>(null);
-  const searching = Boolean(q || source);
-  const clear = partySlug ? `/?partido=${encodeURIComponent(partySlug)}` : "/";
+export function NewsSearch({ q, filter }: Props) {
+  const clear = filterQuery(filter);
   return (
-    <form ref={form} role="search" action="/" method="get" className="mb-4 flex flex-wrap items-center gap-2">
-      {partySlug && <input type="hidden" name="partido" value={partySlug} />}
+    <form role="search" action="/" method="get" className="mb-4 flex flex-wrap items-center gap-2">
+      {filter.parties.length > 0 && <input type="hidden" name="partido" value={filter.parties.join(",")} />}
+      {filter.sources.length > 0 && <input type="hidden" name="fonte" value={filter.sources.join(",")} />}
       <label className="relative min-w-0 flex-[1_1_16rem]">
         <span className="sr-only">Procurar nas notícias</span>
         <svg
@@ -41,29 +34,11 @@ export function NewsSearch({ q, source, partySlug, sources }: Props) {
           className="h-10 w-full rounded-full border border-line bg-paper pl-9 pr-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
         />
       </label>
-      {sources.length > 0 && (
-        <label className="flex-[0_1_12rem]">
-          <span className="sr-only">Fonte</span>
-          <select
-            name="fonte"
-            defaultValue={source}
-            onChange={() => form.current?.requestSubmit()}
-            className="h-10 w-full rounded-full border border-line bg-paper px-4 font-mono text-xs focus:border-ink focus:outline-none"
-          >
-            <option value="">Todas as fontes</option>
-            {sources.map((item) => (
-              <option key={item.domain} value={item.domain}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
       <button type="submit" className="h-10 rounded-full border border-ink px-4 font-mono text-xs font-bold hover:bg-surface">
         Procurar
       </button>
-      {searching && (
-        <Link href={clear} className="font-mono text-xs text-muted underline hover:text-ink">
+      {q && (
+        <Link href={clear ? `/?${clear}` : "/"} className="font-mono text-xs text-muted underline hover:text-ink">
           Limpar
         </Link>
       )}

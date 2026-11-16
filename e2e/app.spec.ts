@@ -1,16 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { noSeriousA11yIssues } from "./helpers";
 
-test("feed loads more on scroll and reaches the end", async ({ page }) => {
+test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("article")).toHaveCount(10);
-  for (let i = 0; i < 6 && !(await page.getByText("Não há mais notícias.").isVisible()); i++) {
-    await page.mouse.wheel(0, 100_000);
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(300);
-  }
-  await expect(page.getByText("Não há mais notícias.")).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(30);
+  // No endless scrolling: going to the bottom loads nothing by itself, so the footer can be reached.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(page.getByRole("contentinfo")).toBeInViewport();
+  await expect(page.getByRole("article")).toHaveCount(30);
+  await page.getByRole("button", { name: "Carregar mais notícias" }).click();
   await expect(page.getByRole("article")).toHaveCount(35);
+  await expect(page.getByText("Não há mais notícias.")).toBeVisible();
 });
 
 test("hostile title stays harmless text", async ({ page }) => {
@@ -53,8 +53,8 @@ test("home scrolling still loads the home feed after visiting a party", async ({
   await page.getByRole("link", { name: "POLITICANDO", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
   await expect(page.getByRole("article").first()).toContainText("número 100");
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await expect(page.getByRole("article").nth(10)).toContainText("número 90");
+  await page.getByRole("button", { name: "Carregar mais notícias" }).click();
+  await expect(page.getByRole("article").nth(30)).toContainText("número 70");
 });
 
 test("back navigation shows the right article", async ({ page }) => {
@@ -114,12 +114,53 @@ test("theme persists across reload without a flash", async ({ page }) => {
 
 test("the party filter narrows the news in place and marks the chosen party", async ({ page }) => {
   await page.goto("/");
-  const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
-  await filter.getByRole("link", { name: /PSD/ }).click();
+  const parties = page.getByRole("navigation", { name: "Filtrar notícias" }).getByRole("list", { name: "Partidos" });
+  await parties.getByRole("button", { name: /PSD/ }).click();
   await expect(page).toHaveURL(/\/\?partido=psd$/);
   await expect(page.getByRole("heading", { level: 1, name: "Notícias do Partido Social Democrata" })).toBeVisible();
-  await expect(filter.getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
-  await filter.getByRole("link", { name: "Todas" }).click();
+  await expect(parties.getByRole("button", { name: /PSD/ })).toHaveAttribute("aria-pressed", "true");
+  await parties.getByRole("button", { name: "Todos" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
+});
+
+test("news from several parties and several papers, saved as the reader's own feed", async ({ page }) => {
+  await page.goto("/");
+  const filters = page.getByRole("navigation", { name: "Filtrar notícias" });
+  const parties = filters.getByRole("list", { name: "Partidos" });
+  const papers = filters.getByRole("list", { name: "Jornais" });
+  await parties.getByRole("button", { name: /^.*B\.E\.$/ }).click();
+  await expect(page).toHaveURL(/partido=be$/);
+  await parties.getByRole("button", { name: /IL/ }).click();
+  await expect(page).toHaveURL(/partido=be,il$/);
+  await papers.getByRole("button", { name: "Público" }).click();
+  await papers.getByRole("button", { name: "RTP" }).click();
+  await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Notícias escolhidas" })).toBeVisible();
+  // Every card is about one of the two parties, from one of the two papers.
+  const cards = page.getByRole("article");
+  await expect(cards.first()).toBeVisible();
+  for (const card of await cards.all()) {
+    await expect(card).toContainText(/B\.E\.|IL/);
+    await expect(card).toContainText(/Público|RTP/);
+  }
+  // A search stays within the choice.
+  await page.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("número");
+  await page.getByRole("button", { name: "Procurar" }).click();
+  await expect(page).toHaveURL(/partido=be%2Cil&fonte=publico\.pt%2Crtp\.pt&q=/);
+  await expect(papers.getByRole("button", { name: "RTP" })).toHaveAttribute("aria-pressed", "true");
+
+  // Saved, the front page opens with it; "Ver tudo" shows everything without forgetting it.
+  await page.goto("/?partido=be,il&fonte=publico.pt,rtp.pt");
+  await filters.getByRole("button", { name: "Guardar como o meu feed" }).click();
+  await expect(filters.getByText("O teu feed:")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "As tuas notícias" })).toBeVisible();
+  await expect(parties.getByRole("button", { name: /IL/ })).toHaveAttribute("aria-pressed", "true");
+  await filters.getByRole("button", { name: "Ver tudo" }).click();
+  await expect(page).toHaveURL(/\?tudo=1$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
+  await filters.getByRole("button", { name: "Esquecer o meu feed" }).click();
+  await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
 });
 
@@ -156,11 +197,14 @@ test("news have no party column: the party filter sits above the feed, the blog 
     );
     await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
   }
-  const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
-  await expect(filter.getByRole("link", { name: "Todas" })).toHaveAttribute("aria-current", "page");
+  const filter = page.getByRole("navigation", { name: "Filtrar notícias" });
+  await expect(filter.getByRole("list", { name: "Partidos" }).getByRole("button", { name: "Todos" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   // Party pages have no filter row: they are reached from the parties page.
   await page.goto("/partido/ps");
-  await expect(page.getByRole("navigation", { name: "Filtrar por partido" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Filtrar notícias" })).toHaveCount(0);
 });
 
 test("drawer works by keyboard", async ({ page, isMobile }) => {
@@ -531,8 +575,8 @@ test("elections: unknown elections, places and bodies are real 404s", async ({ r
 
 test("parties can be ordered by votes, and the choice survives a reload", async ({ page }) => {
   await page.goto("/");
-  const nav = page.getByRole("navigation", { name: "Filtrar por partido" });
-  const first = nav.getByRole("link").filter({ hasNotText: "Todas" }).first();
+  const nav = page.getByRole("navigation", { name: "Filtrar notícias" });
+  const first = nav.getByRole("list", { name: "Partidos" }).getByRole("button").filter({ hasNotText: "Todos" }).first();
   await expect(first).toContainText("B.E.");
   await nav.getByRole("button", { name: "Mais votados" }).click();
   await expect(nav.getByRole("button", { name: "Mais votados" })).toHaveAttribute("aria-pressed", "true");

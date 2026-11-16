@@ -10,6 +10,11 @@ export const metadata: Metadata = {
 };
 
 const STORED: [string, string, string][] = [
+  [
+    "feed",
+    "Um cookie com os partidos e jornais que guardaste como o teu feed, para a página inicial abrir com eles. Só existe se o guardares.",
+    "1 ano, ou até carregares em “Esquecer o meu feed”",
+  ],
   ["theme", "Guarda o tema que escolheste (claro ou escuro).", "Até o apagares"],
   ["party-order", "Guarda a ordem dos partidos que escolheste (por nome ou por votos).", "Até o apagares"],
   ["embeds", "Guarda a escolha de carregar sempre os leitores de outros sites, se a fizeres.", "Até o apagares ou desligares abaixo"],
@@ -25,8 +30,8 @@ export default function CookiesPage() {
     >
       <h2>O que guardamos no teu navegador</h2>
       <p>
-        Só guardamos as tuas preferências, no armazenamento local do navegador. Não saem do teu computador ou telemóvel, não te identificam
-        e servem só para o site funcionar como escolheste.
+        Só guardamos as tuas preferências: o teu feed num cookie, o resto no armazenamento local do navegador. Não saem do teu computador ou
+        telemóvel, não te identificam e servem só para o site funcionar como escolheste.
       </p>
       <div className="not-prose my-4 overflow-x-auto rounded-2xl border border-line">
         <table className="w-full text-left text-sm">

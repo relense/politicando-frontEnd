@@ -28,3 +28,6 @@ export function sourceName(domain: string): string {
 
 /** How many outlets the site follows, for the home page's introduction. */
 export const SOURCE_COUNT = Object.keys(SOURCE_NAMES).length;
+
+/** The outlets whose icon is in public/fontes, as `<domain>.png`. */
+export const hasSourceLogo = (domain: string) => domain in SOURCE_NAMES;

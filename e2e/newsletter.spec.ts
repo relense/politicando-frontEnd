@@ -9,13 +9,13 @@ test("search the news by words and by outlet", async ({ page }) => {
   await expect(page).toHaveURL(/[?&]q=c%C3%B3digo/);
   await expect(page.getByText("Notícias com «código»")).toBeVisible();
   await expect(page.getByRole("link", { name: /Título com código/ }).first()).toBeVisible();
-  // Picking an outlet sends the form at once; the words are kept.
-  await search.getByRole("combobox", { name: "Fonte" }).selectOption("observador.pt");
-  await expect(page).toHaveURL(/fonte=observador\.pt/);
-  await expect(page.getByText(/· Observador/)).toBeVisible();
+  // Picking a paper keeps the words.
+  await page.getByRole("list", { name: "Jornais" }).getByRole("button", { name: "Observador" }).click();
+  await expect(page).toHaveURL(/fonte=observador\.pt&q=/);
+  await expect(page.getByText("Notícias com «código» · Observador")).toBeVisible();
   await noSeriousA11yIssues(page);
   await page.getByRole("link", { name: "Limpar" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/\?fonte=observador\.pt$/);
   // Nothing found is said in words.
   await page.goto("/?q=zzzzzz");
   await expect(page.getByText("Nenhuma notícia encontrada.", { exact: false })).toBeVisible();
