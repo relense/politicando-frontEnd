@@ -3,7 +3,17 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { AddToCalendar } from "@/components/AddToCalendar";
 import { PartyLogo } from "@/components/PartyLogo";
-import { AGENDA_KINDS, DISTRICTS, isAgendaKind, KIND_LABELS, mapUrl, placeLabel, type AgendaItem, type AgendaKind } from "@/lib/agenda";
+import {
+  AGENDA_KINDS,
+  DISTRICTS,
+  isAgendaKind,
+  KIND_LABELS,
+  mapUrl,
+  placeLabel,
+  summaryParts,
+  type AgendaItem,
+  type AgendaKind,
+} from "@/lib/agenda";
 import { getAgenda } from "@/lib/api/agenda";
 import { getElectionsMenu } from "@/lib/api/client";
 import { formatDayHeading, formatLongDate, formatTime, lisbonDay } from "@/lib/format";
@@ -254,7 +264,7 @@ function AgendaCard({ item }: { item: AgendaItem }) {
         <h3 id={`evento-${item.id}-titulo`} className={`mt-1 text-lg font-bold leading-snug ${off ? "line-through decoration-2" : ""}`}>
           {item.title}
         </h3>
-        {item.summary && <p className="mt-1 whitespace-pre-line leading-relaxed">{item.summary}</p>}
+        {item.summary && <Summary summary={item.summary} title={item.title} />}
         {item.place && (
           <p className="mt-2 text-sm">
             <span aria-hidden="true">📍 </span>
@@ -340,5 +350,43 @@ function UpcomingElections({ upcoming }: { upcoming: UpcomingElection[] }) {
         Todas as eleições →
       </Link>
     </section>
+  );
+}
+
+/** What will happen, tidied: a few lines, the rest a press away, and the speaking times on one line. */
+function Summary({ summary, title }: { summary: string; title: string }) {
+  const { lines, times, total } = summaryParts(summary, title);
+  const shown = lines.slice(0, 3);
+  const more = lines.slice(3);
+  const timeLine = times.length > 0 && (
+    <p className="mt-2 font-mono text-xs text-muted">
+      <b className="text-ink">Tempos de intervenção</b>
+      {total !== null && <> · {total} min no total</>}
+      <span className="block">{times.map((time) => `${time.who} ${time.minutes} min`).join(" · ")}</span>
+    </p>
+  );
+  if (lines.length === 0 && !timeLine) return null;
+  return (
+    <div className="mt-1">
+      {shown.map((line) => (
+        <p key={line} className="leading-relaxed">
+          {line}
+        </p>
+      ))}
+      {more.length > 0 || times.length > 0 ? (
+        <details className="group">
+          <summary className="mt-1 cursor-pointer list-none font-mono text-xs font-bold text-link underline [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Ver mais{more.length > 0 ? ` (${more.length})` : ""}</span>
+            <span className="hidden group-open:inline">Ver menos</span>
+          </summary>
+          {more.map((line) => (
+            <p key={line} className="leading-relaxed">
+              {line}
+            </p>
+          ))}
+          {timeLine}
+        </details>
+      ) : null}
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapUrl, placeLabel, toIcs, type AgendaItem } from "@/lib/agenda";
+import { mapUrl, placeLabel, summaryParts, toIcs, type AgendaItem } from "@/lib/agenda";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll } from "vitest";
 import { getAgenda, getNextEvent, mapAgendaItem } from "@/lib/api/agenda";
@@ -84,5 +84,30 @@ describe("agenda", () => {
       address: "Salão Nobre da Câmara Municipal de Lisboa, Lisboa",
     };
     expect(placeLabel(hall)).toBe("Salão Nobre da Câmara Municipal de Lisboa");
+  });
+
+  it("tidies the Parliament's agenda: no repeated title or hour, speaking times as pairs", () => {
+    const title = "Debate na especialidade do Orçamento do Estado para 2027";
+    const summary = [
+      "ORDEM DO DIA",
+      "10H00",
+      title,
+      "Proposta de Lei n.º 110/XVII/2.ª (GOV)",
+      "GOV",
+      "120 m",
+      "PSD",
+      "96 m",
+      "Total",
+      "216 m",
+    ].join("\n");
+    expect(summaryParts(summary, title)).toEqual({
+      lines: ["Proposta de Lei n.º 110/XVII/2.ª (GOV)"],
+      times: [
+        { who: "GOV", minutes: 120 },
+        { who: "PSD", minutes: 96 },
+      ],
+      total: 216,
+    });
+    expect(summaryParts("10h30 - Gonçalo de Oliveira", "Audiências").lines).toEqual(["10h30 - Gonçalo de Oliveira"]);
   });
 });

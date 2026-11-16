@@ -154,3 +154,44 @@ export function placeLabel(place: AgendaPlace): string {
   }
   return parts.join(", ");
 }
+
+export type SummaryParts = {
+  /** What is left to read, one item per line. */
+  lines: string[];
+  /** Speaking time per group, as the Parliament lists it ("PSD", "96 m"), and the total if given. */
+  times: { who: string; minutes: number }[];
+  total: number | null;
+};
+
+const MINUTES = /^(\d{1,4})\s*(m|min|minutos)\.?$/i;
+
+/**
+ * The Parliament's agenda arrives as one fragment per line: the order of business, then each group with its minutes
+ * on the next line. This keeps the order of business, drops what the card already says (the title, "Ordem do dia", the hour)
+ * and turns the minutes into pairs.
+ */
+export function summaryParts(summary: string, title: string): SummaryParts {
+  const same = (a: string, b: string) => a.localeCompare(b, "pt", { sensitivity: "base" }) === 0;
+  const raw = summary
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const lines: string[] = [];
+  const times: { who: string; minutes: number }[] = [];
+  let total: number | null = null;
+  for (let index = 0; index < raw.length; index++) {
+    const line = raw[index]!;
+    const next = raw[index + 1];
+    const minutes = next?.match(MINUTES);
+    if (minutes && line.length <= 20) {
+      if (/^total$/i.test(line)) total = Number(minutes[1]);
+      else times.push({ who: line, minutes: Number(minutes[1]) });
+      index++;
+      continue;
+    }
+    if (same(line, title) || /^ordem do dia:?$/i.test(line) || /^\d{1,2}\s*h\s*\d{0,2}$/i.test(line)) continue;
+    if (lines.some((seen) => same(seen, line))) continue;
+    lines.push(line);
+  }
+  return { lines, times, total };
+}
