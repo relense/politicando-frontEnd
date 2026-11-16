@@ -60,6 +60,11 @@ test("the map: find a place, it is framed and its card opens beside the map; zoo
   await expect(map).not.toHaveAttribute("viewBox", before!);
   await page.getByRole("button", { name: /^PSD/ }).click();
   await expect(page.getByRole("button", { name: /^PSD/ })).toHaveAttribute("aria-pressed", "true");
+  // The card lists its câmaras, and stops lighting it.
+  const lit = page.getByRole("region", { name: "PSD" });
+  await expect(lit.getByText(/\d+ concelhos?/)).toBeVisible();
+  await lit.getByRole("button", { name: "Deixar de destacar" }).click();
+  await expect(page.getByRole("button", { name: /^PSD/ })).toHaveAttribute("aria-pressed", "false");
 
   // Pressing a place opens it too, and the card closes.
   await page.getByRole("button", { name: /^Sintra: Helena Seixas/ }).focus();

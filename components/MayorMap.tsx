@@ -183,6 +183,29 @@ export function MayorMap({
     [animateTo, byKey, level, home.h],
   );
 
+  /** Lights one party (or none): the rest fade, its places are outlined and framed together. */
+  function light(key: string | null) {
+    setParty(key);
+    if (!key) return animateTo(home);
+    // The card then lists the party's places instead of one place.
+    if (selected) choose(null);
+    const boxes = places
+      .filter((place) => place.group === key)
+      .flatMap((place) => {
+        const path = pathRefs.current.get(place.code);
+        return path ? [path.getBBox()] : [];
+      });
+    if (boxes.length === 0) return;
+    const x0 = Math.min(...boxes.map((box) => box.x));
+    const y0 = Math.min(...boxes.map((box) => box.y));
+    const x1 = Math.max(...boxes.map((box) => box.x + box.width));
+    const y1 = Math.max(...boxes.map((box) => box.y + box.height));
+    // Room around them, and never closer than a sixth of the country.
+    const side = Math.max(x1 - x0, y1 - y0) * 1.25;
+    const w = Math.max(side, home.h / 6);
+    animateTo({ x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - w / 2, w, h: w });
+  }
+
   function choose(key: string | null, { zoomIn = false } = {}) {
     setSelected(key);
     const url = new URL(window.location.href);
@@ -347,7 +370,7 @@ export function MayorMap({
                   <button
                     type="button"
                     aria-pressed={party === item.key}
-                    onClick={() => setParty(party === item.key ? null : item.key)}
+                    onClick={() => light(party === item.key ? null : item.key)}
                     className={`w-full rounded-lg px-2 py-1.5 text-left font-mono text-xs ${party === item.key ? "bg-surface" : "hover:bg-surface"} ${
                       party && party !== item.key ? "opacity-50" : ""
                     }`}
@@ -388,10 +411,17 @@ export function MayorMap({
                 onWheel={onWheel}
                 onDoubleClick={(event) => zoomBy(2, toMap(event.clientX, event.clientY))}
               >
-                {map.shapes.map((shape) => {
+                {/* A lit party's shapes are drawn last, so their outline is never hidden under a neighbour's. */}
+                {(party
+                  ? [...map.shapes].sort(
+                      (a, b) => Number(byCode.get(a.code)?.group === party) - Number(byCode.get(b.code)?.group === party),
+                    )
+                  : map.shapes
+                ).map((shape) => {
                   const place = byCode.get(shape.code);
                   if (!place) return null;
                   const dim = party !== null && place.group !== party;
+                  const lit = party !== null && !dim;
                   const active = place.key === selected;
                   const text = place.mayor
                     ? `${place.name}: ${place.mayor}, ${place.listLabel ?? "independente"}`
@@ -411,11 +441,11 @@ export function MayorMap({
                       aria-label={text}
                       aria-pressed={active}
                       fill={place.color ?? "var(--line)"}
-                      fillOpacity={dim ? 0.12 : active || hovered === shape.code ? 1 : 0.88}
+                      fillOpacity={dim ? 0.07 : active || lit || hovered === shape.code ? 1 : 0.88}
                       className={`cursor-pointer outline-none transition-[fill-opacity] focus-visible:stroke-ink focus-visible:[stroke-width:3] ${
-                        active ? "stroke-ink [stroke-width:2.5]" : "stroke-paper"
+                        active || lit ? "stroke-ink" : "stroke-paper"
                       }`}
-                      strokeWidth={active ? 2.5 : 0.8}
+                      strokeWidth={active ? 2.5 : lit ? 1.6 : 0.8}
                       vectorEffect="non-scaling-stroke"
                       strokeLinejoin="round"
                       onClick={() => press(place)}
@@ -499,6 +529,14 @@ export function MayorMap({
             <div className="xl:sticky xl:top-20">
               {current ? (
                 <PlaceCard key={current.key} place={current} level={level} onClose={() => choose(null)} />
+              ) : party ? (
+                <PartyPlaces
+                  item={legend.find((entry) => entry.key === party) ?? null}
+                  places={places.filter((place) => place.group === party)}
+                  unit={unit}
+                  onPick={(key) => choose(key, { zoomIn: true })}
+                  onClose={() => light(null)}
+                />
               ) : (
                 <div className="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center text-muted">
                   <p className="font-bold text-ink">Carrega num {unit[0]}</p>
@@ -512,6 +550,68 @@ export function MayorMap({
         </div>
       </section>
     </>
+  );
+}
+
+/** The lit party's câmaras, so a party with three is as easy to find as one with a hundred. */
+function PartyPlaces({
+  item,
+  places,
+  unit,
+  onPick,
+  onClose,
+}: {
+  item: LegendItem | null;
+  places: MayorMapPlace[];
+  unit: string[];
+  onPick: (key: string) => void;
+  onClose: () => void;
+}) {
+  if (!item) return null;
+  const sorted = [...places].sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  return (
+    <section
+      aria-labelledby="partido-aceso"
+      className="rounded-2xl border border-t-4 border-line p-5"
+      style={{ borderTopColor: item.color }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-mono text-xs uppercase tracking-widest text-muted">Destacado no mapa</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Deixar de destacar"
+          className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-2">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      <h3 id="partido-aceso" className="mt-1 flex items-center gap-2 text-2xl font-bold leading-tight">
+        <span aria-hidden="true" className="size-3 rounded-sm" style={{ backgroundColor: item.color }} />
+        {item.label}
+      </h3>
+      <p className="mt-1 font-mono text-xs text-muted">
+        {sorted.length} {sorted.length === 1 ? unit[0] : unit[1]}
+      </p>
+      <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto">
+        {sorted.map((place) => (
+          <li key={place.key}>
+            <button
+              type="button"
+              onClick={() => onPick(place.key)}
+              className="-mx-2 w-[calc(100%+1rem)] rounded px-2 py-2 text-left hover:bg-surface"
+            >
+              <span className="block font-bold leading-snug">{place.name}</span>
+              <span className="block truncate font-mono text-xs text-muted">
+                {[place.district, place.mayor ?? place.listLabel].filter(Boolean).join(" · ")}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
