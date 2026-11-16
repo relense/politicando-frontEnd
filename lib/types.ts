@@ -430,6 +430,8 @@ export type EditorialPost = {
   tags: string[];
   featured: boolean;
   publishedAt: string;
+  /** Words ÷ 200, rounded up; null when the API doesn't say. */
+  readingMinutes: number | null;
 };
 
 export type EditorialDetail = EditorialPost & { body: string };

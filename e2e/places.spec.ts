@@ -93,3 +93,16 @@ test("places pages have no serious accessibility issues", async ({ page }) => {
     await noSeriousA11yIssues(page);
   }
 });
+
+test("the map: 'Usar a minha localização' opens the concelho you are in", async ({ page, context }) => {
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({ latitude: 40.57, longitude: -8.44 });
+  await page.goto("/sitios");
+  await page.getByRole("button", { name: "Usar a minha localização" }).click();
+  await expect(page.getByRole("heading", { level: 3, name: "Águeda" })).toBeVisible();
+  await expect(page).toHaveURL(/local=LOCAL-010100/);
+  // Outside Portugal: said in words, nothing opens.
+  await context.setGeolocation({ latitude: 48.85, longitude: 2.35 });
+  await page.getByRole("button", { name: "Usar a minha localização" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "não estás em Portugal" })).toBeVisible();
+});

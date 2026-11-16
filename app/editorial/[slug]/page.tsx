@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArticleImage } from "@/components/ArticleImage";
 import { ApiError, getEditorialPost } from "@/lib/api/client";
-import { editorialPath, isAudio, KIND_LABELS } from "@/lib/editorial";
+import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
 import { excerpt, formatLongDate } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown } from "@/lib/markdown";
@@ -103,6 +103,7 @@ export default async function EditorialPostPage({ params }: Props) {
           </>
         )}
         <time dateTime={post.publishedAt}>{date}</time>
+        {readingLabel(post) && <> · {readingLabel(post)}</>}
       </p>
       {post.kind === "opinion" && (
         <p className="mt-4 rounded-lg border border-dashed border-line px-4 py-2 text-sm text-muted">

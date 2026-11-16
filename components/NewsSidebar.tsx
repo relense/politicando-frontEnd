@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getElections, getFeedPage, getGovernment, getInitiatives, getParliament, getParties } from "@/lib/api/client";
+import { getElections, getGovernment, getMostCommented, getInitiatives, getParliament, getParties } from "@/lib/api/client";
 import { getPresidency } from "@/lib/api/presidency";
 import { editorialPath, KIND_LABELS } from "@/lib/editorial";
 import { listLabel, listName } from "@/lib/elections";
@@ -36,21 +36,19 @@ export type PowerNowData = {
 };
 export type NewsSidebarData = { power: PowerNowData; mostCommented: Article[] };
 
-const DAY = 86_400_000;
 const lisbonToday = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
-const requestTime = () => Date.now();
 const rank = (slug: string) => (SEAT_ORDER.includes(slug) ? SEAT_ORDER.indexOf(slug) : SEAT_ORDER.length);
 
 /**
  * The figures beside the news, each from its own page's data. One that fails is left out, never the page.
- * The most commented come from the latest 50 articles, kept to the last 24 hours.
+ * The most commented: the last 24 hours' articles with at least one comment, from the API.
  */
 export async function loadNewsSidebar(): Promise<NewsSidebarData> {
-  const [presidency, initiatives, government, latest, legislativas, parliament, parties] = await Promise.all([
+  const [presidency, initiatives, government, mostCommented, legislativas, parliament, parties] = await Promise.all([
     getPresidency().catch(() => null),
     getInitiatives({ limit: 1 }).catch(() => null),
     getGovernment().catch(() => null),
-    getFeedPage({ limit: 50 }).catch(() => null),
+    getMostCommented(3).catch(() => []),
     getElections("legislativas").catch(() => null),
     getParliament().catch(() => null),
     getParties().catch(() => []),
@@ -124,12 +122,6 @@ export async function loadNewsSidebar(): Promise<NewsSidebarData> {
         : null,
     figures: figures.filter((item): item is PowerFigure => Boolean(item)),
   };
-
-  const since = requestTime() - DAY;
-  const mostCommented = (latest?.articles ?? [])
-    .filter((article) => article.commentsCount > 0 && Date.parse(article.publishedAt) >= since)
-    .sort((a, b) => b.commentsCount - a.commentsCount)
-    .slice(0, 3);
 
   return { power, mostCommented };
 }

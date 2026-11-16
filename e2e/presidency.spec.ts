@@ -3,7 +3,8 @@ import { noSeriousA11yIssues } from "./helpers";
 
 test("president page: profile, the laws in this term, the explainer and former Presidents", async ({ page }) => {
   await page.goto("/presidente");
-  await expect(page.getByRole("heading", { level: 1, name: "Teresa Albuquerque" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "O Presidente da República" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Teresa Albuquerque" })).toBeVisible();
   await expect(page).toHaveTitle(/Teresa Albuquerque, Presidente da República/);
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();

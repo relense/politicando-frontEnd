@@ -430,6 +430,7 @@ export const editorialPostSchema = z.object({
   tags: z.array(z.string()).nullish(),
   featured: z.boolean().nullish(),
   publishedAt: z.string(),
+  readingMinutes: z.number().int().positive().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

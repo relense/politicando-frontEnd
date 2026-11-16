@@ -111,8 +111,32 @@ export const handlers = [
       ).map((party) => ({ ...party, leader: leaders[party.slug] ?? null })),
     ),
   ),
+  http.get(`${API}/articles/sources`, () => {
+    const counts = new Map<string, number>();
+    for (const article of articles) counts.set(article.source, (counts.get(article.source) ?? 0) + 1);
+    return HttpResponse.json({ items: [...counts].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count) });
+  }),
+  http.post(`${API}/newsletter/subscribe`, async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { email?: unknown; recaptchaToken?: unknown } | null;
+    if (!body?.recaptchaToken) return fail(400, "invalid_request");
+    if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return fail(400, "invalid_email");
+    return HttpResponse.json({ status: "pending" }, { status: 202 });
+  }),
+  // Mainland Portugal's box: anywhere inside is Águeda, the fixtures' first municipality.
+  http.get(`${API}/places/locate`, ({ request }) => {
+    const search = new URL(request.url).searchParams;
+    const lat = Number(search.get("lat"));
+    const lon = Number(search.get("lon"));
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || search.get("lat") === null) return fail(400, "invalid_request");
+    if (lat < 36.9 || lat > 42.2 || lon < -9.6 || lon > -6.1) return fail(404, "not_found");
+    return HttpResponse.json({ key: "LOCAL-010100", name: "Águeda", level: "municipality", parentKey: "LOCAL-010000", dicofre: "0101" });
+  }),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
+    const words = (search.get("q") ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().split(/\s+/).filter(Boolean);
+    const source = search.get("source");
+    const byComments = search.get("sort") === "comments";
+    const folded = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
     const party = search.get("party");
     const deputy = search.get("deputy");
     const cursor = search.get("cursor");
@@ -125,7 +149,11 @@ export const handlers = [
     const matching = articles
       .filter((article) => !party || article.parties.some((item) => item.slug === party))
       .filter((article) => !deputy || mentions(article.id, Number(deputy)))
+      .filter((article) => words.every((word) => folded(`${article.title} ${article.excerpt}`).includes(word)))
+      .filter((article) => !source || article.source === source)
+      .filter((article) => !byComments || article.commentCount > 0)
       .filter((article) => !cursor || article.id < Number(cursor.slice(1)));
+    if (byComments) matching.sort((x, y) => y.commentCount - x.commentCount);
     const page = matching.slice(0, limit);
     return HttpResponse.json({
       items: page,

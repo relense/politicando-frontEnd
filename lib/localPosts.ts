@@ -6,7 +6,7 @@ const CONSTITUICAO = "https://www.parlamento.pt/Legislacao/Paginas/ConstituicaoR
  * Posts written into the site itself rather than in the admin: explainers that stand on their own. They appear in
  * the blog next to the API's posts, with negative ids so they never collide with them.
  */
-export const LOCAL_POSTS: EditorialDetail[] = [
+const WRITTEN: Omit<EditorialDetail, "readingMinutes">[] = [
   {
     id: -1,
     slug: "como-se-chega-a-deputado",
@@ -104,6 +104,12 @@ Fonte: [Constituição, arts. 171.º e 172.º](${CONSTITUICAO}).
 Quer ver quem são os 230? Estão todos no [Parlamento](/parlamento), com o círculo por onde foram eleitos e o que fizeram desde então.`,
   },
 ];
+
+/** Reading time worked out as the API does: words ÷ 200, rounded up, at least 1. */
+export const LOCAL_POSTS: EditorialDetail[] = WRITTEN.map((post) => ({
+  ...post,
+  readingMinutes: Math.max(1, Math.ceil(post.body.split(/\s+/).filter(Boolean).length / 200)),
+}));
 
 function summary(post: EditorialDetail): EditorialPost {
   const { body, ...rest } = post;

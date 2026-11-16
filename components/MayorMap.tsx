@@ -15,6 +15,7 @@ import {
   type PointerEvent,
   type WheelEvent,
 } from "react";
+import { ApiError, locatePlace } from "@/lib/api/client";
 import { getPlaceDetail } from "@/lib/api/places";
 import { fold } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -540,6 +541,42 @@ function PlaceSearch({ items, popular, onFind }: { items: SearchItem[]; popular:
     setOpen(false);
   }
 
+  // The browser asks first; the point goes to the API once, which says which concelho it is in and keeps nothing.
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+  function locate() {
+    if (!("geolocation" in navigator)) return setLocateError("Este browser não consegue dar a tua localização.");
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const place = await locatePlace(coords.latitude, coords.longitude);
+          const item = items.find((candidate) => candidate.key === place.key);
+          if (item) onFind(item);
+          else setLocateError(`Estás em ${place.name}, mas não o encontrámos no mapa.`);
+        } catch (failure) {
+          setLocateError(
+            failure instanceof ApiError && failure.status === 404
+              ? "Parece que não estás em Portugal. Procura o concelho pelo nome."
+              : "Não foi possível encontrar o teu concelho. Procura-o pelo nome.",
+          );
+        } finally {
+          setLocating(false);
+        }
+      },
+      (failure) => {
+        setLocating(false);
+        setLocateError(
+          failure.code === failure.PERMISSION_DENIED
+            ? "Sem autorização para ver a tua localização. Procura o concelho pelo nome."
+            : "Não foi possível obter a tua localização. Procura o concelho pelo nome.",
+        );
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 0 },
+    );
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -630,6 +667,25 @@ function PlaceSearch({ items, popular, onFind }: { items: SearchItem[]; popular:
               ))
             )}
           </ul>
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={locate}
+          disabled={locating}
+          className="inline-flex items-center gap-1.5 rounded-full border border-ink px-3 py-1 font-mono text-xs font-bold hover:bg-surface disabled:opacity-60"
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-3.5 fill-none stroke-current stroke-2">
+            <path d="M10 18s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10z" />
+            <circle cx="10" cy="8" r="2" />
+          </svg>
+          {locating ? "A localizar…" : "Usar a minha localização"}
+        </button>
+        {locateError && (
+          <span role="alert" className="font-mono text-xs text-danger">
+            {locateError}
+          </span>
         )}
       </div>
       {popular.length > 0 && (

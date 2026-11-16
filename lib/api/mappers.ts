@@ -513,6 +513,7 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     tags: api.tags ?? [],
     featured: api.featured ?? false,
     publishedAt: api.publishedAt,
+    readingMinutes: api.readingMinutes ?? null,
   };
 }
 

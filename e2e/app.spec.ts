@@ -117,7 +117,7 @@ test("the party filter narrows the news in place and marks the chosen party", as
   const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
   await filter.getByRole("link", { name: /PSD/ }).click();
   await expect(page).toHaveURL(/\/\?partido=psd$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Notícias do PSD" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Notícias do Partido Social Democrata" })).toBeVisible();
   await expect(filter.getByRole("link", { name: /PSD/ })).toHaveAttribute("aria-current", "page");
   await filter.getByRole("link", { name: "Todas" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();

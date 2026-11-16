@@ -119,13 +119,44 @@ export function searchOf(values: Record<string, string | number | undefined>): s
   return query.size > 0 ? `?${query}` : "";
 }
 
-export type FeedQuery = { party?: string; deputy?: number; cursor?: string; limit?: number };
+/** `q`: words in the title or excerpt, accents and case ignored. `source`: an outlet's domain, as in `article.source`. */
+export type FeedQuery = { party?: string; deputy?: number; q?: string; source?: string; cursor?: string; limit?: number };
 
-export async function getFeedPage({ party, deputy, cursor, limit }: FeedQuery = {}): Promise<ArticlePage> {
-  const search = searchOf({ party, deputy, cursor, limit });
+export async function getFeedPage({ party, deputy, q, source, cursor, limit }: FeedQuery = {}): Promise<ArticlePage> {
+  const search = searchOf({ party, deputy, q: q || undefined, source: source || undefined, cursor, limit });
 
   const page = await request(`/articles${search}`, articlePageSchema, cached);
   return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor };
+}
+
+/** The articles with the most visible comments from the last `hours`; only those with at least one. */
+export async function getMostCommented(limit = 3, hours = 24): Promise<Article[]> {
+  const page = await request(`/articles${searchOf({ sort: "comments", since: `${hours}h`, limit })}`, articlePageSchema, cached);
+  return page.items.map(mapArticle);
+}
+
+/** Every outlet with articles, most articles first: domains, shown with `sourceName()`. */
+export async function getSources(): Promise<{ domain: string; count: number }[]> {
+  const data = await request("/articles/sources", z.object({ items: z.array(z.object({ name: z.string(), count: z.number() })) }), hourly);
+  return data.items.map((item) => ({ domain: item.name, count: item.count }));
+}
+
+/** Double opt-in: the API emails a confirmation link. The answer is the same whether or not the address was already in. */
+export async function subscribeNewsletter(email: string, captchaToken: string): Promise<void> {
+  await request("/newsletter/subscribe", z.object({ status: z.string() }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, recaptchaToken: captchaToken }),
+  });
+}
+
+/** The municipality containing a point. 404 (`not_found`) outside Portugal. The API doesn't keep the coordinates. */
+export async function locatePlace(lat: number, lon: number): Promise<{ key: string; name: string }> {
+  const lat5 = Math.round(lat * 1e5) / 1e5;
+  const lon5 = Math.round(lon * 1e5) / 1e5;
+  return request(`/places/locate${searchOf({ lat: lat5, lon: lon5 })}`, z.object({ key: z.string(), name: z.string() }), {
+    cache: "no-store",
+  });
 }
 
 export async function getArticle(id: number): Promise<Article> {

@@ -8,13 +8,13 @@ import { useNow } from "@/lib/useNow";
 import type { ArticlePage } from "@/lib/types";
 import { ArticleCard } from "./ArticleCard";
 
-type Props = { initialPage: ArticlePage; partySlug?: string };
+type Props = { initialPage: ArticlePage; partySlug?: string; q?: string; source?: string };
 
-export function Feed({ initialPage, partySlug }: Props) {
+export function Feed({ initialPage, partySlug, q = "", source = "" }: Props) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
     // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
-    queryKey: ["feed", partySlug ?? "home"],
-    queryFn: ({ pageParam }) => getFeedPage({ party: partySlug, cursor: pageParam }),
+    queryKey: ["feed", partySlug ?? "home", q, source],
+    queryFn: ({ pageParam }) => getFeedPage({ party: partySlug, q, source, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: { pages: [initialPage], pageParams: [undefined] },
@@ -46,7 +46,11 @@ export function Feed({ initialPage, partySlug }: Props) {
   });
 
   if (articles.length === 0) {
-    return <p className="py-12 text-center text-muted">Ainda não há notícias aqui.</p>;
+    return (
+      <p className="py-12 text-center text-muted">
+        {q || source ? "Nenhuma notícia encontrada. Experimenta outras palavras ou outra fonte." : "Ainda não há notícias aqui."}
+      </p>
+    );
   }
 
   return (

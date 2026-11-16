@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { editorialPath, KIND_LABELS } from "@/lib/editorial";
+import { editorialPath, KIND_LABELS, readingLabel } from "@/lib/editorial";
 import { formatLongDate } from "@/lib/format";
 import type { EditorialPost } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
@@ -46,6 +46,7 @@ export function EditorialCard({
         <p className="mt-auto pt-3 font-mono text-xs text-muted">
           {post.authorName && <>{post.authorName} · </>}
           {formatLongDate(post.publishedAt)}
+          {readingLabel(post) && <> · {readingLabel(post)}</>}
         </p>
       </div>
     </div>

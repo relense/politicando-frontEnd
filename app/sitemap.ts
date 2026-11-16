@@ -100,6 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/historia", { changeFrequency: "monthly" }),
     at("/percursos", { changeFrequency: "monthly" }),
     at("/editorial", { changeFrequency: "daily" }),
+    at("/newsletter", { changeFrequency: "yearly" }),
   ];
   const own = LOCAL_POSTS.map((post) => at(editorialPath(post.slug), { lastModified: post.publishedAt, changeFrequency: "monthly" }));
   const [data, places] = await Promise.all([section(dataPages), section(latestElectionPlaces)]);

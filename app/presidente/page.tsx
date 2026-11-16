@@ -122,7 +122,30 @@ export default async function PresidentPage() {
     <article data-wide>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(data) }} />
 
-      <header className="grid overflow-hidden rounded-2xl border border-line md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+      <header className="mb-6">
+        <p className="mb-2">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-xs font-bold"
+            style={tinted("president")}
+          >
+            <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: toneColor("president") }} />
+            Chefe de Estado
+          </span>
+        </p>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          O{" "}
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">Presidente</span>{" "}
+          da República
+        </h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
+          Quem é, que leis do Parlamento promulgou e vetou neste mandato, e o que está à espera da sua decisão.
+        </p>
+      </header>
+
+      <section
+        aria-label={president.name}
+        className="grid overflow-hidden rounded-2xl border border-line md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]"
+      >
         <figure className="relative bg-surface">
           {president.photoUrl ? (
             <Image
@@ -150,16 +173,7 @@ export default async function PresidentPage() {
           )}
         </figure>
         <div className="flex flex-col justify-center p-5 sm:p-7">
-          <p className="mb-3">
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-xs font-bold"
-              style={tinted("president")}
-            >
-              <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: toneColor("president") }} />
-              Chefe de Estado
-            </span>
-          </p>
-          <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{president.name}</h1>
+          <h2 className="text-3xl font-bold leading-tight sm:text-4xl">{president.name}</h2>
           <p className="mt-2 leading-relaxed text-muted">
             Presidente da República desde <time dateTime={president.termStart}>{formatLongDate(president.termStart)}</time>
           </p>
@@ -168,7 +182,7 @@ export default async function PresidentPage() {
           )}
           <TermBar start={president.termStart} now={now} />
         </div>
-      </header>
+      </section>
 
       <section aria-labelledby="leis" className="mt-10">
         <h2 id="leis" className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
