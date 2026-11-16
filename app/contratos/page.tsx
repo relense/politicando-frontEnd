@@ -305,21 +305,25 @@ export default async function ContractsPage({ searchParams }: Props) {
           <ul className="mt-6 flex items-end gap-3">
             {years.items.slice(-6).map((item, index, shown) => {
               const current = item.key === String(new Date().getFullYear());
-              const last = index === shown.length - 1;
               return (
                 <li key={item.key} className="flex min-w-0 flex-1 flex-col">
                   <span className="mb-1 text-lg font-bold tabular-nums sm:text-2xl">{formatEurosCompact(item.total)}</span>
+                  {/* Closed years in blue, stronger the more recent; the year still running in light stripes of it. */}
                   <span
                     aria-hidden="true"
-                    className={`block rounded-t-lg ${current ? "" : last ? "bg-ink/80" : "bg-muted/40"}`}
+                    className="block rounded-t-lg"
                     style={{
                       height: `${Math.max(6, share(item.total, maxYear) * 1.6)}px`,
                       ...(current
                         ? {
-                            backgroundImage: "repeating-linear-gradient(135deg, var(--stage-debate) 0 6px, transparent 6px 12px)",
-                            border: "1px solid var(--stage-debate)",
+                            backgroundImage:
+                              "repeating-linear-gradient(135deg, color-mix(in srgb, var(--stage-submitted) 55%, transparent) 0 7px, color-mix(in srgb, var(--stage-submitted) 18%, transparent) 7px 14px)",
+                            border: "1px dashed var(--stage-submitted)",
+                            borderBottom: 0,
                           }
-                        : {}),
+                        : {
+                            backgroundColor: `color-mix(in srgb, var(--stage-submitted) ${Math.round(45 + (40 * (index + 1)) / Math.max(1, shown.length - (shown.some((y) => y.key === String(new Date().getFullYear())) ? 1 : 0)))}%, transparent)`,
+                          }),
                     }}
                   />
                   <span className="mt-2 font-mono text-xs font-bold">
