@@ -102,3 +102,8 @@ Fields: `kind` (`error | idea | broken | other`), `message` (required, up to 100
 
 ### `POST /ideas/:id/vote`
 No body. One vote per idea per reader (by IP, or a hash of it); a repeat vote returns the same count without adding. Answer `{ "votes": 216 }`. The page also remembers the vote on the device.
+
+## Blog: most read (needed from the API)
+The blog shows "Mais lidos" (a toggle and a box) as soon as the API counts reads; until then both stay hidden.
+- `POST /editorial/:slug/view`: no body, sent by the browser once per post per visit (`navigator.sendBeacon`, so it may arrive as `text/plain`). Count it; keep nothing about the reader beyond what rate limiting needs. Answer 204. Unknown slugs 404 (ignored).
+- `GET /editorial?sort=popular&days=7&limit=`: posts ordered by reads in the last `days`, each with `views` (that count). Posts with no reads may be left out.

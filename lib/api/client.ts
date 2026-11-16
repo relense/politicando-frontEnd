@@ -68,6 +68,8 @@ import {
 } from "./schemas";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
+/** For the few calls made outside `request()`, such as a beacon. */
+export const API_BASE_URL = BASE_URL;
 const REVALIDATE_SECONDS = 60;
 
 export class ApiError extends Error {
