@@ -35,6 +35,8 @@ export const articleSchema = z.object({
   publishedAt: z.string(),
   commentCount: z.number(),
   parties: z.array(articlePartySchema),
+  /** Initiatives the article mentions; only on the detail. */
+  initiatives: z.array(z.object({ id: z.number(), title: z.string() })).nullish(),
 });
 
 export const articlePageSchema = z.object({

@@ -13,6 +13,8 @@ export type Article = {
   imageUrl: string | null;
   parties: ArticleParty[];
   commentsCount: number;
+  /** Initiatives in Parliament the article mentions (detail only; empty in lists). */
+  initiatives: { id: number; title: string }[];
 };
 
 export type ArticlePage = { articles: Article[]; nextCursor: string | null };

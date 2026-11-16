@@ -197,9 +197,21 @@ test("article page shows the excerpt and links to the original", async ({ page }
   const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
   await expect(link).toHaveAttribute("href", "https://example.com/noticia/100");
   await expect(link).toHaveAttribute("target", "_blank");
-  await expect(page.locator("article p").first()).toContainText("…");
-  await expect(page.getByRole("heading", { name: "Mais sobre PS" })).toBeVisible();
+  await expect(page.locator("article h1 + p")).toContainText("…");
+  await expect(page.locator("article time").first()).toContainText(/^[A-ZÁÉ][a-zçá-]+(-feira)?, \d+ de /);
   await expect(page.getByRole("button", { name: "Partilhar" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copiar ligação" })).toBeVisible();
+  // Beside it: its parties with their forums, more news about each, the context in Parliament and the map.
+  const beside = page.getByRole("complementary", { name: "Sobre esta notícia" });
+  await expect(beside.getByRole("heading", { name: "Partidos nesta notícia" })).toBeVisible();
+  await expect(beside.getByRole("link", { name: /^Discutir no fórum do / }).first()).toHaveAttribute(
+    "href",
+    /\/forum\/[a-z-]+\?artigo=100#nova/,
+  );
+  const more = beside.getByRole("region", { name: "Mais sobre" });
+  await expect(more.getByRole("link", { name: /^Todas as notícias do / })).toBeVisible();
+  await expect(beside.getByRole("link", { name: /Contexto/ })).toHaveAttribute("href", /^\/iniciativas/);
+  await expect(beside.getByRole("link", { name: /Quem governa a tua câmara/ })).toHaveAttribute("href", "/sitios");
   await expect(page.getByRole("link", { name: "Últimas notícias" })).toHaveAttribute("href", "/");
 });
 
@@ -473,7 +485,7 @@ test("elections: from the menu to a district and a municipality, and back up the
 
 test("elections: the coming ones sit beside the results, a scheduled date included", async ({ page }) => {
   await page.goto("/eleicoes");
-  const coming = page.getByRole("complementary", { name: "Próximas eleições" });
+  const coming = page.getByRole("region", { name: "Próximas eleições" });
   await expect(coming.locator('time[datetime="2029-10-07"]')).toBeVisible();
   // A scheduled election has no results yet, so it isn't one of the cards; nor does each type repeat the next one.
   const local = page.getByRole("region", { name: "Autárquicas" });
@@ -500,7 +512,7 @@ test("elections: the latest of each type as cards, older ones one per line by de
 
 test("elections: the coming ones, regionais included, with the law's window until there is a date", async ({ page }) => {
   await page.goto("/eleicoes");
-  const coming = page.getByRole("complementary", { name: "Próximas eleições" });
+  const coming = page.getByRole("region", { name: "Próximas eleições" });
   await expect(coming.getByText("Regionais dos Açores 2028")).toBeVisible();
   await expect(coming.getByText(/Até ao fim de 2028/)).toBeVisible();
   await expect(coming.getByText(/Entre 14 de setembro e 14 de outubro de 2029/)).toBeVisible();

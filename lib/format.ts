@@ -157,3 +157,13 @@ export const fold = (text: string) =>
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
+
+const weekdayFormatter = new Intl.DateTimeFormat("pt-PT", { weekday: "long", timeZone: "Europe/Lisbon" });
+
+/** "Segunda-feira, 16 de novembro de 2026 · 09:39", in Lisbon time. */
+export function formatFullDateTime(value: string | null | undefined): string | null {
+  const date = parse(value);
+  if (!date) return null;
+  const weekday = weekdayFormatter.format(date);
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${formatLongDate(value)} · ${formatTime(value)}`;
+}

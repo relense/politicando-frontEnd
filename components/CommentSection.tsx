@@ -88,15 +88,31 @@ export function CommentSection({ articleId, initialComments }: Props) {
             <button
               type="button"
               onClick={openBox}
-              className="w-full rounded-full border border-line px-5 py-3 text-left text-muted hover:border-muted"
+              className="flex w-full items-center gap-3 rounded-xl border border-line px-4 py-3 text-left text-muted hover:border-muted"
             >
+              <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 shrink-0 fill-none stroke-current stroke-2">
+                <path d="M4 4h12v9H8l-4 3z" strokeLinejoin="round" />
+              </svg>
               Junta-te à conversa…
             </button>
           )}
         </div>
 
         {tree.length === 0 ? (
-          <p className="text-muted">Ainda não há comentários. Sê a primeira pessoa a comentar.</p>
+          <div className="flex items-center gap-4 rounded-2xl border border-dashed border-line p-5">
+            <span
+              aria-hidden="true"
+              className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--marker)_30%,transparent)] text-[color:var(--stage-debate)]"
+            >
+              <svg viewBox="0 0 20 20" className="size-4 fill-none stroke-current stroke-2">
+                <path d="M4 4h12v9H8l-4 3z" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <p>
+              <span className="block font-bold">Ainda não há comentários.</span>
+              <span className="block text-sm text-muted">Sê a primeira pessoa a comentar. Não precisas de conta.</span>
+            </p>
+          </div>
         ) : (
           <ul className="flex flex-col gap-6">
             {roots.map((node) => (

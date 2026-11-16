@@ -243,7 +243,10 @@ export const handlers = [
     const id = Number(params.id);
     if (!Number.isInteger(id) || id <= 0 || id > 2_147_483_647) return fail(400, "invalid_request");
     const article = articles.find((item) => item.id === id);
-    return article ? HttpResponse.json(article) : fail(404, "not_found");
+    if (!article) return fail(404, "not_found");
+    // Article 100 mentions an initiative, for the context box beside it.
+    const mentioned = id === 100 && initiatives[0] ? [{ id: initiatives[0].id, title: initiatives[0].title }] : [];
+    return HttpResponse.json({ ...article, initiatives: mentioned });
   }),
   http.post(`${API}/articles/:id/comments`, async ({ params, request }) => {
     const parsed = newCommentSchema.safeParse(await request.json());

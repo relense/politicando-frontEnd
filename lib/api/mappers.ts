@@ -114,6 +114,7 @@ export function mapArticle(article: ApiArticle): Article {
     imageUrl: safeHttpUrl(article.imageUrl),
     parties: article.parties,
     commentsCount: article.commentCount,
+    initiatives: (article.initiatives ?? []).map((item) => ({ id: item.id, title: decode(item.title) })),
   };
 }
 

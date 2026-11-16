@@ -127,10 +127,7 @@ export default async function ElectionsPage() {
                           {ofType.length} {ofType.length === 1 ? "eleição" : "eleições"}
                         </span>
                       </div>
-                      <div className="mb-5 mt-3 flex flex-wrap items-end justify-between gap-4">
-                        <p className="max-w-xl text-sm text-muted">{about}</p>
-                        <TurnoutBars elections={ofType} />
-                      </div>
+                      <p className="mb-5 mt-3 max-w-xl text-sm text-muted">{about}</p>
                       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {cards.slice(0, CARDS).map((election) => (
                           <li key={election.id}>
@@ -146,7 +143,10 @@ export default async function ElectionsPage() {
                 })}
               </div>
             </div>
-            {upcoming.length > 0 && <Upcoming elections={upcoming} />}
+            <aside aria-label="Ao lado dos resultados" className="flex flex-col gap-4 self-start xl:sticky xl:top-20">
+              {upcoming.length > 0 && <Upcoming elections={upcoming} />}
+              <Turnout types={types.map(({ type, label, elections: ofType }) => ({ type, label, elections: ofType }))} />
+            </aside>
           </div>
         </>
       )}
@@ -247,35 +247,64 @@ function Featured({
   );
 }
 
+/** Turnout over time for each type, in one box beside the results. */
+function Turnout({ types }: { types: { type: string; label: string; elections: Election[] }[] }) {
+  const shown = types.filter(
+    ({ elections }) => elections.filter((election) => election.imported && election.turnout?.turnoutPct != null).length >= 2,
+  );
+  if (shown.length === 0) return null;
+  return (
+    <section aria-labelledby="participacao" className="rounded-2xl border border-line p-4">
+      <h2 id="participacao" className="font-mono text-xs font-bold uppercase tracking-widest">
+        Participação
+      </h2>
+      <p className="mt-1 text-xs text-muted">Quantos dos inscritos votaram, eleição a eleição.</p>
+      <div className="mt-2 divide-y divide-line">
+        {shown.map(({ type, label, elections }) => (
+          <div key={type} className="py-3">
+            <TurnoutBars label={label} elections={elections} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** Turnout in each election of a type, oldest to newest, the latest highlighted. */
-function TurnoutBars({ elections }: { elections: Election[] }) {
+function TurnoutBars({ label: title, elections }: { label: string; elections: Election[] }) {
   const points = elections
     .filter((election) => election.imported && election.turnout?.turnoutPct != null)
     // Presidenciais can have two rounds in one year: the second says so.
     .map((election) => ({
       id: election.id,
-      year: `${election.date.slice(0, 4)}${election.round === 2 ? " 2.ª" : ""}`,
+      year: election.date.slice(0, 4),
+      second: election.round === 2,
       pct: election.turnout!.turnoutPct!,
     }))
     .reverse();
   if (points.length < 2) return null;
-  const label = `Participação ao longo do tempo: ${points.map((point) => `${point.year}, ${formatPercent(point.pct)}`).join("; ")}`;
+  const label = `${title}, participação: ${points
+    .map((point) => `${point.year}${point.second ? " (2.ª volta)" : ""}, ${formatPercent(point.pct)}`)
+    .join("; ")}`;
   return (
-    <figure className="shrink-0">
-      <figcaption className="mb-1 font-mono text-[11px] text-muted">Participação ao longo do tempo</figcaption>
-      <div role="img" aria-label={label} className="flex items-end gap-1.5">
+    <figure>
+      <figcaption className="mb-1.5 font-mono text-[11px] font-bold">{title}</figcaption>
+      <div role="img" aria-label={label} className="flex items-end gap-1">
         {points.map((point, index) => (
           <div
             key={point.id}
             aria-hidden="true"
-            className="flex min-w-9 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted"
           >
-            <span>{formatPercent(point.pct)}</span>
+            <span className={index === points.length - 1 ? "font-bold text-ink" : ""}>{formatPercent(point.pct)}</span>
             <span
               className={`w-5 rounded-sm ${index === points.length - 1 ? "bg-ink" : "bg-muted/50"}`}
               style={{ height: `${Math.max(4, ((point.pct - 20) / 60) * 36)}px` }}
             />
-            <span>{point.year}</span>
+            <span className="leading-tight">
+              {point.year}
+              {point.second && <span className="block text-center">2.ª v.</span>}
+            </span>
           </div>
         ))}
       </div>
@@ -461,32 +490,30 @@ function OlderElections({ type, label, elections, parties }: { type: string; lab
 /** Every coming election, regionais included, soonest first, in a column beside the results. None has a date until the decree. */
 function Upcoming({ elections }: { elections: UpcomingElection[] }) {
   return (
-    <aside aria-labelledby="proximas" className="self-start xl:sticky xl:top-20">
-      <div className="rounded-2xl border border-line p-4">
-        <h2 id="proximas" className="font-mono text-xs font-bold uppercase tracking-widest">
-          Próximas eleições
-        </h2>
-        <ol className="mt-2 divide-y divide-line">
-          {elections.map((election) => (
-            <li key={election.name} className="py-2.5" title={election.basis ?? undefined}>
-              <p className="font-bold leading-snug">{election.name}</p>
-              <p className="mt-0.5 text-xs leading-snug text-muted">
-                {election.date ? (
-                  <>
-                    <time dateTime={election.date} className="text-ink">
-                      {formatLongDate(election.date)}
-                    </time>
-                    {!election.confirmed && " · data por confirmar"}
-                  </>
-                ) : (
-                  (election.window ?? "Ainda sem data marcada")
-                )}
-              </p>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted">A data só é oficial quando o decreto a marca.</p>
-      </div>
-    </aside>
+    <section aria-labelledby="proximas" className="rounded-2xl border border-line p-4">
+      <h2 id="proximas" className="font-mono text-xs font-bold uppercase tracking-widest">
+        Próximas eleições
+      </h2>
+      <ol className="mt-2 divide-y divide-line">
+        {elections.map((election) => (
+          <li key={election.name} className="py-2.5" title={election.basis ?? undefined}>
+            <p className="font-bold leading-snug">{election.name}</p>
+            <p className="mt-0.5 text-xs leading-snug text-muted">
+              {election.date ? (
+                <>
+                  <time dateTime={election.date} className="text-ink">
+                    {formatLongDate(election.date)}
+                  </time>
+                  {!election.confirmed && " · data por confirmar"}
+                </>
+              ) : (
+                (election.window ?? "Ainda sem data marcada")
+              )}
+            </p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted">A data só é oficial quando o decreto a marca.</p>
+    </section>
   );
 }

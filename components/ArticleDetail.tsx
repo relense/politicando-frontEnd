@@ -1,54 +1,49 @@
-import Link from "next/link";
-import { formatLongDateTime } from "@/lib/format";
+import { formatFullDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
+import { ArticleActions } from "./ArticleActions";
 import { ArticleImage } from "./ArticleImage";
 import { BackLink } from "./BackLink";
 import { PartyChips } from "./PartyChips";
-import { ShareButton } from "./ShareButton";
 
-/** The article page. We only have a teaser, so the way to the original is the main action. */
+/** The article page's main column. We only have a teaser, so the way to the original is the main action. */
 export function ArticleDetail({ article }: { article: Article }) {
-  const published = formatLongDateTime(article.publishedAt);
+  const published = formatFullDateTime(article.publishedAt);
 
   return (
     <article>
-      <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <BackLink />
-        <ShareButton title={article.title} />
+        <ArticleActions title={article.title} />
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-x-2 font-mono text-sm text-muted">
-        <span className="font-bold text-ink">{article.source}</span>
-        {published && (
-          <>
-            <span aria-hidden="true">·</span>
-            <time dateTime={article.publishedAt ?? undefined}>{published}</time>
-          </>
-        )}
-      </div>
+      <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
+        <span className="rounded-full bg-surface px-2.5 py-0.5 font-bold text-ink">{article.source}</span>
+        {published && <time dateTime={article.publishedAt}>{published}</time>}
+      </p>
 
-      <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl">{article.title}</h1>
+      <h1 className="text-3xl font-bold leading-tight sm:text-5xl sm:leading-[1.05]">{article.title}</h1>
 
-      <PartyChips parties={article.parties} className="mb-5" />
+      {article.excerpt && <p className="mt-4 text-lg leading-relaxed text-ink/90">{article.excerpt}</p>}
 
       {article.imageUrl && (
-        <ArticleImage
-          src={article.imageUrl}
-          caption={`Imagem · ${article.source}`}
-          className="mb-5 flex justify-center overflow-hidden rounded-lg bg-surface"
-          imageClassName="max-h-[28rem] w-auto max-w-full object-contain"
-        />
+        <>
+          <ArticleImage
+            src={article.imageUrl}
+            backdrop
+            caption={`Imagem · ${article.source}`}
+            className="mt-6 flex aspect-video justify-center overflow-hidden rounded-2xl bg-surface"
+            imageClassName="relative h-full w-auto max-w-full object-contain"
+          />
+        </>
       )}
 
-      {article.excerpt && <p className="text-base leading-relaxed sm:text-[17px]">{article.excerpt}</p>}
-
       {article.url && (
-        <div className="mt-8 flex flex-col gap-4 border-y border-line py-6 sm:flex-row sm:items-center sm:gap-6">
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[color:var(--stage-debate)]/40 bg-[color-mix(in_srgb,var(--marker)_14%,transparent)] p-5 sm:flex-row sm:items-center sm:gap-6">
           <a
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded bg-ink px-6 py-3.5 text-center font-mono text-sm font-bold text-paper hover:opacity-90"
+            className="shrink-0 rounded-lg bg-[#f0c75e] px-5 py-3 text-center font-mono text-sm font-bold text-[#1a1a1a] hover:opacity-90"
           >
             Ler o artigo completo em {article.source}
             <span aria-hidden="true"> ↗</span>
@@ -60,19 +55,12 @@ export function ArticleDetail({ article }: { article: Article }) {
         </div>
       )}
 
-      {/* A thread about this article on each party's board it mentions, or on the general board. */}
-      <div className="mt-6 flex flex-wrap items-center gap-2 font-mono text-sm">
-        <span className="text-muted">Discutir no fórum:</span>
-        {(article.parties.length > 0 ? article.parties : [{ slug: "geral", acronym: "Geral" }]).map((party) => (
-          <Link
-            key={party.slug}
-            href={`/forum/${party.slug}?artigo=${article.id}#nova`}
-            className="rounded-full border border-line px-3 py-1 font-bold hover:border-ink hover:bg-surface"
-          >
-            {party.slug === "geral" ? "Fórum geral" : `Fórum do ${party.acronym}`}
-          </Link>
-        ))}
-      </div>
+      {article.parties.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <span className="font-mono text-xs text-muted">Partidos na notícia</span>
+          <PartyChips parties={article.parties} />
+        </div>
+      )}
     </article>
   );
 }
