@@ -131,6 +131,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         icon: icon("M4 16c3-1 4-4 6-7s3-5 6-5M4 16a1.5 1.5 0 1 0 0 .01M16 4a1.5 1.5 0 1 0 0 .01"),
         active: (path) => path.startsWith("/percursos"),
       },
+      {
+        href: "/feedback",
+        label: "Feedback",
+        hint: "Erros, ideias e correções",
+        icon: icon("M3 4h14v9H8l-4 3v-3H3V4Zm4 4h6M7 10h4"),
+        active: (path) => path.startsWith("/feedback"),
+      },
     ],
   },
 ];

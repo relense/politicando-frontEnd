@@ -935,3 +935,17 @@ test("feedback: report an error with the right fact, a source and a screenshot, 
   await expect(page.getByRole("heading", { level: 1, name: "Registo de correções" })).toBeVisible();
   await expect(page.getByText("Não confirmado")).toBeVisible();
 });
+
+test("feedback: every page's footer opens the form with that page filled in, and the menu lists it", async ({ page, isMobile }) => {
+  await page.goto("/partidos");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Diz-nos →" }).click();
+  await expect(page).toHaveURL(/\/feedback\?/);
+  await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveValue("Partidos");
+  await expect(page.getByRole("textbox", { name: /Ligação/ })).toHaveValue("/partidos");
+  if (!isMobile) {
+    await expect(page.getByRole("navigation", { name: "Secções" }).getByRole("link", { name: /Feedback/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  }
+});
