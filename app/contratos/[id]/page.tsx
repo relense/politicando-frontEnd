@@ -71,7 +71,7 @@ export default async function ContractPage({ params }: Props) {
             </span>
           ))}
         </div>
-        <h1 className="mt-3 break-words text-xl font-bold leading-snug sm:text-2xl">{contract.object}</h1>
+        <h1 className="mt-3 break-words text-3xl font-bold leading-tight sm:text-4xl">{contract.object}</h1>
         {contract.description && <p className="mt-3 leading-relaxed">{contract.description}</p>}
         <p className="mt-4 text-3xl font-bold tabular-nums">
           {contract.price === null ? "Preço não publicado" : formatEuros(contract.price)}

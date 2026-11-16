@@ -39,10 +39,10 @@ export default async function GovernmentPage({ searchParams }: Props) {
         <OriginBadge origin="government" />
         {government?.name}
       </p>
-      <h1 className="text-3xl font-bold leading-tight sm:text-5xl">
+      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
         Quem <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">governa</span>
       </h1>
-      <p className="mt-3 max-w-2xl text-muted">
+      <p className="mt-2 max-w-2xl leading-relaxed text-muted">
         {government?.startDate && `Em funções desde ${formatLongDate(government.startDate)}. `}O Governo não é o Parlamento: é nomeado, não
         é eleito, e quem vem do Parlamento suspende o mandato de deputado.{" "}
         <Link href="/parlamento#orgaos-titulo" className="text-link underline">

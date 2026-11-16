@@ -229,8 +229,8 @@ export default async function ElectionPage(props: Props) {
           {typeLabel(election.type)} · {formatLongDate(election.date)}
           {!isTop && <> · {election.name}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">{isTop ? election.name : place.name}</h1>
-        {sentence && <p className="mt-3 max-w-2xl leading-relaxed">{sentence}</p>}
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{isTop ? election.name : place.name}</h1>
+        {sentence && <p className="mt-2 max-w-2xl leading-relaxed text-muted">{sentence}</p>}
         {PLACE_KEY.test(place.key) && ["district", "municipality", "parish"].includes(place.level) && (
           <Link href={placePath(place.key)} className="mt-3 inline-block font-mono text-sm text-link underline">
             Quem governa {place.name} →

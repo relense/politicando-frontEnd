@@ -115,8 +115,8 @@ export default async function ContractsPage({ searchParams }: Props) {
     <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Dinheiro público</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos{where}</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Contratos públicos{where}</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Todos os contratos que as entidades públicas publicam no Portal BASE: o que compraram, a quem e por quanto. Quanto vai para
           ajustes diretos, em que a entidade escolhe a empresa sem concurso aberto?
         </p>
@@ -340,7 +340,7 @@ export default async function ContractsPage({ searchParams }: Props) {
 function ComingSoon() {
   return (
     <div data-wide>
-      <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Contratos públicos</h1>
+      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Contratos públicos</h1>
       <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
         Os contratos estarão disponíveis em breve.
       </p>

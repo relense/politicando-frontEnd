@@ -34,7 +34,7 @@ export default async function ForumIndexPage() {
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Discussão</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Fórum</h1>
-        <p className="mt-2 max-w-2xl text-muted">
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Um fórum geral e um por cada partido. Ninguém precisa de conta: cada pessoa recebe um ID diferente em cada discussão, para se
           perceber quem diz o quê sem ser seguida de discussão em discussão. O endereço IP não é guardado.
         </p>

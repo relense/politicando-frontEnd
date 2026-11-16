@@ -56,7 +56,7 @@ export default async function DeputyPage({ params }: Props) {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <DeputyPortrait deputy={deputy} size="lg" />
           <div className="min-w-0">
-            <h1 className="text-3xl font-bold leading-tight">{deputy.name}</h1>
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{deputy.name}</h1>
             {deputy.fullName !== deputy.name && <p className="text-muted">{deputy.fullName}</p>}
             {deputy.party && <PartyChips parties={[deputy.party]} className="mt-2" />}
           </div>

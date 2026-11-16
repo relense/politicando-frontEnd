@@ -70,7 +70,7 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
           {thread.pinned && <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-paper">Fixada</span>}
           {thread.locked && <span className="rounded-full border border-line px-2 py-0.5 font-bold">Fechada</span>}
         </div>
-        <h1 id="thread-title" className="mb-3 break-words text-2xl font-bold leading-tight sm:text-[1.75rem]">
+        <h1 id="thread-title" className="mb-3 break-words text-3xl font-bold leading-tight sm:text-4xl">
           {thread.title}
         </h1>
         <PosterLine

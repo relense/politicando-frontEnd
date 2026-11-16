@@ -105,7 +105,7 @@ export default async function HistoryPage() {
       <Overview governments={governments} presidents={presidents} today={today} />
 
       <section aria-labelledby="governo-a-governo" className="mt-12">
-        <h2 id="governo-a-governo" className="mb-6 border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+        <h2 id="governo-a-governo" className="mb-6 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
           Governo a governo
         </h2>
         {decades.map((decade) => (

@@ -34,7 +34,7 @@ export default async function PathsPage() {
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Percursos</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Como chegaram lá</h1>
-        <p className="mt-2 max-w-2xl text-muted">
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Quem ocupa os cargos de topo e o caminho que fizeram até lá: mandatos no Parlamento, cargos no Governo e na Presidência, e as
           listas por que foram eleitos. Tudo vem de fontes oficiais.
         </p>

@@ -61,7 +61,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
                 ? "Em funções"
                 : `Já não está no Governo${current?.endDate ? ` (saiu a ${formatDate(current.endDate)})` : ""}`}
             </p>
-            <h1 className="mt-2 text-3xl font-bold leading-tight">{member.name}</h1>
+            <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">{member.name}</h1>
             {current && <p className="text-muted">{current.title}</p>}
           </div>
         </div>

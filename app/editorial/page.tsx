@@ -57,7 +57,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Da redação</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Blog</h1>
-        <p className="mt-2 max-w-2xl text-muted">
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Artigos, opinião, entrevistas, podcasts e vídeos, escritos pela redação e por autores convidados. A opinião vincula apenas quem a
           assina.
         </p>

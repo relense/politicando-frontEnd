@@ -161,8 +161,8 @@ export default async function PlacePage({ params }: Props) {
           {place.level === "municipality" && district && <> · Distrito de {district}</>}
           {place.level === "parish" && municipality && <> · Concelho de {municipality.name}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">{place.name}</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">{intro(place, municipality, parties)}</p>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{place.name}</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">{intro(place, municipality, parties)}</p>
       </header>
 
       {place.level === "municipality" && place.mayor && (

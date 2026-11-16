@@ -29,7 +29,7 @@ export default async function HomePage({ searchParams }: Props) {
       <PartyChipBar parties={parties} active={party?.slug ?? null} />
       {!party && <Highlights posts={highlights} />}
       <header className="mb-8">
-        <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{party ? `Notícias do ${party.acronym}` : "Últimas notícias"}</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{party ? `Notícias do ${party.acronym}` : "Últimas notícias"}</h1>
         <p className="mt-2 font-mono text-xs text-muted">
           {party
             ? `${party.name}, de ${SOURCE_COUNT} órgãos de comunicação, por ordem de publicação.`

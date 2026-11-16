@@ -95,9 +95,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
                 <span className="font-bold text-ink">{party.acronym}</span> ·{" "}
                 {seats > 0 ? "com assento parlamentar" : "sem assento parlamentar"}
               </p>
-              <h1 className={`mt-1 font-bold leading-tight ${party.name.length > 22 ? "text-2xl sm:text-4xl" : "text-3xl sm:text-5xl"}`}>
-                {party.name}
-              </h1>
+              <h1 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{party.name}</h1>
               <div className="mt-3 flex flex-wrap gap-2">
                 {party.website && (
                   <a href={party.website} target="_blank" rel="noopener noreferrer" className={pill}>

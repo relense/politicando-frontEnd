@@ -136,12 +136,12 @@ export default async function InitiativesPage({ searchParams }: Props) {
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Assembleia da República{parliament ? ` · ${parliament.legislature} Legislatura` : ""}
         </p>
-        <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
           O que está a{" "}
           <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">mudar</span> nas
           leis
         </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed">
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Cada proposta que entra no Parlamento, explicada em linguagem simples: o que é, em que fase está e quem a propôs.
         </p>
         <p className="mt-2 max-w-2xl font-mono text-xs text-muted">
@@ -161,7 +161,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
               }}
             >
               {card.note && <span className="mt-1 text-sm text-muted">{card.note}</span>}
-              <span className="text-4xl font-bold">{formatNumber(card.value!)}</span>
+              <span className="text-3xl font-bold">{formatNumber(card.value!)}</span>
               <span
                 className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-widest"
                 style={{ color: toneColor(card.tone) }}
@@ -238,7 +238,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
         {/* Below the list on phones (the phases are the pills above it), beside it on larger screens. */}
         <aside className="flex flex-col gap-5">
           <nav aria-labelledby="caminho" className="hidden rounded-2xl border border-line p-4 lg:block">
-            <h2 id="caminho" className="font-mono text-[11px] font-bold uppercase tracking-widest">
+            <h2 id="caminho" className="font-mono text-xs font-bold uppercase tracking-widest">
               O caminho de uma lei
             </h2>
             <p className="mb-3 text-xs text-muted">Toca numa fase para filtrar.</p>
@@ -337,7 +337,7 @@ function TopicBars({ topics, filters }: { topics: TopicCount[]; filters: Filters
   return (
     <nav aria-labelledby="temas" className="rounded-2xl border border-line p-4">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 id="temas" className="font-mono text-[11px] font-bold uppercase tracking-widest">
+        <h2 id="temas" className="font-mono text-xs font-bold uppercase tracking-widest">
           Temas
         </h2>
         <span className="font-mono text-[11px] text-muted">por n.º de iniciativas</span>

@@ -95,7 +95,7 @@ export default async function EditorialPostPage({ params }: Props) {
         </span>
       </p>
       <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{post.title}</h1>
-      {post.subtitle && <p className="mt-3 text-lg leading-relaxed text-muted">{post.subtitle}</p>}
+      {post.subtitle && <p className="mt-2 max-w-2xl leading-relaxed text-muted">{post.subtitle}</p>}
       <p className="mt-4 font-mono text-xs text-muted">
         {post.authorName && (
           <>

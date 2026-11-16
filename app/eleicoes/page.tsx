@@ -63,8 +63,8 @@ export default async function ElectionsPage() {
     <div data-wide>
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Resultados oficiais</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Eleições</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Eleições</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Quem ganhou, com quantos votos e onde{since ? `, desde ${since}` : ""}. Escolhe uma eleição e desce do país ao distrito, ao
           concelho e à freguesia, até onde houver resultados.
         </p>
@@ -147,7 +147,7 @@ function Featured({ election, result, parties }: { election: Election; result: E
             <span className="rounded-full bg-ink px-2 py-0.5 font-bold text-paper">Mais recente</span>
             {ELECTION_TYPES.find((item) => item.type === election.type)?.label} · {formatLongDate(election.date)}
           </p>
-          <h2 id="mais-recente" className="mt-2 text-2xl font-bold sm:text-4xl">
+          <h2 id="mais-recente" className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
             <Link href={electionPath(election.id)} className="hover:underline">
               {election.name}
             </Link>

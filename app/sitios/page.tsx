@@ -38,7 +38,7 @@ export default async function PlacesPage({ searchParams }: Props) {
   if (!data) {
     return (
       <div data-wide>
-        <h1 className="text-3xl font-bold sm:text-5xl">Quem governa a tua terra</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem governa a tua terra</h1>
         <p className="mt-4 text-muted">Em breve: o mapa dos presidentes de câmara ainda não está disponível.</p>
       </div>
     );
@@ -114,8 +114,8 @@ export default async function PlacesPage({ searchParams }: Props) {
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
           Poder local{election && <> · {electionName(election)}</>}
         </p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-5xl">Quem governa a tua terra</h1>
-        <p className="mt-3 max-w-2xl leading-relaxed">
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem governa a tua terra</h1>
+        <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Os presidentes das {withMayor.length} câmaras municipais, pelo partido da lista que venceu. Carrega num concelho para ver a câmara
           e a assembleia municipal, os deputados eleitos pelo distrito, as últimas eleições e os contratos públicos.
         </p>

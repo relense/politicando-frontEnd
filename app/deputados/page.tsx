@@ -37,7 +37,7 @@ export default async function DeputiesPage({ searchParams }: Props) {
   if (!parliament) {
     return (
       <>
-        <h1 className="mb-6 text-3xl font-bold">Deputados</h1>
+        <h1 className="mb-6 text-3xl font-bold leading-tight sm:text-4xl">Deputados</h1>
         <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
           Os dados do Parlamento estarão disponíveis em breve.
         </p>

@@ -56,7 +56,7 @@ export default async function CasePage({ params }: Props) {
             <span key={crime.key}>{crime.label}</span>
           ))}
         </p>
-        <h1 className="mt-1 text-3xl font-bold leading-tight">{item.title}</h1>
+        <h1 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{item.title}</h1>
         <p className="mt-3">
           <span className="text-muted">Fase do processo: </span>
           <TermLabel term={item.status} className="font-bold" />

@@ -159,8 +159,8 @@ export default async function PresidentPage() {
               Chefe de Estado
             </span>
           </p>
-          <h1 className="text-4xl font-bold leading-none tracking-tight sm:text-6xl">{president.name}</h1>
-          <p className="mt-3 text-lg">
+          <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{president.name}</h1>
+          <p className="mt-2 leading-relaxed text-muted">
             Presidente da República desde <time dateTime={president.termStart}>{formatLongDate(president.termStart)}</time>
           </p>
           {president.fullName !== president.name && (
