@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { COALITIONS, majority, partyColor, SEAT_ORDER } from "@/lib/parliament";
 import type { DeputySummary, Parliament, ParliamentGroup, ParliamentSeat } from "@/lib/types";
 import { DeputyPanel } from "./DeputyPanel";
+import { DeputySearch } from "./DeputySearch";
 import { Hemicycle } from "./Hemicycle";
 import { OrgansExplainer } from "./OrgansExplainer";
 
@@ -88,16 +89,20 @@ export function ParliamentView({ parliament, initialSelection, header }: Props) 
         </div>
         {/* On a large screen the card takes the height of the map column and scrolls inside, never growing past it. On a
             phone, where it sits below the map, the empty invitation is left out: it would only be a blank box. */}
-        <div ref={panelRef} className={`relative min-h-[28rem] scroll-mt-20 xl:block xl:min-h-0 ${selection ? "" : "hidden"}`}>
-          <div className="h-full xl:absolute xl:inset-0">
-            <DeputyPanel
-              group={group}
-              deputies={bench}
-              deputy={deputy}
-              onDeputy={openDeputy}
-              onBackToGroup={() => group && choose({ party: group.party.slug, deputy: null })}
-              onClose={() => choose(null)}
-            />
+        <div className="flex flex-col gap-3">
+          {/* A quicker way to someone than finding their seat: the card below opens on them. */}
+          <DeputySearch deputies={deputies} groups={groupBySlug} onPick={openDeputy} />
+          <div ref={panelRef} className={`relative min-h-[28rem] scroll-mt-20 xl:block xl:min-h-0 xl:flex-1 ${selection ? "" : "hidden"}`}>
+            <div className="h-full xl:absolute xl:inset-0">
+              <DeputyPanel
+                group={group}
+                deputies={bench}
+                deputy={deputy}
+                onDeputy={openDeputy}
+                onBackToGroup={() => group && choose({ party: group.party.slug, deputy: null })}
+                onClose={() => choose(null)}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -47,16 +47,9 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
       {
         href: "/parlamento",
         label: "Parlamento",
-        hint: "Quem está sentado onde",
+        hint: "Os 230 deputados e onde se sentam",
         icon: icon("M2 15a8 8 0 0 1 16 0M5.5 15a4.5 4.5 0 0 1 9 0M2 15h16"),
-        active: (path) => path.startsWith("/parlamento"),
-      },
-      {
-        href: "/deputados",
-        label: "Deputados",
-        hint: "Os 230, por partido",
-        icon: icon("M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 8a6 6 0 0 1 12 0"),
-        active: (path) => path.startsWith("/deputados"),
+        active: (path) => path.startsWith("/parlamento") || path.startsWith("/deputados"),
       },
       {
         href: "/partidos",

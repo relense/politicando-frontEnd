@@ -139,10 +139,29 @@ describe("ParliamentView", () => {
     expect(within(section).getByRole("link", { name: "Ver as iniciativas →" })).toHaveAttribute("href", "/iniciativas");
   });
 
-  it("links a bench to its deputies page", () => {
-    renderView({ party: "ps", deputy: null });
-    expect(screen.getByRole("link", { name: /bancada com fotografias/ })).toHaveAttribute("href", "/deputados?partido=ps");
-    expect(screen.queryByText(/Ver lista de deputados/)).toBeNull();
+  it("finds a deputy by name, without accents, and opens their card", async () => {
+    const user = userEvent.setup();
+    renderView();
+    const sitting = parliament.deputies[0]!;
+    const box = screen.getByRole("combobox", { name: "Procurar deputado" });
+    await user.type(
+      box,
+      sitting.name
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase(),
+    );
+    const option = screen.getAllByRole("option").find((item) => item.textContent?.includes(sitting.name));
+    await user.click(option!);
+    expect(screen.getByRole("region", { name: sitting.name })).toBeInTheDocument();
+    expect(box).toHaveValue("");
+  });
+
+  it("says so when no deputy has that name", async () => {
+    const user = userEvent.setup();
+    renderView();
+    await user.type(screen.getByRole("combobox", { name: "Procurar deputado" }), "zzzz");
+    expect(screen.getByText("Nenhum deputado com esse nome.")).toBeInTheDocument();
   });
 });
 

@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { fold } from "@/lib/format";
 
 export type FinderPlace = { key: string; name: string; href: string; mayor: string | null; party: string | null; color: string | null };
 export type FinderGroup = { key: string; name: string; href: string; places: FinderPlace[] };
-
-/** Lowercase without accents, so "agueda" finds "Águeda". */
-const fold = (text: string) =>
-  text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /** Every municipality by district, with its mayor, and a box to find one by name. */
 export function PlaceFinder({ groups }: { groups: FinderGroup[] }) {

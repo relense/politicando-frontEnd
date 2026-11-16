@@ -222,7 +222,7 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).not.toContain("presidente-ficticio");
   expect(await (await request.get("/article/100")).text()).toMatch(/<meta name="robots" content="noindex, follow"/);
   expect(sitemap).toContain("/parlamento");
-  expect(sitemap).toContain("/deputados");
+  expect(sitemap).not.toMatch(/\/deputados<\/loc>/);
   expect(sitemap).toContain("/governo");
   expect(sitemap).toContain("/eleicoes");
   expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
@@ -237,9 +237,6 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/parlamento",
     "/parlamento?partido=psd",
     "/parlamento?deputado=1100",
-    "/deputados",
-    "/deputados?partido=ps",
-    "/deputados?deputado=1100",
     "/deputados/1100",
     "/governo",
     "/governo/00000000000000000000000000000001",
@@ -324,7 +321,7 @@ test("parliament: press a seat to open the bench, pick a deputy, then browse ini
   await expect(bench.getByText(/58 deputados/)).toBeVisible();
 
   const first = bench.getByRole("listitem").first().getByRole("button");
-  const name = (await first.locator("span").first().textContent())!;
+  const name = (await first.locator("span.flex-1").textContent())!;
   await first.click();
   await expect(page).toHaveURL(/deputado=\d+/);
   const card = page.getByRole("region", { name });
@@ -342,26 +339,39 @@ test("parliament: press a seat to open the bench, pick a deputy, then browse ini
   await expect(page).toHaveURL(/\/iniciativas$/);
 });
 
-test("deputies: filter by party, open a deputy's summary, then their full profile", async ({ page }) => {
+test("deputies: the old list redirects to the hemicycle, where a search opens anyone's card, then their full profile", async ({ page }) => {
+  // There is no list page any more: the Parliament, with the same party chosen, is the list.
   await page.goto("/deputados?partido=ps");
-  await expect(page.getByRole("heading", { level: 1, name: "Deputados do PS" })).toBeVisible();
-  const list = page.getByRole("list", { name: "Deputados" });
-  await expect(list.getByRole("listitem")).toHaveCount(58);
+  await expect(page).toHaveURL(/\/parlamento\?partido=ps$/);
+  const bench = page.getByRole("region", { name: "Partido Socialista" });
+  await expect(bench.getByRole("listitem")).toHaveCount(58);
+  // Each deputy in the bench with their photo, or their initials.
+  await expect(bench.getByRole("listitem").first().locator("img, span[aria-hidden='true']").first()).toBeVisible();
 
-  // Pressing a deputy opens their summary in a card, and the address keeps the choice.
-  const first = list.getByRole("button").first();
-  const name = (await first.locator("span span").first().textContent())!;
-  await first.click();
+  // The search finds someone by name, accents or not, and opens their card.
+  const name = (await bench.getByRole("listitem").nth(3).locator("span.flex-1").textContent())!;
+  const box = page.getByRole("combobox", { name: "Procurar deputado" });
+  await box.fill(
+    name
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase(),
+  );
+  await page
+    .getByRole("option", { name: new RegExp(name) })
+    .first()
+    .click();
   await expect(page).toHaveURL(/deputado=\d+$/);
   const card = page.getByRole("region", { name });
   await expect(card.getByRole("tab", { name: "Votações" })).toBeVisible();
+  await expect(box).toHaveValue("");
 
-  // Searching narrows the grid.
-  await card.getByRole("button", { name: "Fechar" }).click();
-  await page.getByRole("searchbox", { name: "Procurar deputado" }).fill(name);
-  await expect(list.getByRole("listitem")).toHaveCount(1);
+  // With the keyboard too.
+  await box.fill(name);
+  await box.press("ArrowDown");
+  await box.press("Enter");
+  await expect(page.getByRole("region", { name })).toBeVisible();
 
-  await list.getByRole("button").first().click();
   await page.getByRole("region", { name }).getByRole("link", { name: "Ver ficha completa →" }).click();
   await expect(page).toHaveURL(/\/deputados\/\d+$/);
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();

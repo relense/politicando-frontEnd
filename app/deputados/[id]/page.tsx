@@ -46,10 +46,10 @@ export default async function DeputyPage({ params }: Props) {
   return (
     <article className="pb-4">
       <Link
-        href={deputy.partySlug ? `/deputados?partido=${deputy.partySlug}` : "/deputados"}
+        href={deputy.partySlug ? `/parlamento?partido=${deputy.partySlug}` : "/parlamento"}
         className="mb-6 inline-block font-mono text-sm text-muted hover:text-ink hover:underline"
       >
-        ← {deputy.party ? `Deputados do ${deputy.party.acronym}` : "Deputados"}
+        ← {deputy.party ? `Deputados do ${deputy.party.acronym}` : "Parlamento"}
       </Link>
 
       <header className="rounded-2xl border border-t-4 border-line p-6" style={{ borderTopColor: partyColor(deputy.partySlug ?? "") }}>

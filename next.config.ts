@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // The deputies have no list page of their own: the Parliament's hemicycle, with its search, is that list.
+  // The query (?partido=, ?deputado=) is passed through, and the Parliament page reads both.
+  async redirects() {
+    return [{ source: "/deputados", destination: "/parlamento", permanent: true }];
+  },
   images: {
     // Deputy photos come from our own route, which fetches each one from the Parliament once and caches it
     // (see app/fotos/deputados/[id]/route.ts). The optimiser then resizes them to a few KB for the browser.

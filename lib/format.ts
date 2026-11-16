@@ -150,3 +150,10 @@ export function formatNumber(value: number): string {
 export function formatPercent(value: number | null | undefined): string | null {
   return value === null || value === undefined ? null : `${percentFormatter.format(value)}%`;
 }
+
+/** Lowercase without accents, so "agueda" finds "Águeda" and "joao" finds "João". */
+export const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
