@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { PORTAL_PHOTO } from "@/lib/photos";
 
-const SIZES = { sm: "size-10 text-xs", md: "size-14 text-base", lg: "size-28 text-3xl" } as const;
-const PIXELS = { sm: 40, md: 56, lg: 112 } as const;
+const SIZES = { xs: "size-7 text-[10px]", sm: "size-10 text-xs", md: "size-14 text-base", lg: "size-28 text-3xl" } as const;
+const PIXELS = { xs: 28, sm: 40, md: 56, lg: 112 } as const;
 
 const initials = (name: string) => {
   const parts = name.split(/\s+/).filter(Boolean);

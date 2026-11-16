@@ -34,7 +34,7 @@ export default async function GovernmentPage({ searchParams }: Props) {
   const [government, parties, { membro }] = await Promise.all([loadGovernment(), getParties().catch((): Party[] => []), searchParams]);
 
   const header = (
-    <header className="mb-6">
+    <header key="header" className="mb-6">
       <p className="mb-2 flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted">
         <OriginBadge origin="government" />
         {government?.name}
@@ -55,18 +55,22 @@ export default async function GovernmentPage({ searchParams }: Props) {
   return (
     // data-wide lets this page use the full width, like the Parliament page.
     <div data-wide>
-      {header}
       {!government ? (
-        <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-          Os dados do Governo estarão disponíveis em breve.
-        </p>
+        <>
+          {header}
+          <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+            Os dados do Governo estarão disponíveis em breve.
+          </p>
+        </>
       ) : (
         <>
+          {/* The title sits in the ministries' column, so the card beside it can run from the title down. */}
           <GovernmentView
             government={government}
             parties={parties}
             initialMember={typeof membro === "string" ? membro : null}
             today={today()}
+            header={header}
           />
 
           {government.former.length > 0 && (

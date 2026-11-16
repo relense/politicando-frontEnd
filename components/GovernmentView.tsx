@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { getGovernmentMember } from "@/lib/api/client";
 import { formatLongDate } from "@/lib/format";
 import { durationLabel } from "@/lib/history";
@@ -18,6 +18,8 @@ type Props = {
   initialMember: string | null;
   /** Today, as YYYY-MM-DD, for the time in office. */
   today: string;
+  /** The page title, in the left column, so the card beside it starts level with it. */
+  header?: ReactNode;
 };
 
 /** A minister's place in the Council of Ministers, with the team that works with them. */
@@ -59,6 +61,8 @@ const tinted = (tone: StageTone, amount = 14) => ({
   backgroundColor: `color-mix(in srgb, ${toneColor(tone)} ${amount}%, transparent)`,
 });
 const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
+/** "Ana", "Ana e Rui", "Ana, Rui e Inês". */
+const listNames = (names: string[]) => (names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`);
 
 type Filter = "all" | "ministers" | "secretaries";
 
@@ -66,7 +70,7 @@ type Filter = "all" | "ministers" | "secretaries";
  * The Government at a glance: a few figures, the Prime Minister, a card per ministry with its team, and beside them a
  * card with whoever was pressed. Below, every member in one table that can be searched.
  */
-export function GovernmentView({ government, parties, initialMember, today }: Props) {
+export function GovernmentView({ government, parties, initialMember, today, header }: Props) {
   const seats = useMemo(() => councilSeats(government), [government]);
   const known = (id: string | null) =>
     id && seats.some((seat) => seat.member.id === id || seat.secretaries.some((s) => s.id === id)) ? id : null;
@@ -122,18 +126,18 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
 
   return (
     <>
-      <dl className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="flex flex-col-reverse justify-end rounded-2xl border border-line p-4">
-            <dd className="mt-1 font-mono text-[11px] text-muted">{stat.note}</dd>
-            <dt className="text-sm">{stat.label}</dt>
-            <dd className="text-2xl font-bold tabular-nums sm:text-3xl">{stat.value}</dd>
-          </div>
-        ))}
-      </dl>
-
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="min-w-0">
+          {header}
+          <dl className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse justify-end rounded-2xl border border-line p-4">
+                <dd className="mt-1 font-mono text-[11px] text-muted">{stat.note}</dd>
+                <dt className="text-sm leading-snug">{stat.label}</dt>
+                <dd className="text-2xl font-bold leading-tight tabular-nums">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
           {pmSeat && (
             <button
               type="button"
@@ -148,6 +152,10 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
                 <span className="block font-mono text-xs uppercase tracking-widest text-muted">Primeiro-Ministro</span>
                 <span className="block text-2xl font-bold leading-tight">{pmSeat.member.name}</span>
                 {partyOf(pmSeat.member.partySlug) && <PartyTag party={partyOf(pmSeat.member.partySlug)!} member={pmSeat.member} />}
+                <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                  Preside ao Conselho de Ministros
+                  {pmSeat.member.startDate && ` · desde ${formatLongDate(pmSeat.member.startDate)}`}
+                </span>
               </span>
               <span className="hidden font-mono text-xs font-bold sm:block" aria-hidden="true">
                 Ver →
@@ -158,57 +166,66 @@ export function GovernmentView({ government, parties, initialMember, today }: Pr
           <h2 className="mb-4 border-b-2 border-ink pb-2 font-mono text-sm font-bold uppercase tracking-widest">
             Ministérios <span className="font-normal normal-case tracking-normal text-muted">· por ordem protocolar</span>
           </h2>
-          <ul aria-label="Ministérios" className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+          <ul aria-label="Ministérios" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {ministerSeats.map((item) => {
               const tone = toneOf(item.area);
               const active = seat === item;
+              const ofState = /Ministr[oa] de Estado/i.test(item.member.title);
               return (
                 <li key={item.area}>
                   <button
                     type="button"
                     onClick={() => choose(chosen === item.member.id ? null : item.member.id)}
                     aria-pressed={active}
-                    className={`flex h-full w-full flex-col rounded-2xl border p-4 text-left ${
-                      active ? "border-ink bg-surface" : "border-line hover:bg-surface"
-                    }`}
-                    style={active ? { boxShadow: `inset 0 3px 0 ${toneColor(tone)}` } : undefined}
+                    className={`flex h-full w-full flex-col rounded-2xl border p-4 text-left ${active ? "bg-surface" : "border-line hover:bg-surface"}`}
+                    style={active ? { borderColor: toneColor(tone) } : undefined}
                   >
                     <span className="flex items-start gap-3">
                       <span
                         aria-hidden="true"
-                        className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-xs font-bold"
+                        className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[11px] font-bold"
                         style={tinted(tone, 18)}
                       >
                         {ministryBadge(item.area, item.ministry)}
                       </span>
+                      <span className="min-w-0 pt-1 font-bold leading-snug">{item.ministry}</span>
+                    </span>
+                    <span className="mt-3 flex items-center gap-2.5">
+                      <GovernmentPortrait name={item.member.name} photoUrl={item.member.photoUrl} size="sm" />
                       <span className="min-w-0">
-                        <span className="block font-mono text-[11px] uppercase leading-snug tracking-wider text-muted">
-                          {item.ministry}
-                        </span>
-                        <span className="block font-bold leading-snug">{item.member.name}</span>
+                        <span className="block text-sm font-bold leading-snug">{item.member.name}</span>
+                        {ofState && (
+                          <span className="mt-0.5 inline-block rounded-full bg-surface px-2 py-0.5 font-mono text-[10px] text-muted">
+                            {item.member.gender === "F" ? "Ministra de Estado" : "Ministro de Estado"}
+                          </span>
+                        )}
                       </span>
                     </span>
-                    <span className="mt-auto flex items-center justify-between gap-2 pt-4">
-                      {item.secretaries.length > 0 ? (
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span aria-hidden="true" className="flex -space-x-2">
+                    <span className="mt-auto pt-4">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="font-mono text-[11px] text-muted">
+                          {item.secretaries.length === 0
+                            ? "Sem secretários de Estado"
+                            : `${item.secretaries.length} ${item.secretaries.length === 1 ? "secretário" : "secretários"} de Estado`}
+                        </span>
+                        <span aria-hidden="true" className="shrink-0 font-mono text-[11px] font-bold" style={{ color: toneColor(tone) }}>
+                          Ver equipa →
+                        </span>
+                      </span>
+                      {item.secretaries.length > 0 && (
+                        <span className="mt-2 flex min-w-0 items-center gap-2">
+                          <span aria-hidden="true" className="flex shrink-0 -space-x-2">
                             {item.secretaries.slice(0, 4).map((secretary) => (
                               <span key={secretary.id} className="rounded-full ring-2 ring-paper">
-                                <GovernmentPortrait name={secretary.name} photoUrl={secretary.photoUrl} size="sm" />
+                                <GovernmentPortrait name={secretary.name} photoUrl={secretary.photoUrl} size="xs" />
                               </span>
                             ))}
                           </span>
-                          <span className="min-w-0 truncate font-mono text-[11px] text-muted">
-                            {item.secretaries.length} {item.secretaries.length === 1 ? "secretário" : "secretários"}
-                            <span className="hidden sm:inline"> · {item.secretaries.map((s) => firstName(s.name)).join(", ")}</span>
+                          <span className="min-w-0 truncate text-xs text-muted">
+                            {listNames(item.secretaries.map((s) => firstName(s.name)))}
                           </span>
                         </span>
-                      ) : (
-                        <span className="font-mono text-[11px] text-muted">Sem secretários de Estado</span>
                       )}
-                      <span aria-hidden="true" className="shrink-0 font-mono text-[11px] font-bold" style={{ color: toneColor(tone) }}>
-                        Ver equipa →
-                      </span>
                     </span>
                   </button>
                 </li>
@@ -291,7 +308,7 @@ function MemberCard({
               <span className="rounded-full px-2 py-0.5 font-bold" style={tinted(tone)}>
                 {seat.ministry}
               </span>
-              <span>n.º {order} na ordem protocolar</span>
+              <span>{order}.º na ordem protocolar</span>
             </>
           )}
         </div>
