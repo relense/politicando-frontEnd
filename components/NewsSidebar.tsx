@@ -1,52 +1,129 @@
 import Link from "next/link";
-import { getFeedPage, getGovernment, getInitiatives } from "@/lib/api/client";
+import { getElections, getFeedPage, getGovernment, getInitiatives, getParliament, getParties } from "@/lib/api/client";
 import { getPresidency } from "@/lib/api/presidency";
 import { editorialPath, KIND_LABELS } from "@/lib/editorial";
-import { commentLinkLabel, formatLongDate, formatNumber } from "@/lib/format";
+import { listLabel, listName } from "@/lib/elections";
+import { commentLinkLabel, formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { durationLabel } from "@/lib/history";
+import { majority, partyColor, SEAT_ORDER } from "@/lib/parliament";
+import { GovernmentPortrait } from "./GovernmentPortrait";
 import type { Article, EditorialPost } from "@/lib/types";
 
 export type PowerFigure = { label: string; value: string; href: string; color: string };
-export type NewsSidebarData = { power: PowerFigure[]; mostCommented: Article[] };
+type Person = { name: string; photoUrl: string | null };
+/** Who holds power, in plain words: each part is left out when its data is missing. */
+export type PowerNowData = {
+  president: (Person & { since: string }) | null;
+  government: {
+    name: string;
+    duration: string | null;
+    primeMinister: (Person & { party: string | null; color: string | null }) | null;
+    /** The list that won the legislativas, when the Prime Minister's party is in it ("AD"). */
+    from: string | null;
+  } | null;
+  election: {
+    id: string;
+    name: string;
+    winner: string;
+    label: string;
+    color: string;
+    pct: string | null;
+    mandates: number | null;
+    total: number;
+  } | null;
+  parliament: { groups: { acronym: string; seats: number; color: string }[]; total: number } | null;
+  figures: PowerFigure[];
+};
+export type NewsSidebarData = { power: PowerNowData; mostCommented: Article[] };
 
 const DAY = 86_400_000;
 const lisbonToday = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
 const requestTime = () => Date.now();
+const rank = (slug: string) => (SEAT_ORDER.includes(slug) ? SEAT_ORDER.indexOf(slug) : SEAT_ORDER.length);
 
 /**
  * The figures beside the news, each from its own page's data. One that fails is left out, never the page.
  * The most commented come from the latest 50 articles, kept to the last 24 hours.
  */
 export async function loadNewsSidebar(): Promise<NewsSidebarData> {
-  const [presidency, initiatives, government, latest] = await Promise.all([
+  const [presidency, initiatives, government, latest, legislativas, parliament, parties] = await Promise.all([
     getPresidency().catch(() => null),
     getInitiatives({ limit: 1 }).catch(() => null),
     getGovernment().catch(() => null),
     getFeedPage({ limit: 50 }).catch(() => null),
+    getElections("legislativas").catch(() => null),
+    getParliament().catch(() => null),
+    getParties().catch(() => []),
   ]);
   const stage = (key: string) => initiatives?.stages.find((item) => item.key === key)?.count;
   const discussing =
     stage("submitted") !== undefined || stage("debate") !== undefined ? (stage("submitted") ?? 0) + (stage("debate") ?? 0) : null;
   const laws = stage("published") ?? null;
 
-  const power: (PowerFigure | null | false)[] = [
+  const figures: (PowerFigure | null | false)[] = [
     presidency && {
-      label: "Na secretária do Presidente",
+      label: "na secretária do Presidente",
       value: formatNumber(presidency.legislation.pending),
       href: "/presidente",
       color: "var(--stage-president)",
     },
     discussing !== null && {
-      label: "Iniciativas em discussão",
+      label: "iniciativas em discussão",
       value: formatNumber(discussing),
       href: "/iniciativas?fase=debate",
       color: "var(--stage-debate)",
     },
-    laws !== null && { label: "Já são lei", value: formatNumber(laws), href: "/iniciativas?fase=published", color: "var(--stage-law)" },
-    government?.startDate
-      ? { label: "Governo em funções há", value: durationLabel(government.startDate, lisbonToday()), href: "/governo", color: "var(--ink)" }
-      : null,
+    laws !== null && { label: "já são lei", value: formatNumber(laws), href: "/iniciativas?fase=published", color: "var(--stage-law)" },
   ];
+
+  // The newest legislativas with results: who won, and so who governs.
+  const last = legislativas?.find((item) => item.imported && item.winner) ?? null;
+  const winner = last?.winner ?? null;
+  const pm = government?.primeMinister ?? null;
+  const pmParty = pm?.partySlug ? (parties.find((party) => party.slug === pm.partySlug) ?? null) : null;
+
+  const power: PowerNowData = {
+    president: presidency
+      ? { name: presidency.president.name, photoUrl: presidency.president.photoUrl, since: presidency.president.termStart }
+      : null,
+    government: government
+      ? {
+          name: government.name,
+          duration: government.startDate ? durationLabel(government.startDate, lisbonToday()) : null,
+          primeMinister: pm && {
+            name: pm.name,
+            photoUrl: pm.photoUrl,
+            party: pmParty?.acronym ?? null,
+            color: pm.partySlug ? partyColor(pm.partySlug) : null,
+          },
+          from: winner && pm?.partySlug && winner.partySlugs.includes(pm.partySlug) ? listLabel(winner, parties) : null,
+        }
+      : null,
+    election:
+      last && winner
+        ? {
+            id: last.id,
+            name: last.name,
+            winner: listName(winner, parties),
+            label: listLabel(winner, parties),
+            color: winner.partySlugs[0] ? partyColor(winner.partySlugs[0]) : "var(--muted)",
+            pct: formatPercent(winner.validPct),
+            mandates: winner.mandates,
+            total: last.turnout?.totalMandates ?? 230,
+          }
+        : null,
+    parliament:
+      parliament && parliament.groups.length > 0
+        ? {
+            // Left to right, as the chamber is drawn.
+            groups: [...parliament.groups]
+              .sort((a, b) => rank(a.party.slug) - rank(b.party.slug))
+              .map((item) => ({ acronym: item.party.acronym || item.group, seats: item.seats, color: partyColor(item.party.slug) })),
+            total: parliament.groups.reduce((sum, item) => sum + item.seats, 0),
+          }
+        : null,
+    figures: figures.filter((item): item is PowerFigure => Boolean(item)),
+  };
 
   const since = requestTime() - DAY;
   const mostCommented = (latest?.articles ?? [])
@@ -54,7 +131,7 @@ export async function loadNewsSidebar(): Promise<NewsSidebarData> {
     .sort((a, b) => b.commentsCount - a.commentsCount)
     .slice(0, 3);
 
-  return { power: power.filter((item): item is PowerFigure => Boolean(item)), mostCommented };
+  return { power, mostCommented };
 }
 
 const box = "rounded-2xl border border-line p-4";
@@ -87,25 +164,119 @@ export function BlogSpotlight({ post }: { post: EditorialPost }) {
   );
 }
 
-/** Who holds power now, in four numbers, each opening its page. */
-export function PowerNow({ figures }: { figures: PowerFigure[] }) {
-  if (figures.length === 0) return null;
+const kicker = "font-mono text-[11px] uppercase tracking-widest text-muted";
+const row = "-mx-2 block rounded-lg px-2 py-3 hover:bg-surface";
+
+/**
+ * Who holds power today, in plain words: the President, the Prime Minister and the party that won, how
+ * Parliament is split, and what is waiting on each of them. Every part opens its page.
+ */
+export function PowerNow({ data }: { data: PowerNowData }) {
+  const { president, government, election, parliament, figures } = data;
+  if (!president && !government && !election && !parliament && figures.length === 0) return null;
+  const pm = government?.primeMinister;
+  const needed = parliament ? majority(parliament.total) : null;
+  const top = parliament ? [...parliament.groups].sort((a, b) => b.seats - a.seats) : [];
   return (
     <section aria-labelledby="agora-no-poder" className={box}>
       <h2 id="agora-no-poder" className={label}>
         Agora no poder
       </h2>
-      <ul className="mt-2 divide-y divide-line">
-        {figures.map((item) => (
-          <li key={item.label}>
-            <Link href={item.href} className="-mx-2 flex items-center gap-2 rounded px-2 py-2 text-sm hover:bg-surface">
-              <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="min-w-0 flex-1">{item.label}</span>
-              <span className="shrink-0 font-mono text-xs font-bold">{item.value}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-1 divide-y divide-line">
+        {president && (
+          <Link href="/presidente" className={`${row} flex items-center gap-3`}>
+            <GovernmentPortrait name={president.name} photoUrl={president.photoUrl} size="sm" />
+            <span className="min-w-0">
+              <span className={`${kicker} block`}>Presidente da República</span>
+              <span className="block font-bold leading-snug">{president.name}</span>
+              <span className="block font-mono text-xs text-muted">desde {formatLongDate(president.since)}</span>
+            </span>
+          </Link>
+        )}
+        {government && (
+          <Link href="/governo" className={`${row} flex items-center gap-3`}>
+            {pm && <GovernmentPortrait name={pm.name} photoUrl={pm.photoUrl} size="sm" />}
+            <span className="min-w-0">
+              <span className={`${kicker} block`}>Primeiro-Ministro</span>
+              {pm && (
+                <span className="flex flex-wrap items-center gap-x-2 font-bold leading-snug">
+                  {pm.name}
+                  {pm.party && (
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-bold">
+                      <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: pm.color ?? undefined }} />
+                      {pm.party}
+                    </span>
+                  )}
+                </span>
+              )}
+              <span className="block text-xs leading-snug text-muted">
+                {government.name}
+                {government.from && ` (${government.from})`}
+                {government.duration && `, em funções há ${government.duration}`}
+              </span>
+            </span>
+          </Link>
+        )}
+        {election && (
+          <Link href={`/eleicoes/${election.id}`} className={row}>
+            <span className={`${kicker} block`}>Quem ganhou as últimas legislativas</span>
+            <span className="mt-1 flex items-baseline gap-2">
+              <span aria-hidden="true" className="size-2.5 shrink-0 self-center rounded-full" style={{ backgroundColor: election.color }} />
+              <span className="min-w-0 flex-1 font-bold leading-snug">{election.winner}</span>
+              {election.pct && <span className="shrink-0 font-mono text-sm font-bold tabular-nums">{election.pct}</span>}
+            </span>
+            <span className="mt-1 block text-xs leading-snug text-muted">
+              {election.name}
+              {election.mandates !== null &&
+                `: ${election.mandates} de ${election.total} deputados, ${
+                  election.mandates >= majority(election.total)
+                    ? "com maioria absoluta"
+                    : `sem maioria absoluta, que exige ${majority(election.total)}`
+                }`}
+            </span>
+          </Link>
+        )}
+        {parliament && needed !== null && (
+          <Link href="/parlamento" className={row}>
+            <span className="flex items-baseline justify-between gap-2">
+              <span className={kicker}>Parlamento hoje</span>
+              <span className="font-mono text-xs text-muted">{parliament.total} deputados</span>
+            </span>
+            {/* The seats left to right, with a tick where a majority starts. */}
+            <span aria-hidden="true" className="relative mt-2 flex h-3 overflow-hidden rounded-full">
+              {parliament.groups.map((group) => (
+                <span key={group.acronym} style={{ width: `${(group.seats / parliament.total) * 100}%`, backgroundColor: group.color }} />
+              ))}
+              <span className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-[var(--ink)]" />
+            </span>
+            <span className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs">
+              {top.slice(0, 4).map((group) => (
+                <span key={group.acronym} className="inline-flex items-center gap-1">
+                  <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: group.color }} />
+                  <span className="font-bold">{group.acronym}</span> {group.seats}
+                </span>
+              ))}
+              {top.length > 4 && <span className="text-muted">+{top.length - 4} partidos</span>}
+            </span>
+            <span className="mt-1 block text-xs text-muted">Maioria a partir de {needed} deputados</span>
+          </Link>
+        )}
+        {figures.length > 0 && (
+          <ul className="grid grid-cols-3 gap-2 pt-3">
+            {figures.map((item) => (
+              <li key={item.label}>
+                <Link href={item.href} className="-mx-1 block rounded-lg px-1 py-1 hover:bg-surface">
+                  <span className="flex items-center gap-1.5 font-mono text-base font-bold tabular-nums">
+                    <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.value}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted">{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

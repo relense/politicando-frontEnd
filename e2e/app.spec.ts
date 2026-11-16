@@ -138,11 +138,24 @@ test("parties page: the seated parties with their leader and seats, then the res
   await noSeriousA11yIssues(page);
 });
 
-test("news have no party column: the party filter sits above the feed, the blog and figures beside it", async ({ page }) => {
+test("news have no party column: the party filter sits above the feed, the blog and figures beside it", async ({ page, isMobile }) => {
   await page.goto("/");
   // No party column: the only column beside the news is the blog box and the figures.
   await expect(page.locator("aside")).toHaveCount(1);
-  await expect(page.getByRole("complementary", { name: "Ao lado das notícias" }).getByRole("link", { name: /Filtrar|PSD/ })).toHaveCount(0);
+  const beside = page.getByRole("complementary", { name: "Ao lado das notícias" });
+  await expect(beside.locator('a[href^="/partido/"]')).toHaveCount(0);
+  // Who holds power, in plain words: the President, the Prime Minister, who won and how Parliament is split.
+  // The column only shows on wide screens.
+  if (!isMobile) {
+    const power = beside.getByRole("region", { name: "Agora no poder" });
+    await expect(power.getByRole("link", { name: /Presidente da República/ })).toHaveAttribute("href", "/presidente");
+    await expect(power.getByRole("link", { name: /Primeiro-Ministro/ })).toHaveAttribute("href", "/governo");
+    await expect(power.getByRole("link", { name: /Quem ganhou as últimas legislativas/ })).toHaveAttribute(
+      "href",
+      /^\/eleicoes\/legislativas-/,
+    );
+    await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
+  }
   const filter = page.getByRole("navigation", { name: "Filtrar por partido" });
   await expect(filter.getByRole("link", { name: "Todas" })).toHaveAttribute("aria-current", "page");
   // Party pages have no filter row: they are reached from the parties page.

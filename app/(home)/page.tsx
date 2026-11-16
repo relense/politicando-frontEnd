@@ -71,7 +71,7 @@ export default async function HomePage({ searchParams }: Props) {
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
           <div className="sticky top-20 flex flex-col gap-4">
             {spotlight && <BlogSpotlight post={spotlight} />}
-            <PowerNow figures={sidebar.power} />
+            <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
           </div>
         </aside>
