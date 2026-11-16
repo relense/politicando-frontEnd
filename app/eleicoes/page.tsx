@@ -289,27 +289,41 @@ function TurnoutBars({ label: title, elections }: { label: string; elections: El
   const label = `${title}, participação: ${points
     .map((point) => `${point.year}${point.second ? " (2.ª volta)" : ""}, ${formatPercent(point.pct)}`)
     .join("; ")}`;
+  // Many elections in a narrow box: thin bars without labels, the latest value up top, the extremes written out below.
+  const latest = points.at(-1)!;
+  const highest = points.reduce((best, point) => (point.pct > best.pct ? point : best));
+  const lowest = points.reduce((best, point) => (point.pct < best.pct ? point : best));
+  const name = (point: (typeof points)[number]) => `${point.year}${point.second ? " (2.ª v.)" : ""}`;
+  // From a little under the lowest value, so the rises and falls show; the exact figures are in the text.
+  const floor = Math.max(0, Math.floor(lowest.pct / 10) * 10 - 10);
   return (
     <figure>
-      <figcaption className="mb-1.5 font-mono text-[11px] font-bold">{title}</figcaption>
-      <div role="img" aria-label={label} className="flex items-end gap-1">
-        {points.map((point, index) => (
-          <div
-            key={point.id}
-            aria-hidden="true"
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted"
-          >
-            <span className={index === points.length - 1 ? "font-bold text-ink" : ""}>{formatPercent(point.pct)}</span>
+      <figcaption className="mb-1.5 flex items-baseline justify-between gap-2">
+        <span className="font-mono text-[11px] font-bold">{title}</span>
+        <span className="whitespace-nowrap font-mono text-[11px] text-muted">
+          <span className="text-sm font-bold text-ink">{formatPercent(latest.pct)}</span> em {name(latest)}
+        </span>
+      </figcaption>
+      <div role="img" aria-label={label}>
+        <div aria-hidden="true" className="flex h-10 items-end gap-px">
+          {points.map((point, index) => (
             <span
-              className={`w-5 rounded-sm ${index === points.length - 1 ? "bg-ink" : "bg-muted/50"}`}
-              style={{ height: `${Math.max(4, ((point.pct - 20) / 60) * 36)}px` }}
+              key={point.id}
+              title={`${name(point)}: ${formatPercent(point.pct)}`}
+              className={`min-w-0 flex-1 rounded-t-sm ${index === points.length - 1 ? "bg-ink" : point.second ? "bg-muted/30" : "bg-muted/55"}`}
+              style={{ height: `${Math.max(8, ((point.pct - floor) / (100 - floor)) * 100)}%` }}
             />
-            <span className="leading-tight">
-              {point.year}
-              {point.second && <span className="block text-center">2.ª v.</span>}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div aria-hidden="true" className="mt-1 flex justify-between font-mono text-[10px] text-muted">
+          <span>{points[0]!.year}</span>
+          <span>{latest.year}</span>
+        </div>
+        {points.length > 2 && (
+          <p aria-hidden="true" className="mt-1 font-mono text-[10px] text-muted">
+            Máx. {formatPercent(highest.pct)} ({name(highest)}) · mín. {formatPercent(lowest.pct)} ({name(lowest)})
+          </p>
+        )}
       </div>
     </figure>
   );
