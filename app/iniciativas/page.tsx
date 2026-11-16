@@ -359,7 +359,7 @@ function TopicBars({ topics, filters }: { topics: TopicCount[]; filters: Filters
 function SearchBar({ filters }: { filters: Filters }) {
   const keep = { tema: filters.topic, fase: filters.stage, ordem: filters.oldest ? "antigas" : null };
   const order = (oldest: boolean) =>
-    `h-10 rounded-full border px-3 font-mono text-xs font-bold ${filters.oldest === oldest ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
+    `inline-flex h-10 items-center rounded-full border px-4 font-mono text-xs font-bold ${filters.oldest === oldest ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <form action="/iniciativas" role="search" className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
@@ -369,7 +369,7 @@ function SearchBar({ filters }: { filters: Filters }) {
           name="q"
           defaultValue={filters.q ?? ""}
           maxLength={100}
-          placeholder="Palavras do título ou o número, por exemplo «rendas»"
+          placeholder="Título ou número, ex.: «rendas»"
           aria-label="Procurar iniciativas"
           className="h-10 min-w-0 flex-1 rounded-full border border-line bg-paper px-4 text-sm"
         />

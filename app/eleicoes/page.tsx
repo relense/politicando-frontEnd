@@ -210,7 +210,12 @@ function Featured({ election, result, parties }: { election: Election; result: E
 function TurnoutBars({ elections }: { elections: Election[] }) {
   const points = elections
     .filter((election) => election.imported && election.turnout?.turnoutPct != null)
-    .map((election) => ({ year: election.date.slice(0, 4), pct: election.turnout!.turnoutPct! }))
+    // Presidenciais can have two rounds in one year: the second says so.
+    .map((election) => ({
+      id: election.id,
+      year: `${election.date.slice(0, 4)}${election.round === 2 ? " 2.ª" : ""}`,
+      pct: election.turnout!.turnoutPct!,
+    }))
     .reverse();
   if (points.length < 2) return null;
   const label = `Participação ao longo do tempo: ${points.map((point) => `${point.year}, ${formatPercent(point.pct)}`).join("; ")}`;
@@ -219,7 +224,7 @@ function TurnoutBars({ elections }: { elections: Election[] }) {
       <figcaption className="mb-1 font-mono text-[11px] text-muted">Participação ao longo do tempo</figcaption>
       <div role="img" aria-label={label} className="flex items-end gap-1.5">
         {points.map((point, index) => (
-          <div key={point.year} aria-hidden="true" className="flex w-9 flex-col items-center gap-1 font-mono text-[10px] text-muted">
+          <div key={point.id} aria-hidden="true" className="flex min-w-9 flex-col items-center gap-1 whitespace-nowrap font-mono text-[10px] text-muted">
             <span>{formatPercent(point.pct)}</span>
             <span
               className={`w-5 rounded-sm ${index === points.length - 1 ? "bg-ink" : "bg-muted/50"}`}

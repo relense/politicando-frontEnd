@@ -35,7 +35,7 @@ export default async function ParliamentPage({ searchParams }: Props) {
         : null;
   const updated = formatDate(parliament?.updatedAt);
   const header = (
-    <header className="mb-3">
+    <header key="header" className="mb-3">
       <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
         Assembleia da República
         {parliament && ` · ${parliament.legislature} Legislatura`}
