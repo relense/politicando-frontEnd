@@ -259,6 +259,9 @@ export const governmentMemberDetailSchema = z.object({
   bio: list(z.string()),
   links: list(z.object({ network: z.string(), url: z.string() })),
   inOffice: z.boolean(),
+  party: z.string().nullish(),
+  partySource: z.string().nullish(),
+  independent: z.boolean().nullish(),
   deputy: z.object({ id: z.number(), name: z.string(), party: z.string().nullish() }).nullish(),
   positions: list(
     z.object({

@@ -106,6 +106,9 @@ export function governmentMember(
     bio: [`${found.name} é uma pessoa fictícia, usada nos dados de teste.`, "Licenciatura e percurso profissional de exemplo."],
     links: found.kind === "prime_minister" ? [{ network: "X", url: "https://x.com/exemplo" }] : [],
     inOffice,
+    party: found.party,
+    partySource: found.partySource,
+    independent: false,
     deputy: found.deputyId ? { id: found.deputyId, name: found.name, party: found.party } : null,
     positions: [
       {

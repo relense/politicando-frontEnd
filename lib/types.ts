@@ -251,6 +251,10 @@ export type GovernmentMemberDetail = {
   bio: string[];
   links: { network: string; url: string }[];
   inOffice: boolean;
+  /** Null when unknown; see GovernmentMember. */
+  partySlug: string | null;
+  partySource: "deputy" | "curated" | null;
+  independent: boolean;
   deputy: { id: number; name: string; partySlug: string | null } | null;
   positions: {
     title: string;

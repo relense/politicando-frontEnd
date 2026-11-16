@@ -354,6 +354,9 @@ export function mapGovernmentMemberDetail(member: ApiGovernmentMemberDetail): Go
       return url ? [{ network: link.network, url }] : [];
     }),
     inOffice: member.inOffice,
+    partySlug: member.party ?? member.deputy?.party ?? null,
+    partySource: member.partySource === "deputy" || member.partySource === "curated" ? member.partySource : null,
+    independent: member.independent ?? false,
     deputy: member.deputy ? { id: member.deputy.id, name: member.deputy.name, partySlug: member.deputy.party ?? null } : null,
     positions: member.positions.map((position) => ({
       title: position.title,
