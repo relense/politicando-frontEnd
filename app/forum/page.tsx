@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { BoardBadge } from "@/components/forum/BoardBadge";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ApiError } from "@/lib/api/client";
-import { getBoards, type Board } from "@/lib/api/forums";
+import { getBoards, IDEAS_BOARD, type Board } from "@/lib/api/forums";
 import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -26,7 +26,9 @@ async function loadBoards(): Promise<Board[]> {
 export default async function ForumIndexPage() {
   await connection();
   const boards = await loadBoards();
-  const general = boards.filter((board) => board.acronym === null);
+  // Ideas for the site have their own page, with votes.
+  const general = boards.filter((board) => board.acronym === null && board.board !== IDEAS_BOARD);
+  const hasIdeas = boards.some((board) => board.board === IDEAS_BOARD);
   const parties = boards.filter((board) => board.acronym !== null);
 
   return (
@@ -47,6 +49,14 @@ export default async function ForumIndexPage() {
       ) : (
         <>
           {general.length > 0 && <BoardList boards={general} label="Fórum geral" featured />}
+          {hasIdeas && (
+            <p className="mt-4 text-sm text-muted">
+              Tens uma ideia para o site?{" "}
+              <Link href="/feedback/ideias" className="font-bold text-link underline">
+                Propõe-a e vota nas outras →
+              </Link>
+            </p>
+          )}
           {parties.length > 0 && (
             <section aria-labelledby="partidos" className="mt-10">
               <h2 id="partidos" className="mb-4 font-mono text-sm font-bold uppercase tracking-widest text-muted">

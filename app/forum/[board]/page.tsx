@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { BoardBadge } from "@/components/forum/BoardBadge";
 import { NewThreadForm } from "@/components/forum/NewThreadForm";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ApiError, getArticle, getInitiative } from "@/lib/api/client";
-import { getBoards, getThreads, posterName, type Board, type ThreadLink, type ThreadSort } from "@/lib/api/forums";
+import { getBoards, getThreads, IDEAS_BOARD, posterName, type Board, type ThreadLink, type ThreadSort } from "@/lib/api/forums";
 import { partyPath } from "@/lib/parties";
 
 const PAGE_SIZE = 25;
@@ -35,6 +35,8 @@ function pathOf(board: string, sort: string, page = 1) {
 
 async function loadBoard(slug: string): Promise<Board> {
   if (!/^[a-z0-9-]{1,50}$/.test(slug)) notFound();
+  // Ideas have their own page, with votes.
+  if (slug === IDEAS_BOARD) redirect("/feedback/ideias");
   const board = (await getBoards().catch(() => [])).find((item) => item.board === slug);
   if (!board) notFound();
   return board;

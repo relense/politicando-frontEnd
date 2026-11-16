@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { ThreadView } from "@/components/forum/ThreadView";
 import { ApiError } from "@/lib/api/client";
-import { getBoards, getThread, type ThreadDetail } from "@/lib/api/forums";
+import { getBoards, getThread, IDEAS_BOARD, type ThreadDetail } from "@/lib/api/forums";
 
 type Props = { params: Promise<{ board: string; id: string }> };
 
@@ -35,6 +35,7 @@ export default async function ThreadPage({ params }: Props) {
   const detail = await loadThread(id);
   const { thread } = detail;
   // An old or edited link: send it to the board the thread is really on.
+  if (thread.board === IDEAS_BOARD) redirect(`/feedback/ideias/${thread.id}`);
   if (thread.board !== board) redirect(`/forum/${thread.board}/${thread.id}`);
   const boardInfo = (await getBoards().catch(() => [])).find((item) => item.board === thread.board);
   const boardLabel = boardInfo?.acronym ?? boardInfo?.name ?? thread.board;

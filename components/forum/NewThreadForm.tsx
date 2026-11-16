@@ -14,12 +14,30 @@ type Props = {
   boardName: string;
   /** What the thread will be about, when the reader came from an article or an initiative. */
   link: { kind: "article" | "initiative"; id: number; title: string } | null;
+  /** Words for other uses of the form, such as proposing an idea. */
+  heading?: string;
+  bodyLabel?: string;
+  titlePlaceholder?: string;
+  bodyPlaceholder?: string;
+  submitLabel?: string;
+  /** Where the new thread opens: this path, then its id. A string, since a server page renders this form. */
+  threadBase?: string;
 };
 
 const inputClass =
   "w-full rounded-lg border border-line bg-paper px-3 py-2 text-ink placeholder:text-muted focus:border-ink focus:outline-none";
 
-export function NewThreadForm({ board, boardName, link }: Props) {
+export function NewThreadForm({
+  board,
+  boardName,
+  link,
+  heading = `Nova discussão em ${boardName}`,
+  bodyLabel = "Texto",
+  titlePlaceholder,
+  bodyPlaceholder,
+  submitLabel = "Publicar discussão",
+  threadBase = `/forum/${board}`,
+}: Props) {
   const id = useId();
   const router = useRouter();
   const captcha = useRef<CaptchaHandle>(null);
@@ -54,7 +72,7 @@ export function NewThreadForm({ board, boardName, link }: Props) {
         captchaToken,
       });
       rememberPosterId(created.id, created.posterId);
-      router.push(`/forum/${board}/${created.id}`);
+      router.push(`${threadBase}/${created.id}`);
     } catch (failure) {
       setError(forumErrorMessage(failure));
       setSending(false);
@@ -67,7 +85,7 @@ export function NewThreadForm({ board, boardName, link }: Props) {
   return (
     <form onSubmit={submit} noValidate aria-labelledby={`${id}-heading`} className="flex flex-col gap-3 rounded-2xl border border-line p-4">
       <h2 id={`${id}-heading`} className="text-lg font-bold">
-        Nova discussão em {boardName}
+        {heading}
       </h2>
       {attached && (
         <div className="flex items-start justify-between gap-3 rounded-lg bg-surface p-3 text-sm">
@@ -88,19 +106,21 @@ export function NewThreadForm({ board, boardName, link }: Props) {
           id={`${id}-title`}
           value={title}
           maxLength={THREAD_LIMITS.title[1]}
+          placeholder={titlePlaceholder}
           onChange={(event) => setTitle(event.target.value)}
           className={inputClass}
         />
       </div>
       <div>
         <label htmlFor={`${id}-body`} className="mb-1 block font-mono text-xs font-bold">
-          Texto
+          {bodyLabel}
         </label>
         <textarea
           id={`${id}-body`}
           value={body}
           rows={5}
           maxLength={THREAD_LIMITS.body}
+          placeholder={bodyPlaceholder}
           aria-describedby={`${id}-count`}
           onChange={(event) => setBody(event.target.value)}
           className={`${inputClass} resize-y`}
@@ -139,7 +159,7 @@ export function NewThreadForm({ board, boardName, link }: Props) {
           disabled={sending}
           className="rounded-full bg-ink px-5 py-2 font-mono text-sm font-bold text-paper hover:opacity-90 disabled:opacity-60"
         >
-          {sending ? "A publicar…" : "Publicar discussão"}
+          {sending ? "A publicar…" : submitLabel}
         </button>
       </div>
     </form>

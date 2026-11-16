@@ -3,8 +3,9 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { CorrectionList } from "@/components/CorrectionList";
 import { FeedbackForm } from "@/components/FeedbackForm";
-import { IdeaVotes } from "@/components/IdeaVotes";
+import { IdeaCard } from "@/components/forum/IdeaCard";
 import { getFeedbackSummary } from "@/lib/api/feedback";
+import { getThreads, IDEAS_BOARD } from "@/lib/api/forums";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -47,7 +48,11 @@ const NEXT = [
 export default async function FeedbackPage({ searchParams }: Props) {
   await connection();
   const params = await searchParams;
-  const summary = await getFeedbackSummary().catch(() => null);
+  const [summary, ideas] = await Promise.all([
+    getFeedbackSummary().catch(() => null),
+    // The five most voted ideas; null while the board isn't there.
+    getThreads(IDEAS_BOARD, { sort: "top", limit: 5 }).catch(() => null),
+  ]);
   const page = PAGES.find((name) => name === first(params.pagina)) ?? null;
   const link = first(params.ligacao);
 
@@ -65,7 +70,12 @@ export default async function FeedbackPage({ searchParams }: Props) {
 
       <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <FeedbackForm pages={PAGES} initialPage={page} initialUrl={link?.startsWith("http") || link?.startsWith("/") ? link : null} />
+          <FeedbackForm
+            pages={PAGES}
+            ideasOpen={ideas !== null}
+            initialPage={page}
+            initialUrl={link?.startsWith("http") || link?.startsWith("/") ? link : null}
+          />
         </div>
 
         <aside aria-label="Depois de enviares" className="flex flex-col gap-4 xl:sticky xl:top-20">
@@ -123,13 +133,28 @@ export default async function FeedbackPage({ searchParams }: Props) {
             </section>
           )}
 
-          {summary && summary.ideas.length > 0 && (
+          {ideas && (
             <section aria-labelledby="ideias" className="rounded-2xl border border-line p-4">
-              <h2 id="ideias" className="font-mono text-xs font-bold uppercase tracking-widest">
-                Ideias mais pedidas
-              </h2>
+              <div className="mb-1 flex items-baseline justify-between gap-2">
+                <h2 id="ideias" className="font-mono text-xs font-bold uppercase tracking-widest">
+                  Ideias mais votadas
+                </h2>
+                <Link href="/feedback/ideias" className="font-mono text-[11px] underline hover:text-ink">
+                  Ver todas
+                </Link>
+              </div>
               <p className="mb-3 text-xs text-muted">Vota no que queres ver a seguir.</p>
-              <IdeaVotes ideas={summary.ideas} />
+              {ideas.items.length === 0 ? (
+                <p className="text-sm text-muted">Ainda não há ideias. Propõe a primeira.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {ideas.items.map((idea) => (
+                    <li key={idea.id}>
+                      <IdeaCard idea={idea} compact />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
         </aside>

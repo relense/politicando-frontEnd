@@ -16,6 +16,11 @@ type MockThread = {
   pinned: boolean;
   locked: boolean;
   link: { article: { id: number; title: string } | null; initiative: { id: number; title: string } | null } | null;
+  /** Only on the ideas board: upvotes, and what the team decided. */
+  score?: number;
+  status?: "reviewing" | "planned" | "in_progress" | "done" | "declined" | null;
+  answer?: string | null;
+  answeredAt?: string | null;
 };
 type MockPost = {
   id: number;
@@ -30,13 +35,61 @@ type MockPost = {
 
 const BOARDS = [
   { board: "geral", name: "Geral", acronym: null as string | null },
+  { board: "ideias", name: "Ideias", acronym: null as string | null },
   ...parties.map((p) => ({ board: p.slug, name: p.name, acronym: p.acronym })),
 ];
 
 const hoursAgo = (hours: number) => new Date(Date.UTC(2026, 10, 15, 12) - hours * 3_600_000).toISOString();
 
 /** Fictional posters; the IDs are made up, as the real ones are derived from the IP. */
+const idea = (
+  id: number,
+  title: string,
+  body: string,
+  score: number,
+  status: MockThread["status"],
+  hours: number,
+  answer: string | null = null,
+) => ({
+  id,
+  board: "ideias",
+  title,
+  body,
+  nickname: null,
+  posterId: `Idea${String(id).padStart(4, "0")}`,
+  createdAt: hoursAgo(hours),
+  bumpedAt: hoursAgo(hours / 2),
+  pinned: false,
+  locked: false,
+  link: null,
+  score,
+  status,
+  answer,
+  answeredAt: answer ? hoursAgo(hours / 3) : null,
+});
+
 const threads: MockThread[] = [
+  idea(
+    501,
+    "Alertas quando um deputado do meu distrito vota",
+    "Gostava de receber um aviso quando os deputados do meu círculo votam uma lei.",
+    214,
+    "in_progress",
+    400,
+    "Estamos a fazer: primeiro por email, depois no telemóvel.",
+  ),
+  idea(502, "Comparar dois partidos lado a lado", "Escolher dois partidos e ver como votaram nas mesmas leis.", 158, "planned", 300),
+  idea(503, "Modo de leitura sem imagens", "Para poupar dados no telemóvel.", 97, "reviewing", 120),
+  idea(
+    504,
+    "Filtrar a agenda pelo meu concelho",
+    "Ver só os eventos perto de mim.",
+    61,
+    "done",
+    600,
+    "Feito: a agenda já filtra por distrito.",
+  ),
+  idea(505, "Exportar votações em CSV", "Para quem quer fazer as próprias contas.", 12, null, 5),
   {
     id: 7,
     board: "geral",
@@ -144,7 +197,7 @@ const posts: MockPost[] = [
   },
 ];
 
-let nextThreadId = 500;
+let nextThreadId = 600;
 let nextPostId = 900;
 
 const fail = (status: number, code: string) => HttpResponse.json({ error: { code, message: code } }, { status });
@@ -223,15 +276,16 @@ export const forumHandlers = [
     const sort = query.get("sort") ?? "active";
     const page = Number(query.get("page") ?? 1);
     const limit = Number(query.get("limit") ?? 25);
+    const status = query.get("status");
     const own = threads
-      .filter((thread) => thread.board === params.board)
+      .filter((thread) => thread.board === params.board && (!status || thread.status === status))
       .sort(
         (a, b) =>
           Number(b.pinned) - Number(a.pinned) ||
           (sort === "new"
             ? b.createdAt.localeCompare(a.createdAt)
             : sort === "top"
-              ? replyCount(b) - replyCount(a) || b.bumpedAt.localeCompare(a.bumpedAt)
+              ? (b.score ?? 0) - (a.score ?? 0) || replyCount(b) - replyCount(a) || b.bumpedAt.localeCompare(a.bumpedAt)
               : b.bumpedAt.localeCompare(a.bumpedAt)),
       );
     return HttpResponse.json({ items: own.slice((page - 1) * limit, page * limit).map(summary), total: own.length });
@@ -256,6 +310,7 @@ export const forumHandlers = [
       bumpedAt: now,
       pinned: false,
       locked: false,
+      ...(params.board === "ideias" ? { score: 0, status: null, answer: null, answeredAt: null } : {}),
       link:
         articleId || initiativeId
           ? {
@@ -291,6 +346,15 @@ export const forumHandlers = [
     });
     thread.bumpedAt = now;
     return HttpResponse.json({ id, posterId }, { status: 201 });
+  }),
+
+  // One vote per reader; the real API dedupes by a hash of the IP. Here every vote counts, which tests need.
+  http.post(`${API}/forums/threads/:id/vote`, ({ params }) => {
+    const thread = threads.find((item) => item.id === Number(params.id));
+    if (!thread) return fail(404, "not_found");
+    if (thread.board !== "ideias") return fail(400, "votes_not_allowed");
+    thread.score = (thread.score ?? 0) + 1;
+    return HttpResponse.json({ score: thread.score });
   }),
 
   http.post(`${API}/reports`, async ({ request }) => {
