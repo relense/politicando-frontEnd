@@ -100,15 +100,12 @@ export default async function ContractsPage({ searchParams }: Props) {
   const supplier = nif(first(params.fornecedor));
   const query: ContractQuery = { procedure: filter.procedure, q, place, entity, supplier, sort, limit: 20 };
 
-  let procedures;
-  try {
-    procedures = await getProcedureTotals({ place });
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return <ComingSoon />;
-    throw error;
-  }
-
-  const [name, years, entities, suppliers, municipalities, page] = await Promise.all([
+  // All at once: the totals no longer hold up the rest. A 404 on them means the API has no contracts yet.
+  const [totals, name, years, entities, suppliers, municipalities, page] = await Promise.all([
+    getProcedureTotals({ place }).then(
+      (value) => ({ value, error: null }),
+      (error: unknown) => ({ value: null, error }),
+    ),
     placeName(place),
     getContractStats("year", { place }).catch(() => null),
     getContractStats("entity", { place, limit: 8 }).catch(() => null),
@@ -116,6 +113,9 @@ export default async function ContractsPage({ searchParams }: Props) {
     place ? Promise.resolve(null) : getContractStats("municipality", { limit: 8 }).catch(() => null),
     getContracts(query).catch(() => null),
   ]);
+  if (totals.error instanceof ApiError && totals.error.status === 404) return <ComingSoon />;
+  if (totals.error) throw totals.error;
+  const procedures = totals.value!;
 
   const direct = directAwardTotals(procedures);
   const scale = eurosScale(direct.total);

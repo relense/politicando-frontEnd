@@ -466,7 +466,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
   const topics = post.tags.filter((tag) => !partyOf(tag));
   const subtype = topics[0];
   return (
-    <article className="grid gap-x-8 gap-y-4 border-b border-line py-5 sm:grid-cols-[minmax(0,1fr)_11rem]">
+    <article className="relative -mx-3 grid gap-x-8 gap-y-4 rounded-2xl border-b border-line px-3 py-5 transition-colors hover:border-transparent hover:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] focus-within:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] sm:grid-cols-[minmax(0,1fr)_11rem]">
       <div className="min-w-0">
         <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
           <span
@@ -489,13 +489,14 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
           )}
         </p>
         <h3 className="text-xl font-bold leading-snug sm:text-2xl">
-          <Link href={href} className="hover:underline">
+          {/* The whole card opens the post; the links on it stay on top. */}
+          <Link href={href} className="after:absolute after:inset-0 after:rounded-2xl">
             {post.title}
           </Link>
         </h3>
         {post.subtitle && <p className="mt-2 leading-relaxed text-muted">{post.subtitle}</p>}
         {(partyTags.length > 0 || topics.length > 0) && (
-          <ul aria-label="Temas" className="mt-3 flex flex-wrap gap-1.5">
+          <ul aria-label="Temas" className="relative z-10 mt-3 flex w-fit flex-wrap gap-1.5">
             {partyTags.map((party) => (
               <li key={party.slug}>
                 <Link
@@ -527,7 +528,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
         <ArticleImage
           src={post.coverImageUrl}
           href={href}
-          className="order-first block aspect-[16/10] overflow-hidden rounded-xl bg-surface sm:order-none"
+          className="relative z-10 order-first block aspect-[16/10] overflow-hidden rounded-xl bg-surface sm:order-none"
           imageClassName="size-full object-cover"
         />
       ) : (
