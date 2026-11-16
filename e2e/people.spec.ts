@@ -49,16 +49,27 @@ test("a Government member's page shows their path", async ({ page }) => {
   await expect(percurso.getByText("atual", { exact: true })).toBeVisible();
 });
 
-test("featured paths link to each person's page", async ({ page }) => {
+test("featured paths: the three top offices, people side by side, and one opened beside the table", async ({ page }) => {
   await page.goto("/percursos");
   await expect(page.getByRole("heading", { level: 1, name: "Como chegaram lá" })).toBeVisible();
-  await expect(
-    page
-      .getByRole("listitem")
-      .filter({ hasText: "Presidente da República" })
-      .getByRole("link", { name: /Ver percurso completo/ }),
-  ).toHaveAttribute("href", "/presidente");
-  await page.getByRole("link", { name: "Henrique Valadares", exact: true }).click();
+  const top = page.getByRole("region", { name: "Os três cargos de topo do Estado" });
+  await expect(top.getByRole("heading", { level: 3 })).toHaveCount(3);
+  await expect(top.getByRole("heading", { level: 3 }).first().getByRole("link")).toHaveAttribute("href", "/presidente");
+
+  // Pressing a person in the table opens their path beside it; the filters and the search narrow the table.
+  const table = page.getByRole("table");
+  const rows = await table.getByRole("row").count();
+  await page.getByRole("button", { name: "Líderes partidários" }).click();
+  await expect(table.getByRole("row")).not.toHaveCount(rows);
+  await page.getByRole("button", { name: "Todos" }).click();
+  const second = table.getByRole("rowheader").nth(1).getByRole("button");
+  const name = (await second.locator(".truncate").first().textContent())!;
+  await second.click();
+  await expect(page.getByRole("complementary", { name: `Percurso de ${name}` })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Procurar uma pessoa" }).fill("zzzz");
+  await expect(page.getByText("Ninguém com esse nome nesta lista.")).toBeVisible();
+
+  await top.getByRole("link", { name: "Henrique Valadares", exact: true }).click();
   await expect(page).toHaveURL(/\/governo\/0+1/);
 });
 
