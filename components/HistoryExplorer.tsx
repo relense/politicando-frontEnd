@@ -48,6 +48,20 @@ function EndBadge({ government }: { government: HistoricalGovernment }) {
   );
 }
 
+/**
+ * Scroll to an anchor on this page without adding a history entry: Next's router does not know entries made by plain
+ * hash links, so Back from another page would change the URL and leave that page on screen.
+ */
+function jump(event: React.MouseEvent<HTMLAnchorElement>) {
+  const target = document.getElementById(event.currentTarget.hash.slice(1));
+  if (!target) return;
+  event.preventDefault();
+  target.scrollIntoView({ behavior: window.matchMedia(MOTION).matches ? "auto" : "smooth", block: "start" });
+}
+
+/** 2020 for the decade of these entries. */
+const decadeYear = (entries: readonly { date: string }[]) => Math.floor(Number(entries.at(-1)!.date.slice(0, 4)) / 10) * 10;
+
 const MOTION = "(prefers-reduced-motion: reduce)";
 const prefersReducedMotion = () => window.matchMedia(MOTION).matches;
 const subscribeMotion = (onChange: () => void) => {
@@ -99,6 +113,20 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
   const matches = (government: HistoricalGovernment) => filter === "all" || groupsOf(government).includes(filter);
   const index = governments.findIndex((item) => item.code === selected);
   const current = governments[index] ?? governments[0]!;
+  const [active, setActive] = useState<string | null>(null);
+  // The decade being read, for the rail beside the timeline.
+  useEffect(() => {
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-decade]")];
+    const observer = new IntersectionObserver(
+      (changes) => {
+        const seen = changes.filter((change) => change.isIntersecting).map((change) => (change.target as HTMLElement).dataset.decade!);
+        if (seen[0]) setActive(seen[0]);
+      },
+      { rootMargin: "-20% 0px -70% 0px" },
+    );
+    for (const section of sections) observer.observe(section);
+    return () => observer.disconnect();
+  }, [filter]);
   const entries = timelineByDecade(governments.filter(matches), filter === "all" ? [...elections, ...presidents] : []);
   const presidentAt = (day: string) => presidents.find((president) => president.date <= day && (president.endDate ?? "9999") > day) ?? null;
   const president = presidentAt(current.start);
@@ -292,54 +320,105 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
             </button>
           ))}
         </div>
-        {entries.map((decade) => {
-          const year = Math.floor(Number(decade.entries.at(-1)!.date.slice(0, 4)) / 10) * 10;
-          return (
-            <section key={decade.label} aria-labelledby={`decada-${decade.label}`} className="mb-8">
-              <h3 id={`decada-${decade.label}`} className="mb-3 text-4xl font-bold tabular-nums">
-                <span className="sr-only">Anos </span>
-                {year}
-              </h3>
-              <ol>
-                {decade.entries.map((entry, position) => {
-                  const year = entry.date.slice(0, 4);
-                  const showYear = position === 0 || decade.entries[position - 1]!.date.slice(0, 4) !== year;
-                  return (
-                    <li
-                      key={
-                        entry.kind === "government" ? entry.government.code : `${entry.event.kind}-${entry.event.date}-${entry.event.title}`
-                      }
-                      id={entry.kind === "government" ? entry.government.code : undefined}
-                      className="grid scroll-mt-24 grid-cols-[3rem_minmax(0,1fr)] sm:grid-cols-[4rem_minmax(0,1fr)]"
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_9rem]">
+          <div className="min-w-0">
+            {entries.map((decade) => {
+              const year = decadeYear(decade.entries);
+              return (
+                <section key={decade.label} aria-labelledby={`decada-${year}`} data-decade={year} className="mb-8">
+                  <h3 id={`decada-${year}`} className="mb-3 scroll-mt-24 text-4xl font-bold tabular-nums">
+                    <span className="sr-only">Anos </span>
+                    {year}
+                  </h3>
+                  <ol>
+                    {decade.entries.map((entry, position) => {
+                      const year = entry.date.slice(0, 4);
+                      const showYear = position === 0 || decade.entries[position - 1]!.date.slice(0, 4) !== year;
+                      return (
+                        <li
+                          key={
+                            entry.kind === "government"
+                              ? entry.government.code
+                              : `${entry.event.kind}-${entry.event.date}-${entry.event.title}`
+                          }
+                          id={entry.kind === "government" ? entry.government.code : undefined}
+                          className="grid scroll-mt-24 grid-cols-[3rem_minmax(0,1fr)] sm:grid-cols-[4rem_minmax(0,1fr)]"
+                        >
+                          <span
+                            id={showYear ? `ano-${year}` : undefined}
+                            className="scroll-mt-24 pt-3 font-mono text-xs font-bold text-muted"
+                          >
+                            {showYear ? year : ""}
+                          </span>
+                          <div className="relative border-l-2 border-line pb-4 pl-5">
+                            {entry.kind === "government" ? (
+                              <>
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute -left-[7px] top-4 size-3 rounded-full ring-4 ring-paper"
+                                  style={{ background: accentOf(entry.government) }}
+                                />
+                                <GovernmentCard government={entry.government} today={today} />
+                              </>
+                            ) : (
+                              <>
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute -left-[5px] top-[18px] size-2 rounded-full border-2 border-muted bg-paper"
+                                />
+                                <EventRow event={entry.event} />
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              );
+            })}
+          </div>
+          <nav
+            aria-label="Ir para"
+            className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto overscroll-contain no-scrollbar lg:block"
+          >
+            <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">Ir para</p>
+            <ol className="space-y-3 border-l-2 border-line">
+              {entries.map((decade) => {
+                const year = decadeYear(decade.entries);
+                const years = [...new Set(decade.entries.map((entry) => entry.date.slice(0, 4)))];
+                const current = active === String(year);
+                return (
+                  <li key={decade.label} className="-ml-0.5 pl-3" style={current ? { boxShadow: "inset 2px 0 0 var(--ink)" } : undefined}>
+                    <a
+                      href={`#decada-${year}`}
+                      onClick={jump}
+                      aria-current={current ? "location" : undefined}
+                      className={`font-mono text-sm font-bold hover:underline ${current ? "" : "text-muted"}`}
                     >
-                      <span className="pt-3 font-mono text-xs font-bold text-muted">{showYear ? year : ""}</span>
-                      <div className="relative border-l-2 border-line pb-4 pl-5">
-                        {entry.kind === "government" ? (
-                          <>
-                            <span
-                              aria-hidden="true"
-                              className="absolute -left-[7px] top-4 size-3 rounded-full ring-4 ring-paper"
-                              style={{ background: accentOf(entry.government) }}
-                            />
-                            <GovernmentCard government={entry.government} today={today} />
-                          </>
-                        ) : (
-                          <>
-                            <span
-                              aria-hidden="true"
-                              className="absolute -left-[5px] top-[18px] size-2 rounded-full border-2 border-muted bg-paper"
-                            />
-                            <EventRow event={entry.event} />
-                          </>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          );
-        })}
+                      {year}
+                    </a>
+                    <p className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                      {years.map((item) => (
+                        <a
+                          key={item}
+                          href={`#ano-${item}`}
+                          onClick={jump}
+                          className="font-mono text-[11px] text-muted hover:text-ink hover:underline"
+                        >
+                          {item}
+                        </a>
+                      ))}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+            <a href="#de-1974" onClick={jump} className="mt-4 block font-mono text-[11px] text-link underline">
+              ↑ Voltar ao início
+            </a>
+          </nav>
+        </div>
       </section>
     </>
   );

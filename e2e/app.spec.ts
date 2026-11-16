@@ -611,6 +611,7 @@ test("history: from the menu to the timeline of governments, and on to the curre
   page,
   isMobile,
 }) => {
+  test.setTimeout(60_000);
   await page.goto("/");
   if (isMobile) {
     await page.getByRole("button", { name: "Abrir menu" }).click();
@@ -648,6 +649,11 @@ test("history: from the menu to the timeline of governments, and on to the curre
   await expect(page.getByRole("region", { name: "Governo a governo" }).getByRole("article")).not.toHaveCount(all);
   await page.getByRole("button", { name: "Todos" }).click();
   await expect(page.getByText("Teresa Albuquerque toma posse como Presidente da República")).toBeVisible();
+  // On wide screens a rail beside the timeline jumps to a decade or a year.
+  if (!isMobile) {
+    await page.getByRole("navigation", { name: "Ir para" }).getByRole("link", { name: "1970", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 3, name: "Anos 1970" })).toBeInViewport();
+  }
   // A kind of event the site doesn't know yet is left out; elections link to their results.
   await expect(page.getByText("Um tipo que o site ainda não conhece")).toHaveCount(0);
   await page
