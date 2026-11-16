@@ -274,6 +274,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/editorial",
     "/editorial/a-maioria-que-nao-existe",
     "/editorial/o-que-muda-no-orcamento",
+    "/editorial/como-se-chega-a-deputado",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
@@ -686,6 +687,12 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await expect(page.locator("iframe")).toHaveCount(0);
   const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
   expect(ld).toMatchObject({ "@type": "OpinionNewsArticle", headline: "A maioria que não existe" });
+
+  // A long explainer: its sections listed and numbered, each a jump to its heading.
+  await page.goto("/editorial/como-se-chega-a-deputado");
+  const contents = page.getByRole("navigation", { name: "Neste artigo" }).filter({ visible: true });
+  await contents.getByRole("link", { name: /Os 22 círculos/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Os 22 círculos" })).toBeInViewport();
 
   await page.goto("/editorial?tipo=podcast");
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);

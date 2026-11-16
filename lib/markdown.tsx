@@ -42,7 +42,12 @@ export function renderMarkdown(source: string, top?: number): ReactNode[] {
     if (heading) {
       const level = Math.min(6, heading[1]!.length - biggest + 2);
       const Tag = `h${level}` as "h2";
-      blocks.push(<Tag key={key()}>{renderInline(heading[2]!.replace(/\s#+\s*$/, ""))}</Tag>);
+      const text = heading[2]!.replace(/\s#+\s*$/, "");
+      blocks.push(
+        <Tag key={key()} id={level === 2 ? headingId(text) : undefined}>
+          {renderInline(text)}
+        </Tag>,
+      );
       index++;
       continue;
     }
@@ -87,9 +92,42 @@ export function renderMarkdown(source: string, top?: number): ReactNode[] {
     while (index < lines.length && lines[index]!.trim() !== "" && !/^(#{1,6}\s|>|```|\s*[-*+]\s|\s*\d+[.)]\s)/.test(lines[index]!)) {
       paragraph.push(lines[index++]!.trim());
     }
-    blocks.push(<p key={key()}>{renderInline(paragraph.join(" "))}</p>);
+    const text = paragraph.join(" ");
+    // "Fonte: …" lines name where a passage comes from: set apart, smaller, so they read as notes.
+    blocks.push(
+      /^Fontes?:/.test(text) ? (
+        <p key={key()} className="post-source">
+          {renderInline(text)}
+        </p>
+      ) : (
+        <p key={key()}>{renderInline(text)}</p>
+      ),
+    );
   }
   return blocks;
+}
+
+/** "quem-pode-ser-deputado" from "Quem pode ser deputado": an anchor for a section. */
+export function headingId(text: string): string {
+  return plainText(text)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** The post's top-level sections, for a table of contents: the headings that render as h2. */
+export function sectionsOf(source: string): { id: string; title: string }[] {
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const headings = lines.flatMap((line) => {
+    const match = line.match(/^(#{1,6})\s+(.*)$/);
+    return match ? [{ level: match[1]!.length, text: match[2]!.replace(/\s#+\s*$/, "") }] : [];
+  });
+  const biggest = Math.min(...headings.map((heading) => heading.level));
+  return headings
+    .filter((heading) => heading.level === biggest)
+    .map((heading) => ({ id: headingId(heading.text), title: plainText(heading.text) }));
 }
 
 /** Inline marks, earliest first: code, images, links, bold, italic. */

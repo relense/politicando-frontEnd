@@ -157,9 +157,57 @@ article[id^="comentario-"]:target {
   margin-top: 0.4em;
 }
 .post-body blockquote {
-  border-left: 3px solid var(--ink);
-  padding-left: 1em;
+  border-left: 3px solid var(--stage-debate);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: color-mix(in srgb, var(--stage-debate) 8%, transparent);
+  padding: 0.75em 1em;
   font-style: italic;
+}
+/* Long-form posts: each section numbered "01", "02"… above its heading, and a drop cap to open. */
+.post-body--long {
+  counter-reset: section;
+}
+.post-body--long h2 {
+  counter-increment: section;
+  margin-top: 2.5em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 6rem;
+}
+.post-body--long h2::before {
+  content: counter(section, decimal-leading-zero);
+  display: block;
+  margin-bottom: 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--stage-debate);
+}
+.post-body--long > p:first-child::first-letter {
+  float: left;
+  margin: 0.08em 0.12em 0 0;
+  font-size: 3.6em;
+  font-weight: 700;
+  line-height: 0.85;
+  color: var(--stage-debate);
+}
+.post-body .post-source {
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.5em 0.85em;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.post-body .post-source::before {
+  content: "§";
+  font-weight: 700;
+  color: var(--stage-debate);
 }
 .post-body code {
   font-family: var(--font-mono);
