@@ -23,7 +23,10 @@ export function ArticleSidebar({
   context: ArticleContext | null;
 }) {
   return (
-    <aside aria-label="Sobre esta notícia" className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
+    <aside
+      aria-label="Sobre esta notícia"
+      className="no-scrollbar flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overscroll-contain xl:pb-2"
+    >
       <section aria-labelledby="partidos-noticia" className={box}>
         <h2 id="partidos-noticia" className={label}>
           {parties.length > 0 ? "Partidos nesta notícia" : "Discutir"}

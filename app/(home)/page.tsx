@@ -105,7 +105,7 @@ export default async function HomePage({ searchParams }: Props) {
           <Feed key={`${party?.slug ?? "todas"}|${q}|${source}`} initialPage={page} partySlug={party?.slug} q={q} source={source} />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
-          <div className="sticky top-20 flex flex-col gap-4">
+          <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overscroll-contain pb-2">
             {spotlight && <BlogSpotlight post={spotlight} />}
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />

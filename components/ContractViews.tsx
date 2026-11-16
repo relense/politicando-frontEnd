@@ -14,73 +14,78 @@ export function PartyName({ party }: { party: ContractParty }) {
   );
 }
 
-const TONE = {
-  open: "border-line bg-paper text-ink",
-  limited: "border-ink bg-ink text-paper",
-  other: "border-line bg-surface text-muted",
-};
+/** The colour of each kind of procedure, the same in the bars, the table and the badges. */
+export const COMPETITION_COLOR = {
+  open: "var(--stage-law)",
+  limited: "var(--stage-stopped)",
+  other: "var(--stage-submitted)",
+} as const;
 
 export function ProcedureBadge({ kind, label }: { kind: string; label: string }) {
+  const color = COMPETITION_COLOR[competitionOf(kind)];
   return (
-    <span className={`inline-block rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${TONE[competitionOf(kind)]}`}>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[11px] font-bold"
+      style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)` }}
+    >
+      <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
       {label}
     </span>
   );
 }
 
-/** One contract in a list: what was bought, for how much, by whom and from whom. */
+const names = (parties: ContractParty[]) =>
+  parties.map((party, index) => (
+    <span key={`${party.nif}-${index}`}>
+      {index > 0 && ", "}
+      <PartyName party={party} />
+    </span>
+  ));
+
+/** One contract in a list: what was bought, by whom and from whom on the left; the price and the source on the right. */
 export function ContractItem({ contract }: { contract: ContractSummary }) {
   return (
-    <li className="rounded-2xl border border-line p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <ProcedureBadge kind={contract.procedure.kind} label={contract.procedure.label} />
-        <span className="font-mono text-xs text-muted">{formatDate(contract.publishedAt ?? contract.signedAt)}</span>
+    <li className="grid gap-4 rounded-2xl border border-line p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <ProcedureBadge kind={contract.procedure.kind} label={contract.procedure.label} />
+          <span className="font-mono text-xs text-muted">{formatDate(contract.publishedAt ?? contract.signedAt)}</span>
+        </div>
+        <h3 className="mt-2 break-words font-bold leading-snug">
+          <Link href={`/contratos/${contract.id}`} className="hover:underline">
+            {contract.object}
+          </Link>
+        </h3>
+        <dl className="mt-2 grid gap-1 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-3">
+          {contract.entities.length > 0 && (
+            <>
+              <dt className="font-mono text-[11px] uppercase tracking-wider text-muted sm:pt-0.5">Quem contratou</dt>
+              <dd className="min-w-0 break-words">{names(contract.entities)}</dd>
+            </>
+          )}
+          <dt className="font-mono text-[11px] uppercase tracking-wider text-muted sm:pt-0.5">Adjudicado a</dt>
+          <dd className="min-w-0 break-words">{contract.suppliers.length === 0 ? "Não publicado" : names(contract.suppliers)}</dd>
+        </dl>
       </div>
-      <h3 className="mt-2 break-words font-bold leading-snug">
-        <Link href={`/contratos/${contract.id}`} className="hover:underline">
-          {contract.object}
-        </Link>
-      </h3>
-      <p className="mt-1 text-lg font-bold tabular-nums">
-        {contract.price === null ? "Preço não publicado" : formatEuros(contract.price)}
-        {contract.price !== null && <span className="ml-1 font-mono text-xs font-normal text-muted">sem IVA</span>}
-      </p>
-      <dl className="mt-2 grid gap-1 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-3">
-        {contract.entities.length > 0 && (
-          <>
-            <dt className="font-mono text-xs text-muted sm:pt-0.5">Quem contratou</dt>
-            <dd className="min-w-0 break-words">
-              {contract.entities.map((party, index) => (
-                <span key={`${party.nif}-${index}`}>
-                  {index > 0 && ", "}
-                  <PartyName party={party} />
-                </span>
-              ))}
-            </dd>
-          </>
+      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-start">
+        <p className="text-right">
+          <span className="block text-xl font-bold tabular-nums">
+            {contract.price === null ? "Preço não publicado" : formatEuros(contract.price)}
+          </span>
+          {contract.price !== null && <span className="block font-mono text-[11px] text-muted">sem IVA</span>}
+        </p>
+        {contract.baseUrl && (
+          <a
+            href={contract.baseUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg border border-line px-2.5 py-1 font-mono text-[11px] font-bold hover:bg-surface"
+          >
+            Ver no BASE <span aria-hidden="true">↗</span>
+            <span className="sr-only"> (abre noutra janela)</span>
+          </a>
         )}
-        <dt className="font-mono text-xs text-muted sm:pt-0.5">Adjudicado a</dt>
-        <dd className="min-w-0 break-words">
-          {contract.suppliers.length === 0
-            ? "Não publicado"
-            : contract.suppliers.map((party, index) => (
-                <span key={`${party.nif}-${index}`}>
-                  {index > 0 && ", "}
-                  <PartyName party={party} />
-                </span>
-              ))}
-        </dd>
-      </dl>
-      {contract.baseUrl && (
-        <a
-          href={contract.baseUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-block font-mono text-xs text-link underline"
-        >
-          Ver no BASE<span className="sr-only"> (abre noutra janela)</span>
-        </a>
-      )}
+      </div>
     </li>
   );
 }

@@ -143,7 +143,10 @@ export default async function ElectionsPage() {
                 })}
               </div>
             </div>
-            <aside aria-label="Ao lado dos resultados" className="flex flex-col gap-4 self-start xl:sticky xl:top-20">
+            <aside
+              aria-label="Ao lado dos resultados"
+              className="no-scrollbar flex flex-col gap-4 self-start xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:pb-2"
+            >
               {upcoming.length > 0 && <Upcoming elections={upcoming} />}
               <Turnout types={types.map(({ type, label, elections: ofType }) => ({ type, label, elections: ofType }))} />
             </aside>

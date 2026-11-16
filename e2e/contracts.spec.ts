@@ -7,6 +7,9 @@ test("contracts page: counter, procedures, rankings, search and more", async ({ 
   const counter = page.getByRole("region", { name: /Ajustes diretos desde/ });
   await expect(counter).toContainText("contratos sem concorrência aberta");
   await expect(page.getByRole("list", { name: "Procedimentos" }).getByRole("listitem")).toHaveCount(6);
+  // Rankings one tab at a time.
+  await expect(page.getByRole("tabpanel", { name: "Entidades" })).toBeVisible();
+  await page.getByRole("tab", { name: "Concelhos" }).click();
   await expect(page.getByText(/Lisboa e Porto aparecem à frente/)).toBeVisible();
 
   // Ajustes diretos by default, 20 per page, then more.
@@ -33,6 +36,7 @@ test("contracts page: counter, procedures, rankings, search and more", async ({ 
 
 test("contracts in one place, from the municipality ranking", async ({ page }) => {
   await page.goto("/contratos");
+  await page.getByRole("tab", { name: "Concelhos" }).click();
   await page.getByRole("link", { name: "Sintra" }).first().click();
   await expect(page).toHaveURL(/local=LOCAL-111100/);
   await expect(page.getByRole("heading", { level: 1, name: "Contratos públicos em Sintra" })).toBeVisible();
