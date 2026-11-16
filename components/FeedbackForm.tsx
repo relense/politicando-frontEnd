@@ -136,7 +136,7 @@ export function FeedbackForm({
     <form onSubmit={submit} noValidate>
       <fieldset className="mb-8">
         <legend className={`${step} w-full`}>1 · Sobre o quê?</legend>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           {KINDS.map((item) => {
             const chosen = kind === item.key;
             return (
@@ -152,12 +152,12 @@ export function FeedbackForm({
                 <input type="radio" name="kind" value={item.key} checked={chosen} onChange={() => setKind(item.key)} className="sr-only" />
                 <span
                   aria-hidden="true"
-                  className="mb-3 flex size-7 items-center justify-center rounded-lg text-sm font-bold"
+                  className="mb-2 flex size-7 items-center sm:mb-3 justify-center rounded-lg text-sm font-bold"
                   style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 18%, transparent)` }}
                 >
                   {item.icon}
                 </span>
-                <span className="font-bold">{item.title}</span>
+                <span className="text-[15px] font-bold leading-snug sm:text-base">{item.title}</span>
                 <span className="mt-1 text-xs leading-snug text-muted">{item.text}</span>
               </label>
             );

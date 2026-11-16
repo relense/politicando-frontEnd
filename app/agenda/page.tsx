@@ -127,8 +127,8 @@ export default async function AgendaPage({ searchParams }: Props) {
                     ))}
                   </select>
                 </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="aberto" value="1" defaultChecked={filter.open} className="size-4 accent-[var(--ink)]" />
+                <label className="flex min-h-10 cursor-pointer items-center gap-2">
+                  <input type="checkbox" name="aberto" value="1" defaultChecked={filter.open} className="size-5 accent-[var(--ink)]" />
                   Só abertos ao público
                 </label>
                 <button type="submit" className="rounded-full bg-ink px-4 py-1.5 font-bold text-paper hover:opacity-90">
@@ -312,13 +312,23 @@ function AgendaCard({ item }: { item: AgendaItem }) {
               className="rounded-full border border-line px-3 py-1.5 font-bold hover:bg-surface"
             />
             {item.online && (
-              <a href={item.online.url} target="_blank" rel="noopener noreferrer" className="font-bold text-link underline">
+              <a
+                href={item.online.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block py-1.5 font-bold text-link underline"
+              >
                 Ver em direto{item.online.label ? ` · ${item.online.label}` : ""}
                 <span className="sr-only"> (abre num novo separador)</span>
               </a>
             )}
             {item.sourceUrl && (
-              <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted underline hover:text-ink">
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block py-1.5 text-muted underline hover:text-ink"
+              >
                 Fonte<span className="sr-only"> (abre num novo separador)</span>
               </a>
             )}
@@ -375,7 +385,7 @@ function Summary({ summary, title }: { summary: string; title: string }) {
       ))}
       {more.length > 0 || times.length > 0 ? (
         <details className="group">
-          <summary className="mt-1 cursor-pointer list-none font-mono text-xs font-bold text-link underline [&::-webkit-details-marker]:hidden">
+          <summary className="inline-block cursor-pointer list-none py-1.5 font-mono text-xs font-bold text-link underline [&::-webkit-details-marker]:hidden">
             <span className="group-open:hidden">Ver mais{more.length > 0 ? ` (${more.length})` : ""}</span>
             <span className="hidden group-open:inline">Ver menos</span>
           </summary>

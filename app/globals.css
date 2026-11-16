@@ -193,9 +193,8 @@ article[id^="comentario-"]:target {
   color: var(--stage-debate);
 }
 .post-body .post-source {
-  display: flex;
-  gap: 0.5em;
-  align-items: baseline;
+  /* A block, not flex: in a flex box every link and run of text became its own narrow column. */
+  display: block;
   border: 1px solid var(--line);
   border-radius: 0.75rem;
   padding: 0.5em 0.85em;
@@ -206,6 +205,7 @@ article[id^="comentario-"]:target {
 }
 .post-body .post-source::before {
   content: "§";
+  margin-right: 0.5em;
   font-weight: 700;
   color: var(--stage-debate);
 }
@@ -236,6 +236,19 @@ article[id^="comentario-"]:target {
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 1rem;
+  /* A shadow on the side that has more to scroll to; the covers move with the table and hide it at each end. */
+  background:
+    linear-gradient(to right, var(--paper) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--paper) 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--ink) 22%, transparent), transparent) left / 0.75rem 100% no-repeat
+      scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--ink) 22%, transparent), transparent) right / 0.75rem 100% no-repeat
+      scroll;
+}
+@media (max-width: 639px) {
+  .post-body table {
+    font-size: 0.82rem;
+  }
 }
 .post-body .post-table:focus-visible {
   outline: 2px solid var(--ink);

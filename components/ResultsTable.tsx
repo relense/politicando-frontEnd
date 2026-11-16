@@ -32,22 +32,23 @@ export function ResultsTable({ rows, withMandates, compareTo }: { rows: ResultRo
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-line font-mono text-[11px] text-muted">
-            <th scope="col" className="w-8 py-2 font-normal">
+            <th scope="col" className="w-6 py-2 font-normal sm:w-8">
               <span className="sr-only">Posição</span>
             </th>
             <th scope="col" className="py-2 font-normal">
               Lista
             </th>
             {withMandates && (
-              <th scope="col" className="w-16 py-2 sm:w-20 text-right font-normal">
-                Mandatos
+              <th scope="col" className="w-12 py-2 text-right font-normal sm:w-20">
+                <span className="sm:hidden">Mand.</span>
+                <span className="hidden sm:inline">Mandatos</span>
               </th>
             )}
-            <th scope="col" className="w-16 py-2 sm:w-20 text-right font-normal">
+            <th scope="col" className="w-14 py-2 text-right font-normal sm:w-20">
               Votos
             </th>
             {compareTo && (
-              <th scope="col" className="w-16 whitespace-nowrap sm:w-24 py-2 text-right font-normal">
+              <th scope="col" className="w-14 whitespace-nowrap py-2 text-right font-normal sm:w-24">
                 vs {compareTo}
               </th>
             )}
@@ -60,9 +61,9 @@ export function ResultsTable({ rows, withMandates, compareTo }: { rows: ResultRo
           {shown.map((row, index) => (
             <tr key={row.key} className="border-b border-line align-middle">
               <td className="py-3 font-mono text-xs text-muted">{index + 1}</td>
-              <td className="py-3 pr-4">
+              <td className="py-3 pr-2 sm:pr-4">
                 <span className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-bold leading-snug">
+                  <span className="text-[15px] font-bold leading-snug sm:text-base">
                     <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-sm" style={{ backgroundColor: row.color }} />
                     {row.name}
                   </span>
@@ -87,7 +88,7 @@ export function ResultsTable({ rows, withMandates, compareTo }: { rows: ResultRo
                   />
                 </span>
               </td>
-              {withMandates && <td className="py-3 text-right text-2xl font-bold">{row.mandates || "–"}</td>}
+              {withMandates && <td className="py-3 text-right text-xl font-bold sm:text-2xl">{row.mandates || "–"}</td>}
               <td className="py-3 text-right font-mono text-sm font-bold">{row.pct}</td>
               {compareTo && (
                 <td className="whitespace-nowrap py-3 pl-2 text-right font-mono text-xs text-muted">
