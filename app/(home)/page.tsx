@@ -1,4 +1,3 @@
-import { FeedViewToggle } from "@/components/FeedViewToggle";
 import { FEED_VIEW_COOKIE, parseFeedView } from "@/lib/feedViewCookie";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -12,8 +11,7 @@ import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/compo
 import { FeedFilters } from "@/components/FeedFilters";
 import { FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
 import { loadFeed } from "@/lib/api/feed";
-import { getDebatedTags, getToday } from "@/lib/api/stories";
-import { DebatedTags } from "@/components/DebatedTags";
+import { getToday } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
 import { TodayInFive } from "@/components/TodayInFive";
 import { tidyName } from "@/lib/elections";
@@ -29,7 +27,6 @@ type Props = {
     tudo?: string | string[];
     ordem?: string | string[];
     periodo?: string | string[];
-    tema?: string | string[];
   }>;
 };
 
@@ -64,8 +61,6 @@ export default async function HomePage({ searchParams }: Props) {
   ]);
   const { q } = searchOf(params);
   const order = orderOf(params);
-  // A subject from the "Em debate" row (stories only).
-  const tag = FEATURES.stories && /^[a-z0-9-]{1,40}$/.test(one(params.tema)) ? one(params.tema) : "";
   const saved = readSavedFilter(jar.get(FEED_COOKIE)?.value);
   const view = parseFeedView(jar.get(FEED_VIEW_COOKIE)?.value);
   const asked = parseFilter(params);
@@ -89,22 +84,14 @@ export default async function HomePage({ searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   const [page, highlights, sidebar, nextEvent] = await Promise.all([
-    loadFeed({ party: chosen.parties, q, source: chosen.sources, tag, limit: FEED_PAGE_SIZE }, order),
+    loadFeed({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
     getNextEvent(),
   ]);
   // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
-  const [allToday, debated] = FEATURES.stories ? await Promise.all([getToday(), getDebatedTags()]) : [[], []];
+  const allToday = FEATURES.stories ? await getToday() : [];
   const today = allToday.length >= 3 ? allToday : [];
-  const tagInfo = debated.find((item) => item.slug === tag);
-  /** This address with another subject (or none), keeping the rest. */
-  const withTag = (slug: string | null) => {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) if (typeof value === "string" && value && key !== "tema") query.set(key, value);
-    if (slug) query.set("tema", slug);
-    return query.size > 0 ? `/?${query}` : "/";
-  };
   // The blog has one box beside the news, so it never pushes the news down.
   const spotlight = highlights[0] ?? null;
 
@@ -151,20 +138,16 @@ export default async function HomePage({ searchParams }: Props) {
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <DebatedTags tags={debated} active={tag} hrefOf={withTag} />
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted" aria-live="polite">
-              {tag ? `#${tagInfo?.label ?? tag}` : q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
+          {/* What the feed shows, when it isn't the default (the chosen tab already says "Recentes"). */}
+          {(q || filtered || order.sort !== "recentes") && (
+            <p className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-muted" aria-live="polite">
+              {q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
               {filtered && ` · ${label}`}
               {orderPhrase(order)}
             </p>
-            <div className="xl:hidden">
-              <FeedViewToggle initial={view} />
-            </div>
-          </div>
+          )}
           <Feed
-            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${tag}|${orderKey(order)}`}
-            tag={tag}
+            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${orderKey(order)}`}
             initialView={view}
             initialPage={page}
             partySlug={chosen.parties}

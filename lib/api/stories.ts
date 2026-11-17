@@ -246,15 +246,3 @@ export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
 /** Where a story is read: the page of the version whose headline it shows, or the first one. */
 export const storyPath = (story: Pick<Story, "title" | "versions">) =>
   `/article/${(story.versions.find((item) => item.title === story.title) ?? story.versions[0])?.articleId}`;
-
-export type DebatedTag = StoryTag & { stories: number; comments: number };
-
-/** "Em debate": the tags of the last days' stories, most commented first. Empty when the API can't say. */
-export async function getDebatedTags(days = 7, limit = 8): Promise<DebatedTag[]> {
-  try {
-    const schema = z.object({ items: z.array(tagSchema.extend({ stories: z.number(), comments: z.number() })) });
-    return (await request(`/stories/tags${searchOf({ days, limit })}`, schema, cached)).items;
-  } catch {
-    return [];
-  }
-}

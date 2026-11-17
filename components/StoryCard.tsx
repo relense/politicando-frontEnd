@@ -87,7 +87,7 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
 
       <StoryContext story={story} className="relative z-10 mt-3" />
 
-      {story.parties.length > 0 && <PartyChips parties={story.parties} className="relative z-10 mt-2.5 max-sm:hidden" />}
+      {story.parties.length > 0 && <PartyChips parties={story.parties} className="relative z-10 mt-2.5" />}
 
       {story.debate && <DebatePair debate={story.debate} compact className="relative z-10 mt-3" />}
 

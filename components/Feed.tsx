@@ -23,8 +23,6 @@ type Props = {
   partySlug?: string | string[];
   q?: string;
   source?: string | string[];
-  /** Only the stories with this tag (the "Em debate" row). */
-  tag?: string;
   /** Newest first, or the most voted, commented or read of a period. */
   order?: FeedOrder;
   /** Cards or the compact list (front page only; elsewhere always cards). */
@@ -33,15 +31,15 @@ type Props = {
   inserts?: { after: number; node: ReactNode }[];
 };
 
-export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", order = NEWEST, inserts = [], initialView }: Props) {
+export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWEST, inserts = [], initialView }: Props) {
   const chosenView = useFeedView(initialView ?? "cartoes");
   const list = initialView !== undefined && chosenView === "lista";
   const ranked = order.sort !== "recentes";
   const asStories = "stories" in initialPage;
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
     // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
-    queryKey: [asStories ? "stories" : "feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), tag, orderKey(order)],
-    queryFn: ({ pageParam }) => loadFeed({ party: partySlug, q, source, tag, cursor: pageParam, limit: FEED_PAGE_SIZE }, order, asStories),
+    queryKey: [asStories ? "stories" : "feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), orderKey(order)],
+    queryFn: ({ pageParam }) => loadFeed({ party: partySlug, q, source, cursor: pageParam, limit: FEED_PAGE_SIZE }, order, asStories),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: { pages: [initialPage], pageParams: [undefined] },

@@ -133,7 +133,7 @@ test("the party filter narrows the news in place and marks the chosen party", as
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
 });
 
-test("news from several parties and several papers, saved as the reader's own feed", async ({ page, isMobile }) => {
+test("news from several parties and several papers, saved as the reader's own feed", async ({ page }) => {
   await page.goto("/");
   const filters = page.getByRole("navigation", { name: "Filtrar notícias" });
   // Parties: in a panel, with a search; ticked choices apply together.
@@ -165,23 +165,14 @@ test("news from several parties and several papers, saved as the reader's own fe
   await page.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("número");
   await page.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt&q=n%C3%BAmero$/);
-  // The order: tabs on a wide screen, a small menu otherwise (a ranked order keeps it open to choose the period).
+  // The order: underlined tabs; a ranked order adds the period beside them.
   // Stories (FEATURES.stories) are ordered by how many outlets told them instead of by comments.
-  const [sortName, sortValue, short] = FEATURES.stories
-    ? ["Mais noticiadas", "noticiadas", "Noticiadas"]
-    : ["Mais comentadas", "comentadas", "Comentadas"];
-  const tabs = filters.getByRole("group", { name: "Ordenar notícias" });
-  if (!(await tabs.isVisible())) await filters.getByRole("button", { name: "Recentes", exact: true }).click();
+  const [sortName, sortValue] = FEATURES.stories ? ["Mais noticiadas", "noticiadas"] : ["Mais comentadas", "comentadas"];
   await filters.getByRole("button", { name: new RegExp(`^${sortName}`) }).click();
   await expect(page).toHaveURL(new RegExp(`&ordem=${sortValue}$`));
   await expect(filters.getByRole("button", { name: new RegExp(`^${sortName}`) })).toHaveAttribute("aria-pressed", "true");
-  if (isMobile) {
-    await filters.getByRole("button", { name: "30 dias" }).click();
-    await expect(filters.getByRole("button", { name: `${short} · 30 dias` })).toBeVisible();
-  } else {
-    await filters.getByRole("button", { name: "7 dias", exact: true }).click();
-    await filters.getByRole("button", { name: "30 dias" }).click();
-  }
+  await filters.getByRole("button", { name: "7 dias", exact: true }).click();
+  await filters.getByRole("button", { name: "30 dias" }).click();
   await expect(page).toHaveURL(new RegExp(`&ordem=${sortValue}&periodo=mes$`));
   await expect(page.getByText(new RegExp(`as ${sortName.toLowerCase()} dos últimos 30 dias primeiro`, "i"))).toBeVisible();
 
@@ -234,10 +225,8 @@ test("news have no party column: the party filter sits above the feed, the blog 
     await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
   }
   const filter = page.getByRole("navigation", { name: "Filtrar notícias" });
-  // The order: a small menu showing the current one, or tabs on a wide screen.
-  if (isMobile) await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-expanded", "false");
-  // Newest first is no tab chosen.
-  else await expect(filter.getByRole("group", { name: "Ordenar notícias" }).locator("[aria-pressed=true]")).toHaveCount(0);
+  // The order: underlined tabs, "Recentes" chosen.
+  await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-pressed", "true");
   // Party pages have no filter row: they are reached from the parties page.
   await page.goto("/partido/ps");
   await expect(page.getByRole("navigation", { name: "Filtrar notícias" })).toHaveCount(0);
@@ -368,6 +357,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.goto(path);
       await expect(page.locator("main")).toBeVisible();
+      // Under load the page can still be streaming in: wait for its title before checking.
+      await expect(page.locator("h1").first()).toBeAttached();
       await noSeriousA11yIssues(page);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       expect(overflow).toBe(false);
@@ -1077,15 +1068,6 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
   await page.goto("/");
   await expect(page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true })).toContainText(/[12] de 5/);
-
-  // Em debate: a subject filters the feed; pressing it again shows everything.
-  const debated = page.getByRole("navigation", { name: "Em debate" });
-  await debated.getByRole("link", { name: /#OE2027/ }).click();
-  await expect(page).toHaveURL(/tema=oe2027/);
-  await expect(page.locator("main article")).toHaveCount(1);
-  await expect(debated.getByRole("link", { name: /#OE2027/ })).toHaveAttribute("aria-current", "true");
-  await debated.getByRole("link", { name: /#OE2027/ }).click();
-  await expect(page).not.toHaveURL(/tema=/);
 });
 
 test("news menu: save, hide with undo, why, and report", async ({ page }) => {
@@ -1179,21 +1161,19 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
   expect(await (await request.get("/sitemap.xml")).text()).toContain("/forum</loc>");
 });
 
-test("feed view: cards or a compact list, remembered; the chosen order tab, pressed again, goes back to newest", async ({
-  page,
-  isMobile,
-}) => {
+test("feed view: cards or a compact list, remembered; the order tabs", async ({ page }) => {
   await page.goto("/");
-  const view = page.getByRole("group", { name: "Vista das notícias" }).filter({ visible: true });
-  await expect(view.getByRole("button", { name: "Cartões" })).toHaveAttribute("aria-pressed", "true");
-  await view.getByRole("button", { name: "Lista compacta" }).click();
-  await expect(view.getByRole("button", { name: "Lista compacta" })).toHaveAttribute("aria-pressed", "true");
+  const choose = async (name: string) => {
+    await page.getByRole("button", { name: /^Vista das notícias/ }).click();
+    await page.getByRole("group", { name: "Vista das notícias" }).getByRole("button", { name }).click();
+  };
+  await expect(page.getByRole("button", { name: /^Vista das notícias/ })).toContainText("Cartões");
+  await choose("Lista compacta");
+  await expect(page.getByRole("button", { name: /^Vista das notícias/ })).toContainText("Lista compacta");
   await noSeriousA11yIssues(page);
   // Kept after a reload, drawn by the server from the first paint.
   await page.reload();
-  await expect(
-    page.getByRole("group", { name: "Vista das notícias" }).filter({ visible: true }).getByRole("button", { name: "Lista compacta" }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /^Vista das notícias/ })).toContainText("Lista compacta");
   if (FEATURES.stories) {
     // Importa works from the list too.
     const importa = page.getByRole("button", { name: /Importa: leitores dizem que «Notícia de teste número 100:/ });
@@ -1204,22 +1184,16 @@ test("feed view: cards or a compact list, remembered; the chosen order tab, pres
     await expect(importa).toHaveAttribute("aria-pressed", pressed === "true" ? "false" : "true");
     // The debate pair shows on the cards, not in the list.
     await expect(page.locator("main figcaption", { hasText: "A favor" })).toHaveCount(0);
-    await page
-      .getByRole("group", { name: "Vista das notícias" })
-      .filter({ visible: true })
-      .getByRole("button", { name: "Cartões" })
-      .click();
+    await choose("Cartões");
     await expect(page.locator("main figcaption", { hasText: "A favor" }).first()).toBeVisible();
   }
-  if (!isMobile) {
-    const tabs = page.getByRole("group", { name: "Ordenar notícias" });
-    await expect(tabs.getByRole("button", { name: "Recentes" })).toHaveCount(0);
-    const first = tabs.getByRole("button").first();
-    await first.click();
-    await expect(page).toHaveURL(/ordem=/);
-    await expect(first).toHaveAttribute("aria-pressed", "true");
-    await first.click();
-    await expect(page).not.toHaveURL(/ordem=/);
-    await expect(page.getByText(/mais recentes primeiro/i)).toBeVisible();
-  }
+  // "Recentes" is the first tab; the line above the feed appears only for another order.
+  const tabs = page.getByRole("group", { name: "Ordenar notícias" });
+  await expect(tabs.getByRole("button", { name: "Recentes" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/mais recentes primeiro/i)).toHaveCount(0);
+  await tabs.getByRole("button").nth(1).click();
+  await expect(page).toHaveURL(/ordem=/);
+  await expect(page.getByText(/primeiro$/i).first()).toBeVisible();
+  await tabs.getByRole("button", { name: "Recentes" }).click();
+  await expect(page).not.toHaveURL(/ordem=/);
 });

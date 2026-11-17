@@ -153,14 +153,6 @@ export const storyHandlers = [
     list = list.slice(start, start + limit);
     return HttpResponse.json({ items: list, nextCursor: start + limit < total ? `s${start + limit}` : null, total });
   }),
-  http.get(`${API}/stories/tags`, () =>
-    HttpResponse.json({
-      items: [
-        { ...OE2027, stories: 1, comments: 214, importa: 14 },
-        { ...HABITACAO, stories: 1, comments: 41, importa: 14 },
-      ],
-    }),
-  ),
   http.get(`${API}/stories/:id`, ({ params }) => {
     const group = groups.find((item) => item[0] === Number(params.id));
     if (!group) return fail(404, "not_found");
