@@ -35,15 +35,21 @@ export const siteLd = () => [
     "@type": "Organization",
     "@id": `${SITE_URL}/#organizacao`,
     name: SITE_NAME,
+    alternateName: ["Politicando Portugal", "politicando.pt"],
     url: SITE_URL,
-    logo: `${SITE_URL}/icon`,
+    logo: { "@type": "ImageObject", url: `${SITE_URL}/icon`, width: 512, height: 512 },
     description: SITE_DESCRIPTION,
+    // Portugal's politics, so it isn't mistaken for a site with a similar name elsewhere.
+    areaServed: { "@type": "Country", name: "Portugal" },
+    knowsAbout: ["Política portuguesa", "Assembleia da República", "Governo de Portugal", "Eleições em Portugal"],
   },
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": `${SITE_URL}/#site`,
+    // The name Google shows above the result, instead of the address.
     name: SITE_NAME,
+    alternateName: ["Politicando Portugal", "politicando.pt"],
     url: SITE_URL,
     inLanguage: "pt-PT",
     description: SITE_DESCRIPTION,
