@@ -1025,6 +1025,7 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await importa.click();
   await answered;
   await expect(importa).toHaveAttribute("aria-pressed", "true");
+  const marked = Number((await importa.textContent())!.match(/\d+/)![0]);
   // Hoje em 5: the story opened gets its tick.
   const today = page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true });
   await expect(today).toContainText("0 de 5");
@@ -1039,7 +1040,10 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await expect(page.getByRole("heading", { level: 2, name: /^Debate/ })).toBeVisible();
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
   await expect(page.locator("figcaption", { hasText: "Contra" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Importa/ })).toHaveAttribute("aria-pressed", "true");
+  // The mark carries over, and the story's count follows it, even if the page was cached before the mark.
+  const storyImporta = page.getByRole("button", { name: /^Importa/ });
+  await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#importa")).toHaveText(String(marked));
   // Contexto: our post that explains it, the party's votes, what's coming.
   const context = page.getByRole("region", { name: /^Contexto/ });
   await expect(context).toContainText("#OE2027");
@@ -1068,6 +1072,14 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await versions.getByRole("link", { name: /Expresso/ }).click();
   await expect(page).toHaveURL(/\/article\/90$/);
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
+  // The same Importa, and it can be taken back there.
+  await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#importa")).toHaveText(String(marked));
+  const takenBack = page.waitForResponse((response) => /\/stories\/100\/vote$/.test(response.url()));
+  await storyImporta.click();
+  await takenBack;
+  await expect(storyImporta).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("#importa")).toHaveText(String(marked - 1));
   await page.goto("/");
   await expect(page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true })).toContainText(/[12] de 5/);
 });

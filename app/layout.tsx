@@ -30,7 +30,11 @@ export const metadata: Metadata = {
   openGraph: { ...OG_BASE, type: "website" },
   // The large card; the image comes from each route's opengraph-image (X falls back to it).
   twitter: { card: "summary_large_image" },
-  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
+  // Search engines' ownership checks: Google's from the environment, Bing's (public, also in public/BingSiteAuth.xml) here.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    other: { "msvalidate.01": "A08DE7233972E780A0DE01121350547D" },
+  },
 };
 
 export const viewport: Viewport = {

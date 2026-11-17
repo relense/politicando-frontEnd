@@ -42,6 +42,51 @@ function remember(id: number, marked: boolean) {
   window.dispatchEvent(new Event(KEY));
 }
 
+// The latest answer for each story this visit, shared by every button and count of the same story: pages are cached
+// for a minute, so after a mark the next page can still carry the old number.
+type Live = { importa: number; importance: number; mine: boolean };
+const live = new Map<number, Live>();
+const LIVE_EVENT = "story-importa-live";
+const subscribeLive = (callback: () => void) => {
+  window.addEventListener(LIVE_EVENT, callback);
+  return () => window.removeEventListener(LIVE_EVENT, callback);
+};
+function setLive(id: number, value: Live) {
+  live.set(id, value);
+  window.dispatchEvent(new Event(LIVE_EVENT));
+}
+const useLive = (id: number) =>
+  useSyncExternalStore(
+    subscribeLive,
+    () => live.get(id) ?? null,
+    () => null,
+  );
+
+/** What to show for a story: this visit's latest answer, or the page's numbers with the reader's own mark counted. */
+function useImporta(id: number, importa: number, importance: number) {
+  const stored = useSyncExternalStore(subscribe, read, () => "{}");
+  const current = useLive(id);
+  const mine = current?.mine ?? parse(stored)[id] === 1;
+  // A cached page may not count the reader's own mark yet.
+  return { importa: current?.importa ?? Math.max(importa, mine ? 1 : 0), importance: current?.importance ?? importance, mine };
+}
+
+/** The number of readers who say a story matters, kept in step with the story's Importa buttons. */
+export function ImportaCount({ id, importa, importance }: { id: number; importa: number; importance: number }) {
+  const shown = useImporta(id, importa, importance);
+  return (
+    <>
+      <ImportanceDots importance={shown.importance} className="w-12 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <h2 id="importa" className="text-2xl font-bold leading-none">
+          {formatNumber(shown.importa)}
+        </h2>
+        <p className="font-mono text-[11px] text-muted">{shown.importa === 1 ? "leitor diz que importa" : "leitores dizem que importa"}</p>
+      </div>
+    </>
+  );
+}
+
 const DOTS = 11;
 
 /** A semicircle of dots, filled by `importance` (0–1): how this story compares with the others of the last 24 hours. */
@@ -83,14 +128,12 @@ export function ImportaButton({
   /** The compact list: the dots and the count, no pill. */
   compact?: boolean;
 }) {
-  const stored = useSyncExternalStore(subscribe, read, () => "{}");
-  const remembered = parse(stored)[id] === 1;
-  const [state, setState] = useState<{ importa: number; importance: number; mine: boolean | null }>({ importa, importance, mine: null });
+  const state = useImporta(id, importa, importance);
   const [pending, setPending] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
-  const mine = pending ?? state.mine ?? remembered;
+  const mine = pending ?? state.mine;
   // While the mark travels, the count moves at once.
-  const count = pending === null ? state.importa : state.importa + (pending === (state.mine ?? remembered) ? 0 : pending ? 1 : -1);
+  const count = pending === null || pending === state.mine ? state.importa : Math.max(0, state.importa + (pending ? 1 : -1));
 
   async function toggle() {
     const next = !mine;
@@ -99,7 +142,7 @@ export function ImportaButton({
     try {
       const answer = await markImporta(id, next ? 1 : 0);
       remember(id, answer.mine === 1);
-      setState({ importa: answer.importa, importance: answer.importance, mine: answer.mine === 1 });
+      setLive(id, { importa: answer.importa, importance: answer.importance, mine: answer.mine === 1 });
     } catch {
       setFailed(true);
     } finally {
