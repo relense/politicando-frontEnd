@@ -176,8 +176,8 @@ export function HistoryPlayback({ governments, presidents, elections, parliament
             {recent.map((item, position) => (
               <li
                 key={`${item.date}-${item.text}`}
-                className="flex items-baseline gap-2 text-sm transition-opacity"
-                style={{ opacity: 1 - position * 0.3 }}
+                // The latest in full, older ones in grey: not see-through, which would fail contrast.
+                className={`flex items-baseline gap-2 text-sm ${position > 0 ? "text-muted" : ""}`}
               >
                 <span aria-hidden="true" className="size-2 shrink-0 translate-y-[-1px] rounded-full" style={{ background: item.color }} />
                 <span className="font-mono text-[11px] text-muted">{item.date.slice(0, 4)}</span>
