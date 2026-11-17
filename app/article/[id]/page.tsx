@@ -8,7 +8,8 @@ import type { MoreAboutGroup } from "@/components/MoreAbout";
 import { ApiError, getArticle, getComments, getFeedPage, getInitiative, getInitiatives } from "@/lib/api/client";
 import { excerpt } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
-import type { Article } from "@/lib/types";
+import { OG_BASE } from "@/lib/seo";
+import { articleComments, type Article } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -87,21 +88,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // engines judge the site by its own pages. Sharing still works.
     robots: { index: false, follow: true },
     openGraph: {
+      ...OG_BASE,
       type: "article",
       title: article.title,
       description,
       url: path,
       publishedTime: article.publishedAt,
-      images: article.imageUrl ? [article.imageUrl] : undefined,
     },
-    twitter: { card: article.imageUrl ? "summary_large_image" : "summary", title: article.title, description },
   };
 }
 
 export default async function ArticlePage({ params }: Props) {
   await connection();
   const article = await loadArticle((await params).id);
-  const [comments, more, context] = await Promise.all([getComments(article.id), loadMore(article), loadContext(article)]);
+  const [comments, more, context] = await Promise.all([getComments(articleComments(article.id)), loadMore(article), loadContext(article)]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -125,7 +125,7 @@ export default async function ArticlePage({ params }: Props) {
       <div data-wide className="grid gap-10 xl:grid-cols-[minmax(0,48rem)_20rem] xl:justify-between">
         <div className="min-w-0">
           <ArticleDetail article={article} />
-          <CommentSection articleId={article.id} initialComments={comments} />
+          <CommentSection target={articleComments(article.id)} initialComments={comments} />
         </div>
         <ArticleSidebar articleId={article.id} parties={article.parties} more={more} context={context} />
       </div>

@@ -18,6 +18,7 @@ import { getPartyVoteSummary } from "@/lib/api/partyVotes";
 import { findPartyByParam, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
 import type { DeputySummary, Election, Parliament, Party, PartyStanding } from "@/lib/types";
+import { breadcrumbs, clip, jsonLd, OG_BASE, partyLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ name: string }>; searchParams: Promise<{ ver?: string | string[] }> };
 
@@ -40,9 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${party.acronym}: ${party.name}`;
   return {
     title,
-    description: getPartyProfile(party.slug)?.summary ?? `As últimas notícias sobre ${party.name}.`,
+    description: clip(getPartyProfile(party.slug)?.summary ?? `As últimas notícias sobre ${party.name}.`),
     alternates: { canonical: partyPath(party.slug) },
-    openGraph: { title, url: partyPath(party.slug) },
+    openGraph: { ...OG_BASE, title, url: partyPath(party.slug) },
   };
 }
 
@@ -84,6 +85,24 @@ export default async function PartyPage({ params, searchParams }: Props) {
 
   return (
     <div data-wide className="@container">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd([
+            partyLd({
+              path: partyPath(party.slug),
+              name: party.name,
+              acronym: party.acronym,
+              website: party.website,
+              description: getPartyProfile(party.slug)?.summary ?? null,
+            }),
+            breadcrumbs([
+              { name: "Partidos", path: "/partidos" },
+              { name: party.acronym, path: partyPath(party.slug) },
+            ]),
+          ]),
+        }}
+      />
       <header className="grid items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
           <div className="flex items-center gap-5">

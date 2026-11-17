@@ -13,7 +13,7 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByRole("heading", { name: "O que faz o Presidente da República" })).toBeVisible();
   await expect(page.getByText("Jorge Vilalobos")).toBeVisible();
 
-  const ld = await page.locator('script[type="application/ld+json"]').textContent();
+  const ld = await page.locator('main script[type="application/ld+json"]').textContent();
   expect(JSON.parse(ld!)).toMatchObject({ "@type": "Person", name: "Teresa Albuquerque" });
 
   await page.getByText("Ler a biografia completa").click();

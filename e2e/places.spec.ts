@@ -22,7 +22,7 @@ test("the map of mayors leads to a municipality, its parishes and back up to the
   await expect(page.getByRole("heading", { name: "Câmara Municipal · 9 mandatos" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Deputados eleitos por Aveiro/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver os contratos da câmara →" })).toHaveAttribute("href", "/contratos/entidade/500000101");
-  const ld = await page.locator('script[type="application/ld+json"]').textContent();
+  const ld = await page.locator('main script[type="application/ld+json"]').textContent();
   expect(JSON.parse(ld!)[0]).toMatchObject({ "@type": "AdministrativeArea", name: "Águeda" });
 
   await page.getByRole("link", { name: "Fermentelos" }).click();
