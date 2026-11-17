@@ -11,12 +11,14 @@ import { PartyLogo } from "@/components/PartyLogo";
 import { CareerPath } from "@/components/CareerPath";
 import { DeputyVotes } from "@/components/DeputyVotes";
 import { RecordsBox } from "@/components/Records";
-import { ApiError, getDeputy, getParliament } from "@/lib/api/client";
+import { WhoIs } from "@/components/WhoIs";
+import { ApiError, getDeputy, getDeputyVotes, getParliament } from "@/lib/api/client";
 import { tryPersonPath } from "@/lib/api/people";
 import { tidyName } from "@/lib/elections";
 import { formatNumber } from "@/lib/format";
 import { ageOn, partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
+import { deputySummary } from "@/lib/personSummary";
 import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
@@ -32,13 +34,22 @@ const loadDeputy = cache(async (id: string) => {
   }
 });
 
+/** Their career path and the first page of their votes, shared by the metadata and the page; null when unavailable. */
+const loadPath = cache(async (id: string) => (/^\d+$/.test(id) ? tryPersonPath("deputy", id) : null));
+const VOTES_SHOWN = 20;
+const loadVotes = cache(async (id: string) =>
+  /^\d+$/.test(id) ? getDeputyVotes(Number(id), { limit: VOTES_SHOWN }).catch(() => null) : null,
+);
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const deputy = await loadDeputy((await params).id);
+  const { id } = await params;
+  const deputy = await loadDeputy(id);
   if (!deputy) return { title: "Deputado não encontrado" };
-  const party = deputy.party ? ` (${deputy.party.acronym})` : "";
+  const [path, votes] = await Promise.all([loadPath(id), loadVotes(id)]);
+  const summary = deputySummary(deputy, path, votes?.summary ?? null);
   return {
-    title: `${deputy.name}${party}`,
-    description: `${deputy.name}, deputado${party} eleito por ${deputy.constituency}: iniciativas, comissões e notícias.`,
+    title: summary.title,
+    description: summary.description,
     alternates: { canonical: `/deputados/${deputy.id}` },
   };
 }
@@ -46,12 +57,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function DeputyPage({ params }: Props) {
   await connection();
   const { id } = await params;
-  const [deputy, path, parliament] = await Promise.all([
+  const [deputy, path, parliament, votes] = await Promise.all([
     loadDeputy(id),
-    /^\d+$/.test(id) ? tryPersonPath("deputy", id) : null,
+    loadPath(id),
     getParliament().catch(() => null),
+    loadVotes(id),
   ]);
   if (!deputy) notFound();
+  const summary = deputySummary(deputy, path, votes?.summary ?? null);
   const color = deputy.partySlug ? partyColor(deputy.partySlug) : "var(--ink)";
   const role = deputy.role ?? deputy.positions[0] ?? null;
   const age = ageOn(deputy.birthDate, new Date());
@@ -74,10 +87,15 @@ export default async function DeputyPage({ params }: Props) {
               path: `/deputados/${deputy.id}`,
               name: deputy.name,
               fullName: deputy.fullName,
-              jobTitle: `Membro da Assembleia da República, pelo círculo de ${deputy.constituency}`,
+              jobTitle:
+                path?.currentRoles.find((step) => step.kind === "government")?.title ??
+                `Membro da Assembleia da República, pelo círculo de ${deputy.constituency}`,
               photoUrl: deputy.photoUrl,
               party: deputy.party,
               worksFor: "parliament",
+              description: summary.sentences.join(" "),
+              birthDate: deputy.birthDate,
+              sameAs: [`https://www.parlamento.pt/DeputadoGP/Paginas/Biografia.aspx?BID=${deputy.id}`],
             }),
             breadcrumbs([
               { name: "Parlamento", path: "/parlamento" },
@@ -141,6 +159,7 @@ export default async function DeputyPage({ params }: Props) {
 
       <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
+          <WhoIs name={deputy.name} sentences={summary.sentences} />
           {FEATURES.record && path && <RecordsBox records={path.records} kind="deputy" id={deputy.id} />}
 
           {path && (path.path.length > 0 || path.currentRoles.length > 0) && (
@@ -156,7 +175,7 @@ export default async function DeputyPage({ params }: Props) {
           </Section>
 
           <Section title="Votações" id="votacoes">
-            <DeputyVotes deputyId={deputy.id} group={deputy.party?.acronym ?? deputy.group} />
+            <DeputyVotes deputyId={deputy.id} group={deputy.party?.acronym ?? deputy.group} initialPage={votes} />
           </Section>
 
           <Section title="Nas notícias">

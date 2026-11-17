@@ -31,15 +31,18 @@ type Props = {
   group: string;
   /** Short version for the card: a few votes and a link to the full list. */
   compact?: boolean;
+  /** The first page, fetched with the page so the votes are there before any script runs (and for search engines). */
+  initialPage?: DeputyVotesPage | null;
 };
 
-export function DeputyVotes({ deputyId, group, compact = false }: Props) {
+export function DeputyVotes({ deputyId, group, compact = false, initialPage = null }: Props) {
   const limit = compact ? 5 : 20;
   const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["deputy-votes", deputyId, limit],
     queryFn: ({ pageParam }) => getDeputyVotes(deputyId, { cursor: pageParam, limit }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page: DeputyVotesPage) => page.nextCursor ?? undefined,
+    ...(initialPage ? { initialData: { pages: [initialPage], pageParams: [undefined] } } : {}),
   });
 
   if (isPending) return <p className="text-sm text-muted">A carregar as votações…</p>;

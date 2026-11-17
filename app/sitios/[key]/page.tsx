@@ -63,6 +63,8 @@ function titleOf(place: PlaceDetail, municipality: PlaceDetail | null): string {
   if (place.level === "district") return `Distrito de ${place.name}: presidentes de câmara, deputados e eleições`;
   if (place.level === "parish")
     return `Freguesia de ${place.name}${municipality ? ` (${municipality.name})` : ""}: assembleia de freguesia e eleições`;
+  // The mayor's name in the title: people search for the name as much as for the town.
+  if (place.mayor) return `Quem governa ${place.name}? ${place.mayor.name}, presidente da câmara`;
   return `Quem governa ${place.name}? Presidente da câmara, vereadores, deputados e contratos`;
 }
 
@@ -111,6 +113,23 @@ function jsonLd(place: PlaceDetail, trail: Place[]) {
         ? { "@type": "AdministrativeArea", name: parent.name, url: url(parent) }
         : { "@type": "Country", name: "Portugal" },
     },
+    // Who presides over the câmara: the person people search for, tied to the place.
+    ...(place.level === "municipality" && place.mayor
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "@id": `${url(place)}#presidente-camara`,
+            name: place.mayor.name,
+            jobTitle: `Presidente da Câmara Municipal de ${place.name}`,
+            nationality: { "@type": "Country", name: "Portugal" },
+            worksFor: { "@type": "GovernmentOrganization", name: `Câmara Municipal de ${place.name}`, url: url(place) },
+            ...(place.mayor.parties[0]
+              ? { memberOf: { "@type": "PoliticalParty", name: place.mayor.label, url: `${SITE_URL}${partyPath(place.mayor.parties[0])}` } }
+              : {}),
+          },
+        ]
+      : []),
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
