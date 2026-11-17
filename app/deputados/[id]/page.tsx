@@ -95,7 +95,10 @@ export default async function DeputyPage({ params }: Props) {
               worksFor: "parliament",
               description: summary.sentences.join(" "),
               birthDate: deputy.birthDate,
-              sameAs: [`https://www.parlamento.pt/DeputadoGP/Paginas/Biografia.aspx?BID=${deputy.id}`],
+              sameAs: [
+                `https://www.parlamento.pt/DeputadoGP/Paginas/Biografia.aspx?BID=${deputy.id}`,
+                ...deputy.links.map((link) => link.url),
+              ],
             }),
             breadcrumbs([
               { name: "Parlamento", path: "/parlamento" },
@@ -148,7 +151,9 @@ export default async function DeputyPage({ params }: Props) {
               <Chip color="var(--muted)">Círculo de {deputy.constituency}</Chip>
             </p>
             <h1 className="mt-2 text-4xl font-bold leading-tight sm:text-5xl">{deputy.name}</h1>
-            <p className="mt-1 text-lg text-muted">{role ?? "Deputado à Assembleia da República"}</p>
+            <p className="mt-1 text-lg text-muted">
+              {role ?? `${deputy.gender === "F" ? "Deputada" : "Deputado"} à Assembleia da República`}
+            </p>
             {deputy.fullName !== deputy.name && <p className="mt-0.5 font-mono text-xs text-muted">{deputy.fullName}</p>}
           </div>
           <div className="sm:self-start">
@@ -304,6 +309,28 @@ export default async function DeputyPage({ params }: Props) {
             <span className="mt-1 block text-sm text-muted">Onde se senta e quem são os colegas de bancada.</span>
             <span className="mt-2 block font-mono text-xs font-bold group-hover:underline">Abrir →</span>
           </Link>
+
+          {deputy.links.length > 0 && (
+            <section aria-labelledby="ligacoes" className="rounded-2xl border border-line p-4">
+              <h2 id="ligacoes" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">
+                Ligações
+              </h2>
+              <ul className="flex flex-wrap gap-2">
+                {deputy.links.map((link) => (
+                  <li key={link.url}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block rounded-full border border-line px-3 py-1 font-mono text-xs font-bold hover:bg-surface"
+                    >
+                      {link.network} ↗<span className="sr-only"> (abre num novo separador)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <p className="font-mono text-[11px] leading-relaxed text-muted">
             Fonte: Assembleia da República (dados abertos).{" "}

@@ -472,7 +472,16 @@ export const handlers = [
     if (!article) return fail(404, "not_found");
     // Article 100 mentions an initiative, for the context box beside it.
     const mentioned = id === 100 && initiatives[0] ? [{ id: initiatives[0].id, title: initiatives[0].title }] : [];
-    return HttpResponse.json({ ...article, initiatives: mentioned });
+    // It also names a deputy and a mayor who have pages here, to link their names.
+    const named = deputies.find((deputy) => mentions(id, deputy.id));
+    const people =
+      id === 100
+        ? [
+            ...(named ? [{ kind: "deputy" as const, id: String(named.id), name: named.name }] : []),
+            { kind: "local" as const, id: "marta-quintela", name: "Marta Quintela" },
+          ]
+        : [];
+    return HttpResponse.json({ ...article, initiatives: mentioned, people });
   }),
   // A vote (articles-api.md "Votes"): one per reader, replaced by the next, 0 takes it back. The mock has one reader.
   http.post(`${API}/articles/:id/vote`, async ({ params, request }) => {

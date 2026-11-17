@@ -14,6 +14,7 @@ import { electionPath, listColor, ORGAN_LABELS, tidyName } from "@/lib/elections
 import { formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { placeMap } from "@/lib/maps";
 import { partyPath } from "@/lib/parties";
+import { localOfficialPath } from "@/lib/api/localOfficials";
 import {
   electionName,
   formatEuros,
@@ -119,7 +120,8 @@ function jsonLd(place: PlaceDetail, trail: Place[]) {
           {
             "@context": "https://schema.org",
             "@type": "Person",
-            "@id": `${url(place)}#presidente-camara`,
+            "@id": place.mayor.id ? `${SITE_URL}${localOfficialPath(place.mayor.id)}#pessoa` : `${url(place)}#presidente-camara`,
+            ...(place.mayor.id ? { url: `${SITE_URL}${localOfficialPath(place.mayor.id)}` } : {}),
             name: place.mayor.name,
             jobTitle: `Presidente da Câmara Municipal de ${place.name}`,
             nationality: { "@type": "Country", name: "Portugal" },
@@ -415,7 +417,15 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
       <Initials mayor={mayor} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Presidente da câmara</p>
-        <p className="text-2xl font-bold leading-tight">{mayor.name}</p>
+        <p className="text-2xl font-bold leading-tight">
+          {mayor.id ? (
+            <Link href={localOfficialPath(mayor.id)} className="hover:underline">
+              {mayor.name}
+            </Link>
+          ) : (
+            mayor.name
+          )}
+        </p>
         <p className="mt-1 text-sm">
           Lista <span className="font-bold">{tidyName(mayor.label)}</span>
           {mayor.label !== mayor.list && <span className="font-mono text-xs text-muted"> ({mayor.list})</span>}

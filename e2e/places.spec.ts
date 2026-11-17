@@ -111,3 +111,20 @@ test("the map: 'Usar a minha localização' opens the concelho you are in", asyn
   await page.getByRole("button", { name: "Usar a minha localização" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "não estás em Portugal" })).toBeVisible();
 });
+
+test("a mayor's own page: who they are, their câmara and the news that name them", async ({ page }) => {
+  await page.goto("/sitios/LOCAL-010100");
+  await page.getByRole("link", { name: "Marta Quintela" }).first().click();
+  await expect(page).toHaveURL(/\/autarcas\/marta-quintela$/);
+  await expect(page).toHaveTitle(/^Marta Quintela, presidente da Câmara Municipal de Águeda/);
+  await expect(page.getByRole("heading", { level: 1, name: "Marta Quintela" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Quem é Marta Quintela" })).toContainText(
+    "Marta Quintela preside à Câmara Municipal de Águeda desde outubro de 2025, pela lista PARTIDO SOCIALISTA (PS).",
+  );
+  await expect(page.getByRole("link", { name: "Candidatura às Legislativas 2024" })).toHaveAttribute("href", "/eleicoes/legislativas-2024");
+  const ld = JSON.parse((await page.locator('main script[type="application/ld+json"]').textContent())!);
+  expect(ld[0]).toMatchObject({ "@type": "Person", name: "Marta Quintela", jobTitle: "Presidente da Câmara Municipal de Águeda" });
+  await noSeriousA11yIssues(page);
+  await page.getByRole("complementary", { name: "Ficha" }).getByRole("link", { name: "Águeda" }).click();
+  await expect(page).toHaveURL(/\/sitios\/LOCAL-010100$/);
+});

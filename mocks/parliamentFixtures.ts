@@ -388,6 +388,9 @@ export function deputyDetail(id: number, articles: ApiDeputyDetailInput["article
     roles: [],
     committees: [{ name: "Comissão de Orçamento, Finanças e Administração Pública", acronym: "COFAP", membership: "Efetivo", role: null }],
     pastLegislatures: id % 3 ? ["XVI"] : [],
+    gender: deputy.name.split(" ")[0]!.endsWith("a") ? "F" : "M",
+    // Fictional people: the links point nowhere real.
+    links: id % 2 ? [] : [{ network: "Website", url: `https://www.example.org/deputados/${id}` }],
     initiatives: {
       total: authored.length,
       approved: authored.filter((item) => item.status === "approved").length,

@@ -323,7 +323,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
           {member.links.length > 0 && (
             <section aria-labelledby="canais" className="rounded-2xl border border-line p-4">
               <h2 id="canais" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">
-                Canais oficiais
+                Ligações
               </h2>
               <ul className="flex flex-wrap gap-2">
                 {member.links.map((link) => (

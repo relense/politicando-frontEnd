@@ -1,3 +1,4 @@
+import type { LocalOfficial } from "@/lib/api/localOfficials";
 import type { PersonPath } from "@/lib/api/people";
 import { formatLongDate } from "@/lib/format";
 import { ageOn, isPartyLeaderPost } from "@/lib/parliament";
@@ -43,13 +44,21 @@ export function deputySummary(
   const acronym = deputy.party?.acronym ?? null;
   const by = acronym ? `pelo ${acronym}` : "como independente";
   const suspended = !deputy.active && /suspen/i.test(deputy.situation ?? "");
+  // With the gender on record, the usual words ("deputada do PS, eleita por Braga"); without it, a neutral phrasing.
+  const female = deputy.gender === "F";
+  const noun = female ? "deputada" : "deputado";
   const seat = deputy.active
-    ? `representa o círculo de ${deputy.constituency} na Assembleia da República, ${by}`
+    ? deputy.gender
+      ? `é ${noun} ${acronym ? `do ${acronym}` : "independente"}, ${female ? "eleita" : "eleito"} pelo círculo de ${deputy.constituency}`
+      : `representa o círculo de ${deputy.constituency} na Assembleia da República, ${by}`
     : suspended
       ? `tem suspenso o mandato parlamentar pelo círculo de ${deputy.constituency} (${acronym ?? "independente"})`
       : `não tem mandato ativo no Parlamento (círculo de ${deputy.constituency}, ${acronym ?? "independente"})`;
   const since = government ? monthYear(government.from) : null;
-  const lead = government ? `${deputy.name} é ${government.title}${since ? ` desde ${since}` : ""} e ${seat}.` : `${deputy.name} ${seat}.`;
+  // After the Government post, the seat continues the same sentence: "é Ministra … e deputada do PS", one «é».
+  const lead = government
+    ? `${deputy.name} é ${government.title}${since ? ` desde ${since}` : ""} e ${seat.replace(/^é /, "")}.`
+    : `${deputy.name} ${seat}.`;
 
   const sentences = [lead];
   const age = ageOn(deputy.birthDate, now);
@@ -76,7 +85,11 @@ export function deputySummary(
   const known = government?.title ?? leader ?? deputy.role ?? null;
   const party = acronym ? ` (${acronym})` : "";
   return {
-    title: known ? `${deputy.name}${party}: ${known}` : `${deputy.name}${party}, ${deputy.constituency}: percurso, votações e iniciativas`,
+    title: known
+      ? `${deputy.name}${party}: ${known}`
+      : deputy.gender
+        ? `${deputy.name}${party}: ${female ? "Deputada" : "Deputado"} por ${deputy.constituency}`
+        : `${deputy.name}${party}, ${deputy.constituency}: percurso, votações e iniciativas`,
     description: clipSentences(sentences),
     sentences,
   };
@@ -130,4 +143,27 @@ function clipSentences(sentences: string[], max = 160): string {
     text = `${text} ${sentence}`;
   }
   return text;
+}
+
+/** A presidente da câmara: whose câmara, since when, for which list, until when. Gender isn't known, so no gendered words. */
+export function localOfficialSummary(official: LocalOfficial, partyAcronyms: string[]): PersonSummary {
+  const since = monthYear(official.term.start);
+  const list = official.label ? `, pela lista ${official.label}${partyAcronyms.length > 0 ? ` (${partyAcronyms.join(", ")})` : ""}` : "";
+  const sentences = [
+    official.current
+      ? `${official.shortName} preside à Câmara Municipal de ${official.place.name}${since ? ` desde ${since}` : ""}${list}.`
+      : `${official.shortName} presidiu à Câmara Municipal de ${official.place.name}${list}.`,
+  ];
+  const end = official.term.end?.slice(0, 4);
+  if (official.current && end) sentences.push(`O mandato vai até às autárquicas de ${end}.`);
+  if (official.name !== official.shortName) sentences.push(`No boletim de voto: ${official.name}.`);
+  if (official.otherRoles.some((role) => role.kind === "deputy")) sentences.push("Passou também pelo Parlamento.");
+  const candidacies = official.otherRoles.filter((role) => role.kind === "candidate").length;
+  if (candidacies > 0)
+    sentences.push(`Tem ${plural(candidacies, "outra candidatura", "outras candidaturas")} registada${candidacies === 1 ? "" : "s"}.`);
+  return {
+    title: `${official.shortName}, presidente da Câmara Municipal de ${official.place.name}`,
+    description: clipSentences(sentences),
+    sentences,
+  };
 }

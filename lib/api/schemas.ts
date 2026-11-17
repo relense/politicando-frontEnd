@@ -25,6 +25,23 @@ export const partySchema = z.object({
 
 const articlePartySchema = partySchema.pick({ slug: true, acronym: true, name: true });
 
+/** Someone named in a news item who has a page here (see the backend's docs/articles-api.md). */
+const personMentionSchema = z.object({
+  kind: z.enum(["deputy", "government", "president", "local"]),
+  id: z.union([z.string(), z.number()]).transform(String),
+  name: z.string(),
+});
+/** Each mention on its own: one we can't read is dropped, the rest still link. */
+export const peopleSchema = z
+  .array(z.unknown())
+  .nullish()
+  .transform((items) =>
+    (items ?? []).flatMap((item) => {
+      const parsed = personMentionSchema.safeParse(item);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  );
+
 export const articleSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -44,6 +61,8 @@ export const articleSchema = z.object({
   storyId: z.number().nullish(),
   /** Initiatives the article mentions; only on the detail. */
   initiatives: z.array(z.object({ id: z.number(), title: z.string() })).nullish(),
+  /** Everyone named in it who has a page here, most mentioned first. */
+  people: peopleSchema.optional(),
 });
 
 export const articlePageSchema = z.object({
@@ -83,6 +102,7 @@ export const deputySummarySchema = z.object({
   positions: list(z.string()),
   parliamentRole: z.string().nullish(),
   photoUrl: z.string().nullish(),
+  gender: z.enum(["M", "F"]).nullish(),
 });
 
 export const parliamentSchema = z.object({
@@ -205,6 +225,8 @@ export const deputyDetailSchema = deputySummarySchema.extend({
     z.object({ name: z.string(), acronym: z.string().nullish(), membership: z.string().nullish(), role: z.string().nullish() }),
   ),
   pastLegislatures: list(z.string()),
+  /** Official site, Wikipedia, social accounts and Wikidata: for the page and the structured data's sameAs. */
+  links: list(z.object({ network: z.string(), url: z.string() })),
   initiatives: z.object({ total: z.number(), approved: z.number(), latest: list(initiativeSchema) }),
   articles: list(articleSchema),
 });

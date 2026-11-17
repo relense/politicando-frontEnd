@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PersonPath } from "@/lib/api/people";
-import { deputySummary, governmentMemberSummary } from "@/lib/personSummary";
+import type { LocalOfficial } from "@/lib/api/localOfficials";
+import { deputySummary, governmentMemberSummary, localOfficialSummary } from "@/lib/personSummary";
 import type { DeputyDetail, GovernmentMemberDetail } from "@/lib/types";
 
 const deputy = (over: Partial<DeputyDetail> = {}): DeputyDetail => ({
@@ -24,6 +25,8 @@ const deputy = (over: Partial<DeputyDetail> = {}): DeputyDetail => ({
   roles: [],
   committees: [],
   pastLegislatures: ["XV", "XVI"],
+  links: [],
+  gender: null,
   initiatives: { total: 12, approved: 3, latest: [] },
   articles: [],
   ...over,
@@ -163,5 +166,46 @@ describe("governmentMemberSummary", () => {
     );
     expect(summary.sentences).toEqual(["Ana Exemplo foi Secretária de Estado da Saúde até junho de 2025.", "Foi eleita deputada pelo PS."]);
     expect(summary.title).toBe("Ana Exemplo (PS): ex-secretária de Estado da Saúde");
+  });
+});
+
+describe("with the gender on record", () => {
+  it("says deputada and eleita, and keeps one «é» after a Government post", () => {
+    expect(deputySummary(deputy({ gender: "F" }), null, null, NOW).sentences[0]).toBe(
+      "Rita Fictícia é deputada do PS, eleita pelo círculo de Braga.",
+    );
+    expect(deputySummary(deputy({ gender: "F" }), null, null, NOW).title).toBe("Rita Fictícia (PS): Deputada por Braga");
+    const minister = path([{ kind: "government", title: "Ministra da Saúde", from: "2025-06-05" }]);
+    expect(deputySummary(deputy({ gender: "F" }), minister, null, NOW).sentences[0]).toBe(
+      "Rita Fictícia é Ministra da Saúde desde junho de 2025 e deputada do PS, eleita pelo círculo de Braga.",
+    );
+  });
+});
+
+describe("localOfficialSummary", () => {
+  const official: LocalOfficial = {
+    id: "joana-exemplo",
+    name: "Joana Maria Exemplo",
+    shortName: "Joana Exemplo",
+    title: "Presidente da Câmara Municipal de Viseu",
+    place: { key: "LOCAL-182300", name: "Viseu" },
+    district: null,
+    label: "VISEU PRIMEIRO",
+    parties: ["psd"],
+    election: "autarquicas-2025",
+    term: { start: "2025-10-12", end: "2029-10-12" },
+    current: true,
+    otherRoles: [{ kind: "candidate", title: "Candidatura", detail: null, date: null, current: false, elected: false, href: null }],
+    articles: [],
+  };
+  it("the câmara, since when, the list, the term and the full name; the title for search", () => {
+    const summary = localOfficialSummary(official, ["PSD"]);
+    expect(summary.sentences).toEqual([
+      "Joana Exemplo preside à Câmara Municipal de Viseu desde outubro de 2025, pela lista VISEU PRIMEIRO (PSD).",
+      "O mandato vai até às autárquicas de 2029.",
+      "No boletim de voto: Joana Maria Exemplo.",
+      "Tem 1 outra candidatura registada.",
+    ]);
+    expect(summary.title).toBe("Joana Exemplo, presidente da Câmara Municipal de Viseu");
   });
 });

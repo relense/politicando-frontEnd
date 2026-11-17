@@ -11,7 +11,17 @@ type Mayor = NonNullable<ApiPlaceList["items"][number]["mayor"]>;
 type Level = "district" | "municipality" | "parish";
 type Node = { key: string; name: string; level: Level; parent: string | null; mayor?: Mayor; nif?: string; seed: number };
 
+/** "Marta Quintela" → "marta-quintela", the readable id the API gives each mayor's page. */
+const slugOf = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 const mayor = (name: string, list: string, label: string, parties: string[]): Mayor => ({
+  id: slugOf(name),
   name,
   list,
   label,
@@ -188,6 +198,41 @@ export const placeHandlers = [
       mayor: node.mayor ?? null,
     }));
     return HttpResponse.json({ items } satisfies ApiPlaceList);
+  }),
+  // A mayor's own page (places-api.md "GET /local-officials/:id").
+  http.get(`${API}/local-officials/:id`, ({ params }) => {
+    const node = PLACES.find((item) => item.mayor?.id === params.id);
+    if (!node?.mayor) return HttpResponse.json({ error: { code: "not_found", message: "not_found" } }, { status: 404 });
+    const district = node.parent ? byKey(node.parent) : null;
+    const words = node.mayor.name.split(" ");
+    return HttpResponse.json({
+      id: node.mayor.id,
+      name: node.mayor.name,
+      shortName: words.length > 2 ? `${words[0]} ${words.at(-1)}` : node.mayor.name,
+      role: "mayor",
+      title: `Presidente da Câmara Municipal de ${node.name}`,
+      place: { key: node.key, name: node.name, level: "municipality" },
+      district: district ? { key: district.key, name: district.name, level: "district" } : null,
+      list: node.mayor.list,
+      label: node.mayor.label,
+      parties: node.mayor.parties,
+      election: "autarquicas-2025",
+      term: { start: "2025-10-12", end: "2029-10-12" },
+      current: true,
+      otherRoles: [
+        {
+          kind: "candidate",
+          title: "Candidatura às Legislativas 2024",
+          detail: "Nº 9 da lista, Aveiro",
+          date: "2024-03-10",
+          current: false,
+          elected: false,
+          link: "/elections/legislativas-2024/candidates",
+        },
+      ],
+      articles: [],
+      updatedAt: "2026-11-17T20:00:00Z",
+    });
   }),
   http.get(`${API}/places/:key`, ({ params }) => {
     const node = byKey(String(params.key));
