@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { parties } from "./fixtures";
+import { addReport, audit, requireAdmin } from "./adminState";
 
 const API = "*/api/v2";
 
@@ -15,6 +16,8 @@ type MockThread = {
   bumpedAt: string;
   pinned: boolean;
   locked: boolean;
+  /** Hidden by the moderation: gone from the public site. */
+  hidden?: boolean;
   link: { article: { id: number; title: string } | null; initiative: { id: number; title: string } | null } | null;
   /** Only on the ideas board: upvotes, and what the team decided. */
   score?: number;
@@ -251,7 +254,7 @@ export const forumHandlers = [
 
   http.get(`${API}/forums/threads/:id`, ({ params, request }) => {
     const thread = threads.find((item) => item.id === Number(params.id));
-    if (!thread) return fail(404, "not_found");
+    if (!thread || thread.hidden) return fail(404, "not_found");
     const after = Number(new URL(request.url).searchParams.get("after") ?? 0);
     const own = posts.filter((post) => post.threadId === thread.id && post.id > after);
     return HttpResponse.json({
@@ -278,7 +281,7 @@ export const forumHandlers = [
     const limit = Number(query.get("limit") ?? 25);
     const status = query.get("status");
     const own = threads
-      .filter((thread) => thread.board === params.board && (!status || thread.status === status))
+      .filter((thread) => thread.board === params.board && !thread.hidden && (!status || thread.status === status))
       .sort(
         (a, b) =>
           Number(b.pinned) - Number(a.pinned) ||
@@ -359,6 +362,60 @@ export const forumHandlers = [
   http.post(`${API}/reports`, async ({ request }) => {
     const parsed = reportSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
+    addReport(parsed.data.kind, parsed.data.id, parsed.data.reason, parsed.data.details);
     return new HttpResponse(null, { status: 202 });
   }),
+
+  // Moderation (docs/forums-api.md "Moderation").
+  http.post(`${API}/admin/forum/threads/:id/:action`, ({ params, request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const thread = threads.find((item) => item.id === Number(params.id));
+    if (!thread) return fail(404, "not_found");
+    const action = String(params.action);
+    const changes: Record<string, Partial<MockThread>> = {
+      hide: { hidden: true },
+      unhide: { hidden: false },
+      lock: { locked: true },
+      unlock: { locked: false },
+      pin: { pinned: true },
+      unpin: { pinned: false },
+    };
+    if (!changes[action]) return fail(404, "not_found");
+    Object.assign(thread, changes[action]);
+    audit(admin, `thread.${action}`, "thread", thread.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post(`${API}/admin/forum/posts/:id/:action`, ({ params, request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const post = posts.find((item) => item.id === Number(params.id));
+    const action = String(params.action);
+    if (!post || (action !== "hide" && action !== "unhide")) return fail(404, "not_found");
+    post.hidden = action === "hide";
+    audit(admin, `post.${action}`, "post", post.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];
+
+/** For the reports queue: what a reported thread or post says. */
+export function forumTarget(kind: "thread" | "post", id: number) {
+  if (kind === "thread") {
+    const thread = threads.find((item) => item.id === id);
+    return thread
+      ? { text: `${thread.title}\n${thread.body}`, hidden: Boolean(thread.hidden), threadId: thread.id, articleId: null }
+      : null;
+  }
+  const post = posts.find((item) => item.id === id);
+  return post ? { text: post.body, hidden: post.hidden, threadId: post.threadId, articleId: null } : null;
+}
+
+export function hideForum(kind: "thread" | "post", id: number) {
+  if (kind === "thread") {
+    const thread = threads.find((item) => item.id === id);
+    if (thread) thread.hidden = true;
+  } else {
+    const post = posts.find((item) => item.id === id);
+    if (post) post.hidden = true;
+  }
+}

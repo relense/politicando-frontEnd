@@ -331,7 +331,7 @@ export const initiativeDetails: ApiInitiativeDetailInput[] = Array.from({ length
             // A split group: only one of its deputies voted against.
             against: [...against.map((slug) => ({ party: slug, count: null })), ...(index % 4 === 0 ? [{ party: "ps", count: 1 }] : [])],
             abstention: abstain.map((slug) => ({ party: slug, count: null })),
-            absent: index % 6 === 0 ? [{ party: "jpp", count: null }] : [],
+            absent: index % 6 === 0 ? ["jpp"] : [],
             named: index % 4 === 0 ? [{ name: generated[150]!.name, group: "PS", position: "against" }] : [],
           },
         ]
@@ -406,8 +406,8 @@ export function deputyVotes(id: number) {
   const items = initiativeDetails.flatMap((detail) =>
     (detail.votes ?? []).map((vote) => {
       const named = vote.named?.find((item) => item.name === deputy.name);
-      const inGroup = (list: { party: string; count: number | null }[] | null | undefined) =>
-        list?.some((item) => item.party === deputy.party);
+      const inGroup = (list: ({ party: string; count: number | null } | string)[] | null | undefined) =>
+        list?.some((item) => (typeof item === "string" ? item : item.party) === deputy.party);
       const whole = (list: { party: string; count: number | null }[] | null | undefined) =>
         list?.some((item) => item.party === deputy.party && item.count === null);
       let position: Position | null = null;

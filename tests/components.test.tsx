@@ -132,7 +132,7 @@ describe("comments", () => {
 
   it("opens the comment box from a single line and closes it with Cancelar, like Reddit", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={57} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/57" initialComments={[]} />);
     expect(screen.queryByLabelText("Comentário")).toBeNull();
     await openBox(user);
     expect(screen.getByLabelText("Comentário")).toHaveFocus();
@@ -142,7 +142,7 @@ describe("comments", () => {
 
   it("rejects an empty comment and a missing captcha with a message", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={100} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/100" initialComments={[]} />);
     await openBox(user);
 
     await user.click(screen.getByRole("button", { name: "Publicar" }));
@@ -159,7 +159,7 @@ describe("comments", () => {
 
   it("posts a comment without blanking the page, then closes the box", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={50} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/50" initialComments={[]} />);
     await openBox(user);
     await user.type(screen.getByLabelText("Comentário"), "Novo comentário");
     await user.click(screen.getByRole("checkbox"));
@@ -173,7 +173,7 @@ describe("comments", () => {
   it("removes the optimistic comment and keeps the text when the API fails", async () => {
     server.use(http.post(`${API}/articles/:id/comments`, () => HttpResponse.json({}, { status: 500 })));
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={51} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/51" initialComments={[]} />);
     await openBox(user);
     await user.type(screen.getByLabelText("Comentário"), "Vai falhar");
     await user.click(screen.getByRole("checkbox"));
@@ -186,7 +186,7 @@ describe("comments", () => {
 
   it("explains rate limiting using the API's error code", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={54} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/54" initialComments={[]} />);
     await openBox(user);
     await user.type(screen.getByLabelText("Comentário"), "ERRO-LIMITE");
     await user.click(screen.getByRole("checkbox"));
@@ -196,7 +196,7 @@ describe("comments", () => {
 
   it("shows the captcha only once something is written", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={55} initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/55" initialComments={[]} />);
     await openBox(user);
     expect(screen.queryByRole("checkbox")).toBeNull();
     await user.type(screen.getByLabelText("Comentário"), "a");
@@ -214,7 +214,7 @@ describe("comments", () => {
     );
     try {
       const user = userEvent.setup();
-      withQuery(<CommentSection articleId={58} initialComments={[]} />);
+      withQuery(<CommentSection target="/articles/58" initialComments={[]} />);
       await openBox(user);
       await user.type(screen.getByLabelText("Comentário"), "Sem captcha");
       expect(screen.queryByRole("checkbox")).toBeNull();
@@ -227,7 +227,7 @@ describe("comments", () => {
 
   it("resets only the captcha of the form that posted", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={52} initialComments={initial} />);
+    withQuery(<CommentSection target="/articles/52" initialComments={initial} />);
     await openBox(user);
     await user.click(screen.getAllByRole("button", { name: "Responder" })[0]!);
 
@@ -246,7 +246,7 @@ describe("comments", () => {
 
   it("closes a reply form with Cancelar", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={56} initialComments={initial} />);
+    withQuery(<CommentSection target="/articles/56" initialComments={initial} />);
     await user.click(screen.getAllByRole("button", { name: "Responder" })[0]!);
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByLabelText("Resposta")).toBeNull();
@@ -254,7 +254,7 @@ describe("comments", () => {
 
   it("shows replies nested under their parent, with anonymous names and post numbers", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={53} initialComments={initial} />);
+    withQuery(<CommentSection target="/articles/53" initialComments={initial} />);
 
     const root = document.getElementById("comentario-1")!;
     const reply = within(root).getByText("Filho").closest<HTMLElement>("[id^=comentario-]")!;
@@ -271,7 +271,7 @@ describe("comments", () => {
   it("turns >>123 into a link with a preview, and strikes through posts that are not here", async () => {
     const user = userEvent.setup();
     const comments = [...initial, { id: 3, username: null, text: ">>1 concordo, >>999 não", parentId: null, createdAt: null }];
-    withQuery(<CommentSection articleId={59} initialComments={comments} />);
+    withQuery(<CommentSection target="/articles/59" initialComments={comments} />);
 
     const post = document.getElementById("comentario-3")!;
     const mention = within(post).getByRole("link", { name: ">>1" });
@@ -285,7 +285,7 @@ describe("comments", () => {
 
   it("lists the posts that answer a post, as 4chan backlinks", () => {
     const comments = [...initial, { id: 3, username: null, text: ">>1 concordo", parentId: null, createdAt: null }];
-    withQuery(<CommentSection articleId={60} initialComments={comments} />);
+    withQuery(<CommentSection target="/articles/60" initialComments={comments} />);
     const root = document.getElementById("comentario-1")!;
     const backlinks = within(root).getByText("Respostas:").parentElement!;
     expect(
@@ -297,7 +297,7 @@ describe("comments", () => {
 
   it("quotes a post into the comment box when its number is clicked", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection articleId={61} initialComments={initial} />);
+    withQuery(<CommentSection target="/articles/61" initialComments={initial} />);
     await user.click(screen.getByRole("button", { name: "No.2, citar este comentário" }));
     expect(screen.getByLabelText("Comentário")).toHaveValue(">>2\n");
     await user.click(screen.getAllByRole("button", { name: /Citar$/ })[0]!);
@@ -307,7 +307,7 @@ describe("comments", () => {
   it("sorts top-level comments by oldest or newest", async () => {
     const user = userEvent.setup();
     const comments = [...initial, { id: 3, username: "rui", text: "Outro", parentId: null, createdAt: null }];
-    withQuery(<CommentSection articleId={62} initialComments={comments} />);
+    withQuery(<CommentSection target="/articles/62" initialComments={comments} />);
     const order = () => screen.getAllByRole("article").map((node) => node.id);
     expect(order()).toEqual(["comentario-1", "comentario-2", "comentario-3"]);
     await user.click(screen.getByRole("button", { name: "Mais recentes" }));

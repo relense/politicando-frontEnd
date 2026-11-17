@@ -16,6 +16,7 @@ import { tidyName } from "@/lib/elections";
 import { partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
 import type { Government, GovernmentMember, GovernmentMemberKind } from "@/lib/types";
+import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -110,6 +111,26 @@ export default async function GovernmentMemberPage({ params }: Props) {
 
   return (
     <article data-wide className="pb-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd([
+            personLd({
+              path: `/governo/${member.id}`,
+              name: member.name,
+              jobTitle: member.positions[0]?.title,
+              photoUrl: member.photoUrl,
+              party: parties.find((party) => party.slug === member.partySlug) ?? null,
+              worksFor: member.inOffice ? "government" : undefined,
+              sameAs: member.links.map((link) => link.url),
+            }),
+            breadcrumbs([
+              { name: "Governo", path: "/governo" },
+              { name: member.name, path: `/governo/${member.id}` },
+            ]),
+          ]),
+        }}
+      />
       <ScrollToTop id={String(id)} />
       <nav aria-label="Caminho" className="mb-4 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <Link href="/governo" className="hover:text-ink hover:underline">

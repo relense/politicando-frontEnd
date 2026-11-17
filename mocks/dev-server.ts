@@ -7,7 +7,7 @@ import { handlers } from "./handlers";
 const PORT = Number(process.env.MOCK_API_PORT ?? 4000);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -24,7 +24,11 @@ createServer(async (req, res) => {
     handlers,
     new Request(`http://localhost:${PORT}${req.url}`, {
       method: req.method,
-      headers: { "Content-Type": req.headers["content-type"] ?? "application/json" },
+      headers: {
+        "Content-Type": req.headers["content-type"] ?? "application/json",
+        // The admin's session cookie, as the real API reads it.
+        ...(req.headers.cookie ? { Cookie: req.headers.cookie } : {}),
+      },
       body,
     }),
   );
@@ -32,6 +36,11 @@ createServer(async (req, res) => {
     res.writeHead(404, CORS).end();
     return;
   }
-  res.writeHead(response.status, { ...CORS, "Content-Type": response.headers.get("content-type") ?? "application/json" });
+  const cookies = response.headers.getSetCookie();
+  res.writeHead(response.status, {
+    ...CORS,
+    "Content-Type": response.headers.get("content-type") ?? "application/json",
+    ...(cookies.length > 0 ? { "Set-Cookie": cookies } : {}),
+  });
   res.end(Buffer.from(await response.arrayBuffer()));
 }).listen(PORT, () => console.log(`Mock API on http://localhost:${PORT}/api/v1`));

@@ -1,3 +1,4 @@
+import { CookieBanner } from "@/components/CookieBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import type { Metadata, Viewport } from "next";
 import { Domine, Space_Mono } from "next/font/google";
@@ -9,6 +10,7 @@ import { PartyOrderProvider } from "@/components/PartyOrder";
 import { Providers } from "@/components/Providers";
 import { SiteNav } from "@/components/SiteNav";
 import { getPartyStandings } from "@/lib/api/client";
+import { jsonLd, OG_BASE, siteLd } from "@/lib/seo";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -19,7 +21,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${SITE_NAME} | Notícias dos partidos portugueses`, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
-  openGraph: { siteName: SITE_NAME, locale: "pt_PT", type: "website" },
+  applicationName: SITE_NAME,
+  category: "politics",
+  // Numbers like vote counts and NIFs are not phone numbers.
+  formatDetection: { telephone: false, email: false, address: false },
+  openGraph: { ...OG_BASE, type: "website" },
+  // The large card; the image comes from each route's opengraph-image (X falls back to it).
+  twitter: { card: "summary_large_image" },
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 export const viewport: Viewport = {
@@ -37,6 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(siteLd()) }} />
         <Providers>
           <PartyOrderProvider standings={standings}>
             <NavigationProgress />
@@ -53,6 +63,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               </main>
             </div>
             <SiteFooter />
+            <CookieBanner />
           </PartyOrderProvider>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}

@@ -769,7 +769,7 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await expect(page.getByRole("link", { name: "um link perigoso" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "um bom" })).toHaveAttribute("href", "https://www.parlamento.pt");
   await expect(page.locator("iframe")).toHaveCount(0);
-  const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
+  const ld = JSON.parse((await page.locator('main script[type="application/ld+json"]').textContent())!);
   expect(ld).toMatchObject({ "@type": "OpinionNewsArticle", headline: "A maioria que não existe" });
 
   // A long explainer: its sections listed and numbered, each a jump to its heading.
@@ -949,4 +949,42 @@ test("feedback: every page's footer opens the form with that page filled in, and
       "page",
     );
   }
+});
+
+test("blog: readers comment on a post as on the news", async ({ page }, testInfo) => {
+  const text = `Comentário de teste no blog (${testInfo.project.name})`;
+  await page.goto("/editorial/o-que-muda-no-orcamento");
+  const section = page.getByRole("region", { name: /Comentários/ });
+  await expect(section.getByText("Bem explicado, obrigado.")).toBeVisible();
+  await section.getByRole("button", { name: "Junta-te à conversa…" }).click();
+  await section.getByRole("textbox", { name: "Comentário", exact: true }).fill(text);
+  await section.getByLabel("Não sou um robô (teste)").check();
+  await section.getByRole("button", { name: "Publicar" }).click();
+  await expect(section.getByText(text)).toBeVisible();
+  // A post written in the code has no comments in the API: no box.
+  await page.goto("/editorial/como-se-chega-a-deputado");
+  await expect(page.getByRole("region", { name: /Comentários/ })).toHaveCount(0);
+});
+
+test("SEO: share images, structured data, icons and robots", async ({ page, request }) => {
+  await page.goto("/partido/ps");
+  const image = await page.locator('meta[property="og:image"]').getAttribute("content");
+  expect(image).toMatch(/\/partido\/ps\/opengraph-image/);
+  const png = await request.get(new URL(image!).pathname + new URL(image!).search);
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toBe("image/png");
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "Politicando");
+  const types = (await page.locator('script[type="application/ld+json"]').allTextContents())
+    .flatMap((text) => [JSON.parse(text)].flat())
+    .map((item: { "@type": string }) => item["@type"]);
+  expect(types).toEqual(expect.arrayContaining(["Organization", "WebSite", "PoliticalParty", "BreadcrumbList"]));
+
+  // Every page has a share image, the site's own when it has none.
+  await page.goto("/parlamento");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\/opengraph-image/);
+  expect((await request.get("/icon")).status()).toBe(200);
+  const robots = await (await request.get("/robots.txt")).text();
+  expect(robots).toContain("Disallow: /admin");
+  expect(await (await request.get("/sitemap.xml")).text()).toContain("/forum</loc>");
 });

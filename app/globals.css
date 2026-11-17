@@ -24,6 +24,8 @@
   --end-censure: #9c1f5a;
   --end-programme: #a4500c;
   --marker: #f3d27a;
+  /* The gold of the icon's P. Deeper on white so it still reads (4.5:1); the icon's own yellow on dark. */
+  --brand: #9a6f00;
 }
 
 .dark {
@@ -44,6 +46,7 @@
   --end-censure: #f27bb3;
   --end-programme: #fdba74;
   --marker: #6b5a2a;
+  --brand: #f0c75e;
 }
 
 @theme inline {
@@ -54,6 +57,7 @@
   --color-line: var(--line);
   --color-link: var(--link);
   --color-danger: var(--danger);
+  --color-brand: var(--brand);
   --font-serif: var(--font-domine), Georgia, serif;
   --font-mono: var(--font-space-mono), ui-monospace, monospace;
 }

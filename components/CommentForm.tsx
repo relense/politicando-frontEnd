@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { ApiError, createComment } from "@/lib/api/client";
-import type { Comment, NewComment } from "@/lib/types";
+import type { Comment, NewComment, CommentTarget } from "@/lib/types";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 
 const MAX_LENGTH = 500;
@@ -22,7 +22,7 @@ const DEFAULT_ERROR = "Não foi possível publicar o comentário. O teu texto fo
 export type CommentFormHandle = { insert: (text: string) => void };
 
 type Props = {
-  articleId: number;
+  target: CommentTarget;
   parentId: number | null;
   initialText?: string;
   autoFocus?: boolean;
@@ -31,10 +31,10 @@ type Props = {
   ref?: Ref<CommentFormHandle>;
 };
 
-export function CommentForm({ articleId, parentId, initialText = "", autoFocus, onPosted, onCancel, ref }: Props) {
+export function CommentForm({ target, parentId, initialText = "", autoFocus, onPosted, onCancel, ref }: Props) {
   const id = useId();
   const queryClient = useQueryClient();
-  const queryKey = ["comments", articleId];
+  const queryKey = ["comments", target];
   const captcha = useRef<CaptchaHandle>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [username, setUsername] = useState("");
@@ -106,7 +106,7 @@ export function CommentForm({ articleId, parentId, initialText = "", autoFocus, 
     const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
     if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
-    mutation.mutate({ articleId, parentId, username, text: trimmed, captchaToken });
+    mutation.mutate({ target, parentId, username, text: trimmed, captchaToken });
   }
 
   const label = parentId === null ? "Comentário" : "Resposta";

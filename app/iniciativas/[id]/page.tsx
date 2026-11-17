@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format";
 import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import type { InitiativeDetail, Vote, VotePosition } from "@/lib/types";
+import { breadcrumbs, jsonLd, legislationLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,24 @@ export default async function InitiativePage({ params }: Props) {
 
   return (
     <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd([
+            legislationLd({
+              path: initiativePath(initiative.id),
+              name: headlineOf(initiative),
+              kind: initiative.plain?.type.label ?? initiative.type,
+              date: initiative.submittedAt?.slice(0, 10),
+              officialUrl: initiative.textUrl,
+            }),
+            breadcrumbs([
+              { name: "Iniciativas", path: "/iniciativas" },
+              { name: headlineOf(initiative), path: initiativePath(initiative.id) },
+            ]),
+          ]),
+        }}
+      />
       <p className="mb-3 font-mono text-xs">
         <Link href="/iniciativas" className="text-muted underline hover:text-ink">
           Iniciativas

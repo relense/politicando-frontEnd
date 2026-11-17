@@ -4,6 +4,7 @@ import type {
   Article,
   ArticlePage,
   Comment,
+  CommentTarget,
   DeputyDetail,
   DeputyVotesPage,
   Election,
@@ -204,13 +205,13 @@ export async function getArticle(id: number): Promise<Article> {
   return mapArticle(await request(`/articles/${id}`, articleSchema, cached));
 }
 
-export async function getComments(articleId: number): Promise<Comment[]> {
-  const comments = await request(`/articles/${articleId}/comments`, z.array(commentSchema), { cache: "no-store" });
+export async function getComments(target: CommentTarget): Promise<Comment[]> {
+  const comments = await request(`${target}/comments`, z.array(commentSchema), { cache: "no-store" });
   return comments.map(mapComment);
 }
 
 export async function createComment(input: NewComment): Promise<Comment> {
-  const created = await request(`/articles/${input.articleId}/comments`, commentSchema, {
+  const created = await request(`${input.target}/comments`, commentSchema, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     // The API rejects unknown fields, so only send what it documents.

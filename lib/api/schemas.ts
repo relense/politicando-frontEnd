@@ -152,6 +152,8 @@ export const initiativeSchema = z.object({
 });
 
 const positionSchema = z.object({ party: z.string(), count: z.number().nullable() });
+// Absences come as bare party slugs (["be"]): nobody counts an absent group's votes. Both shapes are accepted.
+const absentSchema = z.union([positionSchema, z.string().transform((party) => ({ party, count: null }))]);
 
 export const initiativeDetailSchema = initiativeSchema.extend({
   legislature: z.string().nullish(),
@@ -166,7 +168,7 @@ export const initiativeDetailSchema = initiativeSchema.extend({
       favor: list(positionSchema),
       against: list(positionSchema),
       abstention: list(positionSchema),
-      absent: list(positionSchema),
+      absent: list(absentSchema),
       named: list(z.object({ name: z.string(), group: z.string(), position: z.string() })),
     }),
   ),

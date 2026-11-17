@@ -17,6 +17,7 @@ import { tidyName } from "@/lib/elections";
 import { formatNumber } from "@/lib/format";
 import { ageOn, partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
+import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -65,6 +66,26 @@ export default async function DeputyPage({ params }: Props) {
 
   return (
     <article data-wide className="pb-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd([
+            personLd({
+              path: `/deputados/${deputy.id}`,
+              name: deputy.name,
+              fullName: deputy.fullName,
+              jobTitle: `Membro da Assembleia da República, pelo círculo de ${deputy.constituency}`,
+              photoUrl: deputy.photoUrl,
+              party: deputy.party,
+              worksFor: "parliament",
+            }),
+            breadcrumbs([
+              { name: "Parlamento", path: "/parlamento" },
+              { name: deputy.name, path: `/deputados/${deputy.id}` },
+            ]),
+          ]),
+        }}
+      />
       <ScrollToTop id={String(deputy.id)} />
       <nav aria-label="Caminho" className="mb-4 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <Link href="/parlamento" className="hover:text-ink hover:underline">
