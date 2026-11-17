@@ -4,7 +4,7 @@ import { editorialPath, KIND_LABELS } from "@/lib/editorial";
 import { formatCardWhen, formatDateTime, formatLongDate, formatNumber } from "@/lib/format";
 import { partyPath } from "@/lib/parties";
 import type { EditorialKind } from "@/lib/types";
-import { ImportaButton, ImportanceDots } from "./ImportaButton";
+import { ImportaButton, ImportaCount } from "./ImportaButton";
 import { SourceLogo } from "./SourceLogo";
 
 /** The parts of an article page when the article is one outlet's version of a story. */
@@ -143,13 +143,7 @@ function Side({ comment, label, color, compact }: { comment: DebateComment; labe
 export function ImportaBox({ story }: { story: StoryDetail }) {
   return (
     <section aria-labelledby="importa" className="flex items-center gap-3 rounded-2xl border border-line p-4">
-      <ImportanceDots importance={story.importance} className="w-12 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <h2 id="importa" className="text-2xl font-bold leading-none">
-          {formatNumber(story.importa)}
-        </h2>
-        <p className="font-mono text-[11px] text-muted">{story.importa === 1 ? "leitor diz que importa" : "leitores dizem que importa"}</p>
-      </div>
+      <ImportaCount id={story.id} importa={story.importa} importance={story.importance} />
       <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
     </section>
   );
