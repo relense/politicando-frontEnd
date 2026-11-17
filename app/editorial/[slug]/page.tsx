@@ -7,13 +7,15 @@ import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleImage } from "@/components/ArticleImage";
 import { ConsentEmbed } from "@/components/ConsentEmbed";
 import { JumpLink } from "@/components/JumpLink";
-import { ApiError, getEditorialPost } from "@/lib/api/client";
+import { CommentSection } from "@/components/CommentSection";
+import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
 import { excerpt, formatLongDate } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
+import { OG_BASE } from "@/lib/seo";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
-import type { EditorialDetail } from "@/lib/types";
+import { postComments, type Comment, type EditorialDetail } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -26,6 +28,15 @@ async function loadPost(slug: string): Promise<EditorialDetail> {
     if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
     throw error;
   }
+}
+
+/**
+ * Readers' comments, as on news. Posts written here in the code (lib/localPosts.ts) aren't in the API, so they have
+ * none; and while the API doesn't answer, the box stays out rather than showing an error under the post.
+ */
+async function loadComments(post: EditorialDetail): Promise<Comment[] | null> {
+  if (localPost(post.slug)) return null;
+  return getComments(postComments(post.slug)).catch(() => null);
 }
 
 const describe = (post: EditorialDetail) => post.subtitle ?? (excerpt(plainText(post.body), 160) || undefined);
@@ -41,6 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     authors: post.authorName ? [{ name: post.authorName }] : undefined,
     keywords: post.tags.length > 0 ? post.tags : undefined,
     openGraph: {
+      ...OG_BASE,
       type: "article",
       title: post.title,
       description,
@@ -48,9 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: post.publishedAt,
       authors: post.authorName ? [post.authorName] : undefined,
       tags: post.tags,
-      images: post.coverImageUrl ? [post.coverImageUrl] : undefined,
     },
-    twitter: { card: post.coverImageUrl ? "summary_large_image" : "summary", title: post.title, description },
   };
 }
 
@@ -85,6 +95,7 @@ export default async function EditorialPostPage({ params }: Props) {
   await connection();
   const post = await loadPost((await params).slug);
   const date = formatLongDate(post.publishedAt);
+  const comments = await loadComments(post);
   const sections = post.media ? [] : sectionsOf(post.body);
   const long = sections.length >= 3;
   const author = post.authorName ?? "Redação Politicando";
@@ -192,6 +203,8 @@ export default async function EditorialPostPage({ params }: Props) {
               ))}
             </ul>
           )}
+
+          {comments && <CommentSection target={postComments(post.slug)} initialComments={comments} />}
         </div>
 
         {long && (
