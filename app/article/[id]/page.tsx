@@ -131,7 +131,7 @@ export default async function ArticlePage({ params }: Props) {
         // "<" is escaped so a hostile title cannot close this script tag.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <div data-wide className="grid gap-10 xl:grid-cols-[minmax(0,48rem)_20rem] xl:justify-between">
+      <div data-wide className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           {story && <MarkStoryRead id={story.id} />}
           <ArticleDetail article={article} versions={story && <StoryVersions story={story} current={article.id} />} />
