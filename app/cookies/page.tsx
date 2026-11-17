@@ -19,6 +19,13 @@ const STORED: [string, string, string][] = [
   ["party-order", "Guarda a ordem dos partidos que escolheste (por nome ou por votos).", "Até o apagares"],
   ["embeds", "Guarda a escolha de carregar sempre os leitores de outros sites, se a fizeres.", "Até o apagares ou desligares abaixo"],
   ["forum-me-…", "Lembra as tuas mensagens numa discussão, para as marcar com “(tu)”.", "Até fechares o separador"],
+  ["ideas-voted", "Lembra as ideias e discussões em que votaste, para o botão ficar marcado.", "Até o apagares"],
+  ["read-…", "Lembra que já abriste um artigo do blog nesta visita, para contar a leitura uma só vez.", "Até fechares o separador"],
+  [
+    "politicando_admin",
+    "Só para a equipa: o cookie de sessão de quem entra na área de moderação. Quem lê o site nunca o recebe.",
+    "14 dias, ou até saíres",
+  ],
 ];
 
 export default function CookiesPage() {
