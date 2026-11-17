@@ -35,6 +35,11 @@ export function Feed({ initialPage, partySlug, q = "", source = "", commented = 
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: { pages: [initialPage], pageParams: [undefined] },
+    // Back from an article, as on Reddit: every page loaded so far is still there, unchanged, so the browser puts the
+    // reader back on the same card. Kept for half an hour of reading (the default is 5 minutes) and not refetched on
+    // return, which would move the cards under the reader. A full reload brings the latest news.
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
   });
 
   const now = useNow();
