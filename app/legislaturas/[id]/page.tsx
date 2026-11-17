@@ -198,7 +198,10 @@ export default async function LegislaturePage({ params }: Props) {
           )}
         </div>
 
-        <aside aria-label="Quem governou" className="flex flex-col gap-4 xl:sticky xl:top-20">
+        <aside
+          aria-label="Quem governou"
+          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+        >
           <h2 className="font-mono text-sm font-bold uppercase tracking-widest">Quem governou</h2>
           {legislature.governments.map((government) => (
             <GovernmentCard key={government.code} government={government} today={today()} heading="h3" />

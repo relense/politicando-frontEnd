@@ -7,3 +7,9 @@ export const noSeriousA11yIssues = async (page: Page) => {
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations.map((violation) => `${violation.id}: ${violation.nodes[0]?.html}`)).toEqual([]);
 };
+
+/** On a phone the news search is a button that opens the box; elsewhere the box is always there. */
+export async function openNewsSearch(page: Page) {
+  const toggle = page.getByRole("button", { name: "Procurar nas notícias" });
+  if (await toggle.isVisible()) await toggle.click();
+}

@@ -7,6 +7,7 @@ import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleImage } from "@/components/ArticleImage";
 import { ConsentEmbed } from "@/components/ConsentEmbed";
 import { JumpLink } from "@/components/JumpLink";
+import { ArticleVote } from "@/components/ArticleVote";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
@@ -103,7 +104,7 @@ export default async function EditorialPostPage({ params }: Props) {
 
   return (
     <article data-wide>
-      <CountRead slug={post.slug} />
+      <CountRead path={`/editorial/${encodeURIComponent(post.slug)}/view`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(post) }} />
       <nav aria-label="Caminho" className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <Link href="/editorial" className="hover:text-ink hover:underline">
@@ -157,7 +158,10 @@ export default async function EditorialPostPage({ params }: Props) {
               </span>
             </span>
           </p>
-          <ArticleActions title={post.title} />
+          <div className="flex flex-wrap items-center gap-2">
+            {post.votes && <ArticleVote id={`post:${post.slug}`} title={post.title} up={post.votes.up} down={post.votes.down} />}
+            <ArticleActions title={post.title} />
+          </div>
         </div>
         {post.kind === "opinion" && (
           <p className="mt-4 rounded-lg border border-dashed border-line px-4 py-2 text-sm text-muted">
@@ -222,7 +226,7 @@ export default async function EditorialPostPage({ params }: Props) {
         </div>
 
         {long && (
-          <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain no-scrollbar xl:block">
+          <aside className="sticky top-20 hidden max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar xl:block">
             <nav aria-label="Neste artigo" className="rounded-2xl border border-line p-4">
               <Contents sections={sections} />
             </nav>

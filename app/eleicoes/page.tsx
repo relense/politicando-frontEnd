@@ -82,7 +82,9 @@ export default async function ElectionsPage() {
     <div data-wide>
       <header className="mb-6">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Resultados oficiais</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Eleições</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">Eleições</span>
+        </h1>
         <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Quem ganhou, com quantos votos e onde{since ? `, desde ${since}` : ""}. Escolhe uma eleição e desce do país ao distrito, ao
           concelho e à freguesia, até onde houver resultados.
@@ -145,7 +147,7 @@ export default async function ElectionsPage() {
             </div>
             <aside
               aria-label="Ao lado dos resultados"
-              className="no-scrollbar flex flex-col gap-4 self-start xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:pb-2"
+              className="no-scrollbar flex flex-col gap-4 self-start xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
             >
               {upcoming.length > 0 && <Upcoming elections={upcoming} />}
               <Turnout types={types.map(({ type, label, elections: ofType }) => ({ type, label, elections: ofType }))} />

@@ -78,7 +78,10 @@ export default async function FeedbackPage({ searchParams }: Props) {
           />
         </div>
 
-        <aside aria-label="Depois de enviares" className="flex flex-col gap-4 xl:sticky xl:top-20">
+        <aside
+          aria-label="Depois de enviares"
+          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+        >
           <section aria-labelledby="a-seguir" className="rounded-2xl border border-line p-4">
             <h2 id="a-seguir" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">
               O que acontece a seguir

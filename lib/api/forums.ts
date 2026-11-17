@@ -104,8 +104,19 @@ export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: stri
   declined: { label: "Não vamos fazer", color: "var(--danger)" },
 };
 const ideaStatusOf = (value: string | null | undefined): IdeaStatus | null => IDEA_STATUSES.find((status) => status === value) ?? null;
-export type ReportReason = "spam" | "insult" | "hate" | "personal_data" | "illegal" | "other";
-export type ReportKind = "thread" | "post" | "comment";
+export type ReportReason =
+  | "spam"
+  | "insult"
+  | "hate"
+  | "personal_data"
+  | "illegal"
+  | "other"
+  // News articles: about our tagging or the item, not what the outlet wrote.
+  | "wrong_tags"
+  | "broken_link"
+  | "duplicate"
+  | "not_politics";
+export type ReportKind = "thread" | "post" | "comment" | "article";
 
 export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
   { value: "spam", label: "Spam ou publicidade" },
@@ -113,6 +124,14 @@ export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
   { value: "hate", label: "Discurso de ódio" },
   { value: "personal_data", label: "Dados pessoais de alguém" },
   { value: "illegal", label: "Conteúdo ilegal" },
+  { value: "other", label: "Outro motivo" },
+];
+
+export const ARTICLE_REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: "wrong_tags", label: "Partido ou pessoa errados" },
+  { value: "broken_link", label: "Link não funciona" },
+  { value: "duplicate", label: "Notícia repetida" },
+  { value: "not_politics", label: "Não é sobre política" },
   { value: "other", label: "Outro motivo" },
 ];
 

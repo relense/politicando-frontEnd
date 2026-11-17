@@ -1,4 +1,5 @@
-import { formatFullDateTime } from "@/lib/format";
+import type { ReactNode } from "react";
+import { formatFullDateTime, readsLabel } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleActions } from "./ArticleActions";
 import { ArticleImage } from "./ArticleImage";
@@ -6,7 +7,7 @@ import { BackLink } from "./BackLink";
 import { PartyChips } from "./PartyChips";
 
 /** The article page's main column. We only have a teaser, so the way to the original is the main action. */
-export function ArticleDetail({ article }: { article: Article }) {
+export function ArticleDetail({ article, versions }: { article: Article; /** The story's outlets, as tabs. */ versions?: ReactNode }) {
   const published = formatFullDateTime(article.publishedAt);
 
   return (
@@ -16,12 +17,19 @@ export function ArticleDetail({ article }: { article: Article }) {
         <ArticleActions title={article.title} />
       </div>
 
+      {versions}
       <p className="mb-3 flex flex-wrap items-center gap-2 font-mono text-xs text-muted">
         <span className="rounded-full bg-surface px-2.5 py-0.5 font-bold text-ink">{article.source}</span>
         {published && <time dateTime={article.publishedAt}>{published}</time>}
+        {article.views !== null && article.views > 0 && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{readsLabel(article.views)}</span>
+          </>
+        )}
       </p>
 
-      <h1 className="text-3xl font-bold leading-tight sm:text-5xl sm:leading-[1.05]">{article.title}</h1>
+      <h1 className="text-2xl font-bold leading-tight sm:text-3xl xl:text-4xl xl:leading-[1.1]">{article.title}</h1>
 
       {article.excerpt && <p className="mt-4 text-lg leading-relaxed text-ink/90">{article.excerpt}</p>}
 

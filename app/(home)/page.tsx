@@ -4,15 +4,20 @@ import { connection } from "next/server";
 import { Feed } from "@/components/Feed";
 import { loadHighlights } from "@/components/Highlights";
 import { NextEvent } from "@/components/NextEvent";
+import { BlogRow, EventRow } from "@/components/FeedInserts";
 import { getNextEvent } from "@/lib/api/agenda";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
 import { FeedFilters } from "@/components/FeedFilters";
-import { FEED_PAGE_SIZE, getFeedPage, getParties, getSources } from "@/lib/api/client";
+import { FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
+import { loadFeed } from "@/lib/api/feed";
+import { getDebatedTags, getToday } from "@/lib/api/stories";
+import { DebatedTags } from "@/components/DebatedTags";
+import { FEATURES } from "@/lib/features";
+import { TodayInFive } from "@/components/TodayInFive";
 import { tidyName } from "@/lib/elections";
-import { COMMENTED_HOURS, FEED_COOKIE, isEmpty, parseFilter, readSavedFilter, sortOf } from "@/lib/feedFilter";
+import { FEED_COOKIE, isEmpty, orderKey, orderOf, orderPhrase, parseFilter, readSavedFilter } from "@/lib/feedFilter";
 import { ofParty, partyPath } from "@/lib/parties";
 import { SOURCE_COUNT, sourceName } from "@/lib/sources";
-import { formatNumber } from "@/lib/format";
 
 type Props = {
   searchParams: Promise<{
@@ -21,6 +26,8 @@ type Props = {
     fonte?: string | string[];
     tudo?: string | string[];
     ordem?: string | string[];
+    periodo?: string | string[];
+    tema?: string | string[];
   }>;
 };
 
@@ -39,6 +46,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     : {};
 }
 
+/** The highlighter stroke under a word of the title. */
 const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
 
 /** The time of this request, for "Hoje" and "Amanhã". */
@@ -53,7 +61,9 @@ export default async function HomePage({ searchParams }: Props) {
     cookies(),
   ]);
   const { q } = searchOf(params);
-  const sort = sortOf(params.ordem);
+  const order = orderOf(params);
+  // A subject from the "Em debate" row (stories only).
+  const tag = FEATURES.stories && /^[a-z0-9-]{1,40}$/.test(one(params.tema)) ? one(params.tema) : "";
   const saved = readSavedFilter(jar.get(FEED_COOKIE)?.value);
   const asked = parseFilter(params);
   // The front page opens with the reader's saved feed, unless the address asks for something (or for everything).
@@ -76,17 +86,20 @@ export default async function HomePage({ searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   const [page, highlights, sidebar, nextEvent] = await Promise.all([
-    getFeedPage({
-      party: chosen.parties,
-      q,
-      source: chosen.sources,
-      limit: FEED_PAGE_SIZE,
-      ...(sort === "comentadas" ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
-    }),
+    loadFeed({ party: chosen.parties, q, source: chosen.sources, tag, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
     getNextEvent(),
   ]);
+  const [today, debated] = FEATURES.stories ? await Promise.all([getToday(), getDebatedTags()]) : [[], []];
+  const tagInfo = debated.find((item) => item.slug === tag);
+  /** This address with another subject (or none), keeping the rest. */
+  const withTag = (slug: string | null) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) if (typeof value === "string" && value && key !== "tema") query.set(key, value);
+    if (slug) query.set("tema", slug);
+    return query.size > 0 ? `/?${query}` : "/";
+  };
   // The blog has one box beside the news, so it never pushes the news down.
   const spotlight = highlights[0] ?? null;
 
@@ -127,37 +140,36 @@ export default async function HomePage({ searchParams }: Props) {
         filter={chosen}
         saved={saved}
         q={q}
-        sort={sort}
+        order={order}
       />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
-            {typeof page.total === "number" && (
-              <b className="text-ink">{page.total === 1 ? "1 notícia" : `${formatNumber(page.total)} notícias`} · </b>
-            )}
-            {q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
+          <DebatedTags tags={debated} active={tag} hrefOf={withTag} />
+          <p className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-muted" aria-live="polite">
+            {tag ? `#${tagInfo?.label ?? tag}` : q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
             {filtered && ` · ${label}`}
-            {sort === "comentadas" ? ", as mais comentadas dos últimos 7 dias primeiro" : ", mais recentes primeiro"}
+            {orderPhrase(order)}
           </p>
-          {/* On smaller screens the blog's box comes before the news, and the rest of the column is left out. */}
-          {(spotlight || nextEvent) && (
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:hidden">
-              {spotlight && <BlogSpotlight post={spotlight} />}
-              {nextEvent && <NextEvent item={nextEvent} now={requestTime()} headingId="proximo-evento-topo" />}
-            </div>
-          )}
           <Feed
-            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${sort}`}
+            key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${tag}|${orderKey(order)}`}
+            tag={tag}
             initialPage={page}
             partySlug={chosen.parties}
             q={q}
             source={chosen.sources}
-            commented={sort === "comentadas"}
+            order={order}
+            // On smaller screens, without the column beside the news, its two boxes come between the news.
+            inserts={[
+              ...(today.length > 0 ? [{ after: 3, node: <TodayInFive stories={today} headingId="hoje-em-5-feed" /> }] : []),
+              ...(spotlight ? [{ after: 5, node: <BlogRow post={spotlight} /> }] : []),
+              ...(nextEvent ? [{ after: 12, node: <EventRow item={nextEvent} now={requestTime()} /> }] : []),
+            ]}
           />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
-          <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overscroll-contain pb-2">
+          <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
+            {today.length > 0 && <TodayInFive stories={today} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
             {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
             <PowerNow data={sidebar.power} />

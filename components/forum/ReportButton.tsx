@@ -1,14 +1,27 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { createReport, REPORT_REASONS, type ReportKind, type ReportReason } from "@/lib/api/forums";
+import { ARTICLE_REPORT_REASONS, createReport, REPORT_REASONS, type ReportKind, type ReportReason } from "@/lib/api/forums";
 
-type Props = { kind: ReportKind; id: number; className?: string };
+type Props = {
+  kind: ReportKind;
+  id: number;
+  className?: string;
+  /** Opened from elsewhere (the article menu): the form shows at once, without its own button. */
+  startOpen?: boolean;
+  onClose?: () => void;
+};
 
 /** "Denunciar": opens a short form with the reasons the moderators use. No captcha; the API limits it per IP. */
-export function ReportButton({ kind, id, className = "" }: Props) {
+export function ReportButton({ kind, id, className = "", startOpen = false, onClose }: Props) {
   const fieldId = useId();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(startOpen);
+  const setOpen = (value: boolean | ((current: boolean) => boolean)) => {
+    const next = typeof value === "function" ? value(open) : value;
+    setOpenState(next);
+    if (!next) onClose?.();
+  };
+  const reasons = kind === "article" ? ARTICLE_REPORT_REASONS : REPORT_REASONS;
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
@@ -20,7 +33,9 @@ export function ReportButton({ kind, id, className = "" }: Props) {
     try {
       await createReport({ kind, id, reason, details });
       setState("sent");
-      setOpen(false);
+      setOpenState(false);
+      // Opened from a menu: the thanks shows a moment, then it goes away.
+      if (startOpen) setTimeout(() => onClose?.(), 2500);
     } catch {
       setState("failed");
     }
@@ -30,10 +45,10 @@ export function ReportButton({ kind, id, className = "" }: Props) {
     // Takes the whole row while the form is open, so it never squeezes beside the other actions.
     <div className={`${className} ${open ? "basis-full" : ""}`}>
       {state === "sent" ? (
-        <p role="status" className="font-mono text-xs text-muted">
+        <p role="status" className={`font-mono text-xs text-muted ${startOpen ? "rounded-2xl border border-line p-3" : ""}`}>
           Obrigado. A moderação vai rever a denúncia.
         </p>
-      ) : (
+      ) : startOpen ? null : (
         <button
           type="button"
           aria-expanded={open}
@@ -49,7 +64,7 @@ export function ReportButton({ kind, id, className = "" }: Props) {
           <fieldset>
             <legend className="mb-2 font-mono text-xs font-bold">Porque estás a denunciar?</legend>
             <div className="grid gap-1 sm:grid-cols-2">
-              {REPORT_REASONS.map((item) => (
+              {reasons.map((item) => (
                 <label key={item.value} className="flex items-center gap-2">
                   <input
                     type="radio"

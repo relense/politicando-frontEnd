@@ -278,7 +278,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
 
         <aside
           aria-label={`Sobre ${member.name}`}
-          className="flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain no-scrollbar"
+          className="flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain no-scrollbar"
         >
           <section aria-labelledby="ficha" className="rounded-2xl border border-line p-4">
             <h2 id="ficha" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">

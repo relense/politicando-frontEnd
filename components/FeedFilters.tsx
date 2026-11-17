@@ -3,19 +3,23 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import {
-  COMMENTED_HOURS,
   FEED_COOKIE,
   FEED_COOKIE_MAX_AGE,
   filterQuery,
   isEmpty,
   sameFilter,
   serializeFilter,
+  orderKey,
+  orderQuery,
+  PERIODS,
+  timed,
+  SORTS,
   toggle,
   type FeedFilter,
-  type FeedSort,
+  type FeedOrder,
 } from "@/lib/feedFilter";
 import { useQuery } from "@tanstack/react-query";
-import { getFeedPage } from "@/lib/api/client";
+import { loadFeed, totalOf } from "@/lib/api/feed";
 import { fold, formatNumber } from "@/lib/format";
 import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
@@ -31,7 +35,7 @@ type Props = {
   /** The reader's saved feed, if any; the front page opens with it. */
   saved: FeedFilter | null;
   q: string;
-  sort: FeedSort;
+  order: FeedOrder;
 };
 
 const pill = (pressed: boolean) =>
@@ -39,16 +43,26 @@ const pill = (pressed: boolean) =>
     pressed ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"
   }`;
 
+const bubble = (pressed: boolean) =>
+  `flex w-14 flex-col items-center gap-1 font-mono text-[11px] font-bold ${pressed ? "text-ink" : "text-muted"}`;
+const bubbleRing = (pressed: boolean) =>
+  `flex size-12 items-center justify-center overflow-hidden rounded-full border-2 bg-white text-[#1a1a1a] ${
+    pressed ? "border-[var(--brand)]" : "border-line"
+  }`;
+
 /** A button that opens a panel below it; closes on Escape, on a click outside, or when the choice is applied. */
 function Dropdown({
   label,
   count,
   title,
+  panelClass = "sm:w-[34rem]",
   children,
 }: {
   label: string;
   count: number;
   title: string;
+  /** The panel's width from a tablet up; on a phone it takes the row. */
+  panelClass?: string;
   children: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -101,7 +115,7 @@ function Dropdown({
           id={id}
           role="dialog"
           aria-label={title}
-          className="absolute inset-x-0 z-30 mt-2 rounded-2xl border border-line bg-paper p-4 shadow-xl sm:left-auto sm:right-0 sm:w-[34rem]"
+          className={`absolute inset-x-0 z-30 mt-2 rounded-2xl border border-line bg-paper p-4 shadow-xl sm:left-auto sm:right-0 ${panelClass}`}
         >
           {children(() => setOpen(false))}
         </div>
@@ -139,19 +153,10 @@ function CheckRow({
 }
 
 /** How many articles a choice would show, asked of the API as the boxes are ticked; null while unknown. */
-function useMatchCount(filter: FeedFilter, q: string, sort: FeedSort): number | null {
+function useMatchCount(filter: FeedFilter, q: string, order: FeedOrder): number | null {
   const { data } = useQuery({
-    queryKey: ["feed-count", filter.parties.join(","), filter.sources.join(","), q, sort],
-    queryFn: async () =>
-      (
-        await getFeedPage({
-          party: filter.parties,
-          source: filter.sources,
-          q,
-          limit: 1,
-          ...(sort === "comentadas" ? { sort: "comments" as const, since: COMMENTED_HOURS } : {}),
-        })
-      ).total ?? null,
+    queryKey: ["feed-count", filter.parties.join(","), filter.sources.join(","), q, orderKey(order)],
+    queryFn: async () => totalOf(await loadFeed({ party: filter.parties, source: filter.sources, q, limit: 1 }, order)),
     staleTime: 60_000,
   });
   return data ?? null;
@@ -189,12 +194,12 @@ function PanelFooter({
 
 const heading = "mb-2 mt-4 font-mono text-[11px] font-bold uppercase tracking-widest text-muted first:mt-0";
 
-type PanelProps = { chosen: string[]; onApply: (values: string[]) => void; filter: FeedFilter; q: string; sort: FeedSort };
+type PanelProps = { chosen: string[]; onApply: (values: string[]) => void; filter: FeedFilter; q: string; order: FeedOrder };
 
-function PartiesPanel({ parties, chosen, onApply, filter, q, sort }: PanelProps & { parties: Party[] }) {
+function PartiesPanel({ parties, chosen, onApply, filter, q, order }: PanelProps & { parties: Party[] }) {
   const { ordered, seatsOf } = useOrderedParties(parties);
   const [draft, setDraft] = useState(chosen);
-  const count = useMatchCount({ ...filter, parties: draft }, q, sort);
+  const count = useMatchCount({ ...filter, parties: draft }, q, order);
   const [query, setQuery] = useState("");
   const words = fold(query.trim());
   const shown = ordered.filter((party) => !words || fold(`${party.acronym} ${party.name}`).includes(words));
@@ -255,9 +260,9 @@ function PartiesPanel({ parties, chosen, onApply, filter, q, sort }: PanelProps 
   );
 }
 
-function SourcesPanel({ sources, chosen, onApply, filter, q, sort }: PanelProps & { sources: Source[] }) {
+function SourcesPanel({ sources, chosen, onApply, filter, q, order }: PanelProps & { sources: Source[] }) {
   const [draft, setDraft] = useState(chosen);
-  const count = useMatchCount({ ...filter, sources: draft }, q, sort);
+  const count = useMatchCount({ ...filter, sources: draft }, q, order);
   const [query, setQuery] = useState("");
   const words = fold(query.trim());
   const shown = sources.filter((source) => !words || fold(`${source.name} ${source.domain}`).includes(words));
@@ -297,21 +302,22 @@ function SourcesPanel({ sources, chosen, onApply, filter, q, sort }: PanelProps 
  * one tap away below it. The choice can be saved as the reader's own feed, which the front page then opens with (kept
  * in a cookie, never sent anywhere else).
  */
-export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props) {
+export function FeedFilters({ parties, sources, filter, saved, q, order }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
   const { ordered, seatsOf } = useOrderedParties(parties);
   const isSaved = saved !== null && sameFilter(filter, saved);
   const quick = ordered.filter((party) => (seatsOf(party.slug) ?? 0) > 0);
+  // On a phone the search is a button that opens the box, so the filters fit on one row.
+  const [searching, setSearching] = useState(Boolean(q));
 
-  const go = (next: FeedFilter, extra: { q?: string; sort?: FeedSort } = {}) => {
+  const go = (next: FeedFilter, extra: { q?: string; order?: FeedOrder } = {}) => {
     const words = extra.q ?? q;
-    const order = extra.sort ?? sort;
     // With a saved feed, "everything" needs saying, or the front page would open the saved one again.
     const query = filterQuery(next, {
       q: words,
-      ordem: order === "comentadas" ? "comentadas" : "",
+      ...orderQuery(extra.order ?? order),
       ...(isEmpty(next) && saved ? { tudo: "1" } : {}),
     });
     startTransition(() => router.push(query ? `${pathname}?${query}` : pathname, { scroll: false }));
@@ -329,11 +335,23 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
   return (
     <nav aria-label="Filtrar notícias" className="mb-6">
       <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          aria-expanded={searching}
+          aria-label={searching ? "Fechar a pesquisa" : "Procurar nas notícias"}
+          onClick={() => setSearching(!searching)}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full border sm:hidden ${searching ? "border-ink" : "border-line"}`}
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4">
+            <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
         <form
           role="search"
           action="/"
           method="get"
-          className="relative min-w-0 basis-full sm:flex-[1_1_18rem]"
+          className={`relative order-last min-w-0 basis-full sm:order-none sm:block sm:flex-[1_1_18rem] ${searching ? "" : "max-sm:hidden"}`}
           onSubmit={(event) => {
             event.preventDefault();
             const words = String(new FormData(event.currentTarget).get("q") ?? "").trim();
@@ -373,7 +391,7 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
                 chosen={filter.parties}
                 filter={filter}
                 q={q}
-                sort={sort}
+                order={order}
                 onApply={(next) => {
                   close();
                   go({ ...filter, parties: next });
@@ -390,7 +408,7 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
                 chosen={filter.sources}
                 filter={filter}
                 q={q}
-                sort={sort}
+                order={order}
                 onApply={(next) => {
                   close();
                   go({ ...filter, sources: next });
@@ -399,63 +417,33 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
             )}
           </Dropdown>
         )}
-        {/* On a phone the order is a small menu, so it fits on the row with Partidos and Jornais. */}
-        <div className="ml-auto sm:hidden">
-          <Dropdown label={sort === "comentadas" ? "Comentadas" : "Recentes"} count={0} title="Ordenar notícias">
-            {(close) => (
-              <div role="group" aria-label="Ordenar notícias" className="flex flex-col gap-1 font-mono text-xs font-bold">
-                {(
-                  [
-                    ["recentes", "Recentes", "As mais recentes primeiro"],
-                    ["comentadas", "Mais comentadas", "As mais comentadas dos últimos 7 dias"],
-                  ] as const
-                ).map(([value, label, hint]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={sort === value}
-                    onClick={() => {
-                      close();
-                      go(filter, { sort: value });
-                    }}
-                    className={`rounded-xl px-3 py-2.5 text-left ${sort === value ? "bg-ink text-paper" : "hover:bg-surface"}`}
-                  >
-                    {label}
-                    <span className="block font-normal opacity-70">{hint}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Dropdown>
+        {/* The order: tabs on a wide screen, a small menu otherwise. */}
+        <div className="ml-auto xl:hidden">
+          <OrderMenu order={order} onChange={(next) => go(filter, { order: next })} />
         </div>
-        <div
-          role="group"
-          aria-label="Ordenar notícias"
-          className="hidden h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold sm:flex"
-        >
-          {(
-            [
-              ["recentes", "Recentes"],
-              ["comentadas", "Mais comentadas"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={sort === value}
-              onClick={() => go(filter, { sort: value })}
-              className={`px-4 ${sort === value ? "bg-ink text-paper" : "hover:bg-surface"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <OrderTabs order={order} onChange={(next) => go(filter, { order: next })} />
       </div>
 
       {quick.length > 0 && (
         <div className="mt-3 flex items-center gap-2">
-          <span className="shrink-0 font-mono text-[11px] text-muted">Com deputados</span>
-          <ul aria-label="Partidos com deputados" className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5">
+          <span className="shrink-0 font-mono text-[11px] text-muted max-sm:hidden">Com deputados</span>
+          {/* On a phone, round buttons with the logo and the name below, as stories are shown; from a tablet up, pills. */}
+          <ul aria-label="Partidos com deputados" className="no-scrollbar flex min-w-0 flex-1 gap-3 overflow-x-auto pb-0.5 sm:gap-1.5">
+            <li className="shrink-0 sm:hidden">
+              <button
+                type="button"
+                aria-pressed={filter.parties.length === 0}
+                onClick={() => go({ ...filter, parties: [] })}
+                className={bubble(filter.parties.length === 0)}
+              >
+                <span className={bubbleRing(filter.parties.length === 0)}>
+                  <span aria-hidden="true" className="text-base">
+                    ★
+                  </span>
+                </span>
+                Todos
+              </button>
+            </li>
             {quick.map((party) => {
               const pressed = filter.parties.includes(party.slug);
               return (
@@ -464,7 +452,18 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
                     type="button"
                     aria-pressed={pressed}
                     onClick={() => go({ ...filter, parties: toggle(filter.parties, party.slug) })}
-                    className={pill(pressed)}
+                    className={`${bubble(pressed)} sm:hidden`}
+                  >
+                    <span className={bubbleRing(pressed)}>
+                      <PartyLogo slug={party.slug} acronym={party.acronym} size={30} />
+                    </span>
+                    {party.acronym}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={pressed}
+                    onClick={() => go({ ...filter, parties: toggle(filter.parties, party.slug) })}
+                    className={`${pill(pressed)} max-sm:hidden`}
                   >
                     <PartyLogo slug={party.slug} acronym={party.acronym} size={22} />
                     {party.acronym}
@@ -549,5 +548,113 @@ export function FeedFilters({ parties, sources, filter, saved, q, sort }: Props)
         </div>
       )}
     </nav>
+  );
+}
+
+/**
+ * The feed's order: newest first, or the most voted, commented or read of a period. Choosing a ranked order keeps the
+ * menu open so the period can be changed too; choosing a period (or "Recentes") closes it.
+ */
+function OrderMenu({ order, onChange }: { order: FeedOrder; onChange: (order: FeedOrder) => void }) {
+  const current = SORTS.find((item) => item.value === order.sort) ?? SORTS[0]!;
+  const ranked = timed(order);
+  const period = PERIODS.find((item) => item.value === order.period)!;
+  return (
+    <Dropdown label={ranked ? `${current.short} · ${period.label}` : current.label} count={0} title="Ordenar notícias" panelClass="sm:w-72">
+      {(close) => (
+        <div className="flex flex-col gap-3 font-mono text-xs font-bold">
+          <div role="group" aria-label="Ordenar notícias" className="flex flex-col gap-1">
+            {SORTS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={order.sort === item.value}
+                onClick={() => {
+                  if (!timed({ ...order, sort: item.value })) close();
+                  onChange({ ...order, sort: item.value });
+                }}
+                className={`rounded-xl px-3 py-2.5 text-left ${order.sort === item.value ? "bg-ink text-paper" : "hover:bg-surface"}`}
+              >
+                {item.label}
+                <span className="block font-normal opacity-70">{item.hint}</span>
+              </button>
+            ))}
+          </div>
+          {ranked && (
+            <div className="border-t border-line pt-3">
+              <p id="periodo-noticias" className="mb-2 font-normal text-muted">
+                Publicadas…
+              </p>
+              <div role="group" aria-labelledby="periodo-noticias" className="grid grid-cols-4 gap-1">
+                {PERIODS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    aria-pressed={order.period === item.value}
+                    onClick={() => {
+                      close();
+                      onChange({ ...order, period: item.value });
+                    }}
+                    className={`rounded-full border px-2 py-2 ${order.period === item.value ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Dropdown>
+  );
+}
+
+/** The order as tabs, on wide screens; with a ranked order, the period as a small menu beside them. */
+function OrderTabs({ order, onChange }: { order: FeedOrder; onChange: (order: FeedOrder) => void }) {
+  const ranked = timed(order);
+  const period = PERIODS.find((item) => item.value === order.period)!;
+  return (
+    <div className="hidden items-center gap-2 xl:flex">
+      <div
+        role="group"
+        aria-label="Ordenar notícias"
+        className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold"
+      >
+        {SORTS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            aria-pressed={order.sort === item.value}
+            title={item.hint}
+            onClick={() => onChange({ ...order, sort: item.value })}
+            className={`whitespace-nowrap px-3.5 ${order.sort === item.value ? "bg-ink text-paper" : "hover:bg-surface"}`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {ranked && (
+        <Dropdown label={period.label} count={0} title="Período" panelClass="sm:w-56">
+          {(close) => (
+            <div role="group" aria-label="Publicadas" className="flex flex-col gap-1 font-mono text-xs font-bold">
+              {PERIODS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  aria-pressed={order.period === item.value}
+                  onClick={() => {
+                    close();
+                    onChange({ ...order, period: item.value });
+                  }}
+                  className={`rounded-xl px-3 py-2 text-left ${order.period === item.value ? "bg-ink text-paper" : "hover:bg-surface"}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </Dropdown>
+      )}
+    </div>
   );
 }

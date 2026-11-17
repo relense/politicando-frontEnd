@@ -12,6 +12,7 @@ import { legislatureHandlers } from "./legislatureFixtures";
 import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
+import { storyHandlers } from "./storyFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
@@ -105,6 +106,18 @@ function stageOf(item: (typeof initiatives)[number]): string {
 /** Reads per post since the mock API started; one post starts with some, so the count shows without reading it. */
 const postViews = new Map<string, number>([["o-que-muda-no-orcamento", 1284]]);
 
+/** The mock's one reader's votes on articles. */
+const myVotes = new Map<number, number>();
+/** Votes on our posts (editorial-api.md "Votes"): totals by slug, and this mock reader's own vote. */
+const postVotes = new Map<string, { up: number; down: number }>([["a-maioria-que-nao-existe", { up: 12, down: 1 }]]);
+const myPostVotes = new Map<string, number>();
+/** What every post in the list carries: visible comments and votes. */
+const postCounts = (slug: string) => ({
+  commentCount: (postCommentStore.get(slug) ?? []).length,
+  upvotes: postVotes.get(slug)?.up ?? 0,
+  downvotes: postVotes.get(slug)?.down ?? 0,
+});
+
 export const handlers = [
   http.get(`${API}/editorial`, ({ request }) => {
     const params = new URL(request.url).searchParams;
@@ -115,13 +128,14 @@ export const handlers = [
     const matching = editorialPosts.filter(
       (post) => (featured === null || String(post.featured) === featured) && (!kind || post.kind === kind),
     );
-    const items = matching.slice((page - 1) * limit, page * limit).map((post) => ({ ...post, body: undefined })); // The list has no body.;
+    // The list has no body.
+    const items = matching.slice((page - 1) * limit, page * limit).map((post) => ({ ...post, body: undefined, ...postCounts(post.slug) }));
     return HttpResponse.json({ items, total: matching.length });
   }),
   http.get(`${API}/editorial/:slug`, ({ params }) => {
     const post = editorialPosts.find((item) => item.slug === params.slug);
     // `views`: all the post's reads so far (asked of the backend; the page shows it only when it comes).
-    return post ? HttpResponse.json({ ...post, views: postViews.get(post.slug) ?? 0 }) : fail(404, "not_found");
+    return post ? HttpResponse.json({ ...post, views: postViews.get(post.slug) ?? 0, ...postCounts(post.slug) }) : fail(404, "not_found");
   }),
   // A read, sent by the browser (editorial-api.md "Most read"): no body, 204.
   http.post(`${API}/editorial/:slug/view`, ({ params }) => {
@@ -129,6 +143,24 @@ export const handlers = [
     if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
     postViews.set(slug, (postViews.get(slug) ?? 0) + 1);
     return new HttpResponse(null, { status: 204 });
+  }),
+  // A vote on a post, as on news: `{ value: 1 | -1 | 0 }`, answering the new totals.
+  http.post(`${API}/editorial/:slug/vote`, async ({ params, request }) => {
+    const slug = String(params.slug);
+    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
+    const value = body?.value;
+    if (value !== 1 && value !== -1 && value !== 0) return fail(400, "invalid_request");
+    const before = myPostVotes.get(slug) ?? 0;
+    const totals = postVotes.get(slug) ?? { up: 0, down: 0 };
+    const next = {
+      up: totals.up - (before === 1 ? 1 : 0) + (value === 1 ? 1 : 0),
+      down: totals.down - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0),
+    };
+    postVotes.set(slug, next);
+    if (value === 0) myPostVotes.delete(slug);
+    else myPostVotes.set(slug, value);
+    return HttpResponse.json({ ...next, mine: value });
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
   http.get(`${API}/editorial/:slug/comments`, ({ params }) => {
@@ -200,10 +232,23 @@ export const handlers = [
   }),
   http.get(`${API}/articles`, ({ request }) => {
     const search = new URL(request.url).searchParams;
+    // The reader's saved articles (articles-api.md "The article menu"): these ids, newest first.
+    const ids = search.get("ids");
+    if (ids !== null) {
+      const wanted = ids.split(",").map(Number);
+      if (wanted.length > 100 || wanted.some((id) => !Number.isInteger(id) || id <= 0)) return fail(400, "invalid_request");
+      return HttpResponse.json({ items: articles.filter((item) => wanted.includes(item.id)), nextCursor: null, total: null });
+    }
     const words = (search.get("q") ?? "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().split(/\s+/).filter(Boolean);
     // Lists, as asked of the backend: "party=ps,psd&source=publico.pt,expresso.pt" match any of each.
     const sources = (search.get("source") ?? "").split(",").filter(Boolean);
-    const byComments = search.get("sort") === "comments";
+    const sort = search.get("sort");
+    const byComments = sort === "comments";
+    const period = search.get("period");
+    if (sort && !["newest", "comments", "top", "controversial", "views", "trending"].includes(sort)) return fail(400, "invalid_request");
+    const days = search.get("days");
+    if (days !== null && !(/^\d+$/.test(days) && Number(days) >= 1 && Number(days) <= 90)) return fail(400, "invalid_request");
+    if (period && !["today", "yesterday", "week", "month"].includes(period)) return fail(400, "invalid_request");
     const folded = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
     const partyList = (search.get("party") ?? "").split(",").filter(Boolean);
     const deputy = search.get("deputy");
@@ -222,6 +267,25 @@ export const handlers = [
       .filter((article) => !byComments || article.commentCount > 0)
       .filter((article) => !cursor || article.id < Number(cursor.slice(1)));
     if (byComments) matching.sort((x, y) => y.commentCount - x.commentCount);
+    // The fixtures are all from one day, so the period filters nothing here.
+    const up = (article: (typeof articles)[number]) => article.upvotes ?? 0;
+    const down = (article: (typeof articles)[number]) => article.downvotes ?? 0;
+    // "Mais lidas": by reads (all reads stand in for the last days here); "Em alta": votes, comments and reads together.
+    if (sort === "views") matching.sort((x, y) => (y.views ?? 0) - (x.views ?? 0) || y.id - x.id);
+    if (sort === "trending") {
+      const points = (item: (typeof matching)[number]) =>
+        up(item) - down(item) + 2 * item.commentCount + Math.floor((item.views ?? 0) / 10);
+      matching.sort((x, y) => points(y) - points(x) || y.id - x.id);
+    }
+    if (sort === "top") matching.sort((x, y) => up(y) - down(y) - (up(x) - down(x)) || y.id - x.id);
+    if (sort === "controversial") {
+      const divided = (article: (typeof articles)[number]) =>
+        up(article) && down(article)
+          ? (up(article) + down(article)) ** (Math.min(up(article), down(article)) / Math.max(up(article), down(article)))
+          : -1;
+      matching.sort((x, y) => divided(y) - divided(x) || y.id - x.id);
+      matching.splice(0, matching.length, ...matching.filter((article) => divided(article) >= 0));
+    }
     const page = matching.slice(0, limit);
     return HttpResponse.json({
       items: page,
@@ -366,24 +430,37 @@ export const handlers = [
       }
       return null;
     };
+    const articleTarget = (id: number) => {
+      const article = articles.find((item) => item.id === id);
+      return article ? { text: `${article.title}\n\n${article.url}`, hidden: false, threadId: null, articleId: id } : null;
+    };
     const items = reportsStore
       .filter((report) => (report.resolution !== null) === resolved)
       .sort((a, b) => b.reports - a.reports)
       .map((report) => ({
         ...report,
-        target: report.kind === "comment" ? commentTarget(report.targetId) : forumTarget(report.kind, report.targetId),
+        target:
+          report.kind === "comment"
+            ? commentTarget(report.targetId)
+            : report.kind === "article"
+              ? articleTarget(report.targetId)
+              : forumTarget(report.kind, report.targetId),
       }));
     return HttpResponse.json({ items });
   }),
   http.post(`${API}/admin/reports/resolve`, async ({ request }) => {
     const admin = requireAdmin(request, "moderator");
     if (admin instanceof Response) return admin;
-    const body = (await request.json()) as { kind: "thread" | "post" | "comment"; targetId: number; action: "hide" | "dismiss" };
+    const body = (await request.json()) as {
+      kind: "thread" | "post" | "comment" | "article";
+      targetId: number;
+      action: "hide" | "dismiss";
+    };
     const open = reportsStore.filter((report) => report.kind === body.kind && report.targetId === body.targetId && !report.resolution);
     for (const report of open) report.resolution = body.action;
     if (body.action === "hide") {
       if (body.kind === "comment") hiddenComments.set(body.targetId, new Date().toISOString());
-      else hideForum(body.kind, body.targetId);
+      else if (body.kind !== "article") hideForum(body.kind, body.targetId);
     }
     audit(admin, `report.${body.action}`, body.kind, body.targetId);
     return HttpResponse.json({ resolved: open.reduce((sum, report) => sum + report.reports, 0) });
@@ -396,6 +473,27 @@ export const handlers = [
     // Article 100 mentions an initiative, for the context box beside it.
     const mentioned = id === 100 && initiatives[0] ? [{ id: initiatives[0].id, title: initiatives[0].title }] : [];
     return HttpResponse.json({ ...article, initiatives: mentioned });
+  }),
+  // A vote (articles-api.md "Votes"): one per reader, replaced by the next, 0 takes it back. The mock has one reader.
+  http.post(`${API}/articles/:id/vote`, async ({ params, request }) => {
+    const article = articles.find((item) => item.id === Number(params.id));
+    if (!article) return fail(404, "not_found");
+    const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
+    const value = body?.value;
+    if (value !== 1 && value !== -1 && value !== 0) return fail(400, "invalid_request");
+    const before = myVotes.get(article.id) ?? 0;
+    article.upvotes = (article.upvotes ?? 0) - (before === 1 ? 1 : 0) + (value === 1 ? 1 : 0);
+    article.downvotes = (article.downvotes ?? 0) - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0);
+    if (value === 0) myVotes.delete(article.id);
+    else myVotes.set(article.id, value);
+    return HttpResponse.json({ up: article.upvotes, down: article.downvotes, mine: value });
+  }),
+  // A read of our article page, sent by the browser: no body, 204 (as for blog posts).
+  http.post(`${API}/articles/:id/view`, ({ params }) => {
+    const article = articles.find((item) => item.id === Number(params.id));
+    if (!article) return fail(404, "not_found");
+    article.views = (article.views ?? 0) + 1;
+    return new HttpResponse(null, { status: 204 });
   }),
   http.post(`${API}/articles/:id/comments`, async ({ params, request }) => {
     const parsed = newCommentSchema.safeParse(await request.json());
@@ -424,6 +522,7 @@ export const handlers = [
   ...agendaHandlers,
   ...feedbackHandlers,
   ...forumHandlers,
+  ...storyHandlers,
   ...adminHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,

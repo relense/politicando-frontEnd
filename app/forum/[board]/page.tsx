@@ -211,7 +211,10 @@ export default async function BoardPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      <aside id="nova" className="scroll-mt-24 xl:sticky xl:top-20 xl:self-start">
+      <aside
+        id="nova"
+        className="scroll-mt-24 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+      >
         <NewThreadForm board={board.board} boardName={boardTitle(board)} link={link} />
         <p className="mt-3 px-1 text-xs leading-relaxed text-muted">
           Texto simples, sem formatação. Sê civilizado e não publiques dados pessoais de ninguém. As mensagens podem ser denunciadas e

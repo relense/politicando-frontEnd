@@ -12,6 +12,11 @@
   --line: #dcd8d1;
   --link: #0b4fd6;
   --danger: #b3261e;
+  /* Votes on news: up in the site's gold, down in blue. */
+  --vote-up: #8a6300;
+  --vote-down: #4338ca;
+  /* A feed card under the pointer: a soft fill, no outline, as on Reddit. */
+  --card-hover: #f3f1ec;
   /* The path of a law, one colour per stage (initiatives pages). */
   --stage-submitted: #3d5094;
   --stage-debate: #765100;
@@ -26,16 +31,43 @@
   --marker: #f3d27a;
   /* The gold of the icon's P. Deeper on white so it still reads (4.5:1); the icon's own yellow on dark. */
   --brand: #9a6f00;
+  /* The news cards (the designer's spec, docs in components/feedCard.ts); their dark values below. */
+  --card: #ffffff;
+  --card-bg-hover: #fbfaf8;
+  --inset: #f7f5f1;
+  --card-line: #dcd8d1;
+  --card-line-soft: #e8e5df;
+  --card-line-strong: #c4bfb6;
+  --chip-line: #d3cec6;
+  --button: #f0eee9;
+  --button-hover: #e5e2db;
+  --text-quote: #2b2925;
+  --text-excerpt: #3b3833;
+  --faint: #8a857d;
+  --accent: #765400;
+  --accent-soft: rgba(138, 99, 0, 0.12);
+  --dot-empty: #cfcac2;
+  --favor: #25662e;
+  --contra: #b3261e;
+  --kind-lei: #12605a;
+  --kind-agenda: #8a6300;
+  --kind-regiao: #5a3eae;
+  --kind-explica: #3d5094;
+  --kind-partido: #a4500c;
+  --kind-pessoa: #25662e;
 }
 
 .dark {
-  --paper: #17181c;
+  --paper: #141517;
   --surface: #212228;
   --ink: #f0ede8;
   --muted: #b6b1aa;
   --line: #3a3b43;
   --link: #6db1ff;
   --danger: #ff8a80;
+  --vote-up: #f0c75e;
+  --vote-down: #a5a8ff;
+  --card-hover: #1d1e23;
   --stage-submitted: #93a6dc;
   --stage-debate: #e4bb4f;
   --stage-approved: #7fc683;
@@ -47,6 +79,29 @@
   --end-programme: #fdba74;
   --marker: #6b5a2a;
   --brand: #f0c75e;
+  --card: #18191c;
+  --card-bg-hover: #1a1b1e;
+  --inset: #141517;
+  --card-line: #2e3034;
+  --card-line-soft: #25262a;
+  --card-line-strong: #3a3c42;
+  --chip-line: #33353a;
+  --button: #25262a;
+  --button-hover: #2e3034;
+  --text-quote: #dad6cf;
+  --text-excerpt: #cfcbc4;
+  --faint: #7c7870;
+  --accent: #f2c14e;
+  --accent-soft: rgba(242, 193, 78, 0.14);
+  --dot-empty: #45474d;
+  --favor: #6cc28a;
+  --contra: #ff7a70;
+  --kind-lei: #4fc1b6;
+  --kind-agenda: #f2c14e;
+  --kind-regiao: #b39dff;
+  --kind-explica: #8ea9db;
+  --kind-partido: #e8853d;
+  --kind-pessoa: #6cc28a;
 }
 
 @theme inline {
@@ -58,8 +113,11 @@
   --color-link: var(--link);
   --color-danger: var(--danger);
   --color-brand: var(--brand);
-  --font-serif: var(--font-domine), Georgia, serif;
-  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+  /* Trying Reddit Sans everywhere. To go back: --font-serif: var(--font-domine), Georgia, serif;
+     --font-mono: var(--font-space-mono), ui-monospace, monospace; */
+  --font-serif: var(--font-reddit-sans), system-ui, sans-serif;
+  --font-mono: var(--font-reddit-sans), system-ui, sans-serif;
+  --font-logo: var(--font-space-mono), ui-monospace, monospace;
 }
 
 html {
@@ -214,7 +272,7 @@ article[id^="comentario-"]:target {
   color: var(--stage-debate);
 }
 .post-body code {
-  font-family: var(--font-mono);
+  font-family: var(--font-logo);
   font-size: 0.875em;
   background: var(--surface);
   border-radius: 0.25rem;

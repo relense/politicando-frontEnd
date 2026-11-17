@@ -16,7 +16,10 @@ export function ArticleSidebar({
   parties,
   more,
   context,
+  top,
 }: {
+  /** First in the column: the story's Importa box. */
+  top?: React.ReactNode;
   articleId: number;
   parties: ArticleParty[];
   more: MoreAboutGroup[];
@@ -25,8 +28,9 @@ export function ArticleSidebar({
   return (
     <aside
       aria-label="Sobre esta notícia"
-      className="no-scrollbar flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overscroll-contain xl:pb-2"
+      className="no-scrollbar flex flex-col gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
     >
+      {top}
       <section aria-labelledby="partidos-noticia" className={box}>
         <h2 id="partidos-noticia" className={label}>
           {parties.length > 0 ? "Partidos nesta notícia" : "Discutir"}

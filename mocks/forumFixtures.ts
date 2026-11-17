@@ -226,12 +226,21 @@ const newPostSchema = z.strictObject({
   replyTo: z.number().int().positive().nullish(),
   recaptchaToken: z.string().min(1),
 });
-const reportSchema = z.strictObject({
-  kind: z.enum(["thread", "post", "comment"]),
-  id: z.number().int().positive(),
-  reason: z.enum(["spam", "insult", "hate", "personal_data", "illegal", "other"]),
-  details: z.string().trim().max(500).nullish(),
-});
+// News articles take their own reasons; mixing the two lists is 400, as in the API.
+const reportSchema = z.union([
+  z.strictObject({
+    kind: z.enum(["thread", "post", "comment"]),
+    id: z.number().int().positive(),
+    reason: z.enum(["spam", "insult", "hate", "personal_data", "illegal", "other"]),
+    details: z.string().trim().max(500).nullish(),
+  }),
+  z.strictObject({
+    kind: z.literal("article"),
+    id: z.number().int().positive(),
+    reason: z.enum(["wrong_tags", "broken_link", "duplicate", "not_politics", "other"]),
+    details: z.string().trim().max(500).nullish(),
+  }),
+]);
 
 export const forumHandlers = [
   http.get(`${API}/forums`, () =>

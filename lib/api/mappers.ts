@@ -115,7 +115,13 @@ export function mapArticle(article: ApiArticle): Article {
     imageUrl: safeHttpUrl(article.imageUrl),
     parties: article.parties,
     commentsCount: article.commentCount,
+    views: typeof article.views === "number" ? article.views : null,
+    votes:
+      typeof article.upvotes === "number" && typeof article.downvotes === "number"
+        ? { up: article.upvotes, down: article.downvotes }
+        : null,
     initiatives: (article.initiatives ?? []).map((item) => ({ id: item.id, title: decode(item.title) })),
+    storyId: article.storyId ?? null,
   };
 }
 
@@ -126,6 +132,8 @@ export function mapComment(comment: ApiComment): Comment {
     text: comment.body,
     parentId: comment.parentId,
     createdAt: comment.createdAt,
+    stance: comment.stance ?? null,
+    ...(typeof comment.likes === "number" ? { likes: comment.likes } : {}),
   };
 }
 
@@ -520,6 +528,9 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     publishedAt: api.publishedAt,
     readingMinutes: api.readingMinutes ?? null,
     ...(typeof api.views === "number" ? { views: api.views } : {}),
+    ...(typeof api.recentViews === "number" ? { recentViews: api.recentViews } : {}),
+    commentCount: typeof api.commentCount === "number" ? api.commentCount : null,
+    votes: typeof api.upvotes === "number" && typeof api.downvotes === "number" ? { up: api.upvotes, down: api.downvotes } : null,
   };
 }
 

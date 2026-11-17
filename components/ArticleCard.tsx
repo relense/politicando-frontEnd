@@ -1,35 +1,48 @@
-import { SourceLogo } from "./SourceLogo";
 import Link from "next/link";
-import { commentLinkLabel, excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
+import { excerpt, formatCardWhen, formatDateTime, formatNumber, readsLabel } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
+import { ArticleMenu } from "./ArticleMenu";
+import { ArticleVote } from "./ArticleVote";
+import { CardShare } from "./CardShare";
+import { cardAction, cardActions, cardBox, cardExcerpt, cardImage, cardMeta, cardReadOn, cardTitle, cardTitleLink } from "./feedCard";
 import { CommentIcon } from "./icons";
 import { PartyChips } from "./PartyChips";
+import { SourceLogo } from "./SourceLogo";
 
-/** A feed entry. Everything opens our article page except the outlet link, which goes to the original. */
-export function ArticleCard({ article }: { article: Article }) {
+/**
+ * A feed entry, as a card: who published it, when and how many read it; the title and excerpt; the photo, whole; the
+ * parties; then the actions as round pills (votes, comments, share) and the way to the original. The card opens our
+ * article page; the outlet, the parties and the actions keep their own links.
+ */
+export function ArticleCard({
+  article,
+  why,
+}: {
+  article: Article;
+  /** "Porque vejo isto?", which also turns the menu on. */ why?: string;
+}) {
   const articlePath = `/article/${article.id}`;
   const text = excerpt(article.excerpt);
 
   return (
-    <article className="relative -mx-3 grid gap-x-8 gap-y-4 rounded-2xl border-b border-line px-3 py-5 transition-colors hover:border-transparent hover:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] focus-within:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] sm:grid-cols-[minmax(0,1fr)_11rem]">
-      <div className="min-w-0">
-        <div className="relative z-10 mb-2 flex w-fit flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
+    <article className={cardBox}>
+      <div className="flex items-center justify-between gap-2.5">
+        <p className={cardMeta}>
           {article.url ? (
             <a
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 font-bold text-ink hover:underline"
+              className="inline-flex items-center gap-2.5 font-semibold text-ink hover:underline"
             >
-              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={30} square />
               {article.source}
-              <span aria-hidden="true"> ↗</span>
               <span className="sr-only"> (abre num novo separador)</span>
             </a>
           ) : (
-            <span className="inline-flex items-center gap-1.5 font-bold text-ink">
-              <SourceLogo domain={article.sourceDomain} name={article.source} size={18} />
+            <span className="inline-flex items-center gap-2.5 font-semibold text-ink">
+              <SourceLogo domain={article.sourceDomain} name={article.source} size={30} square />
               {article.source}
             </span>
           )}
@@ -38,44 +51,56 @@ export function ArticleCard({ article }: { article: Article }) {
           <time dateTime={article.publishedAt} title={formatDateTime(article.publishedAt) ?? undefined}>
             {formatCardWhen(article.publishedAt)}
           </time>
-        </div>
-
-        <h2 className="mb-2 text-lg font-bold leading-snug sm:text-xl">
-          {/* The whole card opens the story; the links on it stay on top. */}
-          <Link href={articlePath} className="after:absolute after:inset-0 after:rounded-2xl">
-            {article.title}
-          </Link>
-        </h2>
-
-        {text && <p className="mb-3 text-[15px] leading-relaxed text-ink/80">{text}</p>}
-
-        {/* The chips wrap in their own column, so the comments pill always stays on the first row, at the right. */}
-        <div className="relative z-10 flex items-start gap-3">
-          <PartyChips parties={article.parties} className="min-w-0 flex-1" />
-          <Link
-            href={`${articlePath}#comentarios`}
-            aria-label={commentLinkLabel(article.commentsCount)}
-            className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1 font-mono text-sm hover:bg-line hover:text-ink ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
-          >
-            <CommentIcon />
-            <span>
-              <span className="font-bold tabular-nums">{article.commentsCount}</span>
-              {/* On a phone the number alone, so the pill fits beside the chips. */}
-              <span className="max-sm:hidden">{article.commentsCount === 1 ? " comentário" : " comentários"}</span>
-            </span>
-          </Link>
-        </div>
+          {article.views !== null && article.views > 0 && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="whitespace-nowrap">{readsLabel(article.views)}</span>
+            </>
+          )}
+        </p>
+        {why !== undefined && <ArticleMenu article={article} why={why} />}
       </div>
+
+      <h2 className={cardTitle}>
+        {/* The whole card opens the story; the links on it stay on top. */}
+        <Link href={articlePath} className={cardTitleLink}>
+          {article.title}
+        </Link>
+      </h2>
+
+      {text && <p className={cardExcerpt}>{text}</p>}
 
       {article.imageUrl && (
         <ArticleImage
           src={article.imageUrl}
           href={articlePath}
           caption={`Imagem · ${article.source}`}
-          className="relative z-10 order-first block self-start overflow-hidden rounded-lg sm:order-none"
-          imageClassName="aspect-[3/2] w-full object-cover"
+          className={cardImage}
+          imageClassName="size-full object-cover"
         />
       )}
+
+      {article.parties.length > 0 && <PartyChips parties={article.parties} className="relative z-10 mt-2.5" />}
+
+      <div className={cardActions}>
+        {article.votes && <ArticleVote id={article.id} title={article.title} up={article.votes.up} down={article.votes.down} />}
+        <Link href={`${articlePath}#comentarios`} className={cardAction}>
+          <CommentIcon />
+          {/* On a phone the number alone, so the row fits; the word stays for screen readers. */}
+          <span>
+            <span className="tabular-nums">{formatNumber(article.commentsCount)}</span>{" "}
+            <span className="max-sm:sr-only">{article.commentsCount === 1 ? "comentário" : "comentários"}</span>
+          </span>
+        </Link>
+        <CardShare path={articlePath} title={article.title} className={cardAction} compact />
+        {article.url && (
+          <a href={article.url} target="_blank" rel="noopener noreferrer" className={cardReadOn}>
+            Ler em {article.source}
+            <span aria-hidden="true"> ↗</span>
+            <span className="sr-only"> (abre num novo separador)</span>
+          </a>
+        )}
+      </div>
     </article>
   );
 }

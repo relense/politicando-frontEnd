@@ -16,8 +16,14 @@ export type Article = {
   imageUrl: string | null;
   parties: ArticleParty[];
   commentsCount: number;
+  /** Reads on our article page, when the API counts them. */
+  views: number | null;
+  /** Readers' up and down votes, when the API counts them. */
+  votes: { up: number; down: number } | null;
   /** Initiatives in Parliament the article mentions (detail only; empty in lists). */
   initiatives: { id: number; title: string }[];
+  /** The story with the other outlets' versions, when the API groups them. */
+  storyId?: number | null;
 };
 
 /** `total`: how many match, when the API says. */
@@ -31,7 +37,12 @@ export type Comment = {
   createdAt: string | null;
   /** Shown while an optimistic comment is waiting for the API. */
   pending?: boolean;
+  stance?: CommentStance | null;
+  /** Undefined when the API doesn't count likes: then there's no like button. */
+  likes?: number;
 };
+
+export type CommentStance = "agree" | "disagree";
 
 /** Where comments live in the API: "/articles/100" for a news article, "/editorial/<slug>" for one of our posts. */
 export type CommentTarget = string;
@@ -44,6 +55,7 @@ export type NewComment = {
   username: string;
   text: string;
   captchaToken: string;
+  stance?: CommentStance | null;
 };
 
 /** One of the 230 seats on the official map (Deliberação n.º 5-PL/2025). */
@@ -447,8 +459,14 @@ export type EditorialPost = {
   publishedAt: string;
   /** Words ÷ 200, rounded up; null when the API doesn't say. */
   readingMinutes: number | null;
-  /** Reads in the last days, when the API counts them (`sort=popular`). */
+  /** Reads since publication, when the API counts them. */
   views?: number | null;
+  /** Reads over the asked period, with `sort=popular`. */
+  recentViews?: number | null;
+  /** Visible comments, when the API sends the count with the post. */
+  commentCount?: number | null;
+  /** Readers' up and down votes, when the API counts them on posts. */
+  votes?: { up: number; down: number } | null;
 };
 
 export type EditorialDetail = EditorialPost & { body: string };

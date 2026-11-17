@@ -23,7 +23,7 @@ export function Header() {
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <Link href="/" className="col-start-2 justify-self-center font-mono text-lg font-bold tracking-[0.2em]">
+        <Link href="/" className="col-start-2 justify-self-center font-logo text-lg font-bold tracking-[0.2em]">
           {/* The first letter in the icon's gold, as on the browser tab. */}
           <span className="text-brand">P</span>OLITICANDO
         </Link>

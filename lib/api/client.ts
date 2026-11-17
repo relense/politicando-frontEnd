@@ -145,9 +145,13 @@ export type FeedQuery = {
   source?: string | string[];
   cursor?: string;
   limit?: number;
-  /** Newest first (default), or most commented first among those published in the last `since` hours. */
-  sort?: "comments";
+  /** Newest first (default); or most voted, commented or read first among those published in the last `since` hours. */
+  sort?: "trending" | "top" | "controversial" | "comments" | "views";
+  /** With `sort=views`: count the reads of these last days (1–90). */
+  days?: number;
   since?: number;
+  /** Only articles published today, yesterday, or in the last 7 or 30 days (Lisbon days). */
+  period?: "today" | "yesterday" | "week" | "month";
 };
 
 /** News per page on the feeds: a screenful or three, then a button for more. */
@@ -155,7 +159,18 @@ export const FEED_PAGE_SIZE = 30;
 
 const listOf = (value: string | string[] | undefined) => (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
 
-export async function getFeedPage({ party, deputy, q, source, cursor, limit, sort, since }: FeedQuery = {}): Promise<ArticlePage> {
+export async function getFeedPage({
+  party,
+  deputy,
+  q,
+  source,
+  cursor,
+  limit,
+  sort,
+  since,
+  period,
+  days,
+}: FeedQuery = {}): Promise<ArticlePage> {
   // Several values go as one comma-separated list: any of the parties, from any of the outlets.
   const search = searchOf({
     party: listOf(party).join(",") || undefined,
@@ -166,6 +181,8 @@ export async function getFeedPage({ party, deputy, q, source, cursor, limit, sor
     limit,
     sort,
     since: since ? `${since}h` : undefined,
+    period,
+    days,
   });
   const page = await request(`/articles${search}`, articlePageSchema, cached);
   return { articles: page.items.map(mapArticle), nextCursor: page.nextCursor, total: page.total ?? null };
@@ -175,6 +192,37 @@ export async function getFeedPage({ party, deputy, q, source, cursor, limit, sor
 export async function getMostCommented(limit = 3, hours = 24): Promise<Article[]> {
   const page = await request(`/articles${searchOf({ sort: "comments", since: `${hours}h`, limit })}`, articlePageSchema, cached);
   return page.items.map(mapArticle);
+}
+
+/** The articles with these ids (the reader's saved ones), newest first. From the browser and never cached: each reader's list is their own. */
+export async function getArticlesByIds(ids: number[]): Promise<Article[]> {
+  if (ids.length === 0) return [];
+  const page = await request(
+    `/articles${searchOf({ ids: ids.slice(-100).join(","), limit: Math.min(ids.length, 100) })}`,
+    articlePageSchema,
+    {
+      cache: "no-store",
+    },
+  );
+  return page.items.map(mapArticle);
+}
+
+/** A reader's vote on an article: 1 up, -1 down, 0 to take it back. Sent from the browser; answers the new totals. */
+export async function voteArticle(id: number, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
+  return voteOn(`/articles/${id}/vote`, value);
+}
+
+/** The same for a blog post (asked of the backend: `POST /editorial/:slug/vote`, same body and answer). */
+export async function votePost(slug: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
+  return voteOn(`/editorial/${encodeURIComponent(slug)}/vote`, value);
+}
+
+async function voteOn(path: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
+  return request(path, z.object({ up: z.number(), down: z.number(), mine: z.number() }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
 }
 
 /** Every outlet with articles, most articles first: domains, shown with `sourceName()`. */
@@ -219,10 +267,20 @@ export async function createComment(input: NewComment): Promise<Comment> {
       ...(input.username ? { username: input.username } : {}),
       body: input.text,
       ...(input.parentId !== null ? { parentId: input.parentId } : {}),
+      ...(input.stance ? { stance: input.stance } : {}),
       recaptchaToken: input.captchaToken,
     }),
   });
   return mapComment(created);
+}
+
+/** Likes a comment (1) or takes the like back (0). From the browser. */
+export async function likeComment(id: number, value: 1 | 0): Promise<{ likes: number; mine: number }> {
+  return request(`/comments/${id}/like`, z.object({ likes: z.number(), mine: z.number() }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
 }
 
 export async function getParliament(): Promise<Parliament> {

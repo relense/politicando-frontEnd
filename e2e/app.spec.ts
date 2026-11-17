@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { noSeriousA11yIssues, openNewsSearch } from "./helpers";
+import { FEATURES } from "../lib/features";
 
 test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
+  test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
   await page.goto("/");
   await expect(page.getByRole("article")).toHaveCount(30);
   // No endless scrolling: going to the bottom loads nothing by itself, so the footer can be reached.
@@ -15,7 +17,7 @@ test("feed shows a page of news, then a button for more, until the end", async (
 
 test("hostile title stays harmless text", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("link", { name: /<script>window.__xss/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /<script>window.__xss/ }).first()).toBeVisible();
   expect(await page.evaluate(() => "__xss" in window)).toBe(false);
 });
 
@@ -49,6 +51,7 @@ test("missing and malformed articles are real 404s", async ({ request }) => {
 });
 
 test("home scrolling still loads the home feed after visiting a party", async ({ page }) => {
+  test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
   await page.goto("/partido/be");
   await page.getByRole("link", { name: "POLITICANDO", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
@@ -123,7 +126,7 @@ test("the party filter narrows the news in place and marks the chosen party", as
   await expect(page.getByRole("heading", { level: 1, name: "Últimas notícias" })).toBeVisible();
 });
 
-test("news from several parties and several papers, saved as the reader's own feed", async ({ page }) => {
+test("news from several parties and several papers, saved as the reader's own feed", async ({ page, isMobile }) => {
   await page.goto("/");
   const filters = page.getByRole("navigation", { name: "Filtrar notícias" });
   // Parties: in a panel, with a search; ticked choices apply together.
@@ -151,26 +154,29 @@ test("news from several parties and several papers, saved as the reader's own fe
     await expect(card).toContainText(/Público|RTP/);
   }
   // A search stays within the choice, and so does the order.
+  await openNewsSearch(page);
   await page.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("número");
   await page.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/partido=be,il&fonte=publico\.pt,rtp\.pt&q=n%C3%BAmero$/);
-  // On a phone the order is a small menu beside Partidos and Jornais.
-  const openOrder = async () => {
-    if (await filters.getByRole("button", { name: "Recentes", exact: true }).isVisible()) {
-      if (await filters.getByRole("dialog", { name: "Ordenar notícias" }).isHidden()) {
-        if ((await filters.getByRole("button", { name: "Recentes", exact: true }).getAttribute("aria-expanded")) !== null) {
-          await filters.getByRole("button", { name: "Recentes", exact: true }).click();
-        }
-      }
-    }
-  };
-  await openOrder();
-  await filters.getByRole("button", { name: /^Mais comentadas/ }).click();
-  await expect(page).toHaveURL(/&ordem=comentadas$/);
-  if (await filters.getByRole("button", { name: "Comentadas", exact: true }).isVisible()) {
-    await filters.getByRole("button", { name: "Comentadas", exact: true }).click();
+  // The order: tabs on a wide screen, a small menu otherwise (a ranked order keeps it open to choose the period).
+  // Stories (FEATURES.stories) are ordered by how many outlets told them instead of by comments.
+  const [sortName, sortValue, short] = FEATURES.stories
+    ? ["Mais noticiadas", "noticiadas", "Noticiadas"]
+    : ["Mais comentadas", "comentadas", "Comentadas"];
+  const tabs = filters.getByRole("group", { name: "Ordenar notícias" });
+  if (!(await tabs.isVisible())) await filters.getByRole("button", { name: "Recentes", exact: true }).click();
+  await filters.getByRole("button", { name: new RegExp(`^${sortName}`) }).click();
+  await expect(page).toHaveURL(new RegExp(`&ordem=${sortValue}$`));
+  await expect(filters.getByRole("button", { name: new RegExp(`^${sortName}`) })).toHaveAttribute("aria-pressed", "true");
+  if (isMobile) {
+    await filters.getByRole("button", { name: "30 dias" }).click();
+    await expect(filters.getByRole("button", { name: `${short} · 30 dias` })).toBeVisible();
+  } else {
+    await filters.getByRole("button", { name: "7 dias", exact: true }).click();
+    await filters.getByRole("button", { name: "30 dias" }).click();
   }
-  await expect(filters.getByRole("button", { name: /^Mais comentadas/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(new RegExp(`&ordem=${sortValue}&periodo=mes$`));
+  await expect(page.getByText(new RegExp(`as ${sortName.toLowerCase()} dos últimos 30 dias primeiro`, "i"))).toBeVisible();
 
   // Saved, the front page opens with it; "Limpar tudo" shows everything without forgetting it.
   await page.goto("/?partido=be,il&fonte=publico.pt,rtp.pt");
@@ -221,12 +227,9 @@ test("news have no party column: the party filter sits above the feed, the blog 
     await expect(power.getByRole("link", { name: /Parlamento hoje/ })).toHaveAttribute("href", "/parlamento");
   }
   const filter = page.getByRole("navigation", { name: "Filtrar notícias" });
-  if (isMobile) {
-    // On a phone the order is a small menu showing the current one.
-    await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-expanded", "false");
-  } else {
-    await expect(filter.getByRole("button", { name: "Recentes" })).toHaveAttribute("aria-pressed", "true");
-  }
+  // The order: a small menu showing the current one, or tabs on a wide screen.
+  if (isMobile) await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-expanded", "false");
+  else await expect(filter.getByRole("button", { name: "Recentes", exact: true })).toHaveAttribute("aria-pressed", "true");
   // Party pages have no filter row: they are reached from the parties page.
   await page.goto("/partido/ps");
   await expect(page.getByRole("navigation", { name: "Filtrar notícias" })).toHaveCount(0);
@@ -782,6 +785,8 @@ test("blog: featured posts on the front page, the list by kind, and a post rende
   await page.goto("/editorial");
   const formats = page.getByRole("list", { name: "Formato" });
   await expect(formats.getByRole("link", { name: /^Tudo/ })).toHaveAttribute("aria-current", "true");
+  const blogSearch = page.getByRole("button", { name: "Procurar no blog" });
+  if (await blogSearch.isVisible()) await blogSearch.click();
   await page.getByRole("searchbox", { name: "Procurar no blog" }).fill("orçamento");
   await page.getByRole("searchbox", { name: "Procurar no blog" }).press("Enter");
   await expect(page).toHaveURL(/q=or%C3%A7amento/);
@@ -858,7 +863,7 @@ test("agenda: what is coming by day, filters, how to attend, add to calendar, an
   const box = page.getByRole("region", { name: "Debate quinzenal com o Primeiro-Ministro" }).filter({ visible: true });
   await expect(box).toContainText("Próximo evento");
   await expect(box).toContainText("Amanhã");
-  await box.getByRole("link", { name: /Ver a agenda/ }).click();
+  await box.getByRole("link", { name: /^(Ver a agenda|Agenda)/ }).click();
   await expect(page).toHaveURL(/\/agenda$/);
   await expect(page.getByRole("heading", { level: 1, name: "Agenda política" })).toBeVisible();
   await expect(page.getByText("4 eventos")).toBeVisible();
@@ -949,6 +954,180 @@ test("feedback: every page's footer opens the form with that page filled in, and
       "page",
     );
   }
+});
+
+test("news: opening an article counts one read, sent by the browser, and the card shows the reads", async ({ page }) => {
+  test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
+  const read = page.waitForRequest((request) => /\/articles\/98\/view$/.test(request.url()) && request.method() === "POST");
+  await page.goto("/article/98");
+  await read;
+  // Once per visit: coming back to the same article sends nothing more.
+  let again = false;
+  page.on("request", (request) => {
+    if (/\/articles\/98\/view$/.test(request.url())) again = true;
+  });
+  await page.reload();
+  await page.waitForLoadState("load");
+  // The read would go right after the page shows; a moment is enough (networkidle never settles under a busy server).
+  await page.waitForTimeout(1500);
+  expect(again).toBe(false);
+
+  await page.goto("/");
+  // Other tests read article 100 too, so only the shape of the count is checked.
+  await expect(
+    page
+      .locator("main article")
+      .filter({ hasText: "Notícia de teste número 100" })
+      .getByText(/^1\s?2\d\d leituras$/),
+  ).toBeVisible();
+});
+
+test("news: readers vote up or down, take the vote back, and sort by the most voted", async ({ page }) => {
+  test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
+  await page.goto("/?ordem=votadas&periodo=hoje");
+  const first = page.locator("main article").first();
+  await expect(first).toContainText("Notícia de teste número 98");
+  const score = first.getByLabel(/^Pontuação:/);
+  const before = Number((await score.getAttribute("aria-label"))!.replace(/\D/g, ""));
+  const up = first.getByRole("button", { name: /^Votar a favor de/ });
+  await up.click();
+  await expect(up).toHaveAttribute("aria-pressed", "true");
+  await expect(score).toHaveAttribute("aria-label", `Pontuação: ${before + 1}`);
+  // Down replaces up; pressing it again takes the vote back.
+  const down = first.getByRole("button", { name: /^Votar contra/ });
+  await down.click();
+  await expect(score).toHaveAttribute("aria-label", `Pontuação: ${before - 1}`);
+  await down.click();
+  await expect(down).toHaveAttribute("aria-pressed", "false");
+  await expect(score).toHaveAttribute("aria-label", `Pontuação: ${before}`);
+
+  await page.goto("/?ordem=polemicas");
+  await expect(page.locator("main article").first()).toContainText("Notícia de teste número 97");
+  await expect(page.getByText(/as mais polémicas dos últimos 7 dias primeiro/)).toBeVisible();
+});
+
+test("stories: one card per news told by several outlets, Importa, Hoje em 5, every version and one debate", async ({ page }) => {
+  test.skip(!FEATURES.stories, "Stories are switched off in lib/features.ts.");
+  await page.goto("/");
+  const card = page
+    .locator("main article")
+    .filter({ has: page.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }) })
+    .first();
+  await expect(card).toContainText("+3 jornais");
+  // How each outlet headlined it, folded under the logos.
+  await card.getByText("4 jornais contaram isto").click();
+  await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
+  // Importa: one mark, taken back by pressing again.
+  const importa = card.getByRole("button", { name: /^Importa/ });
+  await expect(importa).toHaveAttribute("aria-pressed", "false");
+  const answered = page.waitForResponse((response) => /\/stories\/100\/vote$/.test(response.url()));
+  await importa.click();
+  await answered;
+  await expect(importa).toHaveAttribute("aria-pressed", "true");
+  // Hoje em 5: the story opened gets its tick.
+  const today = page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true });
+  await expect(today).toContainText("0 de 5");
+  await noSeriousA11yIssues(page);
+
+  await card.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }).click();
+  await expect(page).toHaveURL(/\/article\/100$/);
+  await expect(page.getByText("4 jornais nesta história")).toBeVisible();
+  const versions = page.getByRole("navigation", { name: "Versões desta notícia" });
+  await expect(versions.locator("a[aria-current=page]")).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 2, name: "Como cada jornal contou" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: /^Debate/ })).toBeVisible();
+  await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
+  await expect(page.locator("figcaption", { hasText: "Contra" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Importa/ })).toHaveAttribute("aria-pressed", "true");
+  // Contexto: our post that explains it, the party's votes, what's coming.
+  const context = page.getByRole("region", { name: /^Contexto/ });
+  await expect(context).toContainText("#OE2027");
+  await expect(context.getByRole("link", { name: "O que muda no Orçamento" })).toHaveAttribute("href", "/editorial/o-que-muda-no-orcamento");
+  await expect(context).toContainText("Votação final global do OE2027");
+  // Likes on the debate's comments, taken back by pressing again.
+  const like = page.getByRole("button", { name: /gostos no comentário de rita/ });
+  const before = Number((await like.textContent())!.match(/\d+/)![0]);
+  const likedAnswer = page.waitForResponse((response) => /\/comments\/9001\/like$/.test(response.url()));
+  await like.click();
+  await likedAnswer;
+  await expect(like).toHaveAttribute("aria-pressed", "true");
+  await expect(like).toContainText(String(before + 1));
+  await expect(page.getByText("Concorda", { exact: true }).first()).toBeVisible();
+  // The story is about a proposal: the form offers a side, optional.
+  await page.getByRole("button", { name: "Junta-te à conversa…" }).click();
+  const side = page.getByRole("group", { name: "A tua posição (opcional)" });
+  await side.getByRole("button", { name: "Discordo" }).click();
+  await expect(side.getByRole("button", { name: "Discordo" })).toHaveAttribute("aria-pressed", "true");
+  await noSeriousA11yIssues(page);
+
+  // Another outlet's version: the same story, the same debate.
+  await versions.getByRole("link", { name: /Expresso/ }).click();
+  await expect(page).toHaveURL(/\/article\/90$/);
+  await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true })).toContainText(/[12] de 5/);
+
+  // Em debate: a subject filters the feed; pressing it again shows everything.
+  const debated = page.getByRole("navigation", { name: "Em debate" });
+  await debated.getByRole("link", { name: /#OE2027/ }).click();
+  await expect(page).toHaveURL(/tema=oe2027/);
+  await expect(page.locator("main article")).toHaveCount(1);
+  await expect(debated.getByRole("link", { name: /#OE2027/ })).toHaveAttribute("aria-current", "true");
+  await debated.getByRole("link", { name: /#OE2027/ }).click();
+  await expect(page).not.toHaveURL(/tema=/);
+});
+
+test("news menu: save, hide with undo, why, and report", async ({ page }) => {
+  await page.goto("/");
+  const card = page.locator("main article").filter({ hasText: "Notícia de teste número 98" });
+  const menu = () => card.getByRole("button", { name: /^Mais opções para/ });
+
+  // Saved: on the Guardadas page, in this browser only.
+  await menu().click();
+  await card.getByRole("button", { name: "Guardar", exact: true }).click();
+  await menu().click();
+  await expect(card.getByRole("button", { name: "Tirar das guardadas" })).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: "Porque vejo isto?" }).click();
+  await expect(card.getByText(/Aparece porque está entre as notícias mais recentes/)).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // Hidden, then brought back.
+  await menu().click();
+  await card.getByRole("button", { name: "Esconder" }).click();
+  await expect(card).toHaveCount(0);
+  await page.getByRole("button", { name: "Desfazer" }).click();
+  await expect(card).toHaveCount(1);
+
+  // Reported, with the reasons for news.
+  await menu().click();
+  await card.getByRole("button", { name: "Denunciar" }).click();
+  await card.getByRole("radio", { name: "Link não funciona" }).check();
+  await card.getByRole("button", { name: "Enviar denúncia" }).click();
+  await expect(card.getByRole("status")).toContainText("Obrigado");
+
+  await page.goto("/guardadas");
+  await expect(page.locator("main article").filter({ hasText: "Notícia de teste número 98" })).toBeVisible();
+  await noSeriousA11yIssues(page);
+});
+
+test("blog: readers vote on a post, in the list and on its page", async ({ page }) => {
+  await page.goto("/editorial");
+  const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
+  const score = row.getByLabel(/^Pontuação:/);
+  const before = Number((await score.getAttribute("aria-label"))!.replace(/\D/g, ""));
+  const answered = page.waitForResponse((response) => /\/editorial\/a-maioria-que-nao-existe\/vote$/.test(response.url()));
+  await row.getByRole("button", { name: /^Votar a favor de/ }).click();
+  await answered;
+  await expect(row.getByRole("button", { name: /^Votar a favor de/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(score).toHaveAttribute("aria-label", `Pontuação: ${before + 1}`);
+  // Remembered in this browser: the post's page shows the same vote, and pressing again takes it back.
+  await page.goto("/editorial/a-maioria-que-nao-existe");
+  const up = page.getByRole("button", { name: /^Votar a favor de/ });
+  await expect(up).toHaveAttribute("aria-pressed", "true");
+  await up.click();
+  await expect(up).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel(/^Pontuação:/)).toHaveAttribute("aria-label", `Pontuação: ${before}`);
+  await noSeriousA11yIssues(page);
 });
 
 test("blog: readers comment on a post as on the news", async ({ page }, testInfo) => {

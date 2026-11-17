@@ -88,7 +88,7 @@ export function audit(admin: MockAdmin, action: string, entity: string, entityId
 export const hiddenComments = new Map<number, string>();
 
 export type MockReport = {
-  kind: "thread" | "post" | "comment";
+  kind: "thread" | "post" | "comment" | "article";
   targetId: number;
   reasons: string[];
   details: string[];
