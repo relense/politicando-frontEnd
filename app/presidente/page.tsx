@@ -100,7 +100,10 @@ export default async function PresidentPage() {
   if (!data) {
     return (
       <div data-wide>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Presidente da República</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">Presidente</span>{" "}
+          da República
+        </h1>
         <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
           Esta página ainda não está disponível. Volta em breve.
         </p>

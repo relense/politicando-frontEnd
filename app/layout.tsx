@@ -1,7 +1,7 @@
 import { CookieBanner } from "@/components/CookieBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import type { Metadata, Viewport } from "next";
-import { Domine, Space_Mono } from "next/font/google";
+import { Domine, Reddit_Sans, Space_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import { Header } from "@/components/Header";
@@ -16,6 +16,8 @@ import "./globals.css";
 
 const domine = Domine({ subsets: ["latin"], variable: "--font-domine" });
 const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-space-mono" });
+// Trying Reddit's typeface for all text (see --font-serif and --font-mono in globals.css); the logo keeps Space Mono.
+const redditSans = Reddit_Sans({ subsets: ["latin"], variable: "--font-reddit-sans" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -44,7 +46,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 
   return (
-    <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable}`} suppressHydrationWarning>
+    <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable} ${redditSans.variable}`} suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(siteLd()) }} />
         <Providers>

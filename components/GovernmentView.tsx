@@ -241,7 +241,7 @@ export function GovernmentView({ government, parties, initialMember, today, head
 
         {/* On a phone the card sits below the ministries; the empty invitation is left out there. */}
         <div ref={panelRef} className={`scroll-mt-20 xl:block ${seat ? "" : "hidden"}`}>
-          <div className="xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]">
+          <div className="no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain">
             {seat && member ? (
               <MemberCard
                 key={member.id}

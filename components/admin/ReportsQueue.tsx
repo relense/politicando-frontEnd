@@ -7,12 +7,18 @@ import { getReports, REPORT_REASON_LABELS, resolveReport, type Report } from "@/
 import { formatDateTime } from "@/lib/format";
 import { buttonClass, Empty, ErrorNote, Tabs, useExpiry } from "./ui";
 
-const KIND_LABELS: Record<Report["kind"], string> = { thread: "Discussão", post: "Resposta no fórum", comment: "Comentário" };
+const KIND_LABELS: Record<Report["kind"], string> = {
+  thread: "Discussão",
+  post: "Resposta no fórum",
+  comment: "Comentário",
+  article: "Notícia",
+};
 
 /** Where the reported thing lives on the site. */
 function hrefOf(report: Report): string | null {
   const target = report.target;
   if (!target) return null;
+  if (report.kind === "article") return `/article/${report.targetId}`;
   if (report.kind === "comment" && target.articleId) return `/article/${target.articleId}#comentarios`;
   // The thread page moves to the right board on its own.
   if (target.threadId) return `/forum/geral/${target.threadId}${report.kind === "post" ? `#post-${report.targetId}` : ""}`;

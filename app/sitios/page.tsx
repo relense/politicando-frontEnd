@@ -37,7 +37,10 @@ export default async function PlacesPage({ searchParams }: Props) {
   if (!data) {
     return (
       <div data-wide>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem governa a tua terra</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          Quem governa a{" "}
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">tua terra</span>
+        </h1>
         <p className="mt-4 text-muted">Em breve: o mapa dos presidentes de câmara ainda não está disponível.</p>
       </div>
     );

@@ -4,7 +4,12 @@ const env = {
   NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v2",
   NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
   NEXT_PUBLIC_CAPTCHA_MODE: "mock",
+  // Pinned (a .env.local doesn't decide it), and the same for the server and the tests: stories off unless asked,
+  // e.g. NEXT_PUBLIC_FEATURE_STORIES=1 npx playwright test.
+  NEXT_PUBLIC_FEATURE_STORIES: process.env.NEXT_PUBLIC_FEATURE_STORIES ?? "0",
 };
+
+process.env.NEXT_PUBLIC_FEATURE_STORIES = env.NEXT_PUBLIC_FEATURE_STORIES;
 
 export default defineConfig({
   testDir: "./e2e",

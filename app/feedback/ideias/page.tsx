@@ -187,7 +187,10 @@ export default async function IdeasPage({ searchParams }: Props) {
         )}
       </div>
 
-      <aside id="nova" className="scroll-mt-24 xl:sticky xl:top-20 xl:self-start">
+      <aside
+        id="nova"
+        className="scroll-mt-24 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+      >
         {ideas !== null && (
           <>
             <NewThreadForm

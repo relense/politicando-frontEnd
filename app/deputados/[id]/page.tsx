@@ -177,7 +177,7 @@ export default async function DeputyPage({ params }: Props) {
 
         <aside
           aria-label={`Sobre ${deputy.name}`}
-          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overscroll-contain"
+          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain"
         >
           <section aria-labelledby="ficha" className="rounded-2xl border border-line p-4">
             <h2 id="ficha" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">

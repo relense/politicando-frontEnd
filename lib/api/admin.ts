@@ -95,15 +95,20 @@ export const canModerate = (me: Me) => me.role === "moderator" || me.role === "a
 export const REPORT_REASON_LABELS: Record<string, string> = {
   spam: "Spam ou publicidade",
   insult: "Insulto ou assédio",
-  hate: "Discurso de ódio",
+  hate: "Ataque a um grupo",
   personal_data: "Dados pessoais",
-  illegal: "Conteúdo ilegal",
+  illegal: "Ilegal (difamação, crime…)",
   other: "Outro motivo",
+  // News articles have their own reasons, about our tagging rather than what the outlet wrote.
+  wrong_tags: "Partido ou pessoa errados",
+  broken_link: "Link não funciona",
+  duplicate: "Notícia repetida",
+  not_politics: "Não é sobre política",
 };
-export type ReportKind = "thread" | "post" | "comment";
+export type ReportKind = "thread" | "post" | "comment" | "article";
 
 const reportSchema = z.object({
-  kind: z.enum(["thread", "post", "comment"]),
+  kind: z.enum(["thread", "post", "comment", "article"]),
   targetId: z.number(),
   reports: z.number(),
   reasons: z.array(z.string()),
@@ -116,6 +121,7 @@ const reportSchema = z.object({
       hidden: z.boolean(),
       threadId: z.number().nullable().optional(),
       articleId: z.number().nullable().optional(),
+      postId: z.number().nullable().optional(),
     })
     .nullable(),
 });

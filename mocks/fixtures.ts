@@ -33,6 +33,10 @@ export const articles: ApiArticle[] = Array.from({ length: 35 }, (_, index) => {
     source: SOURCES[index % SOURCES.length]!,
     imageUrl: null,
     commentCount: id === 100 ? 3 : 0,
+    views: id === 100 ? 1284 : (id * 37) % 250,
+    // A spread of votes: article 98 is the most voted, 97 the most divided.
+    upvotes: id === 98 ? 120 : id === 97 ? 40 : (id * 7) % 13,
+    downvotes: id === 97 ? 38 : (id * 3) % 5,
     parties: tagged(TAGS[index % TAGS.length]!),
   };
 });

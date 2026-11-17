@@ -75,9 +75,11 @@ describe("ArticleCard", () => {
 
   it("opens the source safely in a new tab", () => {
     render(<ArticleCard article={article()} />);
-    const link = screen.getByRole("link", { name: /RTP/ });
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // The outlet's name at the top and "Ler em RTP" at the bottom.
+    for (const link of screen.getAllByRole("link", { name: /RTP/ })) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
   });
 
   it("shortens the excerpt in lists and shows all of it on the article page", () => {
@@ -110,6 +112,13 @@ describe("ArticleCard", () => {
     expect(link).toHaveAttribute("href", "/article/7");
     expect(link).not.toHaveAttribute("target");
     expect(link).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("shows the reads when the API counts them, and nothing otherwise", () => {
+    const { rerender } = render(<ArticleCard article={article({ views: 1284 })} />);
+    expect(screen.getByText(/^1\s284 leituras$/)).toBeInTheDocument();
+    rerender(<ArticleCard article={article({ views: null })} />);
+    expect(screen.queryByText(/leituras?$/)).toBeNull();
   });
 
   it("invites the first comment", () => {

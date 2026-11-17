@@ -5,6 +5,7 @@ import { useState } from "react";
 import { countReplies, displayName, type CommentNode } from "@/lib/comments";
 import { repliesLabel } from "@/lib/format";
 import { CommentForm } from "./CommentForm";
+import { CommentLike } from "./CommentLike";
 import { QuoteLink, CommentText } from "./CommentText";
 import { useComments } from "./CommentsContext";
 import { ReportButton } from "./forum/ReportButton";
@@ -61,6 +62,17 @@ export function CommentItem({ node, target, depth = 0 }: Props) {
           )}
           <Avatar name={name} />
           <span className="font-bold text-ink">{name}</span>
+          {node.stance && (
+            <span
+              className="rounded-[5px] border px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+              style={{
+                color: node.stance === "agree" ? "var(--favor)" : "var(--contra)",
+                borderColor: `color-mix(in srgb, ${node.stance === "agree" ? "var(--favor)" : "var(--contra)"} 40%, transparent)`,
+              }}
+            >
+              {node.stance === "agree" ? "Concorda" : "Discorda"}
+            </span>
+          )}
           {node.pending ? (
             <span>a enviar…</span>
           ) : (
@@ -117,6 +129,7 @@ export function CommentItem({ node, target, depth = 0 }: Props) {
                 </button>
                 {!node.pending && (
                   <>
+                    {node.likes !== undefined && <CommentLike id={node.id} likes={node.likes} name={name} />}
                     <button type="button" aria-expanded={replying} onClick={() => setReplying((value) => !value)} className={actionClass}>
                       <CommentIcon />
                       Responder

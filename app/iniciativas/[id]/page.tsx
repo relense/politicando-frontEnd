@@ -131,7 +131,10 @@ export default async function InitiativePage({ params }: Props) {
           <dd className="mt-1">
             {authors.other && <p className="font-bold">{authors.other}</p>}
             <PartyChips parties={authors.parties} />
-            {authors.deputies.length > 0 && (
+            {/* A whole group's signatures say no more than its chip (which opens the party and its deputies): names
+                only when a few deputies signed it. */}
+            {authors.deputies.length > 3 && <p className="mt-2 font-mono text-xs text-muted">{authors.deputies.length} deputados</p>}
+            {authors.deputies.length > 0 && authors.deputies.length <= 3 && (
               <ul className="mt-2 flex flex-col gap-0.5 text-sm">
                 {authors.deputies.map((deputy) => (
                   <li key={deputy.id}>

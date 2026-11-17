@@ -186,7 +186,10 @@ export default async function AgendaPage({ searchParams }: Props) {
           )}
         </div>
 
-        <aside aria-label="Mais sobre a agenda" className="flex flex-col gap-4 xl:sticky xl:top-20">
+        <aside
+          aria-label="Mais sobre a agenda"
+          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+        >
           {menu && menu.upcoming.length > 0 && <UpcomingElections upcoming={menu.upcoming} />}
           <section aria-labelledby="como-assistir" className="rounded-2xl border border-line p-4 text-sm leading-relaxed">
             <h2 id="como-assistir" className="mb-2 font-mono text-xs font-bold uppercase tracking-widest">
