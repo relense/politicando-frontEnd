@@ -376,6 +376,8 @@ test("comments use >>number to quote, with a preview and a jump", async ({ page 
   await form.getByRole("button", { name: "Publicar" }).click();
   const first = page.locator("article", { hasText: `Primeiro ${unique}` });
   await expect(first).toBeVisible();
+  // It shows at once with a temporary number; wait for the one the API gave it.
+  await expect(first).not.toHaveAttribute("id", /^comentario--/);
   const number = (await first.getAttribute("id"))!.replace("comentario-", "");
 
   await first.getByRole("button", { name: `No.${number}, citar este comentário` }).click();
