@@ -11,7 +11,9 @@ import { placeHandlers } from "./placeFixtures";
 import { legislatureHandlers } from "./legislatureFixtures";
 import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
-import { forumHandlers } from "./forumFixtures";
+import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
+import { adminHandlers } from "./adminFixtures";
+import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
 import { peopleHandlers } from "./peopleFixtures";
 import { sitemapHandlers } from "./sitemapFixtures";
@@ -21,6 +23,33 @@ import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, pa
 export const API = "*/api/v2";
 const store = new Map(Object.entries(seedComments).map(([id, list]) => [Number(id), [...list]]));
 let nextCommentId = 1000;
+const postCommentStore = new Map<
+  string,
+  {
+    id: number;
+    postId: number;
+    parentId: number | null;
+    username: string | null;
+    parentUsername: string | null;
+    body: string;
+    createdAt: string;
+  }[]
+>([
+  [
+    "o-que-muda-no-orcamento",
+    [
+      {
+        id: 700,
+        postId: 0,
+        parentId: null,
+        username: "leitora",
+        parentUsername: null,
+        body: "Bem explicado, obrigado.",
+        createdAt: "2026-11-15T10:00:00.000Z",
+      },
+    ],
+  ],
+]);
 
 /** A few articles "mention" each deputy, so the deputy card has news to show. */
 const mentions = (articleId: number, deputyId: number) => (articleId + deputyId) % 9 === 0;
@@ -89,6 +118,30 @@ export const handlers = [
   http.get(`${API}/editorial/:slug`, ({ params }) => {
     const post = editorialPosts.find((item) => item.slug === params.slug);
     return post ? HttpResponse.json(post) : fail(404, "not_found");
+  }),
+  // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
+  http.get(`${API}/editorial/:slug/comments`, ({ params }) => {
+    if (!editorialPosts.some((item) => item.slug === params.slug)) return fail(404, "not_found");
+    return HttpResponse.json(postCommentStore.get(String(params.slug)) ?? []);
+  }),
+  http.post(`${API}/editorial/:slug/comments`, async ({ params, request }) => {
+    const post = editorialPosts.find((item) => item.slug === params.slug);
+    if (!post) return fail(404, "not_found");
+    const parsed = newCommentSchema.safeParse(await request.json());
+    if (!parsed.success) return fail(400, "invalid_request");
+    const { username, body, parentId } = parsed.data;
+    const slug = String(params.slug);
+    const created = {
+      id: nextCommentId++,
+      postId: post.id,
+      parentId: parentId ?? null,
+      username: username || null,
+      parentUsername: null,
+      body,
+      createdAt: new Date().toISOString(),
+    };
+    postCommentStore.set(slug, [...(postCommentStore.get(slug) ?? []), created]);
+    return HttpResponse.json(created, { status: 201 });
   }),
   http.get(`${API}/governments/history`, () => HttpResponse.json(governmentHistory)),
   http.get(`${API}/timeline`, ({ request }) => {
@@ -249,7 +302,81 @@ export const handlers = [
       stages,
     });
   }),
-  http.get(`${API}/articles/:id/comments`, ({ params }) => HttpResponse.json(store.get(Number(params.id)) ?? [])),
+  http.get(`${API}/articles/:id/comments`, ({ params }) =>
+    HttpResponse.json((store.get(Number(params.id)) ?? []).filter((comment) => !hiddenComments.has(comment.id))),
+  ),
+
+  // Moderation of comments (admin-api.md).
+  http.get(`${API}/admin/comments`, ({ request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const query = new URL(request.url).searchParams;
+    const status = query.get("status") ?? "visible";
+    const before = Number(query.get("before") ?? Infinity);
+    const limit = Number(query.get("limit") ?? 50);
+    const all = [...store.entries()]
+      .flatMap(([articleId, list]) =>
+        list.map((comment) => ({
+          id: comment.id,
+          articleId,
+          articleTitle: articles.find((article) => article.id === articleId)?.title ?? null,
+          parentId: comment.parentId ?? null,
+          username: comment.username ?? null,
+          body: comment.body,
+          createdAt: comment.createdAt,
+          hiddenAt: hiddenComments.get(comment.id) ?? null,
+        })),
+      )
+      .filter((comment) => comment.id < before && (status === "all" || (status === "hidden") === Boolean(comment.hiddenAt)))
+      .sort((a, b) => b.id - a.id);
+    return HttpResponse.json({ items: all.slice(0, limit) });
+  }),
+  http.post(`${API}/admin/comments/:id/:action`, ({ params, request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const id = Number(params.id);
+    if (![...store.values()].some((list) => list.some((comment) => comment.id === id))) return fail(404, "not_found");
+    if (params.action === "hide") hiddenComments.set(id, new Date().toISOString());
+    else if (params.action === "unhide") hiddenComments.delete(id);
+    else return fail(404, "not_found");
+    audit(admin, `comment.${String(params.action)}`, "comment", id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // Reports queue (admin-api.md): comments here, threads and posts through the forum fixtures.
+  http.get(`${API}/admin/reports`, ({ request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const resolved = new URL(request.url).searchParams.get("status") === "resolved";
+    const commentTarget = (id: number) => {
+      for (const [articleId, list] of store) {
+        const comment = list.find((item) => item.id === id);
+        if (comment) return { text: comment.body, hidden: hiddenComments.has(id), threadId: null, articleId };
+      }
+      return null;
+    };
+    const items = reportsStore
+      .filter((report) => (report.resolution !== null) === resolved)
+      .sort((a, b) => b.reports - a.reports)
+      .map((report) => ({
+        ...report,
+        target: report.kind === "comment" ? commentTarget(report.targetId) : forumTarget(report.kind, report.targetId),
+      }));
+    return HttpResponse.json({ items });
+  }),
+  http.post(`${API}/admin/reports/resolve`, async ({ request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const body = (await request.json()) as { kind: "thread" | "post" | "comment"; targetId: number; action: "hide" | "dismiss" };
+    const open = reportsStore.filter((report) => report.kind === body.kind && report.targetId === body.targetId && !report.resolution);
+    for (const report of open) report.resolution = body.action;
+    if (body.action === "hide") {
+      if (body.kind === "comment") hiddenComments.set(body.targetId, new Date().toISOString());
+      else hideForum(body.kind, body.targetId);
+    }
+    audit(admin, `report.${body.action}`, body.kind, body.targetId);
+    return HttpResponse.json({ resolved: open.reduce((sum, report) => sum + report.reports, 0) });
+  }),
   http.get(`${API}/articles/:id`, ({ params }) => {
     const id = Number(params.id);
     if (!Number.isInteger(id) || id <= 0 || id > 2_147_483_647) return fail(400, "invalid_request");
@@ -286,6 +413,7 @@ export const handlers = [
   ...agendaHandlers,
   ...feedbackHandlers,
   ...forumHandlers,
+  ...adminHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,
   ...becomeDeputyHandlers,
