@@ -64,14 +64,14 @@ describe("api client", () => {
         );
       }),
     );
-    const created = await createComment({ articleId: 100, parentId: 1, username: "", text: "olá", captchaToken: "tok" });
+    const created = await createComment({ target: "/articles/100", parentId: 1, username: "", text: "olá", captchaToken: "tok" });
     expect(url).toMatch(/\/articles\/100\/comments$/);
     expect(created).toMatchObject({ id: 5, parentId: 1, text: "olá" });
     expect(body).toEqual({ body: "olá", parentId: 1, recaptchaToken: "tok" });
   });
 
   it("leaves parentId out of a top-level comment, which the real API's strict schema allows", async () => {
-    const created = await createComment({ articleId: 100, parentId: null, username: "ana", text: "olá", captchaToken: "tok" });
+    const created = await createComment({ target: "/articles/100", parentId: null, username: "ana", text: "olá", captchaToken: "tok" });
     expect(created).toMatchObject({ parentId: null, username: "ana" });
   });
 });

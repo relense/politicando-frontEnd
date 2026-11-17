@@ -4,18 +4,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { getComments } from "@/lib/api/client";
 import { buildBacklinks, buildCommentTree } from "@/lib/comments";
-import type { Comment } from "@/lib/types";
+import type { Comment, CommentTarget } from "@/lib/types";
 import { CommentForm, type CommentFormHandle } from "./CommentForm";
 import { CommentItem } from "./CommentItem";
 import { CommentsContext } from "./CommentsContext";
 
-type Props = { articleId: number; initialComments: Comment[] };
+type Props = { target: CommentTarget; initialComments: Comment[] };
 type Order = "oldest" | "newest";
 
-export function CommentSection({ articleId, initialComments }: Props) {
+export function CommentSection({ target, initialComments }: Props) {
   const { data: comments = initialComments } = useQuery({
-    queryKey: ["comments", articleId],
-    queryFn: () => getComments(articleId),
+    queryKey: ["comments", target],
+    queryFn: () => getComments(target),
     initialData: initialComments,
   });
   const [order, setOrder] = useState<Order>("oldest");
@@ -77,7 +77,7 @@ export function CommentSection({ articleId, initialComments }: Props) {
           {open ? (
             <CommentForm
               ref={form}
-              articleId={articleId}
+              target={target}
               parentId={null}
               initialText={initialText}
               autoFocus
@@ -117,7 +117,7 @@ export function CommentSection({ articleId, initialComments }: Props) {
           <ul className="flex flex-col gap-6">
             {roots.map((node) => (
               <li key={node.id}>
-                <CommentItem node={node} articleId={articleId} />
+                <CommentItem node={node} target={target} />
               </li>
             ))}
           </ul>

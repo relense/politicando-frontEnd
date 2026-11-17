@@ -33,8 +33,13 @@ export type Comment = {
   pending?: boolean;
 };
 
+/** Where comments live in the API: "/articles/100" for a news article, "/editorial/<slug>" for one of our posts. */
+export type CommentTarget = string;
+export const articleComments = (id: number): CommentTarget => `/articles/${id}`;
+export const postComments = (slug: string): CommentTarget => `/editorial/${encodeURIComponent(slug)}`;
+
 export type NewComment = {
-  articleId: number;
+  target: CommentTarget;
   parentId: number | null;
   username: string;
   text: string;

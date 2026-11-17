@@ -43,3 +43,39 @@ export const PROVIDER_NAMES: Record<string, string> = {
 };
 
 export const providerName = (provider: string) => PROVIDER_NAMES[provider.toLowerCase()] ?? provider;
+
+/**
+ * The cookie banner's answer (only asked when FEATURES.cookieBanner is on): "all" lets Google's reCAPTCHA and the
+ * players load without asking; "essential" keeps them behind a button each time; null is not answered yet.
+ */
+export type CookieConsent = "all" | "essential" | null;
+export const CONSENT_KEY = "cookie-consent";
+const CONSENT_EVENT = "politicando:consent";
+
+export function cookieConsent(): CookieConsent {
+  try {
+    const value = window.localStorage.getItem(CONSENT_KEY);
+    return value === "all" || value === "essential" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCookieConsent(value: Exclude<CookieConsent, null>) {
+  try {
+    window.localStorage.setItem(CONSENT_KEY, value);
+  } catch {
+    // Blocked storage: the banner asks again next time.
+  }
+  setEmbedsAllowed(value === "all");
+  window.dispatchEvent(new Event(CONSENT_EVENT));
+}
+
+export function subscribeConsent(onChange: () => void) {
+  window.addEventListener(CONSENT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(CONSENT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}

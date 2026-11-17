@@ -1,5 +1,6 @@
 "use client";
 
+import type { CommentTarget } from "@/lib/types";
 import { useState } from "react";
 import { countReplies, displayName, type CommentNode } from "@/lib/comments";
 import { repliesLabel } from "@/lib/format";
@@ -13,9 +14,9 @@ import { RelativeTime } from "./RelativeTime";
 /** Past this depth replies stop indenting, so deep threads stay readable on a phone. */
 const MAX_INDENT_DEPTH = 6;
 
-type Props = { node: CommentNode; articleId: number; depth?: number };
+type Props = { node: CommentNode; target: CommentTarget; depth?: number };
 
-export function CommentItem({ node, articleId, depth = 0 }: Props) {
+export function CommentItem({ node, target, depth = 0 }: Props) {
   const { backlinks, quote } = useComments();
   const [collapsed, setCollapsed] = useState(false);
   const [replying, setReplying] = useState(false);
@@ -33,7 +34,7 @@ export function CommentItem({ node, articleId, depth = 0 }: Props) {
           {indentReplies && (
             <span aria-hidden="true" className="absolute -left-4 top-0 h-4 w-4 rounded-bl-xl border-b border-l border-line" />
           )}
-          <CommentItem node={reply} articleId={articleId} depth={indentReplies ? depth + 1 : depth} />
+          <CommentItem node={reply} target={target} depth={indentReplies ? depth + 1 : depth} />
         </li>
       ))}
     </ul>
@@ -135,7 +136,7 @@ export function CommentItem({ node, articleId, depth = 0 }: Props) {
               {replying && (
                 <div className="mt-2">
                   <CommentForm
-                    articleId={articleId}
+                    target={target}
                     parentId={node.id}
                     autoFocus
                     onPosted={() => setReplying(false)}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
+import { OG_BASE } from "@/lib/seo";
 import type { ReactNode } from "react";
 import { cache } from "react";
 import { DeputyPortrait } from "@/components/DeputyProfile";
@@ -92,7 +93,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: placePath(place.key) },
-    openGraph: { title, description, url: placePath(place.key) },
+    openGraph: { ...OG_BASE, title, description, url: placePath(place.key) },
   };
 }
 

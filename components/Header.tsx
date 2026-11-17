@@ -24,7 +24,8 @@ export function Header() {
           </svg>
         </button>
         <Link href="/" className="col-start-2 justify-self-center font-mono text-lg font-bold tracking-[0.2em]">
-          POLITICANDO
+          {/* The first letter in the icon's gold, as on the browser tab. */}
+          <span className="text-brand">P</span>OLITICANDO
         </Link>
         <div className="col-start-3 flex items-center gap-2 justify-self-end">
           {/* Desktop has the sections column; phones have the menu. */}
