@@ -1,6 +1,6 @@
 import { SourceLogo } from "./SourceLogo";
 import Link from "next/link";
-import { excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
+import { commentLinkLabel, excerpt, formatCardWhen, formatDateTime } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
 import { CommentIcon } from "./icons";
@@ -49,16 +49,19 @@ export function ArticleCard({ article }: { article: Article }) {
 
         {text && <p className="mb-3 text-[15px] leading-relaxed text-ink/80">{text}</p>}
 
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
-          <PartyChips parties={article.parties} />
+        {/* The chips wrap in their own column, so the comments pill always stays on the first row, at the right. */}
+        <div className="relative z-10 flex items-start gap-3">
+          <PartyChips parties={article.parties} className="min-w-0 flex-1" />
           <Link
             href={`${articlePath}#comentarios`}
-            className={`ml-auto flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 font-mono text-sm hover:bg-line hover:text-ink ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
+            aria-label={commentLinkLabel(article.commentsCount)}
+            className={`ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1 font-mono text-sm hover:bg-line hover:text-ink ${article.commentsCount > 0 ? "text-ink" : "text-muted"}`}
           >
             <CommentIcon />
             <span>
-              <span className="font-bold tabular-nums">{article.commentsCount}</span>{" "}
-              {article.commentsCount === 1 ? "comentário" : "comentários"}
+              <span className="font-bold tabular-nums">{article.commentsCount}</span>
+              {/* On a phone the number alone, so the pill fits beside the chips. */}
+              <span className="max-sm:hidden">{article.commentsCount === 1 ? " comentário" : " comentários"}</span>
             </span>
           </Link>
         </div>
