@@ -102,6 +102,9 @@ function stageOf(item: (typeof initiatives)[number]): string {
   return stage ?? "submitted";
 }
 
+/** Reads per post since the mock API started; one post starts with some, so the count shows without reading it. */
+const postViews = new Map<string, number>([["o-que-muda-no-orcamento", 1284]]);
+
 export const handlers = [
   http.get(`${API}/editorial`, ({ request }) => {
     const params = new URL(request.url).searchParams;
@@ -117,7 +120,15 @@ export const handlers = [
   }),
   http.get(`${API}/editorial/:slug`, ({ params }) => {
     const post = editorialPosts.find((item) => item.slug === params.slug);
-    return post ? HttpResponse.json(post) : fail(404, "not_found");
+    // `views`: all the post's reads so far (asked of the backend; the page shows it only when it comes).
+    return post ? HttpResponse.json({ ...post, views: postViews.get(post.slug) ?? 0 }) : fail(404, "not_found");
+  }),
+  // A read, sent by the browser (editorial-api.md "Most read"): no body, 204.
+  http.post(`${API}/editorial/:slug/view`, ({ params }) => {
+    const slug = String(params.slug);
+    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    postViews.set(slug, (postViews.get(slug) ?? 0) + 1);
+    return new HttpResponse(null, { status: 204 });
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
   http.get(`${API}/editorial/:slug/comments`, ({ params }) => {

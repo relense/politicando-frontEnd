@@ -63,6 +63,11 @@ export function commentLinkLabel(count: number): string {
   return count === 1 ? "1 comentário" : `${formatNumber(count)} comentários`;
 }
 
+/** A post's reads: the API counts one per reader per post per day. */
+export function readsLabel(count: number): string {
+  return count === 1 ? "1 leitura" : `${formatNumber(count)} leituras`;
+}
+
 export function repliesLabel(count: number): string {
   return count === 1 ? "1 resposta" : `${count} respostas`;
 }

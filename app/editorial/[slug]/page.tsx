@@ -10,7 +10,7 @@ import { JumpLink } from "@/components/JumpLink";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
-import { excerpt, formatLongDate } from "@/lib/format";
+import { commentLinkLabel, excerpt, formatLongDate, readsLabel } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
 import { OG_BASE } from "@/lib/seo";
@@ -140,6 +140,20 @@ export default async function EditorialPostPage({ params }: Props) {
               <span className="block font-mono text-[11px] text-muted">
                 <time dateTime={post.publishedAt}>{date}</time>
                 {reading && <> · {reading}</>}
+                {typeof post.views === "number" && post.views > 0 && (
+                  <>
+                    {" · "}
+                    <span className="whitespace-nowrap">{readsLabel(post.views)}</span>
+                  </>
+                )}
+                {comments && (
+                  <>
+                    {" · "}
+                    <a href="#comentarios" className="whitespace-nowrap hover:text-ink hover:underline">
+                      {commentLinkLabel(comments.length)}
+                    </a>
+                  </>
+                )}
               </span>
             </span>
           </p>
