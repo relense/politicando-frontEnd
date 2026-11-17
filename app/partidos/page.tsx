@@ -37,7 +37,9 @@ export default async function PartiesPage() {
     <div data-wide>
       <header className="mb-8">
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Partidos políticos</p>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Partidos</h1>
+        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+          <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">Partidos</span>
+        </h1>
         <p className="mt-2 max-w-2xl leading-relaxed text-muted">
           Quem os lidera, quantos deputados têm e como votaram neles nas últimas legislativas. Carrega num partido para ver as notícias, as
           votações no Parlamento e o fórum.

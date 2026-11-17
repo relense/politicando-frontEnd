@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Fragment } from "react";
+import { SearchToggle } from "@/components/SearchToggle";
 import { connection } from "next/server";
 import { ArticleImage } from "@/components/ArticleImage";
+import { ArticleVote } from "@/components/ArticleVote";
+import { CommentIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getEditorial, getParties } from "@/lib/api/client";
@@ -93,7 +97,8 @@ async function loadAll(): Promise<EditorialPost[]> {
 async function loadPopular(): Promise<EditorialPost[] | null> {
   try {
     const { items } = await getEditorial({ sort: "popular", days: POPULAR_DAYS, limit: 50 });
-    return items.length > 0 && items.every((post) => typeof post.views === "number") ? items : null;
+    // The API that counts reads sends a count with each; an older one ignores the sort, so the box stays hidden.
+    return items.length > 0 && items.every((post) => typeof (post.recentViews ?? post.views) === "number") ? items : null;
   } catch {
     return null;
   }
@@ -120,12 +125,21 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
     EditorialKind,
     number
   >;
-  const views = new Map((popular ?? []).map((post) => [post.slug, post.views ?? 0]));
+  // "Mais lidos" keeps the API's order (by reads in the period, `recentViews`), not all-time reads.
+  const rank = new Map((popular ?? []).map((post, index) => [post.slug, index]));
   const shown = all.filter((post) => matches(post));
-  if (view.popular) shown.sort((a, b) => (views.get(b.slug) ?? 0) - (views.get(a.slug) ?? 0));
+  if (view.popular) shown.sort((a, b) => (rank.get(a.slug) ?? Infinity) - (rank.get(b.slug) ?? Infinity));
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const onPage = shown.slice((view.page - 1) * PAGE_SIZE, view.page * PAGE_SIZE);
   const filtered = Boolean(view.kind || view.tag || view.q);
+  /** After which post (by its slug) the newsletter comes on smaller screens; none on a short list. */
+  const insertAt = onPage.length > 4 ? onPage[3]!.slug : null;
+  const insert = (post: EditorialPost) =>
+    post.slug === insertAt && (
+      <li className="py-3 xl:hidden">
+        <Newsletter id="newsletter-lista" />
+      </li>
+    );
   const soon = EDITORIAL_KINDS.filter((kind) => !all.some((post) => post.kind === kind));
   const partyOf = (tag: string) => parties.find((party) => party.slug === tag || party.acronym.toLowerCase() === tag) ?? null;
   const now = requestTime();
@@ -147,34 +161,36 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
         </p>
       </header>
 
-      <nav aria-label="Filtrar o blog" className="mb-6 border-b border-line pb-5">
+      <nav aria-label="Filtrar o blog" className="mb-4 border-b border-line pb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <form role="search" action="/editorial" className="relative min-w-0 basis-full sm:flex-[1_1_18rem]">
-            {view.kind && <input type="hidden" name="tipo" value={view.kind} />}
-            {view.tag && <input type="hidden" name="tema" value={view.tag} />}
-            {view.popular && <input type="hidden" name="ordem" value="lidos" />}
-            <label>
-              <span className="sr-only">Procurar no blog</span>
-              <input
-                type="search"
-                name="q"
-                defaultValue={view.q}
-                maxLength={100}
-                placeholder="Procurar no blog, ex.: «Orçamento»"
-                className="h-10 w-full rounded-full border border-line bg-paper pl-10 pr-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
-              />
-            </label>
-            <button
-              type="submit"
-              aria-label="Procurar"
-              className="absolute left-1 top-1 flex size-8 items-center justify-center rounded-full text-muted hover:text-ink"
-            >
-              <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4">
-                <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
-                <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </form>
+          <SearchToggle label="Procurar no blog" open={Boolean(view.q)}>
+            <form role="search" action="/editorial" className="relative min-w-0">
+              {view.kind && <input type="hidden" name="tipo" value={view.kind} />}
+              {view.tag && <input type="hidden" name="tema" value={view.tag} />}
+              {view.popular && <input type="hidden" name="ordem" value="lidos" />}
+              <label>
+                <span className="sr-only">Procurar no blog</span>
+                <input
+                  type="search"
+                  name="q"
+                  defaultValue={view.q}
+                  maxLength={100}
+                  placeholder="Procurar no blog, ex.: «Orçamento»"
+                  className="h-10 w-full rounded-full border border-line bg-paper pl-10 pr-4 text-sm placeholder:text-muted focus:border-ink focus:outline-none"
+                />
+              </label>
+              <button
+                type="submit"
+                aria-label="Procurar"
+                className="absolute left-1 top-1 flex size-8 items-center justify-center rounded-full text-muted hover:text-ink"
+              >
+                <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4">
+                  <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+                  <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </form>
+          </SearchToggle>
           {tags.length > 0 && (
             <details className="group relative">
               <summary
@@ -217,22 +233,54 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
             </details>
           )}
           {popular && (
-            <div className="ml-auto flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold sm:ml-0">
-              <Link
-                href={pathOf(view, { popular: false })}
-                aria-current={view.popular ? undefined : "true"}
-                className={`flex items-center px-4 ${view.popular ? "hover:bg-surface" : "bg-ink text-paper"}`}
-              >
-                Recentes
-              </Link>
-              <Link
-                href={pathOf(view, { popular: true })}
-                aria-current={view.popular ? "true" : undefined}
-                className={`flex items-center px-4 ${view.popular ? "bg-ink text-paper" : "hover:bg-surface"}`}
-              >
-                Mais lidos
-              </Link>
-            </div>
+            <>
+              {/* A small menu on a phone, where the row is short; two tabs from `sm` up. */}
+              <details className="group relative ml-auto sm:hidden">
+                <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-line px-3 font-mono text-xs font-bold [&::-webkit-details-marker]:hidden">
+                  <span className="sr-only">Ordem: </span>
+                  {view.popular ? "Mais lidos" : "Recentes"}
+                  <svg aria-hidden="true" viewBox="0 0 20 20" className="size-3.5 fill-none stroke-current stroke-2 group-open:rotate-180">
+                    <path d="M5 8l5 5 5-5" />
+                  </svg>
+                </summary>
+                <ul aria-label="Ordem" className="absolute right-0 z-30 mt-2 w-52 rounded-2xl border border-line bg-paper p-2 shadow-xl">
+                  <li>
+                    <Link
+                      href={pathOf(view, { popular: false })}
+                      aria-current={view.popular ? undefined : "true"}
+                      className={`block rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.popular ? "" : "font-bold"}`}
+                    >
+                      Recentes
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href={pathOf(view, { popular: true })}
+                      aria-current={view.popular ? "true" : undefined}
+                      className={`block rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.popular ? "font-bold" : ""}`}
+                    >
+                      Mais lidos · {POPULAR_DAYS} dias
+                    </Link>
+                  </li>
+                </ul>
+              </details>
+              <div className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold max-sm:hidden">
+                <Link
+                  href={pathOf(view, { popular: false })}
+                  aria-current={view.popular ? undefined : "true"}
+                  className={`flex items-center px-4 ${view.popular ? "hover:bg-surface" : "bg-ink text-paper"}`}
+                >
+                  Recentes
+                </Link>
+                <Link
+                  href={pathOf(view, { popular: true })}
+                  aria-current={view.popular ? "true" : undefined}
+                  className={`flex items-center px-4 ${view.popular ? "bg-ink text-paper" : "hover:bg-surface"}`}
+                >
+                  Mais lidos
+                </Link>
+              </div>
+            </>
           )}
         </div>
         <div className="mt-3 flex items-center gap-2">
@@ -285,24 +333,30 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
               {view.kind && soon.includes(view.kind) ? <>Em breve. {KINDS[view.kind].soon}</> : "Não há publicações aqui."}
             </p>
           ) : view.popular ? (
-            <ol>
+            <ol className="flex flex-col divide-y divide-line">
               {onPage.map((post) => (
-                <li key={post.slug}>
-                  <BlogRow post={post} partyOf={partyOf} />
-                </li>
+                <Fragment key={post.slug}>
+                  <li>
+                    <BlogRow post={post} partyOf={partyOf} />
+                  </li>
+                  {insert(post)}
+                </Fragment>
               ))}
             </ol>
           ) : (
             byDay(onPage).map(({ day, posts }) => (
               <section key={day} aria-labelledby={`dia-${day}`} className="mb-2">
-                <h2 id={`dia-${day}`} className="border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest">
+                <h2 id={`dia-${day}`} className="mb-1 mt-3 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
                   {formatDayHeading(posts[0]!.publishedAt, now)}
                 </h2>
-                <ul>
+                <ul className="flex flex-col divide-y divide-line">
                   {posts.map((post) => (
-                    <li key={post.slug}>
-                      <BlogRow post={post} partyOf={partyOf} />
-                    </li>
+                    <Fragment key={post.slug}>
+                      <li>
+                        <BlogRow post={post} partyOf={partyOf} />
+                      </li>
+                      {insert(post)}
+                    </Fragment>
                   ))}
                 </ul>
               </section>
@@ -363,18 +417,12 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           )}
         </div>
 
-        <aside aria-label="Mais do blog" className="flex flex-col gap-4 xl:sticky xl:top-20">
-          <section
-            aria-labelledby="newsletter"
-            className="rounded-2xl border border-[color-mix(in_srgb,var(--marker)_70%,var(--line))] bg-[color-mix(in_srgb,var(--marker)_18%,transparent)] p-4"
-          >
-            <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--stage-debate)]">Newsletter</p>
-            <h2 id="newsletter" className="mt-1 text-2xl font-bold leading-tight">
-              Recebe os novos artigos no email
-            </h2>
-            <p className="mb-3 mt-2 text-sm leading-relaxed">Um email quando sai algo novo. Sem spam, cancelas quando quiseres.</p>
-            <NewsletterForm compact />
-          </section>
+        <aside
+          aria-label="Mais do blog"
+          className="flex flex-col gap-4 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
+        >
+          {/* Between the posts on smaller screens (when there are enough of them), here on a wide one. */}
+          <Newsletter id="newsletter" className={insertAt !== null ? "max-xl:hidden" : ""} />
 
           {popular && (
             <section aria-labelledby="mais-lidos" className="rounded-2xl border border-line p-4">
@@ -446,6 +494,23 @@ function tagCounts(posts: EditorialPost[], parties: Party[]): [string, number][]
   return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt"));
 }
 
+/** The newsletter box: in the column on a wide screen, between the posts otherwise. */
+function Newsletter({ id, className = "" }: { id: string; className?: string }) {
+  return (
+    <section
+      aria-labelledby={id}
+      className={`rounded-2xl border border-[color-mix(in_srgb,var(--marker)_70%,var(--line))] bg-[color-mix(in_srgb,var(--marker)_18%,transparent)] p-4 ${className}`}
+    >
+      <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--stage-debate)]">Newsletter</p>
+      <h2 id={id} className="mt-1 text-2xl font-bold leading-tight">
+        Recebe os novos artigos no email
+      </h2>
+      <p className="mb-3 mt-2 text-sm leading-relaxed">Um email quando sai algo novo. Sem spam, cancelas quando quiseres.</p>
+      <NewsletterForm compact />
+    </section>
+  );
+}
+
 function byDay(posts: EditorialPost[]): { day: string; posts: EditorialPost[] }[] {
   const days = new Map<string, EditorialPost[]>();
   for (const post of posts) {
@@ -455,7 +520,10 @@ function byDay(posts: EditorialPost[]): { day: string; posts: EditorialPost[] }[
   return [...days].map(([day, list]) => ({ day, posts: list }));
 }
 
-/** One post in the list, like a news card: kind, byline, title, subtitle, parties or topics, and the cover beside. */
+/**
+ * One post in the list, like a news card: kind, byline and time, title, subtitle, parties or topics, then votes and
+ * comments when the API counts them. The cover sits beside on wider screens and under the title on a phone.
+ */
 function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string) => Party | null }) {
   const href = editorialPath(post.slug);
   const { color } = KINDS[post.kind];
@@ -465,10 +533,12 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
   });
   const topics = post.tags.filter((tag) => !partyOf(tag));
   const subtype = topics[0];
+  const action =
+    "inline-flex h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 font-mono text-sm font-bold group-hover:bg-line/60 hover:!bg-line";
   return (
-    <article className="relative -mx-3 grid gap-x-8 gap-y-4 rounded-2xl border-b border-line px-3 py-5 transition-colors hover:border-transparent hover:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] focus-within:bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] sm:grid-cols-[minmax(0,1fr)_11rem]">
+    <article className="group relative -mx-3 my-1 grid gap-x-6 gap-y-3 rounded-2xl px-3 py-3 transition-colors hover:bg-[var(--card-hover)] focus-within:bg-[var(--card-hover)] sm:-mx-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:px-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
       <div className="min-w-0">
-        <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
+        <p className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
           <span
             className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 font-bold"
             style={{ color, backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)` }}
@@ -494,7 +564,15 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
             {post.title}
           </Link>
         </h3>
-        {post.subtitle && <p className="mt-2 leading-relaxed text-muted">{post.subtitle}</p>}
+        {post.subtitle && <p className="mt-1.5 leading-relaxed text-muted max-sm:line-clamp-3">{post.subtitle}</p>}
+        {post.coverImageUrl && (
+          <ArticleImage
+            src={post.coverImageUrl}
+            href={href}
+            className="relative z-10 mt-3 block aspect-video overflow-hidden rounded-xl bg-surface sm:hidden"
+            imageClassName="size-full object-cover"
+          />
+        )}
         {(partyTags.length > 0 || topics.length > 0) && (
           <ul aria-label="Temas" className="relative z-10 mt-3 flex w-fit flex-wrap gap-1.5">
             {partyTags.map((party) => (
@@ -523,12 +601,26 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
               ))}
           </ul>
         )}
+        {(post.votes || typeof post.commentCount === "number") && (
+          <div className="relative z-10 mt-3 flex flex-wrap items-center gap-2">
+            {post.votes && <ArticleVote id={`post:${post.slug}`} title={post.title} up={post.votes.up} down={post.votes.down} />}
+            {typeof post.commentCount === "number" && (
+              <Link href={`${href}#comentarios`} className={action}>
+                <CommentIcon />
+                <span>
+                  <span>{post.commentCount}</span>{" "}
+                  <span className="max-sm:sr-only">{post.commentCount === 1 ? "comentário" : "comentários"}</span>
+                </span>
+              </Link>
+            )}
+          </div>
+        )}
       </div>
       {post.coverImageUrl ? (
         <ArticleImage
           src={post.coverImageUrl}
           href={href}
-          className="relative z-10 order-first block aspect-[16/10] overflow-hidden rounded-xl bg-surface sm:order-none"
+          className="relative z-10 hidden aspect-[16/10] self-start overflow-hidden rounded-xl bg-surface sm:block"
           imageClassName="size-full object-cover"
         />
       ) : (
@@ -536,7 +628,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
           href={href}
           tabIndex={-1}
           aria-hidden="true"
-          className="hidden aspect-[16/10] items-center justify-center rounded-xl border border-line bg-[repeating-linear-gradient(135deg,var(--surface)_0_1px,transparent_1px_12px)] sm:flex"
+          className="hidden aspect-[16/10] items-center justify-center self-start rounded-xl border border-line bg-[repeating-linear-gradient(135deg,var(--surface)_0_1px,transparent_1px_12px)] sm:flex"
         >
           <Chamber color={color} />
         </Link>

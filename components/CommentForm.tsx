@@ -2,8 +2,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
-import { ApiError, createComment } from "@/lib/api/client";
-import type { Comment, NewComment, CommentTarget } from "@/lib/types";
+import { ApiError, createComment, screenedMessage } from "@/lib/api/client";
+import type { Comment, CommentStance, NewComment, CommentTarget } from "@/lib/types";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 
 const MAX_LENGTH = 500;
@@ -29,9 +29,11 @@ type Props = {
   onPosted?: (comment: Comment) => void;
   onCancel?: () => void;
   ref?: Ref<CommentFormHandle>;
+  /** "Concordo / Discordo": on a story about a proposal. Optional for the commenter; we never guess it. */
+  stances?: boolean;
 };
 
-export function CommentForm({ target, parentId, initialText = "", autoFocus, onPosted, onCancel, ref }: Props) {
+export function CommentForm({ target, parentId, initialText = "", autoFocus, onPosted, onCancel, ref, stances = false }: Props) {
   const id = useId();
   const queryClient = useQueryClient();
   const queryKey = ["comments", target];
@@ -39,6 +41,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
   const textarea = useRef<HTMLTextAreaElement>(null);
   const [username, setUsername] = useState("");
   const [text, setText] = useState(initialText);
+  const [stance, setStance] = useState<CommentStance | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The captcha appears once someone starts writing, so it does not crowd an idle form.
@@ -75,6 +78,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
           text: input.text,
           parentId: input.parentId,
           createdAt: new Date().toISOString(),
+          stance: input.stance ?? null,
           pending: true,
         },
       ]);
@@ -82,13 +86,14 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     },
     onError: (failure, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) => current.filter((comment) => comment.id !== context?.tempId));
-      setError((failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR);
+      setError(screenedMessage(failure) || (failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR);
     },
     onSuccess: (created, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) =>
         current.map((comment) => (comment.id === context.tempId ? created : comment)),
       );
       setText("");
+      setStance(null);
       onPosted?.(created);
     },
     // A token can only be used once, whether the request worked or not.
@@ -106,7 +111,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
     if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
-    mutation.mutate({ target, parentId, username, text: trimmed, captchaToken });
+    mutation.mutate({ target, parentId, username, text: trimmed, captchaToken, stance: stances ? stance : null });
   }
 
   const label = parentId === null ? "Comentário" : "Resposta";
@@ -117,6 +122,35 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
       noValidate
       className="flex flex-col gap-3 rounded-2xl border border-line bg-paper p-3 focus-within:border-muted"
     >
+      {stances && (
+        <fieldset className="flex flex-wrap items-center gap-2 px-1">
+          <legend className="sr-only">A tua posição (opcional)</legend>
+          <span aria-hidden="true" className="font-mono text-xs text-muted">
+            A tua posição:
+          </span>
+          {(
+            [
+              ["agree", "Concordo", "var(--favor)"],
+              ["disagree", "Discordo", "var(--contra)"],
+            ] as const
+          ).map(([value, label, color]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={stance === value}
+              onClick={() => setStance(stance === value ? null : value)}
+              className="rounded-full border px-3 py-1 font-mono text-xs font-semibold"
+              style={
+                stance === value
+                  ? { color, borderColor: color, background: `color-mix(in srgb, ${color} 14%, transparent)` }
+                  : { borderColor: "var(--card-line)" }
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </fieldset>
+      )}
       <label htmlFor={`${id}-comment`} className="sr-only">
         {label}
       </label>

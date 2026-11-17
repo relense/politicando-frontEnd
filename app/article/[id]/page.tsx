@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
+import { CountRead } from "@/components/CountRead";
+import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions } from "@/components/StoryParts";
+import { MarkStoryRead } from "@/components/TodayInFive";
+import { getStory } from "@/lib/api/stories";
+import { FEATURES } from "@/lib/features";
 import { ArticleSidebar, type ArticleContext } from "@/components/ArticleSidebar";
 import type { MoreAboutGroup } from "@/components/MoreAbout";
 import { ApiError, getArticle, getComments, getFeedPage, getInitiative, getInitiatives } from "@/lib/api/client";
@@ -101,7 +106,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ArticlePage({ params }: Props) {
   await connection();
   const article = await loadArticle((await params).id);
-  const [comments, more, context] = await Promise.all([getComments(articleComments(article.id)), loadMore(article), loadContext(article)]);
+  // One outlet's version of a story: the others, the story's debate and its Importa (FEATURES.stories).
+  const story = FEATURES.stories && article.storyId ? await getStory(article.storyId).catch(() => null) : null;
+  const target = story ? `/stories/${story.id}` : articleComments(article.id);
+  const [comments, more, context] = await Promise.all([getComments(target), loadMore(article), loadContext(article)]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -117,6 +125,7 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <>
+      <CountRead path={`/articles/${article.id}/view`} />
       <script
         type="application/ld+json"
         // "<" is escaped so a hostile title cannot close this script tag.
@@ -124,10 +133,42 @@ export default async function ArticlePage({ params }: Props) {
       />
       <div data-wide className="grid gap-10 xl:grid-cols-[minmax(0,48rem)_20rem] xl:justify-between">
         <div className="min-w-0">
-          <ArticleDetail article={article} />
-          <CommentSection target={articleComments(article.id)} initialComments={comments} />
+          {story && <MarkStoryRead id={story.id} />}
+          <ArticleDetail article={article} versions={story && <StoryVersions story={story} current={article.id} />} />
+          {story && <HowEachToldList story={story} current={article.id} />}
+          <CommentSection
+            target={target}
+            initialComments={comments}
+            title={story ? "Debate" : "Comentários"}
+            stances={Boolean(story && story.initiatives.length > 0)}
+            intro={
+              story && (
+                <>
+                  {story.sourceCount > 1 && (
+                    <p className="mb-4 rounded-xl bg-surface px-4 py-3 text-sm text-muted">
+                      Há uma só conversa por história, seja qual for o jornal por onde chegaste.
+                    </p>
+                  )}
+                  {story.debate && <DebatePair debate={story.debate} />}
+                </>
+              )
+            }
+          />
         </div>
-        <ArticleSidebar articleId={article.id} parties={article.parties} more={more} context={context} />
+        <ArticleSidebar
+          articleId={article.id}
+          parties={article.parties}
+          more={more}
+          context={context}
+          top={
+            story && (
+              <>
+                <ImportaBox story={story} />
+                <StoryContextBox story={story} />
+              </>
+            )
+          }
+        />
       </div>
     </>
   );

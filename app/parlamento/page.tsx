@@ -40,7 +40,10 @@ export default async function ParliamentPage({ searchParams }: Props) {
         Assembleia da República
         {parliament && ` · ${parliament.legislature} Legislatura`}
       </p>
-      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Quem está sentado onde</h1>
+      <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+        Quem está sentado{" "}
+        <span className="bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1">onde</span>
+      </h1>
     </header>
   );
 

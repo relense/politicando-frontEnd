@@ -40,6 +40,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         active: (path) => path.startsWith("/editorial"),
       },
       {
+        href: "/guardadas",
+        label: "Guardadas",
+        hint: "As notícias que guardaste",
+        icon: icon("M6 3h8a1 1 0 0 1 1 1v13l-5-3.5L5 17V4a1 1 0 0 1 1-1Z"),
+        active: (path) => path.startsWith("/guardadas"),
+      },
+      {
         href: "/agenda",
         label: "Agenda",
         hint: "O que vem aí e onde assistir",

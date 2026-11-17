@@ -126,19 +126,19 @@ export async function loadNewsSidebar(): Promise<NewsSidebarData> {
   return { power, mostCommented };
 }
 
-const box = "rounded-2xl border border-line p-4";
+const box = "rounded-2xl border border-line bg-[var(--card-hover)] p-4";
 const label = "font-mono text-xs font-bold uppercase tracking-widest";
 
 /** One post from the blog, in a box, so our own writing has a place without pushing the news down. */
-export function BlogSpotlight({ post }: { post: EditorialPost }) {
+export function BlogSpotlight({ post, headingId = "destaque-blog" }: { post: EditorialPost; headingId?: string }) {
   const href = editorialPath(post.slug);
   return (
-    <section aria-labelledby="destaque-blog" className={`${box} bg-[color-mix(in_srgb,var(--marker)_22%,transparent)]`}>
+    <section aria-labelledby={headingId} className={`${box} bg-[color-mix(in_srgb,var(--marker)_22%,transparent)]`}>
       <div className="flex items-baseline justify-between gap-2">
         <p className={`${label} text-[color:var(--stage-debate)]`}>Destaque · Blog</p>
         <span className="font-mono text-xs text-muted">{KIND_LABELS[post.kind]}</span>
       </div>
-      <h2 id="destaque-blog" className="mt-2 text-xl font-bold leading-snug">
+      <h2 id={headingId} className="mt-2 text-xl font-bold leading-snug">
         <Link href={href} className="hover:underline">
           {post.title}
         </Link>
@@ -254,15 +254,16 @@ export function PowerNow({ data }: { data: PowerNowData }) {
           </Link>
         )}
         {figures.length > 0 && (
-          <ul className="grid grid-cols-3 gap-2 pt-3">
+          // The figures as a short list, label left and number right, each opening its page.
+          <ul className="pt-2">
             {figures.map((item) => (
               <li key={item.label}>
-                <Link href={item.href} className="-mx-1 block rounded-lg px-1 py-1 hover:bg-surface">
-                  <span className="flex items-center gap-1.5 font-mono text-base font-bold tabular-nums">
-                    <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                <Link href={item.href} className="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-surface">
+                  <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="min-w-0 flex-1 first-letter:uppercase">{item.label}</span>
+                  <span className="font-mono font-bold tabular-nums" style={{ color: item.color }}>
                     {item.value}
                   </span>
-                  <span className="mt-0.5 block text-xs leading-snug text-muted">{item.label}</span>
                 </Link>
               </li>
             ))}

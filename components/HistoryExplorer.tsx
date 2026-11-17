@@ -207,7 +207,7 @@ export function HistoryExplorer({ governments, presidents, elections, parliament
           </div>
           <nav
             aria-label="Ir para"
-            className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto overscroll-contain rounded-2xl border border-line p-3 no-scrollbar lg:block"
+            className="sticky top-20 hidden max-h-[calc(100vh-6rem)] self-start overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-line p-3 no-scrollbar lg:block"
           >
             <div className="mb-2 flex items-baseline justify-between gap-2 border-b border-line px-1 pb-2">
               <p className="font-mono text-[11px] font-bold uppercase tracking-widest">Ir para</p>

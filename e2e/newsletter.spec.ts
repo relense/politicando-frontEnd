@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { noSeriousA11yIssues, openNewsSearch } from "./helpers";
 
 test("search the news by words and by outlet", async ({ page }) => {
   await page.goto("/");
   const search = page.getByRole("search");
+  await openNewsSearch(page);
   await search.getByRole("searchbox", { name: "Procurar nas notícias" }).fill("código");
   await search.getByRole("button", { name: "Procurar", exact: true }).click();
   await expect(page).toHaveURL(/[?&]q=c%C3%B3digo/);

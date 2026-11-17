@@ -34,7 +34,14 @@ export const articleSchema = z.object({
   imageUrl: z.string().nullable(),
   publishedAt: z.string(),
   commentCount: z.number(),
+  /** Reads on our article page, one per reader per article per day; while the API doesn't send it, none is shown. */
+  views: z.number().nullish(),
+  /** Readers' votes; while the API doesn't send them, no voting is shown. */
+  upvotes: z.number().nullish(),
+  downvotes: z.number().nullish(),
   parties: z.array(articlePartySchema),
+  /** The story it belongs to, with the other outlets' versions; null for a few minutes after it is found. */
+  storyId: z.number().nullish(),
   /** Initiatives the article mentions; only on the detail. */
   initiatives: z.array(z.object({ id: z.number(), title: z.string() })).nullish(),
 });
@@ -52,6 +59,9 @@ export const commentSchema = z.object({
   username: z.string().nullable(),
   body: z.string(),
   createdAt: z.string(),
+  /** The commenter's own side on a story ("Concordo"/"Discordo"), and readers' likes. Absent on older APIs. */
+  stance: z.enum(["agree", "disagree"]).nullish(),
+  likes: z.number().nullish(),
 });
 
 const statusSchema = z.enum(["approved", "in_progress", "rejected", "withdrawn"]);
@@ -440,8 +450,14 @@ export const editorialPostSchema = z.object({
   featured: z.boolean().nullish(),
   publishedAt: z.string(),
   readingMinutes: z.number().int().positive().nullish(),
-  /** Reads over the asked period, only with `sort=popular`. */
+  /** Reads since publication. */
   views: z.number().nullish(),
+  /** Reads over the asked period, only with `sort=popular` (which is ordered by it). */
+  recentViews: z.number().nullish(),
+  /** Visible comments and readers' votes, once the API sends them on posts (asked of the backend). */
+  commentCount: z.number().nullish(),
+  upvotes: z.number().nullish(),
+  downvotes: z.number().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

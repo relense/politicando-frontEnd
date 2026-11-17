@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { getComments } from "@/lib/api/client";
 import { buildBacklinks, buildCommentTree } from "@/lib/comments";
 import type { Comment, CommentTarget } from "@/lib/types";
@@ -9,10 +9,12 @@ import { CommentForm, type CommentFormHandle } from "./CommentForm";
 import { CommentItem } from "./CommentItem";
 import { CommentsContext } from "./CommentsContext";
 
-type Props = { target: CommentTarget; initialComments: Comment[] };
+/** `title`: "Comentários", or "Debate" on a story; `intro`: shown under the heading (the story's agree/disagree pair). */
+/** `stances`: offer "Concordo / Discordo" in the form (a story about a proposal). */
+type Props = { target: CommentTarget; initialComments: Comment[]; title?: string; intro?: ReactNode; stances?: boolean };
 type Order = "oldest" | "newest";
 
-export function CommentSection({ target, initialComments }: Props) {
+export function CommentSection({ target, initialComments, title = "Comentários", intro, stances = false }: Props) {
   const { data: comments = initialComments } = useQuery({
     queryKey: ["comments", target],
     queryFn: () => getComments(target),
@@ -52,7 +54,7 @@ export function CommentSection({ target, initialComments }: Props) {
       <section aria-labelledby="comentarios" className="mt-12">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink pb-3">
           <h2 id="comentarios" className="font-mono text-sm font-bold uppercase tracking-widest">
-            Comentários <span className="font-normal text-muted">({comments.length})</span>
+            {title} <span className="font-normal text-muted">({comments.length})</span>
           </h2>
           {tree.length > 1 && (
             <div role="group" aria-label="Ordenar comentários" className="flex gap-1 font-mono text-xs">
@@ -72,6 +74,7 @@ export function CommentSection({ target, initialComments }: Props) {
             </div>
           )}
         </div>
+        {intro}
 
         <div id="novo-comentario" className="mb-8 scroll-mt-24">
           {open ? (
@@ -79,6 +82,7 @@ export function CommentSection({ target, initialComments }: Props) {
               ref={form}
               target={target}
               parentId={null}
+              stances={stances}
               initialText={initialText}
               autoFocus
               onPosted={() => setOpen(false)}
