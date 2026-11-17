@@ -12,6 +12,7 @@ import { PartyChips } from "./PartyChips";
 import { SaveButton } from "./SaveButton";
 import { cardAction, cardActions, cardBox, cardExcerpt, cardImage, cardMeta, cardReadOn, cardTitle, cardTitleLink } from "./feedCard";
 import { SourceLogo } from "./SourceLogo";
+import { DebatePair } from "./StoryParts";
 
 /** The version whose headline is the story's, or the first one: whose name heads the card and whose page it opens. */
 export const leadOf = (story: Story) => story.versions.find((item) => item.title === story.title) ?? story.versions[0]!;
@@ -88,6 +89,8 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
 
       {story.parties.length > 0 && <PartyChips parties={story.parties} className="relative z-10 mt-2.5 max-sm:hidden" />}
 
+      {story.debate && <DebatePair debate={story.debate} compact className="relative z-10 mt-3" />}
+
       <div className={cardActions}>
         <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
         <Link href={`${path}#comentarios`} className={cardAction}>
@@ -152,7 +155,10 @@ function HowEachTold({ story }: { story: Story }) {
  * Up to two chips to our own pages about the story, on one line: how each party voted (when there was a vote), the
  * main party's votes in Parliament, or the career of the person named.
  */
-export function StoryContext({ story, className = "" }: { story: Story; className?: string }) {
+export type ContextChip = { key: string; badge: string; color: string; text: string; href: string };
+
+/** Up to two links to our own pages about the story. */
+export function contextChips(story: Story): ContextChip[] {
   const vote = story.initiatives.find((item) => item.lastVote);
   const party = story.parties[0];
   const person = story.deputies[0]
@@ -162,7 +168,7 @@ export function StoryContext({ story, className = "" }: { story: Story; classNam
       : story.president
         ? { name: story.president.name, href: "/presidente" }
         : null;
-  const chips = [
+  return [
     vote && { key: "vote", badge: "Lei", color: "var(--kind-lei)", text: "Como votou cada partido", href: initiativePath(vote.id) },
     party && {
       key: "party",
@@ -174,7 +180,11 @@ export function StoryContext({ story, className = "" }: { story: Story; classNam
     person && { key: "person", badge: "Pessoa", color: "var(--kind-pessoa)", text: person.name, href: person.href },
   ]
     .filter((chip) => Boolean(chip))
-    .slice(0, 2) as { key: string; badge: string; color: string; text: string; href: string }[];
+    .slice(0, 2) as ContextChip[];
+}
+
+export function StoryContext({ story, className = "" }: { story: Story; className?: string }) {
+  const chips = contextChips(story);
   if (chips.length === 0) return null;
   return (
     // One row that scrolls sideways on a phone, as in the design; wrapped on wider screens.

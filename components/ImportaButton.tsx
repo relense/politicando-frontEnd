@@ -69,7 +69,20 @@ export function ImportanceDots({ importance, className = "h-[19px] w-[34px]" }: 
  * "Importa": how much a story matters, not whether the reader liked it. One mark, no down-vote, so nobody can bury the
  * news about the party they dislike. Pressing again takes the mark back.
  */
-export function ImportaButton({ id, title, importa, importance }: { id: number; title: string; importa: number; importance: number }) {
+export function ImportaButton({
+  id,
+  title,
+  importa,
+  importance,
+  compact = false,
+}: {
+  id: number;
+  title: string;
+  importa: number;
+  importance: number;
+  /** The compact list: the dots and the count, no pill. */
+  compact?: boolean;
+}) {
   const stored = useSyncExternalStore(subscribe, read, () => "{}");
   const remembered = parse(stored)[id] === 1;
   const [state, setState] = useState<{ importa: number; importance: number; mine: boolean | null }>({ importa, importance, mine: null });
@@ -96,19 +109,34 @@ export function ImportaButton({ id, title, importa, importance }: { id: number; 
 
   return (
     <span className="relative z-10 inline-flex flex-col">
-      <button
-        type="button"
-        aria-pressed={mine}
-        onClick={() => void toggle()}
-        className={`inline-flex h-[38px] items-center gap-[7px] rounded-full pl-2.5 pr-3.5 font-mono text-[12.5px] font-medium ${
-          mine ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--button)] hover:bg-[var(--button-hover)]"
-        }`}
-      >
-        <ImportanceDots importance={state.importance} />
-        <span className="max-sm:sr-only">Importa</span>{" "}
-        <span className={`tabular-nums ${mine ? "" : "text-muted"}`}>{formatNumber(count)}</span>
-        <span className="sr-only"> leitores dizem que «{title}» importa</span>
-      </button>
+      {compact ? (
+        <button
+          type="button"
+          aria-pressed={mine}
+          onClick={() => void toggle()}
+          className={`-mx-1.5 inline-flex h-7 items-center gap-1 rounded-full px-1.5 font-mono text-xs ${
+            mine ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "hover:bg-[var(--button)]"
+          }`}
+        >
+          <ImportanceDots importance={state.importance} className="h-3 w-[22px]" />
+          <span className={`font-semibold tabular-nums ${mine ? "" : "text-ink"}`}>{formatNumber(count)}</span>
+          <span className="sr-only"> Importa: leitores dizem que «{title}» importa</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          aria-pressed={mine}
+          onClick={() => void toggle()}
+          className={`inline-flex h-[38px] items-center gap-[7px] rounded-full pl-2.5 pr-3.5 font-mono text-[12.5px] font-medium ${
+            mine ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--button)] hover:bg-[var(--button-hover)]"
+          }`}
+        >
+          <ImportanceDots importance={state.importance} />
+          <span className="max-sm:sr-only">Importa</span>{" "}
+          <span className={`tabular-nums ${mine ? "" : "text-muted"}`}>{formatNumber(count)}</span>
+          <span className="sr-only"> leitores dizem que «{title}» importa</span>
+        </button>
+      )}
       {failed && (
         <span role="alert" className="mt-1 font-mono text-[11px] text-muted">
           Não contou. Tenta outra vez.

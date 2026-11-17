@@ -99,20 +99,29 @@ export function HowEachToldList({ story, current }: { story: StoryDetail; curren
 }
 
 /** The most liked comment on each side, side by side; only when both exist (one side alone isn't a debate). */
-export function DebatePair({ debate }: { debate: { agree: DebateComment; disagree: DebateComment } }) {
+export function DebatePair({
+  debate,
+  compact = false,
+  className = "mb-6",
+}: {
+  debate: { agree: DebateComment; disagree: DebateComment };
+  /** On a feed card: no names, two lines each. */
+  compact?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="mb-6 grid gap-3 sm:grid-cols-2">
-      <Side comment={debate.agree} label="A favor" color="var(--stage-law)" />
-      <Side comment={debate.disagree} label="Contra" color="var(--stage-stopped)" />
+    <div className={`grid gap-2 sm:grid-cols-2 ${className}`}>
+      <Side comment={debate.agree} label="A favor" color="var(--favor)" compact={compact} />
+      <Side comment={debate.disagree} label="Contra" color="var(--contra)" compact={compact} />
     </div>
   );
 }
 
-function Side({ comment, label, color }: { comment: DebateComment; label: string; color: string }) {
+function Side({ comment, label, color, compact }: { comment: DebateComment; label: string; color: string; compact: boolean }) {
   return (
-    <figure className="rounded-2xl border border-line p-4">
+    <figure className="rounded-xl border border-[var(--card-line-soft)] bg-[var(--inset)] px-3.5 py-3">
       <figcaption
-        className="mb-2 flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-widest"
+        className="mb-1.5 flex items-center justify-between font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em]"
         style={{ color }}
       >
         {label}
@@ -122,8 +131,10 @@ function Side({ comment, label, color }: { comment: DebateComment; label: string
           {formatNumber(comment.likes)}
         </span>
       </figcaption>
-      <blockquote className="leading-relaxed">“{comment.text}”</blockquote>
-      <p className="mt-2 font-mono text-[11px] text-muted">{comment.username ?? "Anónimo"}</p>
+      <blockquote className={`text-[15.5px] leading-[1.4] text-[var(--text-quote)] ${compact ? "line-clamp-2" : ""}`}>
+        “{comment.text}”
+      </blockquote>
+      {!compact && <p className="mt-2 font-mono text-[11px] text-muted">{comment.username ?? "Anónimo"}</p>}
     </figure>
   );
 }

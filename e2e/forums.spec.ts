@@ -85,7 +85,7 @@ test("reporting a post asks for a reason and thanks the reader", async ({ page }
   await expect(send).toBeDisabled();
   await post.getByLabel("Spam ou publicidade").check();
   await send.click();
-  await expect(post.getByRole("status")).toContainText("A moderação vai rever");
+  await expect(post.getByRole("status")).toContainText("Obrigado, vamos rever");
 });
 
 test("an article opens a new thread on its party's board, linked to it", async ({ page }) => {
@@ -114,7 +114,7 @@ test("an article comment can be reported", async ({ page }) => {
   await report.click();
   await page.getByLabel("Insulto ou assédio").first().check();
   await page.getByRole("button", { name: "Enviar denúncia" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "A moderação vai rever" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Obrigado, vamos rever" })).toBeVisible();
 });
 
 test("ideas board: most voted first, filter by status, vote once, propose one and read the team's answer", async ({ page }) => {

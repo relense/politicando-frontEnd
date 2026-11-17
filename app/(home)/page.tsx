@@ -1,3 +1,5 @@
+import { FeedViewToggle } from "@/components/FeedViewToggle";
+import { FEED_VIEW_COOKIE, parseFeedView } from "@/lib/feedViewCookie";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
@@ -65,6 +67,7 @@ export default async function HomePage({ searchParams }: Props) {
   // A subject from the "Em debate" row (stories only).
   const tag = FEATURES.stories && /^[a-z0-9-]{1,40}$/.test(one(params.tema)) ? one(params.tema) : "";
   const saved = readSavedFilter(jar.get(FEED_COOKIE)?.value);
+  const view = parseFeedView(jar.get(FEED_VIEW_COOKIE)?.value);
   const asked = parseFilter(params);
   // The front page opens with the reader's saved feed, unless the address asks for something (or for everything).
   const fromSaved = Boolean(saved && isEmpty(asked) && !q && !params.tudo);
@@ -91,7 +94,9 @@ export default async function HomePage({ searchParams }: Props) {
     loadNewsSidebar(),
     getNextEvent(),
   ]);
-  const [today, debated] = FEATURES.stories ? await Promise.all([getToday(), getDebatedTags()]) : [[], []];
+  // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
+  const [allToday, debated] = FEATURES.stories ? await Promise.all([getToday(), getDebatedTags()]) : [[], []];
+  const today = allToday.length >= 3 ? allToday : [];
   const tagInfo = debated.find((item) => item.slug === tag);
   /** This address with another subject (or none), keeping the rest. */
   const withTag = (slug: string | null) => {
@@ -141,19 +146,26 @@ export default async function HomePage({ searchParams }: Props) {
         saved={saved}
         q={q}
         order={order}
+        view={view}
       />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           <DebatedTags tags={debated} active={tag} hrefOf={withTag} />
-          <p className="mb-3 font-mono text-[11px] font-bold uppercase tracking-widest text-muted" aria-live="polite">
-            {tag ? `#${tagInfo?.label ?? tag}` : q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
-            {filtered && ` · ${label}`}
-            {orderPhrase(order)}
-          </p>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted" aria-live="polite">
+              {tag ? `#${tagInfo?.label ?? tag}` : q ? `Com «${q}»` : filtered ? "Escolhidas" : "Todas"}
+              {filtered && ` · ${label}`}
+              {orderPhrase(order)}
+            </p>
+            <div className="xl:hidden">
+              <FeedViewToggle initial={view} />
+            </div>
+          </div>
           <Feed
             key={`${chosen.parties.join(",")}|${q}|${chosen.sources.join(",")}|${tag}|${orderKey(order)}`}
             tag={tag}
+            initialView={view}
             initialPage={page}
             partySlug={chosen.parties}
             q={q}

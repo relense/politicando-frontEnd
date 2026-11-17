@@ -65,6 +65,16 @@ let nextId = 9100;
 const OE2027 = { slug: "oe2027", label: "OE2027", name: "Orçamento do Estado para 2027", kind: "event" };
 const HABITACAO = { slug: "habitacao", label: "Habitação", name: "Habitação e urbanismo", kind: "topic" };
 
+/** The most liked comment on each side, as the API picks them. */
+function debateOf(id: number) {
+  const comments = storyComments.get(id) ?? [];
+  const best = (stance: "agree" | "disagree") =>
+    comments.filter((item) => item.stance === stance && item.likes > 0).sort((a, b) => b.likes - a.likes)[0] ?? null;
+  const pick = (comment: StoryComment | null) =>
+    comment && { id: comment.id, username: comment.username, body: comment.body, likes: comment.likes, createdAt: comment.createdAt };
+  return { agree: pick(best("agree")), disagree: pick(best("disagree")) };
+}
+
 function storyOf(group: number[]) {
   const versions = group
     .map((id) => articles.find((article) => article.id === id)!)
@@ -106,6 +116,7 @@ function storyOf(group: number[]) {
     importa: marks,
     importance: marks / busiest,
     tags: group[0] === 100 ? [OE2027, HABITACAO] : [],
+    debate: debateOf(group[0]!),
     commentCount: (storyComments.get(group[0]!) ?? []).length + versions.reduce((sum, item) => sum + item.commentCount, 0),
   };
 }
@@ -153,15 +164,9 @@ export const storyHandlers = [
   http.get(`${API}/stories/:id`, ({ params }) => {
     const group = groups.find((item) => item[0] === Number(params.id));
     if (!group) return fail(404, "not_found");
-    const comments = storyComments.get(group[0]!) ?? [];
-    const best = (stance: "agree" | "disagree") =>
-      comments.filter((item) => item.stance === stance && item.likes > 0).sort((a, b) => b.likes - a.likes)[0] ?? null;
-    const pick = (comment: StoryComment | null) =>
-      comment && { id: comment.id, username: comment.username, body: comment.body, likes: comment.likes, createdAt: comment.createdAt };
     return HttpResponse.json({
       ...storyOf(group),
       articles: group.map((id) => articles.find((article) => article.id === id)!),
-      debate: { agree: pick(best("agree")), disagree: pick(best("disagree")) },
       context:
         group[0] === 100
           ? {
@@ -221,6 +226,11 @@ export const storyHandlers = [
     if (!body.body?.trim()) return fail(400, "invalid_request");
     // As on the article comments: this text stands for a server failure.
     if (body.body.trim() === "ERRO-SERVIDOR") return fail(500, "internal_error");
+    if (body.body.includes("@exemplo.pt"))
+      return HttpResponse.json(
+        { error: { code: "personal_data", message: "O comentário tem um email ou um número de telefone. Retira-o e publica outra vez." } },
+        { status: 400 },
+      );
     const created: StoryComment = {
       id: nextId++,
       storyId: id,

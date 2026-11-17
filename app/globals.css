@@ -368,3 +368,12 @@ article[id^="comentario-"]:target {
 .post-body tbody tr > :first-child {
   white-space: nowrap;
 }
+
+/* Tailwind v4 gives buttons the arrow cursor; ours show the pointing hand, as links do. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+}

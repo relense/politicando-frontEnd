@@ -43,7 +43,7 @@ test("a reported thread can be hidden from the queue and shown again from the fo
   await op.getByRole("button", { name: "Denunciar" }).click();
   await op.getByLabel("Dados pessoais").check();
   await op.getByRole("button", { name: "Enviar denúncia" }).click();
-  await expect(op.getByRole("status")).toContainText("A moderação vai rever");
+  await expect(op.getByRole("status")).toContainText("Obrigado, vamos rever");
 
   await signIn(page);
   const report = page.getByRole("list", { name: "Denúncias" }).getByRole("article").filter({ hasText: "Propostas para a habitação" });

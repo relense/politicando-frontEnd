@@ -46,7 +46,7 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
     <div className={`${className} ${open ? "basis-full" : ""}`}>
       {state === "sent" ? (
         <p role="status" className={`font-mono text-xs text-muted ${startOpen ? "rounded-2xl border border-line p-3" : ""}`}>
-          Obrigado. A moderação vai rever a denúncia.
+          Obrigado, vamos rever.
         </p>
       ) : startOpen ? null : (
         <button

@@ -95,9 +95,9 @@ export const canModerate = (me: Me) => me.role === "moderator" || me.role === "a
 export const REPORT_REASON_LABELS: Record<string, string> = {
   spam: "Spam ou publicidade",
   insult: "Insulto ou assédio",
-  hate: "Discurso de ódio",
+  hate: "Ataque a um grupo",
   personal_data: "Dados pessoais",
-  illegal: "Conteúdo ilegal",
+  illegal: "Ilegal (difamação, crime…)",
   other: "Outro motivo",
   // News articles have their own reasons, about our tagging rather than what the outlet wrote.
   wrong_tags: "Partido ou pessoa errados",

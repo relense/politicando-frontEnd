@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedViewToggle } from "./FeedViewToggle";
+import type { FeedView } from "@/lib/feedView";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import {
@@ -36,6 +38,8 @@ type Props = {
   saved: FeedFilter | null;
   q: string;
   order: FeedOrder;
+  /** Cards or a compact list, when the page offers the choice. */
+  view?: FeedView;
 };
 
 const pill = (pressed: boolean) =>
@@ -302,7 +306,7 @@ function SourcesPanel({ sources, chosen, onApply, filter, q, order }: PanelProps
  * one tap away below it. The choice can be saved as the reader's own feed, which the front page then opens with (kept
  * in a cookie, never sent anywhere else).
  */
-export function FeedFilters({ parties, sources, filter, saved, q, order }: Props) {
+export function FeedFilters({ parties, sources, filter, saved, q, order, view }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
@@ -422,6 +426,12 @@ export function FeedFilters({ parties, sources, filter, saved, q, order }: Props
           <OrderMenu order={order} onChange={(next) => go(filter, { order: next })} />
         </div>
         <OrderTabs order={order} onChange={(next) => go(filter, { order: next })} />
+        {/* Beside the order tabs on a wide screen; on smaller ones it sits on the line above the feed (the home page). */}
+        {view && (
+          <div className="hidden xl:block">
+            <FeedViewToggle initial={view} />
+          </div>
+        )}
       </div>
 
       {quick.length > 0 && (
@@ -620,13 +630,14 @@ function OrderTabs({ order, onChange }: { order: FeedOrder; onChange: (order: Fe
         aria-label="Ordenar notícias"
         className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold"
       >
-        {SORTS.map((item) => (
+        {/* Newest first is what no tab means: pressing the chosen tab again goes back to it. */}
+        {SORTS.filter((item) => item.api).map((item) => (
           <button
             key={item.value}
             type="button"
             aria-pressed={order.sort === item.value}
-            title={item.hint}
-            onClick={() => onChange({ ...order, sort: item.value })}
+            title={order.sort === item.value ? `${item.hint}. Carrega outra vez para voltar às mais recentes.` : item.hint}
+            onClick={() => onChange({ ...order, sort: order.sort === item.value ? "recentes" : item.value })}
             className={`whitespace-nowrap px-3.5 ${order.sort === item.value ? "bg-ink text-paper" : "hover:bg-surface"}`}
           >
             {item.label}

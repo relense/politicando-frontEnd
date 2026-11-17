@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
-import { ApiError, createComment } from "@/lib/api/client";
+import { ApiError, createComment, screenedMessage } from "@/lib/api/client";
 import type { Comment, CommentStance, NewComment, CommentTarget } from "@/lib/types";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 
@@ -86,7 +86,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     },
     onError: (failure, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) => current.filter((comment) => comment.id !== context?.tempId));
-      setError((failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR);
+      setError(screenedMessage(failure) || (failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR);
     },
     onSuccess: (created, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) =>

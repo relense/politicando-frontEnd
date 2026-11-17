@@ -85,6 +85,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Text the API refused to save: an email or phone number, an attack on a group, a threat. */
+const SCREENED = new Set(["personal_data", "hate", "threat"]);
+
+/** The API's own words for refused text: in Portuguese, written to show as is next to the form. Null otherwise. */
+export const screenedMessage = (error: unknown): string | null =>
+  error instanceof ApiError && error.status === 400 && error.code && SCREENED.has(error.code) && error.message ? error.message : null;
+
 /** A request Next keeps in its shared cache: these must not carry anything about the reader. */
 const isCachedRequest = (init?: RequestInit & { next?: { revalidate?: number | false } }) =>
   (init?.next?.revalidate !== undefined && init.next.revalidate !== 0) || init?.cache === "force-cache";

@@ -13,6 +13,8 @@ import type { ArticlePage } from "@/lib/types";
 import type { StoryPage } from "@/lib/api/stories";
 import { ArticleCard } from "./ArticleCard";
 import { leadOf, StoryCard } from "./StoryCard";
+import { ArticleRow, StoryRow } from "./FeedRow";
+import { useFeedView, type FeedView } from "@/lib/feedView";
 
 /** `partySlug` and `source` take one value or several (any of them). */
 type Props = {
@@ -25,11 +27,15 @@ type Props = {
   tag?: string;
   /** Newest first, or the most voted, commented or read of a period. */
   order?: FeedOrder;
+  /** Cards or the compact list (front page only; elsewhere always cards). */
+  initialView?: FeedView;
   /** Boxes shown between the news on screens without the side column: each after that many news. */
   inserts?: { after: number; node: ReactNode }[];
 };
 
-export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", order = NEWEST, inserts = [] }: Props) {
+export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", order = NEWEST, inserts = [], initialView }: Props) {
+  const chosenView = useFeedView(initialView ?? "cartoes");
+  const list = initialView !== undefined && chosenView === "lista";
   const ranked = order.sort !== "recentes";
   const asStories = "stories" in initialPage;
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
@@ -63,7 +69,11 @@ export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", or
             date: story.lastPublishedAt,
             hidden: story.versions.some((item) => prefs.hidden.includes(item.articleId)),
             undo: lead.articleId,
-            card: <StoryCard story={story} why={whyShown(order, story.parties)} />,
+            card: list ? (
+              <StoryRow story={story} why={whyShown(order, story.parties)} />
+            ) : (
+              <StoryCard story={story} why={whyShown(order, story.parties)} />
+            ),
           };
         })
       : page.articles.map((article) => ({
@@ -71,7 +81,11 @@ export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", or
           date: article.publishedAt,
           hidden: isMuted(prefs, article),
           undo: article.id,
-          card: <ArticleCard article={article} why={whyShown(order, article.parties)} />,
+          card: list ? (
+            <ArticleRow article={article} why={whyShown(order, article.parties)} />
+          ) : (
+            <ArticleCard article={article} why={whyShown(order, article.parties)} />
+          ),
         })),
   );
   // Cursor pages can overlap if new news arrive while scrolling.
@@ -94,7 +108,8 @@ export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", or
 
   return (
     <>
-      <div className="flex flex-col gap-3.5">
+      {/* The list: rows split by thin lines, no gaps; the cards: boxes 14px apart. */}
+      <div className={`flex flex-col ${list ? "" : "gap-3.5"}`}>
         {articles.map((entry, index) => {
           // A heading whenever the day changes, as in a printed paper's sections.
           const day = lisbonDay(entry.date);
@@ -104,7 +119,7 @@ export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", or
             <Fragment key={entry.key}>
               {newDay && (
                 <h2
-                  className={`border-b-[1.5px] border-ink/80 pb-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] ${index > 0 ? "mt-[26px]" : ""}`}
+                  className={`border-b-[1.5px] border-ink/80 pb-2 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] ${index > 0 ? "mt-[26px]" : ""} ${list ? "mb-1" : ""}`}
                   suppressHydrationWarning
                 >
                   {formatDayHeading(entry.date, now)}
@@ -133,7 +148,7 @@ export function Feed({ initialPage, partySlug, q = "", source = "", tag = "", or
                 .filter((insert) => insert.after === index + 1)
                 .map((insert) => (
                   // A boxed note between the news: no rule around it, the box marks it off.
-                  <div key={`insert-${insert.after}`} className="xl:hidden">
+                  <div key={`insert-${insert.after}`} className={`xl:hidden ${list ? "my-3" : ""}`}>
                     {insert.node}
                   </div>
                 ))}

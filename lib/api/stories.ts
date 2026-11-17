@@ -21,6 +21,14 @@ const initiative = z.object({
 
 const tagSchema = z.object({ slug: z.string(), label: z.string(), name: z.string(), kind: z.string() });
 
+const debateComment = z.object({
+  id: z.number(),
+  username: z.string().nullable(),
+  body: z.string(),
+  likes: z.number(),
+  createdAt: z.string(),
+});
+
 const storySchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -42,14 +50,8 @@ const storySchema = z.object({
   commentCount: z.number(),
   /** Events first ("OE2027"), then at most two topics ("Habitação"); `label` is the hashtag, `name` in full. */
   tags: z.array(tagSchema).default([]),
-});
-
-const debateComment = z.object({
-  id: z.number(),
-  username: z.string().nullable(),
-  body: z.string(),
-  likes: z.number(),
-  createdAt: z.string(),
+  /** The most liked comment on each side; either may be null. */
+  debate: z.object({ agree: debateComment.nullable(), disagree: debateComment.nullable() }).nullish(),
 });
 
 const storyDetailSchema = storySchema.extend({
@@ -71,7 +73,6 @@ const storyDetailSchema = storySchema.extend({
         .default([]),
     })
     .nullish(),
-  debate: z.object({ agree: debateComment.nullable(), disagree: debateComment.nullable() }).nullish(),
 });
 
 const storyPageSchema = z.object({ items: z.array(storySchema), nextCursor: z.string().nullable(), total: z.number().nullish() });
@@ -107,6 +108,8 @@ export type Story = {
   importance: number;
   commentCount: number;
   tags: StoryTag[];
+  /** The most liked comment on each side; null unless both exist (one side alone isn't a debate). */
+  debate: { agree: DebateComment; disagree: DebateComment } | null;
 };
 
 export type StoryDetail = Story & {
@@ -115,8 +118,6 @@ export type StoryDetail = Story & {
     explainers: { slug: string; title: string; kind: string; publishedAt: string }[];
     agenda: { id: string; title: string; kind: string; startsAt: string; allDay: boolean }[];
   };
-  /** The most liked comment on each side; shown only when both exist. */
-  debate: { agree: DebateComment; disagree: DebateComment } | null;
 };
 
 export type StoryPage = { stories: Story[]; nextCursor: string | null; total: number | null };
@@ -152,6 +153,8 @@ function mapStory(api: z.infer<typeof storySchema>): Story {
     importance: Math.min(1, Math.max(0, api.importance)),
     commentCount: api.commentCount,
     tags: api.tags,
+    debate:
+      api.debate?.agree && api.debate.disagree ? { agree: mapDebate(api.debate.agree), disagree: mapDebate(api.debate.disagree) } : null,
   };
 }
 
@@ -198,8 +201,6 @@ export async function getStories({ party, source, q, tag, sort, period, cursor, 
 export async function getStory(id: number): Promise<StoryDetail | null> {
   try {
     const api = await request(`/stories/${id}`, storyDetailSchema, cached);
-    const agree = api.debate?.agree;
-    const disagree = api.debate?.disagree;
     return {
       ...mapStory(api),
       articles: api.articles.map(mapArticle),
@@ -207,7 +208,6 @@ export async function getStory(id: number): Promise<StoryDetail | null> {
         explainers: (api.context?.explainers ?? []).map((item) => ({ ...item, title: decode(item.title) })),
         agenda: (api.context?.agenda ?? []).map((item) => ({ ...item, title: decode(item.title), allDay: item.allDay ?? false })),
       },
-      debate: agree && disagree ? { agree: mapDebate(agree), disagree: mapDebate(disagree) } : null,
     };
   } catch (error) {
     if (error instanceof Error && "status" in error && error.status === 404) return null;

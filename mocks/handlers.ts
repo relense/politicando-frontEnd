@@ -502,6 +502,12 @@ export const handlers = [
     // Comments containing these words simulate API failures in tests.
     if (body.includes("ERRO-SERVIDOR")) return fail(500, "internal_error");
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
+    // An email: refused text, with the API's own words to show.
+    if (body.includes("@exemplo.pt"))
+      return HttpResponse.json(
+        { error: { code: "personal_data", message: "O comentário tem um email ou um número de telefone. Retira-o e publica outra vez." } },
+        { status: 400 },
+      );
 
     const articleId = Number(params.id);
     const created = {
