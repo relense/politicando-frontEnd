@@ -51,18 +51,25 @@ const tabPath = (slug: string, tab: Tab) => (tab === "noticias" ? partyPath(slug
 
 export default async function PartyPage({ params, searchParams }: Props) {
   await connection();
+  // What every party page needs starts at once, alongside finding the party, instead of after it.
+  const shared = Promise.all([
+    // The party page works without Parliament or election data; those parts just aren't shown.
+    getParliament().catch(() => null),
+    getPartyStandings(),
+    getElections("legislativas").catch((): Election[] => []),
+  ]);
+  // Not awaited if the party doesn't exist: keeps Node from reporting a failure nobody waited for.
+  shared.catch(() => {});
   const [{ name }, { ver }] = await Promise.all([params, searchParams]);
   const { party } = await resolveParty(name);
   if (!party) notFound();
   // Old links such as /partido/l keep working and move to the current address.
   if (name !== party.slug) permanentRedirect(partyPath(party.slug));
 
-  const [parliament, standings, legislativas] = await Promise.all([
-    // The party page works without Parliament or election data; those parts just aren't shown.
-    getParliament().catch(() => null),
-    getPartyStandings(),
-    getElections("legislativas").catch((): Election[] => []),
-  ]);
+  // The news tab (the usual one) doesn't depend on the seats, so its news start loading now too.
+  const news = !ver || ver === "noticias" ? getFeedPage({ party: party.slug, limit: FEED_PAGE_SIZE }) : null;
+  news?.catch(() => {});
+  const [parliament, standings, legislativas] = await shared;
   const seats = parliament?.groups.find((group) => group.party.slug === party.slug)?.seats ?? 0;
   // Tabs about Parliament only exist for parties with deputies.
   const tabs = seats > 0 ? TABS : TABS.filter((tab) => tab.value === "noticias");
@@ -72,7 +79,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
   const { leader } = partyLeaders(deputies, party.slug);
 
   const [page, initiatives, votes] = await Promise.all([
-    tab === "noticias" ? getFeedPage({ party: party.slug, limit: FEED_PAGE_SIZE }) : null,
+    tab === "noticias" ? (news ?? getFeedPage({ party: party.slug, limit: FEED_PAGE_SIZE })) : null,
     seats > 0 && (tab === "noticias" || tab === "iniciativas") ? getInitiatives({ party: party.slug }).catch(() => null) : null,
     seats > 0 ? getPartyVoteSummary(party.slug) : null,
   ]);

@@ -18,6 +18,7 @@
 import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { ringsPath } from "./map-path.mjs";
 
 /** Drawing units for the mainland's height. */
 const HEIGHT = 1000;
@@ -250,8 +251,6 @@ function simplifyRing(ring, tolerance) {
   return out;
 }
 
-const round = (value) => Math.round(value * 10) / 10;
-const ringPath = (ring) => `M${ring.map(([x, y]) => `${round(x)} ${round(y)}`).join("L")}Z`;
 const grow = (box, [x, y]) => {
   box[0] = Math.min(box[0], x);
   box[1] = Math.min(box[1], y);
@@ -279,9 +278,9 @@ for (const item of all) {
       const simple = simplifyRing(ring, TOLERANCE.municipios);
       if (simple.length < 3 || (index === 0 && area(simple) < MIN_AREA && item.polygons.length > 1)) return;
       if (index === 0) simple.forEach((point) => grow(box, point));
-      rings.push(ringPath(simple));
+      rings.push(simple);
     });
-  municipios[item.code] = { name: item.name, d: rings.join(""), box: finish(box) };
+  municipios[item.code] = { name: item.name, d: ringsPath(rings), box: finish(box) };
 }
 
 // Districts: the edges of their municipalities that face another district or the sea, chained into closed rings.
@@ -338,11 +337,20 @@ for (const [code, edges] of boundary) {
   const rings = chain(edges).filter((ring) => area(ring) >= MIN_AREA * 4);
   const box = [Infinity, Infinity, -Infinity, -Infinity];
   rings.forEach((ring) => ring.forEach((point) => grow(box, point)));
-  distritos[code] = { d: rings.map(ringPath).join(""), box: finish(box) };
+  distritos[code] = { d: ringsPath(rings), box: finish(box) };
 }
 
 const width = Math.ceil(Math.max(...Object.values(municipios).map((region) => region.box[2])));
 const meta = { source: "CAOP 2024, Direção-Geral do Território", width, height: HEIGHT, insets: frames };
 writeFileSync("lib/maps/municipios.json", JSON.stringify({ ...meta, regions: municipios }));
 writeFileSync("lib/maps/distritos.json", JSON.stringify({ ...meta, regions: distritos }));
+// The outlines alone, for the pages that load them in the browser.
+for (const [name, regions] of [
+  ["municipios", municipios],
+  ["distritos", distritos],
+])
+  writeFileSync(
+    `public/mapas/${name}.json`,
+    JSON.stringify(Object.fromEntries(Object.entries(regions).map(([code, region]) => [code, region.d]))),
+  );
 console.log(`Wrote ${Object.keys(municipios).length} municipalities and ${Object.keys(distritos).length} districts (${width}×${HEIGHT}).`);
