@@ -11,7 +11,7 @@ import { Providers } from "@/components/Providers";
 import { SiteNav } from "@/components/SiteNav";
 import { getPartyStandings } from "@/lib/api/client";
 import { jsonLd, OG_BASE, siteLd } from "@/lib/seo";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, X_HANDLE } from "@/lib/site";
 import "./globals.css";
 
 const domine = Domine({ subsets: ["latin"], variable: "--font-domine" });
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false, email: false, address: false },
   openGraph: { ...OG_BASE, type: "website" },
   // The large card; the image comes from each route's opengraph-image (X falls back to it).
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", site: X_HANDLE },
   // Search engines' ownership checks: Google's from the environment, Bing's (public, also in public/BingSiteAuth.xml) here.
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),

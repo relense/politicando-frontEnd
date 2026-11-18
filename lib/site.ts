@@ -11,3 +11,14 @@ export const SITE_OWNER = process.env.NEXT_PUBLIC_SITE_OWNER ?? null;
 export const PRIVACY_EMAIL = process.env.NEXT_PUBLIC_PRIVACY_EMAIL || CONTACT_EMAIL;
 /** When the privacy, cookies and terms pages last changed. */
 export const LEGAL_UPDATED = "2026-11-16";
+
+/** Our podcast's show on Spotify: its player always starts on the newest episode, so this never changes. */
+export const PODCAST_SHOW_URL = "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT";
+
+export const X_HANDLE = "@politicando_pt";
+
+/** Our profiles elsewhere: the footer, the side menu, and the structured data that tells Google they are ours. */
+export const SOCIAL_PROFILES = [
+  { key: "x", name: "X (Twitter)", label: X_HANDLE, url: "https://x.com/politicando_pt" },
+  { key: "spotify", name: "Spotify", label: "Podcast", url: PODCAST_SHOW_URL },
+] as const;

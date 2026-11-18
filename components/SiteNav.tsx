@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SocialLinks } from "./SocialLinks";
 import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -215,6 +216,7 @@ export function SiteNav() {
           </ul>
         </div>
       ))}
+      <SocialLinks className="mt-5 px-3" />
     </nav>
   );
 }

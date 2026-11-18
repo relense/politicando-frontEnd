@@ -1,4 +1,4 @@
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_PROFILES } from "./site";
 
 /**
  * What every page's Open Graph block repeats. Next merges metadata shallowly: a page that sets `openGraph` replaces
@@ -42,6 +42,8 @@ export const siteLd = () => [
     // Portugal's politics, so it isn't mistaken for a site with a similar name elsewhere.
     areaServed: { "@type": "Country", name: "Portugal" },
     knowsAbout: ["Política portuguesa", "Assembleia da República", "Governo de Portugal", "Eleições em Portugal"],
+    // Our profiles elsewhere, so search engines join them to the site.
+    sameAs: SOCIAL_PROFILES.map((profile) => profile.url),
   },
   {
     "@context": "https://schema.org",

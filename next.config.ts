@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PODCAST_COVER_HOSTS } from "./lib/podcastCovers";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -24,6 +25,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "edge.sitecorecloud.io", pathname: "/centrodeges65c9-cegere0de-prod6279-8af9/media/**" },
       // The President's official photo, from the Presidency's site.
       { protocol: "https", hostname: "www.presidencia.pt", pathname: "/media/**" },
+      // The podcast's covers (lib/podcastCovers.ts): through the optimiser, so readers never contact these hosts.
+      ...PODCAST_COVER_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname, pathname: "/**" })),
     ],
     // Photos rarely change; a week keeps them fresh enough. There is no purge, so this stays modest.
     minimumCacheTTL: 604_800,
