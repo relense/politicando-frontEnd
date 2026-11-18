@@ -1,6 +1,6 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { isServer, useInfiniteQuery } from "@tanstack/react-query";
 import { Fragment, type ReactNode } from "react";
 import { FEED_PAGE_SIZE } from "@/lib/api/client";
 import { loadFeed } from "@/lib/api/feed";
@@ -46,7 +46,9 @@ export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWE
     // Back from an article, as on Reddit: every page loaded so far is still there, unchanged, so the browser puts the
     // reader back on the same card. Kept for half an hour of reading (the default is 5 minutes) and not refetched on
     // return, which would move the cards under the reader. A full reload brings the latest news.
-    gcTime: 30 * 60_000,
+    // Only in the browser: on the server this timer would keep each render (its data and response) alive for half an
+    // hour, which ran the server out of memory under crawlers. Infinity schedules no timer there.
+    gcTime: isServer ? Infinity : 30 * 60_000,
     refetchOnMount: false,
   });
 
