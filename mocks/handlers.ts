@@ -5,7 +5,7 @@ import { electionResult, elections, partiesWithResults } from "./electionFixture
 import { government, governmentMember } from "./governmentFixtures";
 import { governmentHistory, timeline } from "./historyFixtures";
 import { becomeDeputyHandlers } from "./becomeDeputyFixtures";
-import { editorialPosts } from "./editorialFixtures";
+import { editorialAdminHandlers, publicPosts } from "./editorialAdmin";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
 import { legislatureHandlers } from "./legislatureFixtures";
@@ -138,7 +138,7 @@ export const handlers = [
     const kind = params.get("kind");
     const limit = Number(params.get("limit") ?? 10);
     const page = Number(params.get("page") ?? 1);
-    const matching = editorialPosts.filter(
+    const matching = publicPosts().filter(
       (post) => (featured === null || String(post.featured) === featured) && (!kind || post.kind === kind),
     );
     // The list has no body.
@@ -146,14 +146,14 @@ export const handlers = [
     return HttpResponse.json({ items, total: matching.length });
   }),
   http.get(`${API}/editorial/:slug`, ({ params }) => {
-    const post = editorialPosts.find((item) => item.slug === params.slug);
+    const post = publicPosts().find((item) => item.slug === params.slug);
     // `views`: all the post's reads so far (asked of the backend; the page shows it only when it comes).
     return post ? HttpResponse.json({ ...post, views: postViews.get(post.slug) ?? 0, ...postCounts(post.slug) }) : fail(404, "not_found");
   }),
   // A read, sent by the browser (editorial-api.md "Most read"): no body, 204.
   http.post(`${API}/editorial/:slug/view`, ({ params }) => {
     const slug = String(params.slug);
-    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === slug)) return fail(404, "not_found");
     postViews.set(slug, (postViews.get(slug) ?? 0) + 1);
     return new HttpResponse(null, { status: 204 });
   }),
@@ -162,7 +162,7 @@ export const handlers = [
     const refused = gateRefusal(request);
     if (refused) return refused;
     const slug = String(params.slug);
-    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === slug)) return fail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
     const value = body?.value;
     if (value !== 1 && value !== -1 && value !== 0) return fail(400, "invalid_request");
@@ -179,11 +179,11 @@ export const handlers = [
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
   http.get(`${API}/editorial/:slug/comments`, ({ params }) => {
-    if (!editorialPosts.some((item) => item.slug === params.slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === params.slug)) return fail(404, "not_found");
     return HttpResponse.json(postCommentStore.get(String(params.slug)) ?? []);
   }),
   http.post(`${API}/editorial/:slug/comments`, async ({ params, request }) => {
-    const post = editorialPosts.find((item) => item.slug === params.slug);
+    const post = publicPosts().find((item) => item.slug === params.slug);
     if (!post) return fail(404, "not_found");
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
@@ -564,6 +564,7 @@ export const handlers = [
   ...storyHandlers,
   ...adminHandlers,
   ...accountHandlers,
+  ...editorialAdminHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,
   ...becomeDeputyHandlers,

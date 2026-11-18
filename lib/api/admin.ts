@@ -239,6 +239,55 @@ export const correctMessage = (
   input: { status: (typeof CORRECTION_STATUSES)[number]; title: string; url: string | null; area?: string; date?: string },
 ) => call(`/feedback/${id}/correction`, correctionSchema, { method: "POST", body: input });
 
+/* Blog posts (editorial-api.md "Writing"): authors write and publish their own; moderators edit any and pick the featured ones. */
+
+export const POST_KINDS = ["article", "opinion", "podcast", "interview", "video"] as const;
+export type PostKind = (typeof POST_KINDS)[number];
+
+const adminPostSummarySchema = z.object({
+  id: z.number(),
+  slug: z.string(),
+  kind: z.enum(POST_KINDS),
+  title: z.string(),
+  subtitle: z.string().nullable(),
+  authorName: z.string(),
+  authorId: z.number().nullable(),
+  coverImageUrl: z.string().nullable(),
+  mediaUrl: z.string().nullable(),
+  tags: z.array(z.string()),
+  featured: z.boolean(),
+  status: z.enum(["draft", "published"]),
+  publishedAt: z.string().nullable(),
+  updatedAt: z.string(),
+});
+const adminPostSchema = adminPostSummarySchema.extend({ body: z.string() });
+export type AdminPostSummary = z.infer<typeof adminPostSummarySchema>;
+export type AdminPost = z.infer<typeof adminPostSchema>;
+
+/** What the editor sends on create and save: the API replaces every field. */
+export type PostInput = {
+  title: string;
+  subtitle: string | null;
+  slug: string | null;
+  kind: PostKind;
+  body: string;
+  authorName: string | null;
+  coverImageUrl: string | null;
+  mediaUrl: string | null;
+  tags: string[];
+};
+
+export const getPosts = async () => (await call("/editorial", z.object({ items: z.array(adminPostSummarySchema) }))).items;
+export const getPost = (id: number) => call(`/editorial/${id}`, adminPostSchema);
+export const createPost = (input: PostInput) => call("/editorial", adminPostSchema, { method: "POST", body: input });
+export const savePost = (id: number, input: PostInput) => call(`/editorial/${id}`, adminPostSchema, { method: "PUT", body: input });
+export type PostAction = "publish" | "unpublish" | "feature" | "unfeature";
+export const changePost = (id: number, action: PostAction) => call(`/editorial/${id}/${action}`, adminPostSchema, { method: "POST" });
+export const deletePost = (id: number) => call(`/editorial/${id}`, null, { method: "DELETE" });
+
+/** Who may change a post: its author, or any moderator. */
+export const canEditPost = (me: Me, post: Pick<AdminPostSummary, "authorId">) => canModerate(me) || post.authorId === me.id;
+
 /** The API's error codes, in words for the team. */
 export function adminErrorMessage(error: unknown): string {
   const code = error instanceof ApiError ? error.code : null;
@@ -261,6 +310,16 @@ export function adminErrorMessage(error: unknown): string {
       return "Escreve a resposta antes de a enviar.";
     case "mail_unavailable":
       return "O envio de email ainda não está configurado no servidor. Responde do teu email e marca como respondida.";
+    case "slug_taken":
+      return "Já há outro artigo com esse endereço. Escolhe outro, ou deixa em branco para o fazer a partir do título.";
+    case "unsupported_media":
+      return "O link do áudio ou vídeo tem de ser do YouTube, Vimeo, Spotify, SoundCloud ou Apple Podcasts.";
+    case "empty_body":
+      return "Escreve o texto antes de publicar.";
+    case "not_published":
+      return "Publica o artigo antes de o pôr em destaque.";
+    case "published":
+      return "Despublica o artigo antes de o apagar.";
     case "validation_failed":
       return error instanceof ApiError ? `Falta ou está mal um campo: ${error.message}` : "Falta ou está mal um campo.";
     default:
