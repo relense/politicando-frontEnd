@@ -119,6 +119,17 @@ const postCounts = (slug: string) => ({
 });
 
 export const handlers = [
+  // Our podcast's newest episode (backend docs/podcast-api.md), fictional.
+  http.get(`${API}/podcast/latest`, () =>
+    HttpResponse.json({
+      title: "18 nov. · O Orçamento na reta final, explicado",
+      publishedAt: "2026-11-18T11:28:00.000Z",
+      durationSeconds: 1460,
+      episodeNumber: null,
+      imageUrl: null,
+      spotifyUrl: "https://open.spotify.com/episode/0000000000TesteEpis03",
+    }),
+  ),
   http.get(`${API}/editorial`, ({ request }) => {
     const params = new URL(request.url).searchParams;
     const featured = params.get("featured");

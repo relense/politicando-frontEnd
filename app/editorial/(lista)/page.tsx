@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PodcastBox } from "@/components/PodcastBox";
+import { getLatestEpisode } from "@/lib/api/podcast";
+import { getPodcast } from "@/lib/podcast";
 import { Fragment } from "react";
 import { SearchToggle } from "@/components/SearchToggle";
 import { connection } from "next/server";
@@ -107,7 +110,13 @@ async function loadPopular(): Promise<EditorialPost[] | null> {
 export default async function EditorialIndexPage({ searchParams }: Props) {
   await connection();
   const params = await searchParams;
-  const [all, popular, parties] = await Promise.all([loadAll(), loadPopular(), getParties().catch((): Party[] => [])]);
+  const [all, popular, parties, episode] = await Promise.all([
+    loadAll(),
+    loadPopular(),
+    getParties().catch((): Party[] => []),
+    getLatestEpisode(),
+  ]);
+  const podcast = getPodcast();
   const tags = tagCounts(all, parties);
   const view: View = {
     kind: kindOf(first(params.tipo)),
@@ -482,6 +491,9 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           </section>
         </aside>
       </div>
+
+      {/* The podcast, at the end of the blog: the newest episode, ready to play here or in Spotify. */}
+      {podcast && <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" className="mt-12" wide />}
     </div>
   );
 }

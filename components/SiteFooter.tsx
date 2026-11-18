@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReportProblem } from "./ReportProblem";
+import { SocialLinks } from "./SocialLinks";
 import { CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -46,6 +47,8 @@ export function SiteFooter() {
               {CONTACT_EMAIL}
             </a>
           </p>
+          <p className="mb-2 mt-5 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">Segue-nos</p>
+          <SocialLinks withLabels />
         </div>
         {COLUMNS.map((column) => (
           <nav key={column.title} aria-label={column.title}>

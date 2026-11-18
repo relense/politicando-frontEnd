@@ -1,5 +1,6 @@
 "use client";
 
+import { SocialLinks } from "./SocialLinks";
 import type { Ref } from "react";
 import { SectionLink, SITE_GROUPS } from "./SiteNav";
 
@@ -41,6 +42,7 @@ export function PartyDrawer({ ref }: { ref: Ref<HTMLDialogElement> }) {
               </ul>
             </div>
           ))}
+          <SocialLinks withLabels className="px-3 pb-2 pt-3" />
         </nav>
       </div>
     </dialog>
