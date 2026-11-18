@@ -135,6 +135,17 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   await page.getByRole("button", { name: "Publicar" }).click();
   const mine = page.getByRole("article").filter({ hasText: reply });
   await expect(mine.getByText("✓ Passa")).toBeVisible();
+  // "Responder" on a post answers that post: replyTo goes with it (that's what tells its author).
+  const target = page.getByRole("article").filter({ hasText: "Os números estão lá: passa." });
+  await target.getByRole("button", { name: "Responder" }).click();
+  const answer = `Concordo contigo (${testInfo.project.name} ${Date.now()})`;
+  await page.getByRole("textbox", { name: "Resposta" }).fill(answer);
+  const sent = page.waitForRequest((request) => request.method() === "POST" && /\/forums\/threads\/\d+\/posts/.test(request.url()));
+  await page.getByRole("button", { name: "Publicar" }).click();
+  const targetId = Number((await target.getAttribute("id"))!.replace("post-", ""));
+  expect((await sent).postDataJSON().replyTo).toBe(targetId);
+  // Nested under the post it answers.
+  await expect(page.getByRole("list", { name: `Respostas a No.${targetId}` })).toContainText(answer);
   // The vote's own thread page: the pick under the opening post, each side filterable, the column beside it.
   await expect(page.getByText(/^A tua previsão: Passa\. Podes mudar até às/)).toBeVisible();
   await expect(page.getByText("Respondes como")).toBeVisible();
@@ -196,6 +207,9 @@ test("an initiative shows its Passa ou chumba beside it: the card while open; on
   await expect(box.getByText(/^Os leitores: \d+% passa/)).toBeVisible();
   await expect(box.getByRole("group", { name: /^A tua previsão para/ }).getByRole("button", { name: /^Passa/ })).toBeDisabled();
   await expect(box).toContainText("Terminada");
+  // By group, never deputy totals; what was voted and who proposed it, never the phase.
+  await expect(box).toContainText("Rejeitado com os votos a favor de PSD, contra de PS e CH e a abstenção de IL");
+  await expect(box).toContainText("O que se vota: a votação na generalidade de");
   await expect(box.getByRole("link", { name: "Ver como acabou a discussão" })).toHaveAttribute("href", "/forum/votacoes/704");
   await noSeriousA11yIssues(page);
 

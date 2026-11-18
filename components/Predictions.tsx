@@ -15,6 +15,7 @@ import {
   type Pick,
   type Prediction,
   type Split,
+  type Tally,
 } from "@/lib/api/engagement";
 import { posterName, type ThreadSummary } from "@/lib/api/forums";
 import { formatLongDate, formatNumber, formatTime } from "@/lib/format";
@@ -54,6 +55,25 @@ function stateNow(item: Prediction, now: number): Prediction["state"] {
   if (item.state === "upcoming" && item.opensAt && Date.parse(item.opensAt) <= now) return "open";
   return item.state;
 }
+
+const list = (names: string[]) => (names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`);
+const groups = (entries: Tally["favor"]) => list(entries.map((entry) => (entry.count ? `${entry.party} (${entry.count})` : entry.party)));
+
+/** "Aprovado com os votos a favor de PSD e CDS-PP, contra de PS e a abstenção de Chega": by group, never deputy totals. */
+export function tallyText(result: string, tally: Tally | null): string {
+  if (!tally) return result;
+  if (tally.unanimous) return `${result} por unanimidade`;
+  const parts = [
+    tally.favor.length > 0 && `a favor de ${groups(tally.favor)}`,
+    tally.against.length > 0 && `contra de ${groups(tally.against)}`,
+    tally.abstention.length > 0 && `a abstenção de ${groups(tally.abstention)}`,
+  ].filter(Boolean) as string[];
+  return parts.length > 0 ? `${result} com os votos ${list(parts)}` : result;
+}
+
+/** The subline: who proposed it and its official name ("Governo · Proposta de Lei n.º 110"). Never the phase. */
+const byline = (item: Prediction) =>
+  [item.author, item.type && item.number ? `${item.type} n.º ${item.number}` : item.type].filter(Boolean).join(" · ");
 
 const countOf = (item: Prediction) => item.count ?? (item.split ? item.split.pass + item.split.fail : 0);
 
@@ -119,7 +139,7 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
   const left = timeLeft(item.closesAt, now);
   const canPick = state === "open";
   const title = item.plain?.title ?? item.title;
-  const what = item.plain?.typeLabel ?? item.type;
+  const what = item.voteLabel;
 
   const tone =
     state === "closed"
@@ -201,15 +221,13 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
         {corner}
       </p>
       {large && state !== "upcoming" && item.opensAt && item.closesAt && <AgendaBar item={item} now={now} count={count} />}
-      {what && <p className={`${large ? "mt-3" : "mt-2"} text-[12px] text-muted`}>O que se vota: {what.toLowerCase()} sobre</p>}
+      {what && <p className={`${large ? "mt-3" : "mt-2"} text-[12px] text-muted`}>O que se vota: a {what.toLowerCase()} de</p>}
       <h3 className={`font-serif font-bold leading-snug ${large ? "text-xl sm:text-2xl" : "text-[17px]"}`}>
         <Link href={`/iniciativas/${item.id}`} className="hover:underline">
           {title}
         </Link>
       </h3>
-      <p className="mt-0.5 text-[12px] text-muted">
-        {[item.type && item.number ? `${item.type} n.º ${item.number}` : item.type, item.phase].filter(Boolean).join(" · ")}
-      </p>
+      <p className="mt-0.5 text-[12px] text-muted">{byline(item)}</p>
       {large && (
         <>
           <Link href={`/iniciativas/${item.id}`} className="mt-1 inline-block font-mono text-[11px] text-ink underline underline-offset-2">
@@ -233,7 +251,7 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
       )}
       <p className="mt-2 text-[12px] leading-snug">
         {state === "upcoming"
-          ? `As previsões abrem ${item.opensAt ? `${formatLongDate(item.opensAt)?.replace(/ de \d{4}$/, "")}, às ${formatTime(item.opensAt)}` : "uma semana antes da votação"}. Entretanto, lê a proposta.`
+          ? `As previsões abrem ${item.opensAt ? `${formatLongDate(item.opensAt)?.replace(/ de \d{4}$/, "")}, às ${formatTime(item.opensAt)}` : "quando a votação entrar na agenda"}. Entretanto, lê a proposta.`
           : state === "open"
             ? pick
               ? enough
@@ -245,7 +263,7 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
                 ? `A tua previsão ficou registada: ${pickWord(pick)}. Avisamos-te do resultado.`
                 : "A sessão começou: as previsões fecharam. O resultado chega amanhã de manhã."
               : item.voteResult
-                ? `${item.voteResult}${item.voteDate ? ` a ${formatLongDate(item.voteDate)}` : ""}.${pick ? ` Tinhas dito ${pickWord(pick)}.` : ""}`
+                ? `${tallyText(item.voteResult, item.tally)}${item.voteDate ? `, a ${formatLongDate(item.voteDate)}` : ""}.${pick ? ` Tinhas dito ${pickWord(pick)}.` : ""}`
                 : `Decidida sem votação${pick ? `: a tua previsão (${pickWord(pick)}) não conta` : ""}.`}
       </p>
       {choose.isError && !refusedClosed && !askedToLogIn && (
@@ -274,7 +292,7 @@ function AgendaBar({ item, now, count }: { item: Prediction; now: number; count:
         <div className="h-full rounded-full bg-[var(--contra)]" style={{ width: `${done}%` }} />
       </div>
       <p className="mt-1 flex justify-between gap-2 font-mono text-[10px] text-muted">
-        <span>entrou na agenda {weekday}</span>
+        <span>abriu {weekday}</span>
         <span>
           {formatNumber(count)} {count === 1 ? "previsão" : "previsões"} até agora
         </span>
@@ -398,7 +416,7 @@ function WeekVotes({ items, onChoose, chosen }: { items: Prediction[]; onChoose:
               </span>
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-2 text-sm font-semibold leading-snug">{item.plain?.title ?? item.title}</span>
-                <span className="font-mono text-[11px] text-muted">{[item.type, item.phase].filter(Boolean).join(" · ")}</span>
+                <span className="font-mono text-[11px] text-muted">{[item.voteLabel, item.author].filter(Boolean).join(" · ")}</span>
               </span>
               {item.id === chosen ? (
                 <span className="shrink-0 font-mono text-[11px] text-muted">Em cima</span>
@@ -461,7 +479,7 @@ export function PredictionsPage({ initial, threads = [] }: { initial: Prediction
           </>
         ) : (
           <p className="rounded-2xl border border-dashed border-line p-6 text-center text-muted">
-            Sem votações abertas esta semana. Abrimos as previsões uma semana antes de cada votação no plenário.
+            Sem votações abertas esta semana. Abrimos as previsões quando uma votação entra na agenda do plenário, até uma semana antes.
           </p>
         )}
         <VotesBoardBox threads={threads} open={open} />
@@ -476,7 +494,9 @@ export function PredictionsPage({ initial, threads = [] }: { initial: Prediction
           </h2>
           <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed">
             <li>É sobre propostas, nunca sobre pessoas.</li>
-            <li>Abre uma semana antes da votação no plenário e fecha quando a sessão começa.</li>
+            <li>
+              Abre uma semana antes da votação no plenário (ou quando entra na agenda, se for mais tarde) e fecha quando a sessão começa.
+            </li>
             <li>Ao prever, passas a seguir a discussão da votação.</li>
             <li>Podes mudar a previsão enquanto está aberta.</li>
             <li>Conta a votação que vem, muitas vezes a da generalidade, não a final.</li>

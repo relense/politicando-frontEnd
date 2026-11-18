@@ -492,8 +492,9 @@ function ReplyForm({
     setError(null);
     setSending(true);
     try {
-      // Only point at a post the text still quotes.
-      const target = replyTo !== null && clean.includes(`>>${replyTo}`) ? replyTo : null;
+      // "Responder" on a post always answers that post (replyTo notifies its author: "respondeu-te"), until cancelled.
+      // Without it, the reply only reaches the thread's followers.
+      const target = replyTo;
       const created = await createPost(threadId, { body: clean, nickname: nickname.trim(), replyTo: target, captchaToken });
       setBody("");
       setReplyTo(null);

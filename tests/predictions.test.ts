@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { timeLeft, topicInsight } from "@/components/Predictions";
+import { tallyText, timeLeft, topicInsight } from "@/components/Predictions";
 import { predictionSchema } from "@/lib/api/engagement";
 
 const NOW = Date.parse("2026-11-18T12:00:00Z");
@@ -25,6 +25,7 @@ const item = (outcome: Item["outcome"], slug: string, label: string): Item => ({
   updatedAt: "",
   split: null,
   topics: [{ slug, label }],
+  tally: null,
 });
 
 describe("topicInsight", () => {
@@ -50,5 +51,27 @@ describe("predictionSchema", () => {
   it("accepts an older answer without the new fields", () => {
     const parsed = predictionSchema.parse({ id: 1, title: "T", myPick: null, split: null });
     expect(parsed).toMatchObject({ state: "open", count: null, plain: null, topics: [], opensAt: null, threadId: null });
+  });
+});
+
+describe("tallyText", () => {
+  const none = { unanimous: false, favor: [], against: [], abstention: [] };
+  it("words the result by group, never by deputy totals", () => {
+    expect(
+      tallyText("Aprovado", {
+        ...none,
+        favor: [
+          { party: "PSD", count: null },
+          { party: "CDS-PP", count: null },
+        ],
+        against: [{ party: "PS", count: null }],
+        abstention: [{ party: "CH", count: 3 }],
+      }),
+    ).toBe("Aprovado com os votos a favor de PSD e CDS-PP, contra de PS e a abstenção de CH (3)");
+  });
+  it("says unanimous, and falls back to the result alone", () => {
+    expect(tallyText("Aprovado", { ...none, unanimous: true })).toBe("Aprovado por unanimidade");
+    expect(tallyText("Rejeitado", null)).toBe("Rejeitado");
+    expect(tallyText("Rejeitado", none)).toBe("Rejeitado");
   });
 });

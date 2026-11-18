@@ -45,9 +45,10 @@ export function VoteThreadAside({
         </h2>
         {prediction && (
           <p className="mt-2 text-sm font-semibold">
-            {[prediction.type && prediction.number ? `${prediction.type} n.º ${prediction.number}` : prediction.type, prediction.phase]
+            {[prediction.type && prediction.number ? `${prediction.type} n.º ${prediction.number}` : prediction.type, prediction.author]
               .filter(Boolean)
               .join(" · ") || prediction.title}
+            {prediction.voteLabel && <span className="block font-mono text-[11px] font-normal text-muted">{prediction.voteLabel}</span>}
           </p>
         )}
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -126,7 +127,12 @@ export function VoteThreadAside({
                 </Link>
                 <p className="mt-0.5 font-mono text-[10px]">
                   <span className="font-bold text-[var(--contra)]">● aberta</span>
-                  {item.count ? <span className="text-muted"> · {formatNumber(item.count)} previsões</span> : null}
+                  {item.replyCount !== null && (
+                    <span className="text-muted">
+                      {" "}
+                      · {formatNumber(item.replyCount)} {item.replyCount === 1 ? "resposta" : "respostas"}
+                    </span>
+                  )}
                 </p>
               </li>
             ))}

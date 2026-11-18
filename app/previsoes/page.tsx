@@ -25,8 +25,8 @@ export default async function PredictionsRoute() {
         <p className="font-mono text-xs uppercase tracking-widest text-muted">Parlamento</p>
         <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">Passa ou chumba?</h1>
         <p className="mt-2 font-mono text-sm leading-relaxed text-muted">
-          Quando uma votação entra na agenda do plenário (até 7 dias antes), diz se achas que a proposta passa e defende a tua escolha na
-          discussão dessa votação. O que os outros leitores previram só aparece depois de escolheres, para não influenciar ninguém. O teu
+          Quando uma votação entra na agenda do plenário (até uma semana antes), diz se achas que a proposta passa e defende a tua escolha
+          na discussão dessa votação. O que os outros leitores previram só aparece depois de escolheres, para não influenciar ninguém. O teu
           registo de acertos é só teu.
         </p>
       </header>

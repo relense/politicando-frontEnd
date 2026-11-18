@@ -85,13 +85,30 @@ const plainSchema = z
   .catch(null)
   .transform((value) => value ?? null);
 
+const optionalNumber = z
+  .number()
+  .nullable()
+  .optional()
+  .catch(null)
+  .transform((value) => value ?? null);
+const groupsSchema = z.array(z.object({ party: z.string(), count: optionalNumber })).catch([]);
+/** How the groups voted (parliament records votes by group, not deputy totals). Null unless decided by a vote. */
+const tallySchema = z
+  .object({ unanimous: z.boolean().catch(false), favor: groupsSchema, against: groupsSchema, abstention: groupsSchema })
+  .nullable()
+  .optional()
+  .catch(null)
+  .transform((value) => value ?? null);
+export type Tally = NonNullable<z.infer<typeof tallySchema>>;
+
 /**
  * A vote's "Passa ou chumba?", in any state (backend docs/engagement-api.md):
  * - upcoming: on the agenda, picks open at opensAt (a week before the session); no thread yet;
  * - open: until closesAt (the session starts); the split only once this reader has picked;
  * - closed: the session started; the split for everyone;
  * - decided: settled; voteResult null when decided without a vote.
- * `count` is how many picked, the number only.
+ * `count` is how many picked, the number only. `voteLabel` is what gets voted ("votação na generalidade"); `phase` is
+ * only the latest step and is never shown as the vote. `author`: "Governo", a regional assembly or the signing parties.
  */
 export const predictionSchema = z.object({
   id: z.number(),
@@ -111,12 +128,11 @@ export const predictionSchema = z.object({
     .optional()
     .catch(null)
     .transform((value) => value ?? null),
-  threadId: z
-    .number()
-    .nullable()
-    .optional()
-    .catch(null)
-    .transform((value) => value ?? null),
+  voteLabel: optionalText,
+  author: optionalText,
+  replyCount: optionalNumber,
+  tally: tallySchema,
+  threadId: optionalNumber,
   myPick: z
     .enum(["pass", "fail"])
     .nullable()
@@ -173,6 +189,7 @@ export const myPredictionsSchema = z.object({
       updatedAt: z.string(),
       split: splitSchema.nullable().catch(null),
       topics: topicsSchema.optional().transform((value) => value ?? []),
+      tally: tallySchema,
     }),
   ),
 });
