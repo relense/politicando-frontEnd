@@ -12,6 +12,8 @@ const env = {
 };
 
 process.env.NEXT_PUBLIC_FEATURE_STORIES = env.NEXT_PUBLIC_FEATURE_STORIES;
+// The tests talk to the mock API too (e2e/accounts.spec.ts switches its login gate).
+process.env.NEXT_PUBLIC_API_URL = env.NEXT_PUBLIC_API_URL;
 
 export default defineConfig({
   testDir: "./e2e",

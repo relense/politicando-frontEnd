@@ -4,7 +4,8 @@ import { noSeriousA11yIssues } from "./helpers";
 // The mock readers (mocks/accountFixtures.ts): fictional names, test-only passwords. The mock API keeps its state between
 // the desktop and the mobile runs, so names that tests create carry the project's name.
 const READER = { username: "leitora_de_teste", password: "palavra-passe-de-teste" };
-const MOCK_API = "http://localhost:4100/api/v2";
+// The mock API the Playwright config started (playwright.config.ts sets it for the tests too).
+const MOCK_API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
 
 const accountButton = (page: Page, username: string) => page.getByRole("button", { name: new RegExp(username) });
 
