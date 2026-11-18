@@ -135,6 +135,18 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   await page.getByRole("button", { name: "Publicar" }).click();
   const mine = page.getByRole("article").filter({ hasText: reply });
   await expect(mine.getByText("✓ Passa")).toBeVisible();
+  // The vote's own thread page: the pick under the opening post, each side filterable, the column beside it.
+  await expect(page.getByText(/^A tua previsão: Passa\. Podes mudar até às/)).toBeVisible();
+  await expect(page.getByText("Respondes como")).toBeVisible();
+  await page.getByRole("group", { name: "Mostrar respostas de" }).getByRole("button", { name: "Chumba" }).click();
+  await expect(page.getByRole("article").filter({ hasText: reply })).toHaveCount(0);
+  await page.getByRole("group", { name: "Mostrar respostas de" }).getByRole("button", { name: "Todos" }).click();
+  await expect(mine).toBeVisible();
+  if (testInfo.project.name !== "mobile") {
+    await expect(page.getByRole("region", { name: "Como está a conversa (por respostas)" })).toContainText(/Passa \d+/);
+    await expect(page.getByRole("region", { name: "Regras de votações" })).toContainText("Números? Põe a fonte.");
+    await expect(page.getByRole("region", { name: "Sobre esta votação" })).toContainText("Fecha em");
+  }
   await noSeriousA11yIssues(page);
   // Readers don't open threads on this board.
   await page.goto("/forum/votacoes");
@@ -145,13 +157,23 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   await page.goto("/previsoes");
   // Another vote comes up to the card.
   await page
-    .getByRole("button", { name: /^Prever →/ })
+    .getByRole("button", { name: /prever →/ })
     .first()
     .click();
   await expect(page.getByText("O que os outros leitores previram só aparece depois de escolheres.")).toBeVisible();
+  // Few picks so far: the count, no percentages.
+  await page
+    .getByRole("group", { name: /^A tua previsão para/ })
+    .getByRole("button", { name: /^Chumba/ })
+    .click();
+  await expect(page.getByText(/^Ainda há poucas previsões \(\d+\)\. Mostramos as percentagens a partir de 20\.$/)).toBeVisible();
+  await expect(page.getByText(/És dos primeiros/)).toBeVisible();
+  // Upcoming votes say when they open.
+  await expect(page.getByRole("region", { name: "Votações desta semana" })).toContainText(/Abre /);
 
   const record = page.getByRole("region", { name: /O teu registo/ });
   await expect(record).toContainText("previsões certas");
+  await expect(record).toContainText("Acertas mais em habitação (3 de 3) do que em economia (1 de 3).");
   await noSeriousA11yIssues(page);
 
   // On the front page too.
@@ -170,10 +192,11 @@ test("an initiative shows its Passa ou chumba beside it: the card while open; on
   // Decided: the readers' split is for everyone now.
   await page.goto("/iniciativas/4996");
   const box = page.getByRole("region", { name: "Passa ou chumba?" });
-  await expect(box).toContainText("Resultado: Rejeitado");
-  await expect(box).toContainText("O que os leitores previram");
+  await expect(box).toContainText("Resultado · Rejeitado");
   await expect(box.getByText(/^Os leitores: \d+% passa/)).toBeVisible();
-  await expect(box.getByRole("link", { name: "Ver a discussão da votação →" })).toHaveAttribute("href", "/forum/votacoes/704");
+  await expect(box.getByRole("group", { name: /^A tua previsão para/ }).getByRole("button", { name: /^Passa/ })).toBeDisabled();
+  await expect(box).toContainText("Terminada");
+  await expect(box.getByRole("link", { name: "Ver como acabou a discussão" })).toHaveAttribute("href", "/forum/votacoes/704");
   await noSeriousA11yIssues(page);
 
   // Open: the card to pick, with its countdown and conversation.
@@ -181,16 +204,35 @@ test("an initiative shows its Passa ou chumba beside it: the card while open; on
   const open = page.getByRole("region", { name: "Passa ou chumba?" });
   await expect(open.getByRole("group", { name: /^A tua previsão para/ })).toBeVisible();
   await expect(open.getByText(/^Fecha em/)).toBeVisible();
-  await expect(open.getByRole("link", { name: /^Defende a tua escolha/ })).toHaveAttribute("href", "/forum/votacoes/700");
+  await expect(open.getByRole("link", { name: /^Ver a discussão/ })).toHaveAttribute("href", "/forum/votacoes/700");
+  await expect(open.getByRole("link", { name: "Ler a proposta em linguagem simples →" })).toHaveCount(0);
 
   // Scheduled, not open yet: when it opens.
   await page.goto("/iniciativas/4995");
   const soon = page.getByRole("region", { name: "Passa ou chumba?" });
-  await expect(soon).toContainText("Em breve");
+  await expect(soon).toContainText("em breve");
   await expect(soon).toContainText("As previsões abrem 24 de novembro, às 15:00");
 
   // Without one, nothing.
   await page.goto("/iniciativas/4990");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("region", { name: "Passa ou chumba?" })).toHaveCount(0);
+});
+
+test("the right column shows a chevron until it's first scrolled, then never again", async ({ page, isMobile }) => {
+  test.skip(isMobile, "The side column is for wide screens");
+  await page.setViewportSize({ width: 1400, height: 700 });
+  await page.goto("/");
+  const side = page.getByRole("complementary", { name: "Ao lado das notícias" });
+  const hint = side.locator("[data-scroll-hint]");
+  await expect(hint).toHaveCount(1);
+  await side
+    .locator(".overflow-y-auto")
+    .first()
+    .evaluate((element) => element.scrollBy(0, 300));
+  await expect(hint).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeAttached();
+  await page.waitForTimeout(500);
+  await expect(side.locator("[data-scroll-hint]")).toHaveCount(0);
 });

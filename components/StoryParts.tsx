@@ -151,10 +151,10 @@ export function ImportaBox({ story }: { story: StoryDetail }) {
 }
 
 /** "Seguir esta história": told when another outlet covers it, and how following works. */
-export function FollowStoryBox({ story }: { story: StoryDetail }) {
+export function FollowStoryBox({ story, headingId = "seguir-historia" }: { story: StoryDetail; headingId?: string }) {
   return (
-    <section aria-labelledby="seguir-historia" className="rounded-2xl border border-line p-4">
-      <h2 id="seguir-historia" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+    <section aria-labelledby={headingId} className="rounded-2xl border border-line p-4">
+      <h2 id={headingId} className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
         Seguir esta história
       </h2>
       <FollowButton kind="story" id={story.id} large className="mt-3" />

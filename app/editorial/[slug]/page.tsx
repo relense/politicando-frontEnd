@@ -1,5 +1,4 @@
 import { CountRead } from "@/components/CountRead";
-import { FollowStrip } from "@/components/FollowUs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -227,7 +226,6 @@ export default async function EditorialPostPage({ params }: Props) {
             </ul>
           )}
 
-          <FollowStrip className="mt-8" />
           {comments && <CommentSection target={postComments(post.slug)} initialComments={comments} />}
         </div>
 

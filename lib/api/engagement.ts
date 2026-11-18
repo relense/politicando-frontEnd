@@ -76,59 +76,89 @@ export type Pick = "pass" | "fail";
 const splitSchema = z.object({ pass: z.number(), fail: z.number() });
 export type Split = z.infer<typeof splitSchema>;
 
+const optionalText = nullableText.optional().transform((value) => value ?? null);
+const topicsSchema = z.array(z.object({ slug: z.string(), label: z.string() })).catch([]);
+const plainSchema = z
+  .object({ title: nullableText, typeLabel: nullableText, typeExplainer: nullableText })
+  .nullable()
+  .optional()
+  .catch(null)
+  .transform((value) => value ?? null);
+
+/**
+ * A vote's "Passa ou chumba?", in any state (backend docs/engagement-api.md):
+ * - upcoming: on the agenda, picks open at opensAt (a week before the session); no thread yet;
+ * - open: until closesAt (the session starts); the split only once this reader has picked;
+ * - closed: the session started; the split for everyone;
+ * - decided: settled; voteResult null when decided without a vote.
+ * `count` is how many picked, the number only.
+ */
 export const predictionSchema = z.object({
   id: z.number(),
   type: z.string().catch(""),
-  number: nullableText,
+  number: optionalText,
   title: z.string(),
-  phase: nullableText,
-  phaseDate: nullableText,
-  onAgenda: z.boolean().catch(false),
-  myPick: z.enum(["pass", "fail"]).nullable().catch(null),
-  split: splitSchema.nullable().catch(null),
-  /** When picks lock: the start of the plenary session that votes it. */
-  closesAt: nullableText.optional().transform((value) => value ?? null),
-  /** The vote's megathread on the "Votações" board. */
+  plain: plainSchema,
+  topics: topicsSchema.optional().transform((value) => value ?? []),
+  phase: optionalText,
+  phaseDate: optionalText,
+  state: z.enum(["upcoming", "open", "closed", "decided"]).catch("open"),
+  opensAt: optionalText,
+  closesAt: optionalText,
+  count: z
+    .number()
+    .nullable()
+    .optional()
+    .catch(null)
+    .transform((value) => value ?? null),
   threadId: z
     .number()
     .nullable()
     .optional()
     .catch(null)
     .transform((value) => value ?? null),
+  myPick: z
+    .enum(["pass", "fail"])
+    .nullable()
+    .optional()
+    .catch(null)
+    .transform((value) => value ?? null),
+  split: splitSchema
+    .nullable()
+    .optional()
+    .catch(null)
+    .transform((value) => value ?? null),
+  voteDate: optionalText,
+  voteResult: optionalText,
+  outcome: z
+    .enum(["hit", "miss", "void"])
+    .nullable()
+    .optional()
+    .catch(null)
+    .transform((value) => value ?? null),
 });
 export type Prediction = z.infer<typeof predictionSchema>;
+/** The initiative page's box is the same thing. */
+export type InitiativePrediction = Prediction;
 
 const openSchema = z.object({ items: z.array(predictionSchema) });
 
-/** The open list. On the server, cached and anonymous (no picks); in the browser, with the reader's own picks. */
-export const getOpenPredictions = async (limit = 10, init?: RequestInit & { next?: { revalidate?: number } }) =>
-  (await request(`/predictions/open?limit=${limit}`, openSchema, init ?? noStore)).items;
+/**
+ * The week's votes: open first (soonest session first); with `upcoming`, then those whose picks open within the week.
+ * On the server, cached and anonymous (no picks); in the browser, with the reader's own picks.
+ */
+export const getOpenPredictions = async (
+  limit = 10,
+  init?: RequestInit & { next?: { revalidate?: number } },
+  { upcoming = false }: { upcoming?: boolean } = {},
+) => (await request(`/predictions/open?limit=${limit}${upcoming ? "&upcoming=true" : ""}`, openSchema, init ?? noStore)).items;
 
 export const pickPrediction = (id: number, pick: Pick) =>
   request(`/predictions/${id}`, z.object({ pick: z.enum(["pass", "fail"]), split: splitSchema }), json("PUT", { pick }));
 export const unpickPrediction = (id: number) => request(`/predictions/${id}`, z.unknown(), json("DELETE"));
 
-/**
- * One initiative's "Passa ou chumba?" (GET /predictions/:initiativeId, backend PR #31; 404 when it has none). At most one
- * poll per initiative. The split is for everyone once picks are closed; before that, only for a reader who has picked.
- * `threadId` is null while upcoming; `voteResult` null on a decided one means it was decided without a vote.
- */
-export const initiativePredictionSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  state: z.enum(["upcoming", "open", "closed", "decided"]),
-  /** Upcoming only: when picks open. */
-  opensAt: nullableText.optional().transform((value) => value ?? null),
-  closesAt: nullableText,
-  threadId: z.number().nullable().catch(null),
-  myPick: z.enum(["pass", "fail"]).nullable().catch(null),
-  split: splitSchema.nullable().catch(null),
-  voteDate: nullableText,
-  voteResult: nullableText,
-  outcome: z.enum(["hit", "miss", "void"]).nullable().catch(null),
-});
-export type InitiativePrediction = z.infer<typeof initiativePredictionSchema>;
-export const getInitiativePrediction = (id: number) => request(`/predictions/${id}`, initiativePredictionSchema, noStore);
+/** One initiative's (GET /predictions/:initiativeId; 404 when it has none). At most one poll per initiative, kept forever. */
+export const getInitiativePrediction = (id: number) => request(`/predictions/${id}`, predictionSchema, noStore);
 
 export const myPredictionsSchema = z.object({
   record: z.object({ hits: z.number(), misses: z.number(), pending: z.number(), streak: z.number() }),
@@ -142,6 +172,7 @@ export const myPredictionsSchema = z.object({
       voteResult: nullableText,
       updatedAt: z.string(),
       split: splitSchema.nullable().catch(null),
+      topics: topicsSchema.optional().transform((value) => value ?? []),
     }),
   ),
 });

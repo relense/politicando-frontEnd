@@ -42,12 +42,22 @@ const DISMISSED = "politicando:segue-dispensado";
 const listeners = new Set<() => void>();
 let memory = false;
 
+const LAST_SHOWN = "politicando:segue-visto";
+const EVERY = 7 * 24 * 60 * 60_000;
+/** Decided once per page load: shown at most once a week, never again once dismissed. */
+let decided: boolean | null = null;
+
 function dismissed(): boolean {
+  if (memory) return true;
+  if (decided !== null) return decided;
   try {
-    return window.localStorage.getItem(DISMISSED) === "1" || memory;
+    const last = Number(window.localStorage.getItem(LAST_SHOWN) ?? 0);
+    decided = window.localStorage.getItem(DISMISSED) === "1" || Date.now() - last < EVERY;
+    if (!decided) window.localStorage.setItem(LAST_SHOWN, String(Date.now()));
   } catch {
-    return memory;
+    decided = false;
   }
+  return decided;
 }
 
 function dismiss() {
@@ -65,7 +75,7 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
-/** A card in the feed, after the 8th news: until the reader dismisses it, so it never reads as an advert. */
+/** A card deep in the feed: at most once a week, and never again once dismissed, so it never reads as an advert. */
 export function FollowCard({ headingId = "segue-o-politicando" }: { headingId?: string }) {
   const hidden = useSyncExternalStore(subscribe, dismissed, () => false);
   if (hidden) return null;
@@ -90,24 +100,6 @@ export function FollowCard({ headingId = "segue-o-politicando" }: { headingId?: 
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
       </button>
-    </section>
-  );
-}
-
-/** After reading: whoever got to the end will likely follow. Between the article and the conversation. */
-export function FollowStrip({ className = "" }: { className?: string }) {
-  return (
-    <section
-      aria-labelledby="segue-depois-de-ler"
-      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line px-5 py-4 ${className}`}
-    >
-      <div>
-        <h2 id="segue-depois-de-ler" className="font-bold leading-snug">
-          Queres mais histórias assim?
-        </h2>
-        <p className="text-sm text-muted">Segue-nos onde já estás.</p>
-      </div>
-      <SocialLinks />
     </section>
   );
 }

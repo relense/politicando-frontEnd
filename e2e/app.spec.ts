@@ -1320,10 +1320,7 @@ test("a card without a photo keeps its shape, with a dark frame naming the outle
   expect(box!.height).toBeGreaterThanOrEqual(180);
 });
 
-test("follow us: once in the feed until dismissed, after an article, at the side column's end, in the footer and on /sobre", async ({
-  page,
-  isMobile,
-}) => {
+test("follow us: rarely in the feed until dismissed, at the side column's end, in the footer and on /sobre", async ({ page, isMobile }) => {
   await page.goto("/");
   const card = page.getByRole("region", { name: /As notícias de hoje, explicadas em 60 segundos/ });
   await expect(card).toBeVisible();
@@ -1348,9 +1345,10 @@ test("follow us: once in the feed until dismissed, after an article, at the side
   await expect(footer.getByRole("link", { name: "Registo de correções" })).toHaveAttribute("href", "/feedback/correcoes");
   await expect(footer.getByRole("link", { name: /Voltar ao topo/ })).toBeVisible();
 
+  // Not after articles any more.
   await page.goto("/article/100");
-  const strip = page.getByRole("region", { name: "Queres mais histórias assim?" });
-  await expect(strip.getByRole("link", { name: /@politicando\.pt no Threads/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Queres mais histórias assim?" })).toHaveCount(0);
 
   await page.goto("/sobre");
   await expect(page.getByRole("heading", { level: 2, name: "Fontes e método" })).toHaveAttribute("id", "fontes");

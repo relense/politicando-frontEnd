@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 /** "Passa ou chumba?": the open votes, the same for everyone (the reader's own picks come in the browser). */
 export default async function PredictionsRoute() {
   const [open, threads] = await Promise.all([
-    getOpenPredictions(10, cached).catch(() => []),
+    getOpenPredictions(10, cached, { upcoming: true }).catch(() => []),
     getThreads(VOTES_BOARD, { sort: "active", limit: 6 })
       .then((result) => result.items)
       .catch(() => []),

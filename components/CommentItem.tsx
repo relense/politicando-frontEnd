@@ -10,6 +10,7 @@ import { QuoteLink, CommentText } from "./CommentText";
 import { useComments } from "./CommentsContext";
 import { ReportButton } from "./forum/ReportButton";
 import { CommentIcon, ShareIcon } from "./icons";
+import { NameAvatar, SideTag } from "./Avatar";
 import { RelativeTime } from "./RelativeTime";
 import { SaveButton } from "./account/SaveButton";
 
@@ -61,18 +62,10 @@ export function CommentItem({ node, target, depth = 0 }: Props) {
               +
             </button>
           )}
-          <Avatar name={name} />
+          <NameAvatar name={name} />
           <span className="font-bold text-ink">{name}</span>
           {node.stance && (
-            <span
-              className="rounded-[5px] border px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-              style={{
-                color: node.stance === "agree" ? "var(--favor)" : "var(--contra)",
-                borderColor: `color-mix(in srgb, ${node.stance === "agree" ? "var(--favor)" : "var(--contra)"} 40%, transparent)`,
-              }}
-            >
-              {node.stance === "agree" ? "Concorda" : "Discorda"}
-            </span>
+            <SideTag tone={node.stance === "agree" ? "favor" : "contra"}>{node.stance === "agree" ? "Concorda" : "Discorda"}</SideTag>
           )}
           {node.pending ? (
             <span>a enviar…</span>
@@ -171,22 +164,6 @@ export function CommentItem({ node, target, depth = 0 }: Props) {
 }
 
 const actionClass = "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-bold text-muted hover:bg-surface hover:text-ink";
-
-/** Anonymous posts share one grey avatar; a chosen name always gets the same colour. */
-function Avatar({ name }: { name: string }) {
-  const anonymous = name === "anon";
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex size-8 shrink-0 select-none items-center justify-center rounded-full font-mono text-sm font-bold uppercase ${anonymous ? "bg-line text-ink" : "text-white"}`}
-      style={anonymous ? undefined : { backgroundColor: `hsl(${hash % 360} 45% 38%)` }}
-    >
-      {anonymous ? "?" : name[0]}
-    </span>
-  );
-}
 
 /** Copies the link to this comment. */
 function CopyLinkButton({ id }: { id: number }) {

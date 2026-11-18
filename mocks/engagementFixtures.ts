@@ -76,23 +76,67 @@ const inboxOf = (reader: MockReader) => {
 };
 
 /** Open predictions: the first few initiatives; the crowd's picks, and each reader's. */
-const OPEN = initiatives.slice(0, 4).map((item, index) => ({
-  id: item.id,
-  type: item.type ?? "Projeto de Lei",
-  number: item.number ?? null,
-  title: item.title,
-  phase: index === 0 ? "Votação na generalidade" : "Discussão generalidade",
-  phaseDate: "2026-11-20",
-  onAgenda: index < 2,
-  // On the agenda within 7 days; picks lock when the session starts.
-  closesAt: new Date(Date.now() + (index === 0 ? 134 : index * 24 * 60 + 60) * 60_000).toISOString(),
-  threadId: 700 + index,
-}));
+const TOPICS = [
+  [{ slug: "habitacao", label: "Habitação" }],
+  [{ slug: "saude", label: "Saúde" }],
+  [{ slug: "educacao", label: "Educação" }],
+  [{ slug: "transportes", label: "Transportes" }],
+];
+const plainOf = (title: string) => ({
+  title: title.replace(/\s*\(\d+\)$/, ""),
+  typeLabel: "Lei",
+  typeExplainer:
+    "Uma lei nova ou uma alteração a uma lei, proposta por deputados. Só passa a valer se for aprovada, promulgada e publicada.",
+});
+const DAY = 24 * 60 * 60_000;
+const OPEN = initiatives.slice(0, 4).map((item, index) => {
+  // Picks lock when the session starts; they opened exactly a week before.
+  const closesAt = Date.now() + (index === 0 ? 134 : index * 24 * 60 + 60) * 60_000;
+  return {
+    id: item.id,
+    type: item.type ?? "Projeto de Lei",
+    number: item.number ?? null,
+    title: item.title,
+    plain: plainOf(item.title),
+    topics: TOPICS[index]!,
+    phase: index === 0 ? "Votação na generalidade" : "Discussão generalidade",
+    phaseDate: "2026-11-20",
+    state: "open" as const,
+    opensAt: new Date(closesAt - 7 * DAY).toISOString(),
+    closesAt: new Date(closesAt).toISOString(),
+    threadId: 700 + index,
+  };
+});
+/** On the agenda, picks not open yet (listed with upcoming=true). */
+const UPCOMING = initiatives.slice(6, 8).map((item, index) => {
+  const opensAt = Date.now() + (2 + index * 2) * DAY;
+  return {
+    id: item.id,
+    type: item.type ?? "Projeto de Lei",
+    number: item.number ?? null,
+    title: item.title,
+    plain: plainOf(item.title),
+    topics: [],
+    phase: "Discussão generalidade",
+    phaseDate: null,
+    state: "upcoming" as const,
+    opensAt: new Date(opensAt).toISOString(),
+    closesAt: new Date(opensAt + 7 * DAY).toISOString(),
+    threadId: null,
+    count: 0,
+    myPick: null,
+    split: null,
+  };
+});
 for (const item of OPEN) addVoteThread(item.threadId, { id: item.id, title: item.title });
 /** A vote already settled: the readers' split shows to everyone. */
 const DECIDED = {
   id: initiatives[4]!.id,
   title: initiatives[4]!.title,
+  plain: plainOf(initiatives[4]!.title),
+  topics: [{ slug: "transparencia", label: "Transparência" }],
+  count: 49,
+  opensAt: "2026-11-06T15:00:00.000Z",
   state: "decided" as const,
   closesAt: "2026-11-13T15:00:00.000Z",
   threadId: 704,
@@ -101,7 +145,17 @@ const DECIDED = {
   voteResult: "Rejeitado",
 };
 addVoteThread(DECIDED.threadId, { id: DECIDED.id, title: DECIDED.title });
-const crowd = new Map<number, { pass: number; fail: number }>(OPEN.map((item, index) => [item.id, { pass: 12 - index, fail: 7 + index }]));
+// The first has plenty of picks; the second only a few (no percentages yet).
+const crowd = new Map<number, { pass: number; fail: number }>(
+  OPEN.map((item, index) => [
+    item.id,
+    index === 0 ? { pass: 1179, fail: 663 } : index === 1 ? { pass: 2, fail: 1 } : { pass: 14 - index, fail: 9 + index },
+  ]),
+);
+const countOf = (id: number) => {
+  const split = crowd.get(id);
+  return split ? split.pass + split.fail : 0;
+};
 const picks = new Map<number, Map<number, "pass" | "fail">>();
 const picksOf = (reader: MockReader) => {
   if (!picks.has(reader.id)) picks.set(reader.id, new Map());
@@ -153,14 +207,15 @@ export const engagementHandlers = [
 
   http.get(`${API}/predictions/open`, ({ request }) => {
     const reader = readerOf(request);
-    const limit = Number(new URL(request.url).searchParams.get("limit") ?? 10);
+    const query = new URL(request.url).searchParams;
+    const limit = Number(query.get("limit") ?? 10);
     const mine = reader ? picksOf(reader) : null;
-    return HttpResponse.json({
-      items: OPEN.slice(0, limit).map((item) => {
-        const pick = mine?.get(item.id) ?? null;
-        return { ...item, myPick: pick, split: pick ? crowd.get(item.id) : null };
-      }),
+    const open = OPEN.map((item) => {
+      const pick = mine?.get(item.id) ?? null;
+      return { ...item, count: countOf(item.id), myPick: pick, split: pick ? crowd.get(item.id) : null };
     });
+    // Open first; the week's upcoming ones only when asked.
+    return HttpResponse.json({ items: [...open, ...(query.get("upcoming") === "true" ? UPCOMING : [])].slice(0, limit) });
   }),
   // One initiative's (proposed: GET /predictions/:initiativeId): the open ones, and one already decided.
   http.get(`${API}/predictions/:id`, ({ request, params }) => {
@@ -170,11 +225,8 @@ export const engagementHandlers = [
     const open = OPEN.find((item) => item.id === id);
     if (open)
       return HttpResponse.json({
-        id,
-        title: open.title,
-        state: "open",
-        closesAt: open.closesAt,
-        threadId: open.threadId,
+        ...open,
+        count: countOf(id),
         myPick: mine,
         split: mine ? crowd.get(id) : null,
         voteDate: open.phaseDate,
@@ -187,6 +239,9 @@ export const engagementHandlers = [
       return HttpResponse.json({
         id,
         title: initiatives[5]!.title,
+        plain: plainOf(initiatives[5]!.title),
+        topics: [],
+        count: 0,
         state: "upcoming",
         opensAt: "2026-11-24T15:00:00.000Z",
         closesAt: null,
@@ -239,21 +294,34 @@ export const engagementHandlers = [
           voteResult: null,
           updatedAt: SAVED_AT,
           split: crowd.get(id),
+          topics: item.topics,
         };
       });
-      const settled = [
-        {
-          initiativeId: 5000,
-          title: "Iniciativa de teste sobre habitação",
-          pick: "pass" as const,
-          outcome: "hit" as const,
-          voteDate: "2026-11-16",
-          voteResult: "Aprovado",
-          updatedAt: "2026-11-14T10:00:00.000Z",
-          split: { pass: 20, fail: 9 },
-        },
-      ];
-      return HttpResponse.json({ record: { hits: 1, misses: 0, pending: pending.length, streak: 1 }, items: [...pending, ...settled] });
+      const settled = (
+        [
+          [5000, "Iniciativa de teste sobre habitação", "pass", "hit", "habitacao", "Habitação"],
+          [4999, "Apoio às rendas jovens", "pass", "hit", "habitacao", "Habitação"],
+          [4998, "Regras para o crédito à habitação", "fail", "hit", "habitacao", "Habitação"],
+          [4997, "IVA dos bens essenciais", "pass", "miss", "economia", "Economia"],
+          [4994, "Benefícios fiscais às empresas", "fail", "miss", "economia", "Economia"],
+          [4993, "Salário mínimo regional", "pass", "hit", "economia", "Economia"],
+        ] as const
+      ).map(([initiativeId, title, pick, outcome, slug, label], index) => ({
+        initiativeId,
+        title,
+        pick,
+        outcome,
+        voteDate: `2026-11-${String(16 - index).padStart(2, "0")}`,
+        voteResult: (pick === "pass") === (outcome === "hit") ? "Aprovado" : "Rejeitado",
+        updatedAt: "2026-11-14T10:00:00.000Z",
+        split: { pass: 20 + index, fail: 9 + index },
+        topics: [{ slug, label }],
+      }));
+      const hits = settled.filter((item) => item.outcome === "hit").length;
+      return HttpResponse.json({
+        record: { hits, misses: settled.length - hits, pending: pending.length, streak: 1 },
+        items: [...pending, ...settled],
+      });
     }),
   ),
 

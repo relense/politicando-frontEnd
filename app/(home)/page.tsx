@@ -9,6 +9,7 @@ import { BlogRow, EventRow } from "@/components/FeedInserts";
 import { getNextEvent } from "@/lib/api/agenda";
 import { FollowCard, SidebarFooter } from "@/components/FollowUs";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
+import { ScrollableSide } from "@/components/ScrollableSide";
 import { FeedFilters } from "@/components/FeedFilters";
 import { cached, FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
 import { loadFeed } from "@/lib/api/feed";
@@ -172,8 +173,8 @@ export default async function HomePage({ searchParams }: Props) {
               ...(predictions.length > 0
                 ? [{ after: 6, node: <PredictionsCard initial={predictions} headingId="passa-ou-chumba-feed" /> }]
                 : []),
-              // Once per reader, on every screen: the main way to our profiles on phones.
-              { after: 8, node: <FollowCard />, everywhere: true },
+              // Rarely: deep in the feed, at most once a week, gone for good once dismissed.
+              { after: 24, node: <FollowCard />, everywhere: true },
               ...(podcast
                 ? [{ after: 10, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
                 : []),
@@ -182,7 +183,7 @@ export default async function HomePage({ searchParams }: Props) {
           />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
-          <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
+          <ScrollableSide className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
             {podcast && <PodcastBox podcast={podcast} episode={episode} />}
             {today.length > 0 && <TodayInFive stories={today} />}
             {predictions.length > 0 && <PredictionsCard initial={predictions} />}
@@ -191,7 +192,7 @@ export default async function HomePage({ searchParams }: Props) {
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
             <SidebarFooter />
-          </div>
+          </ScrollableSide>
         </aside>
       </div>
     </div>
