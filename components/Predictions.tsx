@@ -212,7 +212,6 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
       </p>
       {large && (
         <>
-          {item.plain?.typeExplainer && <p className="mt-2 text-sm leading-relaxed">{item.plain.typeExplainer}</p>}
           <Link href={`/iniciativas/${item.id}`} className="mt-1 inline-block font-mono text-[11px] text-ink underline underline-offset-2">
             Ler a proposta em linguagem simples →
           </Link>
@@ -249,11 +248,6 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
                 ? `${item.voteResult}${item.voteDate ? ` a ${formatLongDate(item.voteDate)}` : ""}.${pick ? ` Tinhas dito ${pickWord(pick)}.` : ""}`
                 : `Decidida sem votação${pick ? `: a tua previsão (${pickWord(pick)}) não conta` : ""}.`}
       </p>
-      {!pick && state === "open" && (
-        <p className="mt-1 font-mono text-[11px] text-muted">
-          <LockIcon /> O que os outros leitores previram só aparece depois de escolheres.
-        </p>
-      )}
       {choose.isError && !refusedClosed && !askedToLogIn && (
         <p role="alert" className="mt-2 font-mono text-[11px] text-danger">
           Não contou. Tenta outra vez.

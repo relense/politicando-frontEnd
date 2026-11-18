@@ -88,7 +88,7 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   await expect(page.getByRole("heading", { level: 1, name: "Passa ou chumba?" })).toBeVisible();
   const choice = page.getByRole("group", { name: /^A tua previsão para/ });
   await expect(choice).toBeVisible();
-  await expect(page.getByText("O que os outros leitores previram só aparece depois de escolheres.")).toBeVisible();
+  await expect(page.getByText("Escolhe e vê o que os outros leitores acham.").first()).toBeVisible();
   await choice.getByRole("button", { name: /^Passa/ }).click();
   await expect(page.getByRole("dialog", { name: "Entra para prever" })).toBeVisible();
   await noSeriousA11yIssues(page);
@@ -160,7 +160,7 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
     .getByRole("button", { name: /prever →/ })
     .first()
     .click();
-  await expect(page.getByText("O que os outros leitores previram só aparece depois de escolheres.")).toBeVisible();
+  await expect(page.getByText("Escolhe e vê o que os outros leitores acham.").first()).toBeVisible();
   // Few picks so far: the count, no percentages.
   await page
     .getByRole("group", { name: /^A tua previsão para/ })
