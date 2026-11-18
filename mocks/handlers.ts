@@ -13,7 +13,7 @@ import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
-import { accountHandlers, gateRefusal, readerOf } from "./accountFixtures";
+import { accountHandlers, gateRefusal, readerOf, recordVote } from "./accountFixtures";
 import { engagementHandlers, registerCommentLookup } from "./engagementFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
@@ -181,6 +181,7 @@ export const handlers = [
     postImporta.set(slug, importa);
     if (mark) myPostMarks.add(slug);
     else myPostMarks.delete(slug);
+    recordVote(request, "editorial", slug, mark ? 1 : 0);
     return HttpResponse.json({ importa, mine: mark ? 1 : 0, up: importa, down: 0 });
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
@@ -518,6 +519,7 @@ export const handlers = [
     article.downvotes = (article.downvotes ?? 0) - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0);
     if (value === 0) myVotes.delete(article.id);
     else myVotes.set(article.id, value);
+    recordVote(request, "articles", article.id, value);
     return HttpResponse.json({ up: article.upvotes, down: article.downvotes, mine: value });
   }),
   // A read of our article page, sent by the browser: no body, 204 (as for blog posts).

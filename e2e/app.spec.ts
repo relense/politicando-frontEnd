@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues, openNewsSearch } from "./helpers";
+import { noSeriousA11yIssues, openNewsSearch, signUp } from "./helpers";
 import { FEATURES } from "../lib/features";
 
 test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
@@ -70,6 +70,7 @@ test("back navigation shows the right article", async ({ page }) => {
 });
 
 test("post a comment and a reply; API errors are shown", async ({ page }) => {
+  await signUp(page);
   const unique = `Comentário ${Date.now()}`;
   await page.goto("/article/97");
   await page.getByRole("button", { name: "Junta-te à conversa…" }).click();
@@ -79,20 +80,17 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await expect(form.getByRole("alert")).toContainText("Escreve um comentário");
 
   await form.getByLabel("Comentário").fill("ERRO-SERVIDOR");
-  await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Publicar" }).click();
   await expect(form.getByRole("alert")).toContainText("Não foi possível publicar");
   await expect(form.getByLabel("Comentário")).toHaveValue("ERRO-SERVIDOR");
 
   // Refused text: the API's own words, and what was typed stays to fix.
   await form.getByLabel("Comentário").fill("Escrevam-me para ana@exemplo.pt");
-  await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Publicar" }).click();
   await expect(form.getByRole("alert")).toContainText("tem um email ou um número de telefone");
   await expect(form.getByLabel("Comentário")).toHaveValue("Escrevam-me para ana@exemplo.pt");
 
   await form.getByLabel("Comentário").fill(unique);
-  await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Publicar" }).click();
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Junta-te à conversa…" })).toBeVisible();
@@ -100,7 +98,6 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await page.getByRole("button", { name: "Responder" }).last().click();
   const replyForm = page.locator("main form", { has: page.getByRole("textbox", { name: "Resposta" }) });
   await replyForm.getByRole("textbox", { name: "Resposta" }).fill(`Resposta a ${unique}`);
-  await replyForm.getByRole("checkbox").check();
   await replyForm.getByRole("button", { name: "Publicar" }).click();
   await expect(page.locator("p", { hasText: `Resposta a ${unique}` })).toBeVisible();
 
@@ -376,12 +373,12 @@ for (const colorScheme of ["light", "dark"] as const) {
 }
 
 test("comments use >>number to quote, with a preview and a jump", async ({ page }) => {
+  await signUp(page);
   const unique = `Citação ${Date.now()}`;
   await page.goto("/article/96");
   await page.getByRole("button", { name: "Junta-te à conversa…" }).click();
   const form = page.locator("main form").first();
   await form.getByLabel("Comentário").fill(`Primeiro ${unique}`);
-  await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: "Publicar" }).click();
   const first = page.locator("article", { hasText: `Primeiro ${unique}` });
   await expect(first).toBeVisible();
@@ -393,7 +390,6 @@ test("comments use >>number to quote, with a preview and a jump", async ({ page 
   const quoteForm = page.locator("main form").first();
   await expect(quoteForm.getByLabel("Comentário")).toHaveValue(`>>${number}\n`);
   await quoteForm.getByLabel("Comentário").pressSequentially(`Segundo ${unique}`);
-  await quoteForm.getByRole("checkbox").check();
   await quoteForm.getByRole("button", { name: "Publicar" }).click();
 
   const second = page.locator("article", { hasText: `Segundo ${unique}` });
@@ -938,7 +934,8 @@ test("feedback: report an error with the right fact, a source and a screenshot, 
   await page.getByRole("button", { name: "Enviar feedback →" }).click();
   await expect(page.getByRole("status")).toContainText("Obrigado. Recebemos a tua mensagem.");
 
-  // An idea goes on the public board instead, and the side shows the most voted ones.
+  // An idea goes on the public board instead (with an account), and the side shows the most voted ones.
+  await signUp(page);
   await page.goto("/feedback");
   await page.getByRole("radio", { name: /Tenho uma ideia/ }).check({ force: true });
   await expect(page.getByRole("heading", { name: "Nova ideia" })).toBeVisible();
@@ -993,6 +990,7 @@ test("news: opening an article counts one read, sent by the browser, and the car
 });
 
 test("news: readers vote up or down, take the vote back, and sort by the most voted", async ({ page }) => {
+  await signUp(page);
   test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
   await page.goto("/?ordem=votadas&periodo=hoje");
   const first = page.locator("main article").first();
@@ -1096,11 +1094,12 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
 });
 
 test("news menu: save, hide with undo, why, and report", async ({ page }) => {
+  await signUp(page);
   await page.goto("/");
   const card = page.locator("main article").filter({ hasText: "Notícia de teste número 98" });
   const menu = () => card.getByRole("button", { name: /^Mais opções para/ });
 
-  // Saved: on the Guardadas page, in this browser only.
+  // Saved: on the Guardadas page, kept by the account.
   await menu().click();
   await card.getByRole("button", { name: "Guardar", exact: true }).click();
   await menu().click();
@@ -1128,37 +1127,41 @@ test("news menu: save, hide with undo, why, and report", async ({ page }) => {
   await noSeriousA11yIssues(page);
 });
 
-test("blog: readers mark a post \"Importa\", in the list and on its page", async ({ page }) => {
+test('blog: readers mark a post "Importa", in the list and on its page', async ({ page }) => {
+  await signUp(page);
   await page.goto("/editorial");
   const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
   const importa = row.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
   // One mark, no down-vote.
   await expect(row.getByRole("button", { name: /^Votar contra/ })).toHaveCount(0);
   const count = async (button: typeof importa) => Number((await button.innerText()).replace(/\D/g, ""));
-  const before = await count(importa);
-  const answered = page.waitForResponse((response) => /\/editorial\/a-maioria-que-nao-existe\/vote$/.test(response.url()));
+  // The count the API answers with (the page itself may come from a cache).
+  const vote = () => page.waitForResponse((response) => /\/editorial\/a-maioria-que-nao-existe\/vote$/.test(response.url()));
+  const marked = vote();
   await importa.click();
-  await answered;
+  const { importa: after } = (await (await marked).json()) as { importa: number };
   await expect(importa).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => count(importa)).toBe(before + 1);
-  // Remembered in this browser: the post's page shows the same mark, and pressing again takes it back.
+  await expect.poll(() => count(importa)).toBe(after);
+  // Kept by the account: the post's page shows the same mark, and pressing again takes it back.
   await page.goto("/editorial/a-maioria-que-nao-existe");
   const onPage = page.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
   await expect(onPage).toHaveAttribute("aria-pressed", "true");
+  const unmarked = vote();
   await onPage.click();
+  await unmarked;
   await expect(onPage).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(() => count(onPage)).toBe(before);
+  await expect.poll(() => count(onPage)).toBe(after - 1);
   await noSeriousA11yIssues(page);
 });
 
 test("blog: readers comment on a post as on the news", async ({ page }, testInfo) => {
+  await signUp(page);
   const text = `Comentário de teste no blog (${testInfo.project.name})`;
   await page.goto("/editorial/o-que-muda-no-orcamento");
   const section = page.getByRole("region", { name: /Comentários/ });
   await expect(section.getByText("Bem explicado, obrigado.")).toBeVisible();
   await section.getByRole("button", { name: "Junta-te à conversa…" }).click();
   await section.getByRole("textbox", { name: "Comentário", exact: true }).fill(text);
-  await section.getByLabel("Não sou um robô (teste)").check();
   await section.getByRole("button", { name: "Publicar" }).click();
   await expect(section.getByText(text)).toBeVisible();
   // A post written in the code has no comments in the API: no box.

@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { parties } from "./fixtures";
 import { addReport, audit, requireAdmin } from "./adminState";
+import { readerOf } from "./accountFixtures";
 
 const API = "*/api/v2";
 
@@ -218,13 +219,13 @@ const newThreadSchema = z.strictObject({
   nickname: z.string().trim().max(40).nullish(),
   articleId: z.number().int().positive().nullish(),
   initiativeId: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  recaptchaToken: z.string().min(1).nullish(),
 });
 const newPostSchema = z.strictObject({
   body: z.string().trim().min(1).max(5000),
   nickname: z.string().trim().max(40).nullish(),
   replyTo: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  recaptchaToken: z.string().min(1).nullish(),
 });
 // News articles take their own reasons; mixing the two lists is 400, as in the API.
 const reportSchema = z.union([
@@ -307,7 +308,11 @@ export const forumHandlers = [
     if (!BOARDS.some((board) => board.board === params.board)) return fail(404, "not_found");
     const parsed = newThreadSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { title, body, nickname, articleId, initiativeId } = parsed.data;
+    // With an account: no captcha, and the account's name.
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { title, body, articleId, initiativeId } = parsed.data;
+    const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
     const id = nextThreadId++;
     const now = new Date().toISOString();
@@ -340,7 +345,10 @@ export const forumHandlers = [
     if (thread.locked) return fail(409, "thread_locked");
     const parsed = newPostSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { body, nickname, replyTo } = parsed.data;
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { body, replyTo } = parsed.data;
+    const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
     if (replyTo && !posts.some((post) => post.id === replyTo && post.threadId === thread.id)) return fail(400, "invalid_reply");
     const id = nextPostId++;

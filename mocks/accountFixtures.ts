@@ -58,13 +58,25 @@ export const gateRefusal = (request: Request) =>
   gate.loginRequired && !readerOf(request) ? fail(401, "login_required", "Log in to take part") : null;
 
 const publicReader = ({ id, username, createdAt }: MockReader) => ({ id, username, createdAt });
+
+/** Each reader's votes on news and marks on blog posts, as /me/state lists them (0 takes one back). */
+const readerVotes = new Map<number, { articles: Record<string, number>; editorial: Record<string, number> }>();
+export function recordVote(request: Request, kind: "articles" | "editorial", key: string | number, value: number) {
+  const reader = readerOf(request);
+  if (!reader) return;
+  const votes = readerVotes.get(reader.id) ?? { articles: {}, editorial: {} };
+  if (value === 0) delete votes[kind][String(key)];
+  else votes[kind][String(key)] = value;
+  readerVotes.set(reader.id, votes);
+}
+
 const stateOf = (reader: MockReader) => ({
   saved: reader.saved,
   follows: reader.follows,
   hidden: reader.hidden,
   muted: reader.muted,
   read: reader.read,
-  votes: { articles: {}, editorial: {}, stories: [], comments: [], forum: [] },
+  votes: { articles: {}, editorial: {}, ...readerVotes.get(reader.id), stories: [], comments: [], forum: [] },
 });
 
 const signIn = (reader: MockReader, status = 200) => {

@@ -2,9 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { noSeriousA11yIssues } from "./helpers";
 
-// Runs only with the setting on, e.g. NEXT_PUBLIC_LOGIN_REQUIRED=comments,forum,votes,reports npx playwright test
-// e2e/login-required.spec.ts (every other test takes part anonymously, as the site does by default).
-test.skip(!process.env.NEXT_PUBLIC_LOGIN_REQUIRED, "NEXT_PUBLIC_LOGIN_REQUIRED is not set");
+// Taking part needs an account: asked before, finished after logging in.
 
 // The mock reader (mocks/accountFixtures.ts): a fictional name and a test-only password.
 const READER = { username: "leitora_de_teste", password: "palavra-passe-de-teste" };
@@ -43,7 +41,7 @@ test("without an account, the comment is written first, kept while logging in, a
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
 });
 
-test("without an account, \"Importa\" asks next to the button, and counts after logging in", async ({ page }) => {
+test('without an account, "Importa" asks next to the button, and counts after logging in', async ({ page }) => {
   await page.goto("/editorial");
   const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
   const importa = row.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
