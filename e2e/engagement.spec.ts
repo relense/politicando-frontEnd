@@ -107,8 +107,23 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   await expect(page.getByText(/^Os leitores: \d+% passa/)).toBeVisible();
   // The vote's thread: the reader's pick shows beside their name, as the others' do.
   await expect(page.getByText(/^Fecha em/).first()).toBeVisible();
+  // Under the card: the latest of the conversation, each side marked, the newsroom's updates, and a box to answer.
+  const discussion = page
+    .getByRole("region", { name: /Passa ou chumba\?|A discussão/ })
+    .filter({ has: page.getByRole("list", { name: "Últimas mensagens" }) });
+  await expect(discussion.getByText("Redação")).toBeVisible();
+  await expect(discussion.getByText(/^Previu: (Passa|Chumba)$/).first()).toBeVisible();
+  const quick = `Passa, a abstenção chega (${testInfo.project.name} ${Date.now()})`;
+  await discussion.getByRole("textbox", { name: "Responder na discussão" }).fill(quick);
+  await discussion.getByRole("button", { name: "Responder" }).click();
+  await expect(discussion.getByRole("listitem").filter({ hasText: quick }).getByText("Previu: Passa")).toBeVisible();
+  // The board, and the news about the proposal, newest first.
+  // "ao vivo" when the vote is today (the mock's closes in about 2 hours, which may be tomorrow), "aberta" otherwise.
+  await expect(page.getByRole("region", { name: /Quadro “Votações”/ })).toContainText(/ao vivo|aberta/);
+  const news = page.getByRole("region", { name: "Notícias sobre esta proposta" });
+  await expect(news.getByRole("listitem").first()).toBeVisible();
   await page
-    .getByRole("link", { name: /^Defende a tua escolha/ })
+    .getByRole("link", { name: /^Ver a discussão desta votação/ })
     .first()
     .click();
   await expect(page).toHaveURL(/\/forum\/votacoes\/\d+$/);
@@ -167,6 +182,12 @@ test("an initiative shows its Passa ou chumba beside it: the card while open; on
   await expect(open.getByRole("group", { name: /^A tua previsão para/ })).toBeVisible();
   await expect(open.getByText(/^Fecha em/)).toBeVisible();
   await expect(open.getByRole("link", { name: /^Defende a tua escolha/ })).toHaveAttribute("href", "/forum/votacoes/700");
+
+  // Scheduled, not open yet: when it opens.
+  await page.goto("/iniciativas/4995");
+  const soon = page.getByRole("region", { name: "Passa ou chumba?" });
+  await expect(soon).toContainText("Em breve");
+  await expect(soon).toContainText("As previsões abrem 24 de novembro, às 15:00");
 
   // Without one, nothing.
   await page.goto("/iniciativas/4990");

@@ -182,6 +182,21 @@ export const engagementHandlers = [
         outcome: null,
       });
     if (id === DECIDED.id) return HttpResponse.json({ ...DECIDED, myPick: null, outcome: null });
+    // Scheduled, more than 7 days out: no thread yet.
+    if (id === initiatives[5]!.id)
+      return HttpResponse.json({
+        id,
+        title: initiatives[5]!.title,
+        state: "upcoming",
+        opensAt: "2026-11-24T15:00:00.000Z",
+        closesAt: null,
+        threadId: null,
+        myPick: null,
+        split: null,
+        voteDate: "2026-12-01",
+        voteResult: null,
+        outcome: null,
+      });
     return fail(404, "not_found");
   }),
   http.put(`${API}/predictions/:id`, async ({ request, params }) => {

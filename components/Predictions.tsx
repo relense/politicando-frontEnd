@@ -19,6 +19,8 @@ import {
 import { markFollowed } from "@/lib/accountExtras";
 import { formatLongDate, formatNumber, formatTime } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
+import type { ThreadSummary } from "@/lib/api/forums";
+import { VoteNews, VotesBoardBox, VoteThreadPreview } from "./VoteDiscussion";
 
 /*
  * "Passa ou chumba?" (backend docs/engagement-api.md): before a vote in Parliament, each reader says whether they think
@@ -74,7 +76,18 @@ function useChoose(item: Prediction, limit: number) {
 }
 
 /** One proposal, with the two big buttons; the split once the reader has picked. */
-function PredictionCard({ item, limit, compact = false }: { item: Prediction; limit: number; compact?: boolean }) {
+function PredictionCard({
+  item,
+  limit,
+  compact = false,
+  threadBelow = false,
+}: {
+  item: Prediction;
+  limit: number;
+  compact?: boolean;
+  /** The conversation is shown right under the card: no link to it here. */
+  threadBelow?: boolean;
+}) {
   const gate = useAccountGate();
   const choose = useChoose(item, limit);
   const pick = choose.isPending ? choose.variables : item.myPick;
@@ -161,7 +174,7 @@ function PredictionCard({ item, limit, compact = false }: { item: Prediction; li
         </>
       )}
       {closed && <p className="mt-2 font-mono text-[11px] text-muted">A sessão já começou: as previsões fecharam.</p>}
-      {item.threadId && (
+      {item.threadId && !threadBelow && (
         <Link
           href={`/forum/votacoes/${item.threadId}`}
           className="mt-2 inline-block font-mono text-[11px] font-bold text-ink underline underline-offset-2"
@@ -210,7 +223,7 @@ function OtherVotes({ items, onChoose, chosen }: { items: Prediction[]; onChoose
   return (
     <section aria-labelledby="outras-votacoes" className="mt-5">
       <h3 id="outras-votacoes" className="border-b-2 border-ink pb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em]">
-        Próximas votações
+        Votações desta semana
       </h3>
       <ul className="divide-y divide-line">
         {items.map((item) => (
@@ -260,7 +273,7 @@ export function PredictionsCard({ initial, headingId = "passa-ou-chumba" }: { in
 }
 
 /** The whole page: the chosen vote, the others, the reader's record and the rules. */
-export function PredictionsPage({ initial }: { initial: Prediction[] }) {
+export function PredictionsPage({ initial, threads = [] }: { initial: Prediction[]; threads?: ThreadSummary[] }) {
   const items = useOpen(initial, 10);
   const [chosenId, setChosenId] = useState<number | null>(null);
   const chosen = items.find((item) => item.id === chosenId) ?? items[0];
@@ -270,25 +283,35 @@ export function PredictionsPage({ initial }: { initial: Prediction[] }) {
         {chosen ? (
           <>
             <h2 className="sr-only">A votação escolhida</h2>
-            <PredictionCard key={chosen.id} item={chosen} limit={10} />
+            <PredictionCard key={chosen.id} item={chosen} limit={10} threadBelow={Boolean(chosen.threadId)} />
+            {chosen.threadId && (
+              <VoteThreadPreview key={chosen.threadId} threadId={chosen.threadId} closesAt={chosen.closesAt} title={chosen.title} />
+            )}
+            <VotesBoardBox threads={threads} open={items} />
             <OtherVotes items={items} chosen={chosen.id} onChoose={setChosenId} />
           </>
         ) : (
-          <p className="rounded-2xl border border-dashed border-line p-6 text-center text-muted">
-            Sem votações esta semana. Abrimos as previsões quando uma proposta entra na agenda do plenário, até 7 dias antes.
-          </p>
+          <>
+            <p className="rounded-2xl border border-dashed border-line p-6 text-center text-muted">
+              Sem votações esta semana. Abrimos as previsões quando uma proposta entra na agenda do plenário, até 7 dias antes.
+            </p>
+            <VotesBoardBox threads={threads} open={items} />
+          </>
         )}
       </div>
       <aside className="flex flex-col gap-4">
         <RecordBox />
+        {chosen && <VoteNews key={chosen.id} initiativeId={chosen.id} />}
         <section aria-labelledby="regras" className="rounded-2xl border border-line p-4">
           <h2 id="regras" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
             Regras
           </h2>
           <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed">
             <li>É sobre propostas, nunca sobre pessoas.</li>
-            <li>Podes mudar a previsão até à votação. Conta a partir do dia seguinte à última mudança.</li>
-            <li>Conta a próxima votação decisiva, muitas vezes a da generalidade, não a final.</li>
+            <li>Abre quando a votação entra na agenda do plenário (até 7 dias antes) e fecha quando a sessão começa.</li>
+            <li>Ao prever, passas a seguir a discussão da votação.</li>
+            <li>Podes mudar a previsão enquanto está aberta.</li>
+            <li>Conta a votação que vem, muitas vezes a da generalidade, não a final.</li>
             <li>Sem rankings nem pontos públicos.</li>
             <li>O que os outros previram só aparece depois de escolheres.</li>
           </ul>
@@ -454,6 +477,7 @@ export function InitiativePredictionBox({ id }: { id: number }) {
   });
   const data = query.data;
   if (!data) return null;
+  if (data.state === "upcoming") return <UpcomingPrediction data={data} />;
   if (data.state === "open") {
     const item: Prediction = {
       id: data.id,
@@ -492,7 +516,13 @@ function SettledPrediction({ data }: { data: InitiativePrediction }) {
       </h2>
       {data.state === "decided" ? (
         <p className="mt-2 font-serif text-lg font-bold leading-snug">
-          Resultado: <span style={{ color: resultTone(data.voteResult) }}>{data.voteResult ?? "votada"}</span>
+          {data.voteResult ? (
+            <>
+              Resultado: <span style={{ color: resultTone(data.voteResult) }}>{data.voteResult}</span>
+            </>
+          ) : (
+            "Decidida sem votação"
+          )}
           {data.voteDate && <span className="block font-mono text-[11px] font-normal text-muted">{formatLongDate(data.voteDate)}</span>}
         </p>
       ) : (
@@ -529,6 +559,27 @@ function SettledPrediction({ data }: { data: InitiativePrediction }) {
           {data.state === "decided" ? "Ver a discussão da votação →" : "Ir para a discussão →"}
         </Link>
       )}
+    </section>
+  );
+}
+
+/** Scheduled, not open yet: when picks open. */
+function UpcomingPrediction({ data }: { data: InitiativePrediction }) {
+  return (
+    <section aria-labelledby="previsao-iniciativa" className="rounded-2xl border border-dashed border-line p-4">
+      <h2 id="previsao-iniciativa" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--favor)]">
+        Passa ou chumba?
+      </h2>
+      <p className="mt-2 font-serif text-lg font-bold leading-snug">Em breve</p>
+      <p className="mt-1 text-sm text-muted">
+        {data.opensAt
+          ? `As previsões abrem ${formatLongDate(data.opensAt)?.replace(/ de \d{4}$/, "")}, às ${formatTime(data.opensAt)}, quando a votação entrar na agenda da semana.`
+          : "As previsões abrem quando a votação entrar na agenda da semana."}{" "}
+        Diz se achas que passa e defende a tua escolha na discussão.
+      </p>
+      <Link href="/previsoes" className="mt-3 inline-block font-mono text-[11px] font-bold underline">
+        Ver as votações abertas →
+      </Link>
     </section>
   );
 }

@@ -109,13 +109,16 @@ export const pickPrediction = (id: number, pick: Pick) =>
 export const unpickPrediction = (id: number) => request(`/predictions/${id}`, z.unknown(), json("DELETE"));
 
 /**
- * One initiative's "Passa ou chumba?" (proposed to the backend: GET /predictions/:initiativeId; 404 when it never had
- * one). The split is for everyone once picks are closed; before that, only for a reader who has picked.
+ * One initiative's "Passa ou chumba?" (GET /predictions/:initiativeId, backend PR #31; 404 when it has none). At most one
+ * poll per initiative. The split is for everyone once picks are closed; before that, only for a reader who has picked.
+ * `threadId` is null while upcoming; `voteResult` null on a decided one means it was decided without a vote.
  */
 export const initiativePredictionSchema = z.object({
   id: z.number(),
   title: z.string(),
-  state: z.enum(["open", "closed", "decided"]),
+  state: z.enum(["upcoming", "open", "closed", "decided"]),
+  /** Upcoming only: when picks open. */
+  opensAt: nullableText.optional().transform((value) => value ?? null),
   closesAt: nullableText,
   threadId: z.number().nullable().catch(null),
   myPick: z.enum(["pass", "fail"]).nullable().catch(null),

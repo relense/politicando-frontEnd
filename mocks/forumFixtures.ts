@@ -438,10 +438,10 @@ export function addVoteThread(id: number, initiative: { id: number; title: strin
     title: `Passa ou chumba? ${initiative.title}`,
     body: "A conversa desta votação. Diz porque achas que passa, ou que chumba.",
     nickname: "Politicando",
-    posterId: "votacoes",
+    posterId: "redacao",
     createdAt: hoursAgo(30),
     bumpedAt: hoursAgo(2),
-    pinned: false,
+    pinned: true,
     locked: false,
     link: { article: null, initiative },
   });
@@ -467,6 +467,17 @@ export function addVoteThread(id: number, initiative: { id: number; title: strin
       createdAt: hoursAgo(3),
       hidden: false,
       pick: "fail",
+    },
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Atualização: o PSD anunciou abstenção.",
+      nickname: "Politicando",
+      posterId: "redacao",
+      replyTo: null,
+      createdAt: hoursAgo(2),
+      hidden: false,
+      pick: null,
     },
   );
 }
