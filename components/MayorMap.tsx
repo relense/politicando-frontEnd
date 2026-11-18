@@ -19,7 +19,7 @@ import { ApiError, locatePlace } from "@/lib/api/client";
 import { getPlaceDetail } from "@/lib/api/places";
 import { fold } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
-import type { PlaceMap } from "@/lib/maps";
+import type { MapShape, PlaceMap } from "@/lib/maps";
 import type { LegendItem } from "@/lib/places";
 
 export type MayorMapPlace = {
@@ -116,6 +116,7 @@ export function MayorMap({
   }, [view]);
   const router = useRouter();
 
+  const shapes = useShapes(map);
   const byCode = useMemo(() => new Map(places.map((place) => [place.code, place])), [places]);
   const byKey = useMemo(() => new Map(places.map((place) => [place.key, place])), [places]);
   const current = selected ? (byKey.get(selected) ?? null) : null;
@@ -219,12 +220,13 @@ export function MayorMap({
     }
   }
 
-  // The place in the address is framed once the shapes are drawn.
+  // The place in the address is framed once the shapes are drawn (they may arrive after the first render).
+  const drawn = shapes.length > 0;
   useEffect(() => {
-    if (selected) focus(selected);
-    // Only on the first render.
+    if (drawn && selected) focus(selected);
+    // Only once the shapes are there.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [drawn]);
 
   useEffect(() => () => void (animation.current && cancelAnimationFrame(animation.current)), []);
 
@@ -398,6 +400,14 @@ export function MayorMap({
 
           <figure className="order-1 min-w-0 lg:order-none">
             <div className="relative h-[min(75vh,44rem)] min-h-[24rem] overflow-hidden rounded-2xl border border-line">
+              {shapes.length === 0 && (
+                <div
+                  role="status"
+                  className="absolute inset-0 flex animate-pulse items-center justify-center bg-surface/60 font-mono text-xs text-muted"
+                >
+                  A carregar o mapa…
+                </div>
+              )}
               <svg
                 ref={svgRef}
                 viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
@@ -413,10 +423,8 @@ export function MayorMap({
               >
                 {/* A lit party's shapes are drawn last, so their outline is never hidden under a neighbour's. */}
                 {(party
-                  ? [...map.shapes].sort(
-                      (a, b) => Number(byCode.get(a.code)?.group === party) - Number(byCode.get(b.code)?.group === party),
-                    )
-                  : map.shapes
+                  ? [...shapes].sort((a, b) => Number(byCode.get(a.code)?.group === party) - Number(byCode.get(b.code)?.group === party))
+                  : shapes
                 ).map((shape) => {
                   const place = byCode.get(shape.code);
                   if (!place) return null;
@@ -968,4 +976,27 @@ function ChamberSplit({ seats, total }: { seats: Seat[]; total: number }) {
       </ul>
     </div>
   );
+}
+
+/**
+ * The map's outlines: in the props, or loaded from their file (kept by the browser, and shared by every map on this
+ * level) for the codes the page asked for.
+ */
+function useShapes(map: PlaceMap): MapShape[] {
+  const { data } = useQuery({
+    queryKey: ["map-outlines", map.outlines?.url],
+    queryFn: async () => {
+      const response = await fetch(map.outlines!.url);
+      if (!response.ok) throw new Error(`Map outlines: ${response.status}`);
+      return (await response.json()) as Record<string, string>;
+    },
+    enabled: Boolean(map.outlines),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+  return useMemo(() => {
+    if (!map.outlines) return map.shapes;
+    if (!data) return [];
+    return map.outlines.codes.flatMap((code) => (data[code] ? [{ code, d: data[code] }] : []));
+  }, [map, data]);
 }

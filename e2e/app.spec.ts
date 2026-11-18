@@ -303,9 +303,22 @@ test("hostile title cannot break out of JSON-LD", async ({ request }) => {
   expect(html).not.toContain("<script>window.__xss");
 });
 
-test("the initiatives list has a loading screen, and a missing initiative is still a real 404", async ({ request }) => {
-  expect((await request.get("/iniciativas")).status()).toBe(200);
-  expect((await request.get("/iniciativas/987654321")).status()).toBe(404);
+// The list pages have loading screens; the pages under them don't, or a missing one would answer 200 instead of 404.
+test("pages under the list pages with loading screens are still real 404s", async ({ request }) => {
+  for (const path of [
+    "/iniciativas/987654321",
+    "/governo/nao-existe",
+    "/eleicoes/nao-existe",
+    "/sitios/LOCAL-999999",
+    "/contratos/987654321",
+    "/contratos/entidade/000000000",
+    "/legislaturas/nao-existe",
+    "/editorial/nao-existe",
+    "/forum/nao-existe",
+    "/feedback/ideias/987654321",
+    "/partido/nao-existe",
+  ])
+    expect((await request.get(path)).status(), path).toBe(404);
 });
 
 test("sitemap and robots are served", async ({ request }) => {
