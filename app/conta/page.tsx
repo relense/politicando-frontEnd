@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AccountSettings } from "@/components/account/AccountSettings";
 
 export const metadata: Metadata = {
-  title: "A tua conta",
+  title: "Definições da conta",
   robots: { index: false, follow: false },
 };
 

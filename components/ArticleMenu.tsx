@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { readerPrefs, toggleIn, updateReaderPrefs, useReaderPrefs, type ReaderPrefs } from "@/lib/readerPrefs";
 import { ReportButton } from "./forum/ReportButton";
+import { useAccountGate } from "@/lib/account";
 
 type MenuArticle = { id: number; title: string; source: string; sourceDomain: string; parties: { slug: string; acronym: string }[] };
 
@@ -24,6 +25,7 @@ export function ArticleMenu({ article, why }: { article: MenuArticle; why: strin
   const [open, setOpen] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const gate = useAccountGate();
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -112,7 +114,7 @@ export function ArticleMenu({ article, why }: { article: MenuArticle; why: strin
             className={item}
             onClick={() => {
               close();
-              setReporting(true);
+              if (!gate("report", button.current)) setReporting(true);
             }}
           >
             <Icon d="M5 17V3m0 1h9l-2 3.5 2 3.5H5" />

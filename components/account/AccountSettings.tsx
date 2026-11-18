@@ -22,26 +22,54 @@ const BUTTON =
   "inline-flex min-h-10 items-center rounded-full border border-line px-4 font-mono text-xs font-bold hover:bg-surface disabled:opacity-50";
 const INPUT = "w-full rounded-xl border border-line bg-paper px-3 py-2.5 font-mono text-sm";
 
-/** The reader's account: what they wrote, the password, their data, logging out and deleting it all. */
+/** Without a session: what the page is for, and the way in (and back here). */
+function SignedOut({ title, text, path }: { title: string; text: string; path: string }) {
+  const back = `?depois=${encodeURIComponent(path)}`;
+  return (
+    <div className="max-w-xl rounded-2xl border border-dashed border-line p-6">
+      <h1 className="text-2xl font-bold">{title}</h1>
+      <p className="mt-2 text-muted">{text}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href={`/entrar${back}`} className={BUTTON}>
+          Entrar
+        </Link>
+        <Link href={`/criar-conta${back}`} className={`${BUTTON} border-ink bg-ink text-paper hover:bg-ink hover:opacity-90`}>
+          Criar conta
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** The account's settings: the password, their data, logging out and deleting it all. */
 export function AccountSettings() {
   const reader = useReader();
   if (reader === undefined) return <p className="text-muted">A verificar a sessão…</p>;
-  if (!reader)
-    return (
-      <div className="max-w-xl rounded-2xl border border-dashed border-line p-6">
-        <h1 className="text-2xl font-bold">A tua conta</h1>
-        <p className="mt-2 text-muted">Entra para veres a tua conta, os teus comentários e as tuas definições.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/entrar?depois=%2Fconta" className={BUTTON}>
-            Entrar
-          </Link>
-          <Link href="/criar-conta" className={`${BUTTON} border-ink bg-ink text-paper hover:bg-ink hover:opacity-90`}>
-            Criar conta
-          </Link>
-        </div>
-      </div>
-    );
+  if (!reader) return <SignedOut title="Definições da conta" text="Entra para veres e mudares as definições da tua conta." path="/conta" />;
   return <Signed reader={reader} />;
+}
+
+/** What the reader wrote with the account: comments, forum threads and replies, newest first. */
+export function AccountComments() {
+  const reader = useReader();
+  if (reader === undefined) return <p className="text-muted">A verificar a sessão…</p>;
+  if (!reader)
+    return <SignedOut title="Os meus comentários" text="Entra para veres o que escreveste com a tua conta." path="/conta/comentarios" />;
+  return (
+    <div className="max-w-3xl">
+      <header className="mb-6 flex flex-wrap items-center gap-4">
+        <Avatar reader={reader} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted">{reader.username}</p>
+          <h1 className="text-2xl font-bold">Os meus comentários</h1>
+          <p className="text-sm text-muted">
+            Comentários nas notícias, discussões e respostas no fórum, do mais recente para o mais antigo.
+          </p>
+        </div>
+      </header>
+      <ActivityList />
+    </div>
+  );
 }
 
 function Signed({ reader }: { reader: Reader }) {
@@ -52,7 +80,7 @@ function Signed({ reader }: { reader: Reader }) {
       <header className="flex flex-wrap items-center gap-4">
         <Avatar reader={reader} size="lg" />
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted">A tua conta</p>
+          <p className="font-mono text-xs uppercase tracking-widest text-muted">Definições da conta</p>
           <h1 className="truncate font-mono text-2xl font-bold">{reader.username}</h1>
           <p className="text-sm text-muted">
             Conta criada a {formatLongDate(reader.createdAt)}. O nome é público: aparece nos teus comentários.
@@ -69,10 +97,6 @@ function Signed({ reader }: { reader: Reader }) {
           Terminar sessão
         </button>
       </header>
-
-      <Section id="atividade" title="Os meus comentários">
-        <ActivityList />
-      </Section>
 
       <Section id="palavra-passe" title="Mudar a palavra-passe">
         <PasswordForm />

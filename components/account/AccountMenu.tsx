@@ -128,7 +128,7 @@ function SignedIn({ reader }: { reader: Reader }) {
               <MenuLink href="/guardadas" onClick={close} icon="M6 3h12v18l-6-4-6 4V3Z" count={prefs.saved.length}>
                 Guardadas
               </MenuLink>
-              <MenuLink href="/conta#atividade" onClick={close} icon="M4 5h16v11H8l-4 4V5Z">
+              <MenuLink href="/conta/comentarios" onClick={close} icon="M4 5h16v11H8l-4 4V5Z">
                 Os meus comentários
               </MenuLink>
               <MenuLink href="/newsletter" onClick={close} icon="M3 6h18v12H3V6Zm0 0 9 7 9-7">

@@ -12,6 +12,9 @@ import {
   type MergeInput,
   type Reader,
 } from "./api/account";
+import { LOGIN_REQUIRED_EVENT } from "./api/client";
+import { ASK_NEEDS, needsAccount, type AskKind, type Participation } from "./participation";
+import type { PendingAction } from "./pendingAction";
 import { onReaderPrefsChange, readerPrefs, replaceReaderPrefs, type ReaderPrefs } from "./readerPrefs";
 
 /*
@@ -26,6 +29,32 @@ export const READER_KEY = ["reader"];
 export function useReader(): Reader | null | undefined {
   const query = useQuery({ queryKey: READER_KEY, queryFn: getReader, staleTime: 5 * 60_000, retry: false });
   return query.isPending ? undefined : query.isError ? null : query.data;
+}
+
+/** What the login note needs: which button asked, where it is, and what to finish after logging in. */
+export type LoginAsk = { kind: AskKind; anchor: HTMLElement | null; pending: PendingAction | null };
+
+/** Opens the login note (components/account/AccountRuntime) next to the button that asked, or at the bottom. */
+export function askToLogIn(kind: AskKind = "any", anchor: HTMLElement | null = null, pending: PendingAction | null = null) {
+  window.dispatchEvent(new CustomEvent<LoginAsk>(LOGIN_REQUIRED_EVENT, { detail: { kind, anchor, pending } }));
+}
+
+/**
+ * Before taking part: true when it needs an account the reader hasn't got, and then the login note is already open,
+ * so the caller stops there. While the session is still being checked it lets the action through; the API decides.
+ */
+export function useAccountGate(): (kind: Exclude<AskKind, "any">, anchor?: HTMLElement | null, pending?: PendingAction) => boolean {
+  const reader = useReader();
+  return (kind, anchor = null, pending) => {
+    if (reader !== null || !needsAccount(ASK_NEEDS[kind])) return false;
+    askToLogIn(kind, anchor, pending ?? null);
+    return true;
+  };
+}
+
+/** Whether this kind of taking part is closed to this reader: no account, and one is needed. */
+export function useLockedOut(what: Participation): boolean {
+  return useReader() === null && needsAccount(what);
 }
 
 /** The browser's lists the account replaces (backend: "It replaces reader-prefs, article-votes…"). */

@@ -1,7 +1,9 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { ApiError } from "@/lib/api/client";
 import { ARTICLE_REPORT_REASONS, createReport, REPORT_REASONS, type ReportKind, type ReportReason } from "@/lib/api/forums";
+import { useAccountGate } from "@/lib/account";
 
 type Props = {
   kind: ReportKind;
@@ -16,6 +18,7 @@ type Props = {
 export function ReportButton({ kind, id, className = "", startOpen = false, onClose }: Props) {
   const fieldId = useId();
   const [open, setOpenState] = useState(startOpen);
+  const gate = useAccountGate();
   const setOpen = (value: boolean | ((current: boolean) => boolean)) => {
     const next = typeof value === "function" ? value(open) : value;
     setOpenState(next);
@@ -36,8 +39,9 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
       setOpenState(false);
       // Opened from a menu: the thanks shows a moment, then it goes away.
       if (startOpen) setTimeout(() => onClose?.(), 2500);
-    } catch {
-      setState("failed");
+    } catch (error) {
+      // Needs an account: the login prompt opens instead, and the form stays as it was.
+      setState(error instanceof ApiError && error.code === "login_required" ? "idle" : "failed");
     }
   }
 
@@ -53,7 +57,7 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
           type="button"
           aria-expanded={open}
           aria-controls={`${fieldId}-form`}
-          onClick={() => setOpen((value) => !value)}
+          onClick={(event) => (open || !gate("report", event.currentTarget) ? setOpen(!open) : undefined)}
           className="rounded-full px-2.5 py-1.5 font-mono text-xs font-bold text-muted hover:bg-surface hover:text-ink"
         >
           Denunciar

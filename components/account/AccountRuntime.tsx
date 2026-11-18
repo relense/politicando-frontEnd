@@ -1,73 +1,138 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { markSignedOut, pullAccountState, useReader } from "@/lib/account";
-import { LOGIN_REQUIRED_EVENT } from "@/lib/api/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { markSignedOut, pullAccountState, useReader, type LoginAsk } from "@/lib/account";
+import type { Reader } from "@/lib/api/account";
+import { createComment, likeComment, LOGIN_REQUIRED_EVENT, voteArticle, votePost } from "@/lib/api/client";
+import { voteThread } from "@/lib/api/forums";
+import { markImporta } from "@/lib/api/stories";
+import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
+import { applyVoteAnswer } from "../ArticleVote";
+import { applyLikeAnswer } from "../CommentLike";
+import { applyIdeaAnswer } from "../forum/IdeaVote";
+import { applyImportaAnswer } from "../ImportaButton";
 import { useReturnPath } from "./AccountMenu";
+import { LoginNote } from "./LoginNote";
+
+type Done = { text: string; href?: string; failed?: boolean };
 
 /**
- * On every page: fills this browser's lists from the account once per visit, and when the API answers that taking
- * part needs an account (`login_required`), offers to log in. Renders nothing otherwise.
+ * On every page: fills this browser's lists from the account once per visit; asks for an account when taking part
+ * needs one (a button asked, or the API answered `login_required`); and, back from logging in, finishes what the reader
+ * had started on this page and says so. Renders nothing otherwise.
  */
 export function AccountRuntime() {
   const reader = useReader();
+  const pathname = usePathname();
   const back = useReturnPath();
-  const [asked, setAsked] = useState(false);
+  const client = useQueryClient();
+  const [ask, setAsk] = useState<LoginAsk | null>(null);
+  const [done, setDone] = useState<Done | null>(null);
+  const close = useCallback(() => setAsk(null), []);
 
   useEffect(() => {
-    if (reader) void pullAccountState(reader);
-    else if (reader === null) markSignedOut();
-  }, [reader]);
+    if (!reader) {
+      if (reader === null) markSignedOut();
+      return;
+    }
+    let live = true;
+    void (async () => {
+      // The account's lists first, so the finished action isn't overwritten by them.
+      await pullAccountState(reader);
+      const action = takePending(pathname);
+      if (!action || !live) return;
+      const result = await finish(action, reader, client);
+      if (live) setDone(result);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [reader, pathname, client]);
 
   useEffect(() => {
-    const ask = () => setAsked(true);
-    window.addEventListener(LOGIN_REQUIRED_EVENT, ask);
-    return () => window.removeEventListener(LOGIN_REQUIRED_EVENT, ask);
+    const listen = (event: Event) => {
+      const detail = event instanceof CustomEvent ? (event.detail as LoginAsk | undefined) : undefined;
+      setAsk(detail ?? { kind: "any", anchor: null, pending: null });
+    };
+    window.addEventListener(LOGIN_REQUIRED_EVENT, listen);
+    return () => window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
   }, []);
 
-  if (!asked || reader) return null;
-  const next = back === "/" ? "" : `?depois=${encodeURIComponent(back)}`;
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => setDone(null), 8000);
+    return () => clearTimeout(timer);
+  }, [done]);
+
   return (
-    <div
-      role="alertdialog"
-      aria-labelledby="entra-para-participar"
-      aria-describedby="entra-para-participar-texto"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-2xl border border-line bg-paper p-5 shadow-xl"
-    >
-      <p id="entra-para-participar" className="pr-8 text-lg font-bold">
-        Entra para participar
-      </p>
-      <p id="entra-para-participar-texto" className="mt-1 text-sm text-muted">
-        Comentar, votar, marcar &quot;Importa&quot; e denunciar pedem uma conta. Ler continua livre. É grátis e só precisa de um nome e uma
-        palavra-passe.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          href={`/entrar${next}`}
-          onClick={() => setAsked(false)}
-          className="inline-flex min-h-10 items-center rounded-full border border-line px-4 font-mono text-xs font-bold hover:bg-surface"
-        >
-          Entrar
-        </Link>
-        <Link
-          href={`/criar-conta${next}`}
-          onClick={() => setAsked(false)}
-          className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 font-mono text-xs font-bold text-paper hover:opacity-90"
-        >
-          Criar conta
-        </Link>
-      </div>
-      <button
-        type="button"
-        onClick={() => setAsked(false)}
-        aria-label="Fechar"
-        className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-2">
-          <path d="M6 6l12 12M18 6 6 18" />
-        </svg>
-      </button>
-    </div>
+    <>
+      {ask && !reader && <LoginNote ask={ask} back={back} onClose={close} />}
+      {/* Only while there's something to say: pages have status messages of their own. */}
+      {done && (
+        <div role="status" className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center">
+          <p
+            className={`pointer-events-auto flex items-center gap-3 rounded-xl px-4 py-3 font-mono text-xs font-bold shadow-xl ${
+              done.failed ? "bg-[var(--card)] text-danger ring-1 ring-line" : "bg-ink text-paper"
+            }`}
+          >
+            <span aria-hidden="true">{done.failed ? "!" : "✓"}</span>
+            {done.text}
+            {done.href && (
+              <a href={done.href} onClick={() => setDone(null)} className="underline">
+                Ver
+              </a>
+            )}
+          </p>
+        </div>
+      )}
+    </>
   );
+}
+
+/** Does what the reader asked for before logging in, and says what happened. */
+async function finish(action: PendingAction, reader: Reader, client: ReturnType<typeof useQueryClient>): Promise<Done> {
+  try {
+    switch (action.kind) {
+      case "comment": {
+        const created = await createComment({
+          target: action.target,
+          parentId: action.parentId,
+          username: reader.username,
+          text: action.text,
+          captchaToken: null,
+          stance: action.stance,
+        });
+        writeDraft(action.target, action.parentId, "");
+        await client.invalidateQueries({ queryKey: ["comments", action.target] });
+        return {
+          text: `Sessão iniciada. ${action.parentId === null ? "O teu comentário foi publicado." : "A tua resposta foi publicada."}`,
+          href: `#comentario-${created.id}`,
+        };
+      }
+      case "importa":
+        applyImportaAnswer(action.id, await markImporta(action.id, 1));
+        return { text: "Sessão iniciada. Marcaste “Importa” nesta notícia." };
+      case "vote": {
+        const answer =
+          typeof action.id === "number"
+            ? await voteArticle(action.id, action.value)
+            : await votePost(action.id.replace(/^post:/, ""), action.value);
+        applyVoteAnswer(action.id, answer);
+        return { text: "Sessão iniciada. O teu voto contou." };
+      }
+      case "like":
+        applyLikeAnswer(action.id, await likeComment(action.id, 1));
+        return { text: "Sessão iniciada. O teu gosto contou." };
+      case "idea":
+        applyIdeaAnswer(action.id, await voteThread(action.id));
+        return { text: "Sessão iniciada. O teu voto na ideia contou." };
+    }
+  } catch {
+    // The comment stays in its box (its draft), to publish by hand.
+    return action.kind === "comment"
+      ? { text: "Sessão iniciada, mas o comentário não foi publicado. Ficou na caixa para tentares outra vez.", failed: true }
+      : { text: "Sessão iniciada, mas não contou. Tenta outra vez.", failed: true };
+  }
 }

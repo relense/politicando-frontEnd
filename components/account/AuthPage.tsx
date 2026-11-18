@@ -8,6 +8,7 @@ import { adoptAccount, useReader } from "@/lib/account";
 import { accountErrorMessage, logIn, register } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
+import { GOLD } from "./ui";
 
 type Mode = "login" | "register";
 
@@ -99,9 +100,6 @@ export function AuthPage({ mode, back }: { mode: Mode; back: string }) {
     </div>
   );
 }
-
-const GOLD =
-  "inline-flex min-h-11 items-center justify-center rounded-xl bg-[#f2c94c] px-5 font-mono text-sm font-bold text-[#1b1d22] hover:bg-[#f5d36a] disabled:opacity-60";
 
 const BENEFITS = [
   { title: "Guarda notícias", text: "Lê mais tarde, em qualquer dispositivo.", icon: "M7 4h10v16l-5-3.5L7 20V4Z" },

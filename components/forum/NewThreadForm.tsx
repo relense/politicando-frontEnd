@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { createThread, forumErrorMessage, THREAD_LIMITS } from "@/lib/api/forums";
 import { rememberPosterId } from "@/lib/forumSession";
-import { useReader } from "@/lib/account";
+import { useLockedOut, useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
+import { SignInToTakePart } from "@/components/account/SignInToTakePart";
 
 /** Sent when the captcha is switched off for testing. The API decides whether it is accepted. */
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -50,9 +51,18 @@ export function NewThreadForm({
   const [sending, setSending] = useState(false);
   const [attached, setAttached] = useState(link);
   const reader = useReader();
+  const lockedOut = useLockedOut("forum");
   // With an account: no captcha, and the name is the account's.
   const captchaOff = isCaptchaOff() || Boolean(reader);
 
+  if (lockedOut)
+    return (
+      <section aria-label={heading}>
+        <SignInToTakePart title="Entra para abrir uma discussão">
+          Escrever no fórum pede uma conta. Ler continua livre. É grátis e só precisa de um nome e uma palavra-passe.
+        </SignInToTakePart>
+      </section>
+    );
   if (!reader && !isCaptchaConfigured())
     return <p className="text-muted">O fórum está temporariamente indisponível para novas publicações.</p>;
 

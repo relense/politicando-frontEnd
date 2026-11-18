@@ -6,11 +6,12 @@ import { useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalS
 import { createPost, forumErrorMessage, getThread, posterName, THREAD_LIMITS, type ForumPost, type ThreadDetail } from "@/lib/api/forums";
 import { parsePosterIds, posterIdsSnapshot, rememberPosterId, subscribePosterIds } from "@/lib/forumSession";
 import { quotesOf } from "@/lib/forumText";
-import { useReader } from "@/lib/account";
+import { useAccountGate, useLockedOut, useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 import { RelativeTime } from "../RelativeTime";
 import { ForumText } from "./ForumText";
 import { ReportButton } from "./ReportButton";
+import { SignInToTakePart } from "@/components/account/SignInToTakePart";
 
 const POLL_MS = 20_000;
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -63,6 +64,7 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
   }, [posts]);
 
   const form = useRef<ReplyFormHandle>(null);
+  const gate = useAccountGate();
 
   return (
     <>
@@ -100,7 +102,7 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
         </div>
         <Backlinks ids={backlinks.get(thread.id) ?? []} />
         <div className="mt-2 flex flex-wrap items-center gap-1">
-          {!thread.locked && <ReplyButton onClick={() => form.current?.replyTo(null)} />}
+          {!thread.locked && <ReplyButton onClick={(button) => gate("forum", button) || form.current?.replyTo(null)} />}
           <ReportButton kind="thread" id={thread.id} />
         </div>
       </article>
@@ -118,7 +120,7 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
                 anchors={anchors}
                 answers={backlinks.get(post.id) ?? []}
                 locked={thread.locked}
-                onReply={() => form.current?.replyTo(post.id)}
+                onReply={(button) => gate("forum", button) || form.current?.replyTo(post.id)}
               />
             </li>
           ))}
@@ -203,7 +205,7 @@ function Reply({
   anchors: ReadonlyMap<number, string>;
   answers: number[];
   locked: boolean;
-  onReply: () => void;
+  onReply: (button: HTMLElement) => void;
 }) {
   const quoted = post.body !== null && post.replyTo !== null && quotesOf(post.body).includes(post.replyTo);
   return (
@@ -264,11 +266,11 @@ function Backlinks({ ids }: { ids: number[] }) {
   );
 }
 
-function ReplyButton({ onClick }: { onClick: () => void }) {
+function ReplyButton({ onClick }: { onClick: (button: HTMLElement) => void }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => onClick(event.currentTarget)}
       className="rounded-full px-2.5 py-1.5 font-mono text-xs font-bold text-muted hover:bg-surface hover:text-ink"
     >
       Responder
@@ -291,6 +293,7 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
   const [sending, setSending] = useState(false);
   const [captchaShown, setCaptchaShown] = useState(false);
   const reader = useReader();
+  const lockedOut = useLockedOut("forum");
   // With an account: no captcha, and the name is the account's.
   const captchaOff = isCaptchaOff() || Boolean(reader);
 
@@ -305,6 +308,12 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
     },
   }));
 
+  if (lockedOut)
+    return (
+      <SignInToTakePart title="Entra para responder">
+        Escrever no fórum pede uma conta. Ler continua livre. É grátis e só precisa de um nome e uma palavra-passe.
+      </SignInToTakePart>
+    );
   if (!reader && !isCaptchaConfigured()) return <p className="text-muted">As respostas estão temporariamente indisponíveis.</p>;
 
   async function submit(event: FormEvent) {

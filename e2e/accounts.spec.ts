@@ -75,10 +75,18 @@ test("create an account, log out, log back in, change the password and delete it
   await expect(page.getByRole("alert").filter({ hasText: "Nome ou palavra-passe errados." })).toBeVisible();
   await logIn(page, { username, password });
 
-  // The account page: activity, password, data, delete.
+  // What they wrote, on a page of its own, from the account menu.
+  const menu2 = await openAccountMenu(page, username);
+  await menu2.getByRole("link", { name: "Os meus comentários" }).click();
+  await expect(page).toHaveURL(/\/conta\/comentarios$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Os meus comentários" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Os meus comentários" })).toContainText("Um comentário de teste feito com conta.");
+  await noSeriousA11yIssues(page);
+
+  // The settings: password, data, delete.
   await page.goto("/conta");
   await expect(page.getByRole("heading", { level: 1, name: username })).toBeVisible();
-  await expect(page.getByRole("list", { name: "Os meus comentários" })).toContainText("Um comentário de teste feito com conta.");
+  await expect(page.getByRole("list", { name: "Os meus comentários" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Descarregar os meus dados (JSON)" })).toHaveAttribute("href", "/api/v2/me/export");
   await noSeriousA11yIssues(page);
 
@@ -139,15 +147,18 @@ test("with an account, comments carry its name and need no captcha", async ({ pa
 });
 
 test("when the API asks for an account, taking part offers to log in", async ({ page, request }) => {
+  // With the site's own setting on, it asks before the API can (e2e/login-required.spec.ts).
+  test.skip(Boolean(process.env.NEXT_PUBLIC_LOGIN_REQUIRED), "the site asks first");
   await request.post(`${MOCK_API}/__mock/login-required`, { data: { on: true } });
   try {
     await page.goto("/editorial");
     const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
     await row.getByRole("button", { name: /^Votar a favor de/ }).click();
-    const ask = page.getByRole("alertdialog", { name: "Entra para participar" });
+    const ask = page.getByRole("dialog", { name: "Entra para participar" });
     await expect(ask).toBeVisible();
     await expect(ask.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/criar-conta?depois=%2Feditorial");
-    await ask.getByRole("button", { name: "Fechar" }).click();
+    // A note on desktop (×), a sheet on phones ("Agora não").
+    await ask.getByRole("button", { name: /^(Fechar|Agora não)$/ }).click();
     await expect(ask).toHaveCount(0);
   } finally {
     await request.post(`${MOCK_API}/__mock/login-required`, { data: { on: false } });
