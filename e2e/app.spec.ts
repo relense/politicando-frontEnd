@@ -1195,6 +1195,10 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
   expect((await request.get("/icon")).status()).toBe(200);
   const robots = await (await request.get("/robots.txt")).text();
   expect(robots).toContain("Disallow: /admin");
+  // Bing and the SEO crawlers are slowed (Google ignores Crawl-delay), with the same disallowed paths.
+  const bing = robots.slice(robots.indexOf("User-Agent: bingbot"));
+  expect(bing).toContain("Crawl-delay: 5");
+  expect(bing).toContain("Disallow: /admin");
   expect(await (await request.get("/sitemap.xml")).text()).toContain("/forum</loc>");
 });
 
