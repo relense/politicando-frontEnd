@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { getElectionResult, getElections } from "@/lib/api/client";
 import { getLegislatures, legislaturePath } from "@/lib/api/legislatures";
 import { getSitemapItems, type SitemapItem, type SitemapKind } from "@/lib/api/sitemap";
+import { localOfficialPath } from "@/lib/api/localOfficials";
 import { editorialPath } from "@/lib/editorial";
 import { FEATURES } from "@/lib/features";
 import { LOCAL_POSTS } from "@/lib/localPosts";
@@ -27,6 +28,7 @@ const ROUTES: Record<SitemapKind, { path: ((id: string) => string) | null; chang
   initiative: { path: (id) => `/iniciativas/${id}`, changeFrequency: "weekly" },
   editorial: { path: editorialPath, changeFrequency: "monthly" },
   case: { path: FEATURES.record ? (id) => `/registo/${id}` : null, changeFrequency: "monthly" },
+  "local-official": { path: localOfficialPath, changeFrequency: "monthly" },
 };
 
 /** Districts and municipalities before parishes, as the backend suggests. */

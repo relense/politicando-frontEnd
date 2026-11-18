@@ -13,7 +13,7 @@ const parties: Party[] = [
   { slug: "livre", acronym: "L", name: "LIVRE", website: null },
 ];
 
-const mayor = (parties: string[]) => ({ name: "Teresa Exemplo", list: "X", label: "X", parties, election: null });
+const mayor = (parties: string[]) => ({ id: null, name: "Teresa Exemplo", list: "X", label: "X", parties, election: null });
 
 describe("map colours and legend", () => {
   it("colours a place by the main party of the mayor's list, and citizens' groups alike", () => {

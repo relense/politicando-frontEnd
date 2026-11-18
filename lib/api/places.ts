@@ -12,6 +12,8 @@ const levelSchema = z.enum(["global", "national", "foreign", "district", "munici
 const text = z.string().nullish();
 
 const mayorSchema = z.object({
+  /** Their own page: /autarcas/:id (GET /local-officials/:id). */
+  id: text,
   name: z.string(),
   list: z.string(),
   label: text,
@@ -81,6 +83,8 @@ export type ApiPlaceList = z.input<typeof placeListSchema>;
 export type ApiPlaceDetail = z.input<typeof placeDetailSchema>;
 
 export type Mayor = {
+  /** Their page's id, when the API gives one. */
+  id: string | null;
   name: string;
   /** The ballot's code, e.g. "PS.L.PAN". */
   list: string;
@@ -138,6 +142,7 @@ const mapRef = (place: z.output<typeof placeRefSchema>): Place => ({
 const mapMayor = (mayor: z.output<typeof mayorSchema> | null | undefined): Mayor | null =>
   mayor
     ? {
+        id: mayor.id ?? null,
         name: mayor.name,
         list: mayor.list,
         label: mayor.label || mayor.list,

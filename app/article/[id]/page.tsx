@@ -134,7 +134,11 @@ export default async function ArticlePage({ params }: Props) {
       <div data-wide className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           {story && <MarkStoryRead id={story.id} />}
-          <ArticleDetail article={article} versions={story && <StoryVersions story={story} current={article.id} />} />
+          <ArticleDetail
+            // A story names everyone across its versions; one article alone may name fewer.
+            article={story && story.people.length > 0 ? { ...article, people: story.people } : article}
+            versions={story && <StoryVersions story={story} current={article.id} />}
+          />
           {story && <HowEachToldList story={story} current={article.id} />}
           <CommentSection
             target={target}

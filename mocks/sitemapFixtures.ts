@@ -29,6 +29,7 @@ const kinds: Record<string, { id: string | number; lastmod: string | null; level
   initiative: initiatives.slice(0, 5).map((initiative) => ({ id: initiative.id, lastmod: "2026-11-01T10:00:00Z" })),
   editorial: editorialPosts.map((post) => ({ id: post.slug, lastmod: post.publishedAt })),
   case: [],
+  "local-official": [{ id: "marta-quintela", lastmod: "2026-11-17T20:00:00Z" }],
   "something-new": [{ id: "x", lastmod: null }],
 };
 
