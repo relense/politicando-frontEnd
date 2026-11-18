@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { storyPath, type Story } from "@/lib/api/stories";
+import { leadOf, storyImage, storyPath, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
 import { initiativePath } from "@/lib/initiatives";
 import { partyPath } from "@/lib/parties";
@@ -14,8 +14,7 @@ import { cardAction, cardActions, cardBox, cardExcerpt, cardImage, cardMeta, car
 import { SourceLogo } from "./SourceLogo";
 import { DebatePair } from "./StoryParts";
 
-/** The version whose headline is the story's, or the first one: whose name heads the card and whose page it opens. */
-export const leadOf = (story: Story) => story.versions.find((item) => item.title === story.title) ?? story.versions[0]!;
+export { leadOf };
 
 /**
  * A story in the feed: one card for the same news told by several outlets. The first outlet and "+6 jornais"; the
@@ -73,15 +72,16 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
       {/* On a phone the title, the photo and the outlets say enough: no excerpt. */}
       {text && <p className={`${cardExcerpt} max-sm:hidden`}>{text}</p>}
 
-      {story.imageUrl && (
-        <ArticleImage
-          src={story.imageUrl}
-          href={path}
-          caption={`Imagem · ${lead.source}`}
-          className={cardImage}
-          imageClassName="size-full object-cover"
-        />
-      )}
+      <ArticleImage
+        src={storyImage(story)}
+        alt={story.title}
+        href={path}
+        caption={`Imagem · ${lead.source}`}
+        source={lead.source}
+        sourceDomain={lead.sourceDomain}
+        className={cardImage}
+        imageClassName="size-full object-cover"
+      />
 
       {story.sourceCount > 1 && <HowEachTold story={story} />}
 

@@ -13,7 +13,7 @@ import type { MoreAboutGroup } from "@/components/MoreAbout";
 import { ApiError, getArticle, getComments, getFeedPage, getInitiative, getInitiatives } from "@/lib/api/client";
 import { excerpt } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
-import { OG_BASE } from "@/lib/seo";
+import { clip, OG_BASE, pageTitle } from "@/lib/seo";
 import { articleComments, type Article } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }> };
@@ -83,10 +83,13 @@ async function loadContext(article: Article): Promise<ArticleContext | null> {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await loadArticle((await params).id);
-  const description = excerpt(article.excerpt, 160) || undefined;
+  // Never undefined: that would drop the site's description too, leaving the page with none.
+  const description =
+    excerpt(article.excerpt, 160) ||
+    clip(`Notícia do ${article.source}: ${article.title}. Os partidos e as pessoas referidas, e o debate no Politicando.`);
   const path = `/article/${article.id}`;
   return {
-    title: article.title,
+    title: pageTitle(article.title),
     description,
     alternates: { canonical: path },
     // Only another outlet's headline and excerpt: kept out of search results (links are still followed), so search

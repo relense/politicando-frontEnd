@@ -1038,6 +1038,8 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
     .filter({ has: page.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }) })
     .first();
   await expect(card).toContainText("+3 jornais");
+  // No photo from the outlet it names: a dark frame of the same size says so, instead of the card shrinking.
+  await expect(card.getByText(/^Sem imagem · /)).toBeVisible();
   // How each outlet headlined it, folded under the logos.
   await card.getByText("4 jornais contaram isto").click();
   await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
@@ -1287,6 +1289,18 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
   await page.goto("/parlamento");
   const footer = page.locator("footer");
   await expect(footer.getByRole("link", { name: /@politicando_pt no X/ })).toHaveAttribute("href", "https://x.com/politicando_pt");
+  await expect(footer.getByRole("link", { name: /@politicando\.pt no Instagram/ })).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/politicando.pt/",
+  );
+  await expect(footer.getByRole("link", { name: /@politicando\.pt no Threads/ })).toHaveAttribute(
+    "href",
+    "https://www.threads.com/@politicando.pt",
+  );
+  await expect(footer.getByRole("link", { name: /@politicandopt no TikTok/ })).toHaveAttribute(
+    "href",
+    "https://www.tiktok.com/@politicandopt",
+  );
   await expect(footer.getByRole("link", { name: /Podcast no Spotify/ })).toHaveAttribute(
     "href",
     "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
@@ -1299,5 +1313,17 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
   }
   await expect(page.locator('meta[name="twitter:site"]')).toHaveAttribute("content", "@politicando_pt");
   const site = await page.locator('script[type="application/ld+json"]').allTextContents();
-  expect(site.join("")).toContain('"sameAs":["https://x.com/politicando_pt","https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT"]');
+  expect(site.join("")).toContain(
+    '"sameAs":["https://x.com/politicando_pt","https://www.instagram.com/politicando.pt/","https://www.tiktok.com/@politicandopt","https://www.threads.com/@politicando.pt","https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT"]',
+  );
+});
+
+test("a card without a photo keeps its shape, with a dark frame naming the outlet", async ({ page }) => {
+  test.skip(FEATURES.stories, "With stories on, the stories test covers it.");
+  await page.goto("/");
+  const card = page.locator("main article").first();
+  const frame = card.getByText(/^Sem imagem · /);
+  await expect(frame).toBeVisible();
+  const box = await frame.locator("xpath=ancestor::a[1]").boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(180);
 });

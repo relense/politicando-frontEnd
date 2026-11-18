@@ -20,8 +20,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, "aria-hidden": hidden }: { src: string; alt: string; "aria-hidden"?: boolean | "true" }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} aria-hidden={hidden} />
+  ),
 }));
 
 const server = setupServer(...handlers);
@@ -107,7 +109,9 @@ describe("ArticleCard", () => {
   it("sends the image to our article page, keeping it out of the tab order", () => {
     render(<ArticleCard article={article({ id: 7, imageUrl: "https://rtp.pt/i.jpg" })} />);
     const image = document.querySelector('img[src="https://rtp.pt/i.jpg"]')!;
-    expect(image).toHaveAttribute("alt", "");
+    // The headline as alt text for search engines, hidden from screen readers, which read the headline already.
+    expect(image).toHaveAttribute("alt", article({}).title);
+    expect(image).toHaveAttribute("aria-hidden", "true");
     const link = image.closest("a")!;
     expect(link).toHaveAttribute("href", "/article/7");
     expect(link).not.toHaveAttribute("target");

@@ -38,6 +38,7 @@ export function ArticleDetail({ article, versions }: { article: Article; /** The
         <>
           <ArticleImage
             src={article.imageUrl}
+            alt={article.title}
             backdrop
             caption={`Imagem · ${article.source}`}
             className="mt-6 flex aspect-video justify-center overflow-hidden rounded-2xl bg-surface"

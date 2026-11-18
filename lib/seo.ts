@@ -6,6 +6,23 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_PROFILES } from "./site";
  */
 export const OG_BASE = { siteName: SITE_NAME, locale: "pt_PT" } as const;
 
+/** Bing flags titles over about 70 characters, and search results cut them there. */
+export const TITLE_MAX = 70;
+const SUFFIX = ` | ${SITE_NAME}`;
+
+/**
+ * A page's <title>, at most TITLE_MAX characters: the first wording that fits with " | Politicando", else the first
+ * that fits without it, else the last one cut at a word. Pass the fullest wording first, then shorter ones.
+ * Search and share cards keep the full wording through `openGraph.title`.
+ */
+export function pageTitle(...wordings: string[]): string | { absolute: string } {
+  const flat = wordings.map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const withSuffix = flat.find((text) => text.length + SUFFIX.length <= TITLE_MAX);
+  if (withSuffix) return withSuffix;
+  const alone = flat.find((text) => text.length <= TITLE_MAX);
+  return { absolute: alone ?? clip(flat.at(-1) ?? SITE_NAME, TITLE_MAX) };
+}
+
 /** Search engines show about 155 characters of a description; longer ones are cut mid-word. */
 export function clip(text: string, max = 155): string {
   const flat = text.replace(/\s+/g, " ").trim();
