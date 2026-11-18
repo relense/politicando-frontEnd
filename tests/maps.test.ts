@@ -11,7 +11,7 @@ describe("election maps", () => {
     expect(Object.keys(municipios.regions)).toHaveLength(308);
     for (const file of [distritos, municipios]) {
       for (const region of Object.values(file.regions)) {
-        expect(region.d).toMatch(/^M[\d.]+ [\d.]+L/);
+        expect(region.d).toMatch(/^M[\d.]+[ -][\d.]+l/);
         const [x0, y0, x1, y1] = region.box as [number, number, number, number];
         expect(x0).toBeGreaterThanOrEqual(0);
         expect(y0).toBeGreaterThanOrEqual(0);

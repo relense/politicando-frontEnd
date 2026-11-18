@@ -93,9 +93,11 @@ export default async function PlacesPage({ searchParams }: Props) {
 
   const level = byDistrict ? "district" : "municipality";
   const shown = byDistrict ? districtPlaces : municipalityPlaces;
+  // The whole country: the outlines load in the browser, from a file it keeps, instead of going twice in the page.
   const map = placeMap(
     level,
     shown.map((place) => place.code),
+    { inline: false },
   );
   const searchItems: SearchItem[] = [
     ...municipalityPlaces.map((place) => ({

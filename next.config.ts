@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/deputados", destination: "/parlamento", permanent: true }];
   },
+  // Map outlines: each URL carries a version (?v=, lib/maps.ts), so the browser can keep it for good.
+  async headers() {
+    return [{ source: "/mapas/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }];
+  },
   images: {
     // Deputy photos come from our own route, which fetches each one from the Parliament once and caches it
     // (see app/fotos/deputados/[id]/route.ts). The optimiser then resizes them to a few KB for the browser.
