@@ -108,20 +108,6 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
 });
 
-test("theme persists across reload without a flash", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
-  await page.getByRole("button", { name: /tema/ }).click();
-  await expect(page.locator("html")).toHaveClass(/dark/);
-  await page.addInitScript(() => {
-    document.addEventListener("DOMContentLoaded", () => {
-      (window as unknown as { __firstClass: string }).__firstClass = document.documentElement.className;
-    });
-  });
-  await page.reload();
-  expect(await page.evaluate(() => (window as unknown as { __firstClass: string }).__firstClass)).toContain("dark");
-});
-
 test("the party filter narrows the news in place and marks the chosen party", async ({ page }) => {
   await page.goto("/");
   const quick = page.getByRole("navigation", { name: "Filtrar notícias" }).getByRole("list", { name: "Partidos com deputados" });

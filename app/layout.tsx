@@ -1,3 +1,4 @@
+import { AccountRuntime } from "@/components/account/AccountRuntime";
 import { CookieBanner } from "@/components/CookieBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import type { Metadata, Viewport } from "next";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </div>
             <SiteFooter />
             <CookieBanner />
+            <AccountRuntime />
           </PartyOrderProvider>
         </Providers>
         {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useReader } from "@/lib/account";
 import { SocialLinks } from "./SocialLinks";
+import { ThemeChoice } from "./ThemeChoice";
 import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -197,8 +199,10 @@ export function SectionLink({
 
 /** Desktop: the site's sections in a sticky column on the left. */
 export function SiteNav() {
+  const reader = useReader();
   return (
     <nav
+      data-site-nav
       aria-label="Secções"
       className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto overflow-x-hidden pb-4 2xl:w-[var(--side-column)] lg:block"
     >
@@ -221,6 +225,15 @@ export function SiteNav() {
           Segue-nos
         </p>
         <SocialLinks size="sm" />
+        {/* With an account, the theme is in the account menu. */}
+        {reader === null && (
+          <>
+            <p aria-hidden="true" className="mb-2 mt-5 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+              Tema
+            </p>
+            <ThemeChoice />
+          </>
+        )}
       </div>
     </nav>
   );

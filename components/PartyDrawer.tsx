@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SocialLinks } from "./SocialLinks";
+import { ThemeChoice } from "./ThemeChoice";
 import type { Ref } from "react";
 import { SectionLink, SITE_GROUPS } from "./SiteNav";
 
@@ -63,7 +64,11 @@ export function PartyDrawer({ ref }: { ref: Ref<HTMLDialogElement> }) {
             >
               Receber o resumo da manhã
             </Link>
-            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-muted">
+            <p aria-hidden="true" className="mb-2 mt-5 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+              Tema
+            </p>
+            <ThemeChoice />
+            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-muted">
               {DRAWER_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} onClick={(event) => event.currentTarget.closest("dialog")?.close()} className="hover:text-ink">

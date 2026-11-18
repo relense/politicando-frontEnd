@@ -1,0 +1,242 @@
+import { http, HttpResponse } from "msw";
+
+/*
+ * Readers' accounts (backend docs/accounts-api.md), for the mock API: fictional usernames, test-only passwords,
+ * everything in memory. `POST /__mock/login-required` switches the API's gate (LOGIN_REQUIRED) on or off for tests.
+ */
+
+const API = "*/api/v2";
+export const READER_COOKIE = "politicando_session";
+
+type MockReader = {
+  id: number;
+  username: string;
+  password: string;
+  createdAt: string;
+  saved: { articles: number[]; stories: number[] };
+  hidden: number[];
+  muted: { sources: string[]; parties: string[] };
+  read: number[];
+};
+
+const readers: MockReader[] = [
+  {
+    id: 1,
+    username: "leitora_de_teste",
+    password: "palavra-passe-de-teste",
+    createdAt: "2026-11-10T10:00:00.000Z",
+    saved: { articles: [101], stories: [] },
+    hidden: [],
+    muted: { sources: [], parties: [] },
+    read: [],
+  },
+];
+const sessions = new Map<string, number>();
+let nextId = 2;
+
+/** The API's gate: off by default, as in production until the site is ready. */
+export const gate = { loginRequired: false };
+
+const fail = (status: number, code: string, message = code) => HttpResponse.json({ error: { code, message } }, { status });
+const noContent = (headers?: Record<string, string>) => new HttpResponse(null, { status: 204, headers });
+const cookie = (token: string, maxAge: number) => `${READER_COOKIE}=${token}; Path=/api/v2; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+
+/** The logged-in reader, from the session cookie; null without one. */
+export function readerOf(request: Request): MockReader | null {
+  const token = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((part) => part.trim().split("="))
+    .find(([name]) => name === READER_COOKIE)?.[1];
+  return readers.find((reader) => reader.id === (token ? sessions.get(token) : undefined)) ?? null;
+}
+
+/** For writes: the 401 the API sends when the gate is on and no one is logged in, or null to go ahead. */
+export const gateRefusal = (request: Request) =>
+  gate.loginRequired && !readerOf(request) ? fail(401, "login_required", "Log in to take part") : null;
+
+const publicReader = ({ id, username, createdAt }: MockReader) => ({ id, username, createdAt });
+const stateOf = (reader: MockReader) => ({
+  saved: reader.saved,
+  hidden: reader.hidden,
+  muted: reader.muted,
+  read: reader.read,
+  votes: { articles: {}, editorial: {}, stories: [], comments: [], forum: [] },
+});
+
+const signIn = (reader: MockReader, status = 200) => {
+  const token = `leitor-${reader.id}-${Math.random().toString(36).slice(2)}`;
+  sessions.set(token, reader.id);
+  return HttpResponse.json({ user: publicReader(reader) }, { status, headers: { "Set-Cookie": cookie(token, 2592000) } });
+};
+
+type Body = { username?: unknown; password?: unknown; recaptchaToken?: unknown };
+const newestFirst = <T>(added: T[], existing: T[]) => [...new Set([...added, ...existing])];
+
+const withReader =
+  (
+    handle: (
+      reader: MockReader,
+      request: Request,
+      params: Record<string, string | readonly string[] | undefined>,
+    ) => Response | Promise<Response>,
+  ) =>
+  ({ request, params }: { request: Request; params: Record<string, string | readonly string[] | undefined> }) => {
+    const reader = readerOf(request);
+    return reader ? handle(reader, request, params) : fail(401, "unauthenticated", "Log in first");
+  };
+
+export const accountHandlers = [
+  http.post(`${API}/__mock/login-required`, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { on?: boolean };
+    gate.loginRequired = Boolean(body.on);
+    return HttpResponse.json(gate);
+  }),
+  http.post(`${API}/auth/register`, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as Body;
+    if (typeof body.recaptchaToken !== "string" || !body.recaptchaToken) return fail(403, "recaptcha_failed");
+    const username = typeof body.username === "string" ? body.username : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(username) || password.length < 8) return fail(400, "validation_failed", "body/username: Invalid");
+    if (
+      ["admin", "politicando", "moderador"].includes(username.toLowerCase()) ||
+      readers.some((reader) => reader.username.toLowerCase() === username.toLowerCase())
+    )
+      return fail(409, "username_taken", "That username is taken");
+    const reader: MockReader = {
+      id: nextId++,
+      username,
+      password,
+      createdAt: new Date().toISOString(),
+      saved: { articles: [], stories: [] },
+      hidden: [],
+      muted: { sources: [], parties: [] },
+      read: [],
+    };
+    readers.push(reader);
+    return signIn(reader, 201);
+  }),
+  http.post(`${API}/auth/login`, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as Body;
+    if (typeof body.recaptchaToken !== "string" || !body.recaptchaToken) return fail(403, "recaptcha_failed");
+    const reader = readers.find((item) => typeof body.username === "string" && item.username.toLowerCase() === body.username.toLowerCase());
+    if (!reader || reader.password !== body.password) return fail(401, "invalid_credentials", "Wrong username or password");
+    return signIn(reader);
+  }),
+  http.post(`${API}/auth/logout`, ({ request }) => {
+    const token = request.headers.get("cookie")?.match(new RegExp(`${READER_COOKIE}=([^;]+)`))?.[1];
+    if (token) sessions.delete(token);
+    return noContent({ "Set-Cookie": cookie("", 0) });
+  }),
+  http.get(
+    `${API}/me`,
+    withReader((reader) => HttpResponse.json(publicReader(reader))),
+  ),
+  http.get(
+    `${API}/me/state`,
+    withReader((reader) => HttpResponse.json(stateOf(reader))),
+  ),
+  http.post(
+    `${API}/me/merge`,
+    withReader(async (reader, request) => {
+      const body = (await request.json().catch(() => ({}))) as Partial<ReturnType<typeof stateOf>>;
+      reader.saved = {
+        articles: newestFirst(body.saved?.articles ?? [], reader.saved.articles),
+        stories: newestFirst(body.saved?.stories ?? [], reader.saved.stories),
+      };
+      reader.hidden = newestFirst(body.hidden ?? [], reader.hidden);
+      reader.muted = {
+        sources: newestFirst(body.muted?.sources ?? [], reader.muted.sources),
+        parties: newestFirst(body.muted?.parties ?? [], reader.muted.parties),
+      };
+      reader.read = newestFirst(body.read ?? [], reader.read);
+      return HttpResponse.json(stateOf(reader));
+    }),
+  ),
+  ...(["put", "delete"] as const).flatMap((method) => [
+    http[method](
+      `${API}/me/saved/:kind/:id`,
+      withReader((reader, _request, params) => {
+        const list = params.kind === "story" ? "stories" : "articles";
+        const id = Number(params.id);
+        reader.saved[list] = method === "put" ? newestFirst([id], reader.saved[list]) : reader.saved[list].filter((item) => item !== id);
+        return noContent();
+      }),
+    ),
+    http[method](
+      `${API}/me/hidden/:id`,
+      withReader((reader, _request, params) => {
+        const id = Number(params.id);
+        reader.hidden = method === "put" ? newestFirst([id], reader.hidden) : reader.hidden.filter((item) => item !== id);
+        return noContent();
+      }),
+    ),
+    http[method](
+      `${API}/me/muted/:kind/:value`,
+      withReader((reader, _request, params) => {
+        const list = params.kind === "party" ? "parties" : "sources";
+        const value = String(params.value);
+        reader.muted[list] =
+          method === "put" ? newestFirst([value], reader.muted[list]) : reader.muted[list].filter((item) => item !== value);
+        return noContent();
+      }),
+    ),
+  ]),
+  http.put(
+    `${API}/me/read/:id`,
+    withReader((reader, _request, params) => {
+      reader.read = newestFirst([Number(params.id)], reader.read).slice(0, 200);
+      return noContent();
+    }),
+  ),
+  http.put(
+    `${API}/me/password`,
+    withReader(async (reader, request) => {
+      const body = (await request.json().catch(() => ({}))) as { current?: string; new?: string };
+      if (body.current !== reader.password) return fail(401, "invalid_credentials", "Wrong password");
+      if (!body.new || body.new.length < 8) return fail(400, "validation_failed", "body/new: Too small");
+      reader.password = body.new;
+      return noContent();
+    }),
+  ),
+  http.get(
+    `${API}/me/activity`,
+    withReader(() =>
+      HttpResponse.json({
+        comments: [
+          {
+            id: 9100,
+            body: "Um comentário de teste feito com conta.",
+            articleId: 100,
+            storyId: null,
+            postId: null,
+            likes: 2,
+            createdAt: "2026-11-15T10:00:00.000Z",
+            hiddenAt: null,
+          },
+        ],
+        threads: [],
+        posts: [],
+      }),
+    ),
+  ),
+  http.get(
+    `${API}/me/export`,
+    withReader(
+      (reader) =>
+        new HttpResponse(JSON.stringify({ user: publicReader(reader), state: stateOf(reader) }), {
+          headers: { "Content-Type": "application/json", "Content-Disposition": 'attachment; filename="politicando.json"' },
+        }),
+    ),
+  ),
+  http.delete(
+    `${API}/me`,
+    withReader(async (reader, request) => {
+      const body = (await request.json().catch(() => ({}))) as { password?: string };
+      if (body.password !== reader.password) return fail(401, "invalid_credentials", "Wrong password");
+      readers.splice(readers.indexOf(reader), 1);
+      for (const [token, id] of sessions) if (id === reader.id) sessions.delete(token);
+      return noContent({ "Set-Cookie": cookie("", 0) });
+    }),
+  ),
+];

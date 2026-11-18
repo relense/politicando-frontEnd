@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { PartyDrawer } from "./PartyDrawer";
-import { ThemeToggle } from "./ThemeToggle";
+import { AccountMenu } from "./account/AccountMenu";
 
 export function Header() {
   const drawerRef = useRef<HTMLDialogElement>(null);
@@ -32,7 +32,8 @@ export function Header() {
           <Link href="/parlamento" className="hidden rounded px-2 py-1.5 font-mono text-sm font-bold hover:bg-surface sm:block lg:hidden">
             Parlamento
           </Link>
-          <ThemeToggle />
+          {/* The account (the theme moved into its menu, and into the sections menu without one). */}
+          <AccountMenu />
         </div>
       </div>
       <PartyDrawer ref={drawerRef} />

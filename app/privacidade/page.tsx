@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Política de privacidade"
-      lead="Lês o Politicando sem conta e sem seres seguido de página em página. Tratamos só os dados de que precisamos para os comentários, os fóruns e a newsletter."
+      lead="Lês o Politicando sem conta e sem seres seguido de página em página. Tratamos só os dados de que precisamos para as contas, os comentários, os fóruns e a newsletter."
       current="/privacidade"
     >
       <h2>Quem é responsável</h2>
@@ -33,11 +33,27 @@ export default function PrivacyPage() {
         erros. Esses registos são guardados por pouco tempo e não servem para te identificar.
       </p>
 
+      <h2>Conta</h2>
+      <p>
+        Para ler não precisas de conta. Se criares uma, guardamos o <b>nome público</b> que escolheres (aparece nos teus comentários), a tua{" "}
+        <b>palavra-passe cifrada</b> (nunca a vemos), a data de criação e o que a conta serve para sincronizar entre dispositivos: as
+        notícias que guardaste ou escondeste, os jornais e partidos que silenciaste, as histórias que leste, os teus votos, gostos e marcas
+        &quot;Importa&quot;, e o que escreveste nos comentários e no fórum. Não pedimos email nem o teu nome verdadeiro.
+      </p>
+      <p>
+        A sessão fica num cookie, <code>politicando_session</code>, que dura 30 dias (vê a <Link href="/cookies">política de cookies</Link>
+        ). Na página <Link href="/conta">A tua conta</Link> podes descarregar tudo o que guardamos sobre ti e apagar a conta: os votos saem
+        das contagens, os comentários e respostas são apagados e as listas também. As discussões que abriste ficam em branco
+        (&quot;[apagado]&quot;), para as respostas dos outros não perderem o sítio. As denúncias que fizeste ficam para a moderação, já sem
+        ligação a ti.
+      </p>
+
       <h2>Comentários e fóruns</h2>
       <p>
-        Comentar e escrever nos fóruns é anónimo. Guardamos o texto que publicas, o nome que escolheres (se escolheres algum) e a hora. Para
-        mostrar o mesmo identificador nas tuas mensagens de uma discussão e para limitar o envio em massa, usamos o teu endereço IP no
-        momento do envio: o identificador é calculado a partir dele com uma chave secreta, e <b>o endereço IP não é guardado</b>.
+        Comentar e escrever nos fóruns pode ser feito com conta, com o teu nome público, ou (enquanto o permitirmos) sem conta. Guardamos o
+        texto que publicas, o nome (o da conta, ou o que escolheres, se escolheres algum) e a hora. Para mostrar o mesmo identificador nas
+        tuas mensagens de uma discussão e para limitar o envio em massa, usamos o teu endereço IP no momento do envio: o identificador é
+        calculado a partir dele com uma chave secreta, e <b>o endereço IP não é guardado</b>.
       </p>
       <p>
         O que publicas fica visível para todos. Não escrevas dados pessoais teus nem de outras pessoas. As mensagens ficam publicadas
@@ -60,9 +76,9 @@ export default function PrivacyPage() {
 
       <h2>Proteção contra robôs</h2>
       <p>
-        Quando começas a escrever um comentário, uma discussão, uma mensagem de feedback ou a inscrição na newsletter, carregamos o{" "}
-        <b>reCAPTCHA</b> da Google para confirmar que não és um robô. Só nesse momento, e só nessas páginas, a Google recebe dados do teu
-        navegador (como o endereço IP), segundo a{" "}
+        Quando crias conta ou entras nela, ou quando, sem conta, começas a escrever um comentário, uma discussão, uma mensagem de feedback
+        ou a inscrição na newsletter, carregamos o <b>reCAPTCHA</b> da Google para confirmar que não és um robô. Só nesse momento, e só
+        nessas páginas, a Google recebe dados do teu navegador (como o endereço IP), segundo a{" "}
         <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
           política de privacidade
         </a>{" "}
@@ -86,6 +102,9 @@ export default function PrivacyPage() {
           <b>Consentimento:</b> a newsletter e os leitores de outros sites. Podes retirá-lo a qualquer momento.
         </li>
         <li>
+          <b>Contrato:</b> a conta, se a criares, e o que ela guarda para ti.
+        </li>
+        <li>
           <b>Interesse legítimo:</b> manter o site seguro, travar o spam e os robôs, moderar o que é publicado e contar visitas sem te
           identificar.
         </li>
@@ -101,8 +120,9 @@ export default function PrivacyPage() {
       <h2>Os teus direitos</h2>
       <p>
         Podes pedir acesso aos teus dados, a sua correção ou eliminação, opor-te ao tratamento ou limitá-lo, e retirar o consentimento que
-        deste. Escreve para <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>. Como os comentários são anónimos, indica a página, a
-        hora e o texto para os encontrarmos. Respondemos no prazo de um mês.
+        deste. Escreve para <a href={`mailto:${PRIVACY_EMAIL}`}>{PRIVACY_EMAIL}</a>. Com conta, tens quase tudo à mão em{" "}
+        <Link href="/conta">A tua conta</Link>; para comentários feitos sem conta, indica a página, a hora e o texto para os encontrarmos.
+        Respondemos no prazo de um mês.
       </p>
       <p>
         Se achares que os teus dados não foram bem tratados, podes apresentar queixa à Comissão Nacional de Proteção de Dados (

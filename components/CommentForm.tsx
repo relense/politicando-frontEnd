@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { ApiError, createComment, screenedMessage } from "@/lib/api/client";
 import type { Comment, CommentStance, NewComment, CommentTarget } from "@/lib/types";
+import { useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 
 const MAX_LENGTH = 500;
@@ -16,6 +17,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   recaptcha_unavailable: "Os comentários estão temporariamente indisponíveis. O teu texto foi mantido; tenta daqui a pouco.",
   rate_limited: "Estás a comentar depressa demais. O teu texto foi mantido; espera um minuto e tenta novamente.",
   invalid_parent: "O comentário a que estás a responder já não está disponível.",
+  login_required: "Entra na tua conta para comentar. O teu texto foi mantido.",
 };
 const DEFAULT_ERROR = "Não foi possível publicar o comentário. O teu texto foi mantido; tenta novamente.";
 
@@ -46,7 +48,9 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
   const [error, setError] = useState<string | null>(null);
   // The captcha appears once someone starts writing, so it does not crowd an idle form.
   const [captchaShown, setCaptchaShown] = useState(Boolean(initialText.trim()));
-  const captchaOff = isCaptchaOff();
+  const reader = useReader();
+  // With an account the API needs no captcha, and the name is the account's.
+  const captchaOff = isCaptchaOff() || Boolean(reader);
 
   // Puts the cursor at the end, after any ">>123" the form opened with.
   useEffect(() => {
@@ -100,7 +104,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     onSettled: () => captcha.current?.reset(),
   });
 
-  if (!isCaptchaConfigured()) {
+  if (!reader && !isCaptchaConfigured()) {
     return <p className="text-muted">Os comentários estão temporariamente indisponíveis.</p>;
   }
 
@@ -108,10 +112,17 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     event.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return setError("Escreve um comentário antes de publicar.");
-    const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
-    if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
+    const captchaToken = reader ? null : captchaOff ? CAPTCHA_OFF_TOKEN : token;
+    if (!reader && !captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
-    mutation.mutate({ target, parentId, username, text: trimmed, captchaToken, stance: stances ? stance : null });
+    mutation.mutate({
+      target,
+      parentId,
+      username: reader?.username ?? username,
+      text: trimmed,
+      captchaToken,
+      stance: stances ? stance : null,
+    });
   }
 
   const label = parentId === null ? "Comentário" : "Resposta";
@@ -175,18 +186,26 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={`${id}-username`} className="sr-only">
-          Nome (opcional)
-        </label>
-        <input
-          id={`${id}-username`}
-          value={username}
-          maxLength={MAX_USERNAME}
-          autoComplete="off"
-          placeholder="Nome (opcional): anon"
-          onChange={(event) => setUsername(event.target.value.replace(/\s+/g, ""))}
-          className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
-        />
+        {reader ? (
+          <p className="min-w-0 flex-1 basis-40 px-1 font-mono text-xs text-muted">
+            A publicar como <b className="text-ink">{reader.username}</b>
+          </p>
+        ) : (
+          <>
+            <label htmlFor={`${id}-username`} className="sr-only">
+              Nome (opcional)
+            </label>
+            <input
+              id={`${id}-username`}
+              value={username}
+              maxLength={MAX_USERNAME}
+              autoComplete="off"
+              placeholder="Nome (opcional): anon"
+              onChange={(event) => setUsername(event.target.value.replace(/\s+/g, ""))}
+              className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
+            />
+          </>
+        )}
         <span id={`${id}-count`} className="font-mono text-xs text-muted">
           {text.length}/{MAX_LENGTH}
         </span>

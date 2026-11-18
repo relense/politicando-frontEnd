@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { createThread, forumErrorMessage, THREAD_LIMITS } from "@/lib/api/forums";
 import { rememberPosterId } from "@/lib/forumSession";
+import { useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 
 /** Sent when the captcha is switched off for testing. The API decides whether it is accepted. */
@@ -48,9 +49,12 @@ export function NewThreadForm({
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [attached, setAttached] = useState(link);
-  const captchaOff = isCaptchaOff();
+  const reader = useReader();
+  // With an account: no captcha, and the name is the account's.
+  const captchaOff = isCaptchaOff() || Boolean(reader);
 
-  if (!isCaptchaConfigured()) return <p className="text-muted">O fórum está temporariamente indisponível para novas publicações.</p>;
+  if (!reader && !isCaptchaConfigured())
+    return <p className="text-muted">O fórum está temporariamente indisponível para novas publicações.</p>;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -58,8 +62,8 @@ export function NewThreadForm({
     const cleanBody = body.trim();
     if (cleanTitle.length < THREAD_LIMITS.title[0]) return setError("Escreve um título com pelo menos 3 caracteres.");
     if (!cleanBody) return setError("Escreve o texto da discussão.");
-    const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
-    if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
+    const captchaToken = reader ? null : captchaOff ? CAPTCHA_OFF_TOKEN : token;
+    if (!reader && !captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
     setSending(true);
     try {
@@ -129,24 +133,30 @@ export function NewThreadForm({
           {body.length}/{THREAD_LIMITS.body}
         </p>
       </div>
-      <div>
-        <label htmlFor={`${id}-nickname`} className="mb-1 block font-mono text-xs font-bold">
-          Nome (opcional)
-        </label>
-        <input
-          id={`${id}-nickname`}
-          value={nickname}
-          maxLength={THREAD_LIMITS.nickname}
-          autoComplete="off"
-          placeholder="Anónimo"
-          aria-describedby={`${id}-nickname-hint`}
-          onChange={(event) => setNickname(event.target.value)}
-          className={`${inputClass} sm:max-w-xs`}
-        />
-        <p id={`${id}-nickname-hint`} className="mt-1 text-xs text-muted">
-          Qualquer pessoa pode usar qualquer nome. O ID ao lado identifica quem escreve dentro desta discussão.
+      {reader ? (
+        <p className="font-mono text-xs text-muted">
+          A publicar como <b className="text-ink">{reader.username}</b>
         </p>
-      </div>
+      ) : (
+        <div>
+          <label htmlFor={`${id}-nickname`} className="mb-1 block font-mono text-xs font-bold">
+            Nome (opcional)
+          </label>
+          <input
+            id={`${id}-nickname`}
+            value={nickname}
+            maxLength={THREAD_LIMITS.nickname}
+            autoComplete="off"
+            placeholder="Anónimo"
+            aria-describedby={`${id}-nickname-hint`}
+            onChange={(event) => setNickname(event.target.value)}
+            className={`${inputClass} sm:max-w-xs`}
+          />
+          <p id={`${id}-nickname-hint`} className="mt-1 text-xs text-muted">
+            Qualquer pessoa pode usar qualquer nome. O ID ao lado identifica quem escreve dentro desta discussão.
+          </p>
+        </div>
+      )}
       {!captchaOff && <Captcha ref={captcha} onToken={setToken} />}
       {error && (
         <p role="alert" className="text-sm text-danger">

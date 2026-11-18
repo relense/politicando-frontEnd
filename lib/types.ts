@@ -59,7 +59,8 @@ export type NewComment = {
   parentId: number | null;
   username: string;
   text: string;
-  captchaToken: string;
+  /** Null with an account: the API needs none then. */
+  captchaToken: string | null;
   stance?: CommentStance | null;
 };
 

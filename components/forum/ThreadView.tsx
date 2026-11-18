@@ -6,6 +6,7 @@ import { useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalS
 import { createPost, forumErrorMessage, getThread, posterName, THREAD_LIMITS, type ForumPost, type ThreadDetail } from "@/lib/api/forums";
 import { parsePosterIds, posterIdsSnapshot, rememberPosterId, subscribePosterIds } from "@/lib/forumSession";
 import { quotesOf } from "@/lib/forumText";
+import { useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 import { RelativeTime } from "../RelativeTime";
 import { ForumText } from "./ForumText";
@@ -289,7 +290,9 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
   const [captchaShown, setCaptchaShown] = useState(false);
-  const captchaOff = isCaptchaOff();
+  const reader = useReader();
+  // With an account: no captcha, and the name is the account's.
+  const captchaOff = isCaptchaOff() || Boolean(reader);
 
   // The parent's "Responder" buttons point the form at a post and quote it.
   useImperativeHandle(ref, () => ({
@@ -302,14 +305,14 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
     },
   }));
 
-  if (!isCaptchaConfigured()) return <p className="text-muted">As respostas estão temporariamente indisponíveis.</p>;
+  if (!reader && !isCaptchaConfigured()) return <p className="text-muted">As respostas estão temporariamente indisponíveis.</p>;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     const clean = body.trim();
     if (!clean) return setError("Escreve uma resposta antes de publicar.");
-    const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
-    if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
+    const captchaToken = reader ? null : captchaOff ? CAPTCHA_OFF_TOKEN : token;
+    if (!reader && !captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
     setSending(true);
     try {
@@ -371,18 +374,26 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
         {status}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={`${id}-nickname`} className="sr-only">
-          Nome (opcional)
-        </label>
-        <input
-          id={`${id}-nickname`}
-          value={nickname}
-          maxLength={THREAD_LIMITS.nickname}
-          autoComplete="off"
-          placeholder="Nome (opcional): Anónimo"
-          onChange={(event) => setNickname(event.target.value)}
-          className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
-        />
+        {reader ? (
+          <p className="min-w-0 flex-1 basis-40 px-1 font-mono text-xs text-muted">
+            A publicar como <b className="text-ink">{reader.username}</b>
+          </p>
+        ) : (
+          <>
+            <label htmlFor={`${id}-nickname`} className="sr-only">
+              Nome (opcional)
+            </label>
+            <input
+              id={`${id}-nickname`}
+              value={nickname}
+              maxLength={THREAD_LIMITS.nickname}
+              autoComplete="off"
+              placeholder="Nome (opcional): Anónimo"
+              onChange={(event) => setNickname(event.target.value)}
+              className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
+            />
+          </>
+        )}
         <span className="font-mono text-xs text-muted">
           {body.length}/{THREAD_LIMITS.body}
         </span>

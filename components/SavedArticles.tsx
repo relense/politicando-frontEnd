@@ -45,7 +45,7 @@ export function SavedArticles() {
     <div className="flex flex-col gap-3.5">
       {articles.map((article) => (
         <div key={article.id}>
-          <ArticleCard article={article} why="Está aqui porque a guardaste. Fica só neste navegador." />
+          <ArticleCard article={article} why="Está aqui porque a guardaste." />
         </div>
       ))}
     </div>

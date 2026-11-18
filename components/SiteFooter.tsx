@@ -75,7 +75,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
  */
 export function SiteFooter() {
   return (
-    <footer className="mx-auto mt-12 w-full max-w-[96rem] px-4 pb-8">
+    <footer data-site-footer className="mx-auto mt-12 w-full max-w-[96rem] px-4 pb-8">
       <div className="overflow-hidden rounded-2xl border border-line">
         <FooterNewsletter />
 

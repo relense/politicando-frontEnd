@@ -114,7 +114,7 @@ export function CommentSection({ target, initialComments, title = "Comentários"
             </span>
             <p>
               <span className="block font-bold">Ainda não há comentários.</span>
-              <span className="block text-sm text-muted">Sê a primeira pessoa a comentar. Não precisas de conta.</span>
+              <span className="block text-sm text-muted">Sê a primeira pessoa a comentar.</span>
             </p>
           </div>
         ) : (

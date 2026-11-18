@@ -13,6 +13,7 @@ import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
+import { accountHandlers, gateRefusal, readerOf } from "./accountFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
@@ -62,7 +63,8 @@ const newCommentSchema = z.strictObject({
   username: z.string().trim().max(50).nullish(),
   body: z.string().trim().min(1).max(500),
   parentId: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  // Accounts need none (accounts-api.md).
+  recaptchaToken: z.string().min(1).optional(),
 });
 
 /** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
@@ -157,6 +159,8 @@ export const handlers = [
   }),
   // A vote on a post, as on news: `{ value: 1 | -1 | 0 }`, answering the new totals.
   http.post(`${API}/editorial/:slug/vote`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const slug = String(params.slug);
     if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
@@ -496,6 +500,8 @@ export const handlers = [
   }),
   // A vote (articles-api.md "Votes"): one per reader, replaced by the next, 0 takes it back. The mock has one reader.
   http.post(`${API}/articles/:id/vote`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const article = articles.find((item) => item.id === Number(params.id));
     if (!article) return fail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
@@ -516,9 +522,15 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
   http.post(`${API}/articles/:id/comments`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { username, body, parentId } = parsed.data;
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { body, parentId } = parsed.data;
+    // With an account the comment carries its username; any name sent is ignored.
+    const username = reader ? reader.username : parsed.data.username;
     // Comments containing these words simulate API failures in tests.
     if (body.includes("ERRO-SERVIDOR")) return fail(500, "internal_error");
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
@@ -538,6 +550,7 @@ export const handlers = [
       parentUsername: null,
       body,
       createdAt: new Date().toISOString(),
+      account: Boolean(reader),
     };
     store.set(articleId, [...(store.get(articleId) ?? []), created]);
     return HttpResponse.json(created, { status: 201 });
@@ -550,6 +563,7 @@ export const handlers = [
   ...forumHandlers,
   ...storyHandlers,
   ...adminHandlers,
+  ...accountHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,
   ...becomeDeputyHandlers,

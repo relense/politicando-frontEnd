@@ -21,7 +21,8 @@ export default function AboutPage() {
         Sobre <span className={MARKER}>nós</span>
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-muted">
-        A política portuguesa num só lugar, explicada com clareza e sempre com a fonte. Gratuito, sem conta e sem ligação a partidos.
+        A política portuguesa num só lugar, explicada com clareza e sempre com a fonte. Gratuito, sem ligação a partidos, e para ler não
+        precisas de conta.
       </p>
 
       <div className="post-body mt-8">
