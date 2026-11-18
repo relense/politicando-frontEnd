@@ -47,6 +47,8 @@ const postSchema = z.object({
   replyTo: z.number().nullable(),
   createdAt: z.string(),
   hidden: z.boolean(),
+  // Only on the "Votações" board: what the poster predicted for that vote.
+  pick: z.enum(["pass", "fail"]).nullable().optional().catch(null),
 });
 
 const threadDetailSchema = z.object({
@@ -88,12 +90,15 @@ export type ForumPost = {
   replyTo: number | null;
   createdAt: string;
   hidden: boolean;
+  pick?: "pass" | "fail" | null;
 };
 export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean };
 export type ThreadSort = "active" | "new" | "top";
 
 /** The board where readers propose ideas for the site and vote on them. */
 export const IDEAS_BOARD = "ideias";
+/** One thread per vote on the plenary agenda, opened by the site ("Passa ou chumba?"); readers reply, never open one. */
+export const VOTES_BOARD = "votacoes";
 export const IDEA_STATUSES = ["reviewing", "planned", "in_progress", "done", "declined"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: string }> = {

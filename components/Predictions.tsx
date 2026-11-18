@@ -6,15 +6,19 @@ import { useState } from "react";
 import { useAccountGate, useReader } from "@/lib/account";
 import { ApiError } from "@/lib/api/client";
 import {
+  getInitiativePrediction,
   getMyPredictions,
   getOpenPredictions,
   pickPrediction,
+  type InitiativePrediction,
   type MyPredictions,
   type Pick,
   type Prediction,
   type Split,
 } from "@/lib/api/engagement";
-import { formatLongDate, formatNumber } from "@/lib/format";
+import { markFollowed } from "@/lib/accountExtras";
+import { formatLongDate, formatNumber, formatTime } from "@/lib/format";
+import { useNow } from "@/lib/useNow";
 
 /*
  * "Passa ou chumba?" (backend docs/engagement-api.md): before a vote in Parliament, each reader says whether they think
@@ -25,6 +29,20 @@ import { formatLongDate, formatNumber } from "@/lib/format";
 const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 const label = (item: Prediction) => [item.type, item.number && `n.º ${item.number}`].filter(Boolean).join(" ");
 const when = (item: Prediction) => (item.onAgenda ? "Na agenda do plenário" : (item.phase ?? "À espera de votação"));
+
+/** "fecha em 2 h 14 min", "fecha amanhã às 15:00", or "fechada" once the session has started. */
+export function closingLabel(closesAt: string | null, now: number): string | null {
+  if (!closesAt) return null;
+  const at = Date.parse(closesAt);
+  if (Number.isNaN(at)) return null;
+  const left = at - now;
+  if (left <= 0) return "Previsões fechadas";
+  const minutes = Math.ceil(left / 60_000);
+  if (minutes < 60) return `Fecha em ${minutes} min`;
+  if (minutes < 24 * 60) return `Fecha em ${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")} min`;
+  const days = Math.floor(minutes / (24 * 60));
+  return `Fecha ${days === 1 ? "amanhã" : `em ${days} dias`}, às ${formatTime(closesAt)}`;
+}
 
 /** The open list: the page's, the same for everyone; with an account, with the reader's own picks and the split. */
 function useOpen(initial: Prediction[], limit: number) {
@@ -48,6 +66,9 @@ function useChoose(item: Prediction, limit: number) {
           list?.map((entry) => (entry.id === item.id ? { ...entry, myPick: answer.pick, split: answer.split } : entry)),
         );
       void client.invalidateQueries({ queryKey: ["predictions", "mine"] });
+      void client.invalidateQueries({ queryKey: ["prediction", item.id] });
+      // Picking follows the vote's thread: its new replies reach the inbox.
+      if (item.threadId) markFollowed("thread", item.threadId);
     },
   });
 }
@@ -57,7 +78,12 @@ function PredictionCard({ item, limit, compact = false }: { item: Prediction; li
   const gate = useAccountGate();
   const choose = useChoose(item, limit);
   const pick = choose.isPending ? choose.variables : item.myPick;
-  const closed = choose.error instanceof ApiError && choose.error.code === "closed";
+  const now = useNow();
+  const closing = closingLabel(item.closesAt, now);
+  const locked = Boolean(item.closesAt && Date.parse(item.closesAt) <= now);
+  const closed = locked || (choose.error instanceof ApiError && choose.error.code === "closed");
+  // Needing an account opens the login note instead (components/account/AccountRuntime).
+  const askedToLogIn = choose.error instanceof ApiError && choose.error.code === "login_required";
 
   const button = (value: Pick, text: string, mark: string) => {
     const on = pick === value;
@@ -66,7 +92,7 @@ function PredictionCard({ item, limit, compact = false }: { item: Prediction; li
       <button
         type="button"
         aria-pressed={on}
-        disabled={choose.isPending}
+        disabled={choose.isPending || locked}
         onClick={(event) => {
           if (gate("predict", event.currentTarget)) return;
           if (!on) choose.mutate(value);
@@ -91,8 +117,11 @@ function PredictionCard({ item, limit, compact = false }: { item: Prediction; li
     >
       <p className="flex flex-wrap justify-between gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--favor)]">
         <span>Passa ou chumba? · {when(item)}</span>
-        {!compact && item.phaseDate && (
-          <span className="font-normal normal-case tracking-normal text-muted">{formatLongDate(item.phaseDate)}</span>
+        {closing ? (
+          <span className="font-normal normal-case tracking-normal text-muted">{closing}</span>
+        ) : (
+          !compact &&
+          item.phaseDate && <span className="font-normal normal-case tracking-normal text-muted">{formatLongDate(item.phaseDate)}</span>
         )}
       </p>
       {compact ? (
@@ -131,8 +160,16 @@ function PredictionCard({ item, limit, compact = false }: { item: Prediction; li
           </p>
         </>
       )}
-      {closed && <p className="mt-2 font-mono text-[11px] text-muted">Já foi votada: já não dá para prever.</p>}
-      {choose.isError && !closed && (
+      {closed && <p className="mt-2 font-mono text-[11px] text-muted">A sessão já começou: as previsões fecharam.</p>}
+      {item.threadId && (
+        <Link
+          href={`/forum/votacoes/${item.threadId}`}
+          className="mt-2 inline-block font-mono text-[11px] font-bold text-ink underline underline-offset-2"
+        >
+          Defende a tua escolha →<span className="sr-only"> na conversa sobre «{item.title}»</span>
+        </Link>
+      )}
+      {choose.isError && !closed && !askedToLogIn && (
         <p role="alert" className="mt-2 font-mono text-[11px] text-muted">
           Não contou. Tenta outra vez.
         </p>
@@ -238,7 +275,7 @@ export function PredictionsPage({ initial }: { initial: Prediction[] }) {
           </>
         ) : (
           <p className="rounded-2xl border border-dashed border-line p-6 text-center text-muted">
-            Não há votações à espera agora. Volta quando houver propostas agendadas no Parlamento.
+            Sem votações esta semana. Abrimos as previsões quando uma proposta entra na agenda do plenário, até 7 dias antes.
           </p>
         )}
       </div>
@@ -398,5 +435,100 @@ export function MyPredictionsList() {
         <RecordBox />
       </aside>
     </div>
+  );
+}
+
+/**
+ * On an initiative's page, beside it: its "Passa ou chumba?". While open, the card to pick; once closed, how the readers
+ * picked (for everyone), the result and whether the reader got it right; always the way to the vote's conversation.
+ * Nothing when the initiative never had one.
+ */
+export function InitiativePredictionBox({ id }: { id: number }) {
+  const reader = useReader();
+  const query = useQuery({
+    queryKey: ["prediction", id, reader?.id ?? null],
+    queryFn: () => getInitiativePrediction(id),
+    enabled: reader !== undefined,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const data = query.data;
+  if (!data) return null;
+  if (data.state === "open") {
+    const item: Prediction = {
+      id: data.id,
+      type: "",
+      number: null,
+      title: data.title,
+      phase: null,
+      phaseDate: data.voteDate,
+      onAgenda: true,
+      myPick: data.myPick,
+      split: data.split,
+      closesAt: data.closesAt,
+      threadId: data.threadId,
+    };
+    return (
+      <section aria-labelledby="previsao-iniciativa">
+        <h2 id="previsao-iniciativa" className="sr-only">
+          Passa ou chumba?
+        </h2>
+        <PredictionCard item={item} limit={10} compact />
+      </section>
+    );
+  }
+  return <SettledPrediction data={data} />;
+}
+
+const resultTone = (result: string | null) =>
+  !result ? "var(--muted)" : /aprovad/i.test(result) ? "var(--favor)" : /rejeitad|chumbad/i.test(result) ? "var(--contra)" : "var(--ink)";
+
+function SettledPrediction({ data }: { data: InitiativePrediction }) {
+  const total = data.split ? data.split.pass + data.split.fail : 0;
+  return (
+    <section aria-labelledby="previsao-iniciativa" className="rounded-2xl border border-line p-4">
+      <h2 id="previsao-iniciativa" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--favor)]">
+        Passa ou chumba?
+      </h2>
+      {data.state === "decided" ? (
+        <p className="mt-2 font-serif text-lg font-bold leading-snug">
+          Resultado: <span style={{ color: resultTone(data.voteResult) }}>{data.voteResult ?? "votada"}</span>
+          {data.voteDate && <span className="block font-mono text-[11px] font-normal text-muted">{formatLongDate(data.voteDate)}</span>}
+        </p>
+      ) : (
+        <p className="mt-2 text-sm">A votação já começou: as previsões fecharam. O resultado chega amanhã de manhã.</p>
+      )}
+      {data.split && total > 0 ? (
+        <div className="mt-3">
+          <p className="text-sm font-semibold">O que os leitores previram</p>
+          <SplitBar split={data.split} compact />
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Ninguém fez previsões para esta votação.</p>
+      )}
+      {data.myPick && (
+        <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-sm">
+          Disseste <b>{data.myPick === "pass" ? "«Passa»" : "«Chumba»"}</b>
+          {data.outcome === "hit"
+            ? ": acertaste."
+            : data.outcome === "miss"
+              ? ": falhaste."
+              : data.outcome === "void"
+                ? ": não conta."
+                : "."}
+          <span className="mt-0.5 block font-mono text-[11px] text-muted">
+            <LockIcon /> Só tu vês isto.
+          </span>
+        </p>
+      )}
+      {data.threadId && (
+        <Link
+          href={`/forum/votacoes/${data.threadId}`}
+          className="mt-3 inline-block font-mono text-[11px] font-bold text-ink underline underline-offset-2"
+        >
+          {data.state === "decided" ? "Ver a discussão da votação →" : "Ir para a discussão →"}
+        </Link>
+      )}
+    </section>
   );
 }

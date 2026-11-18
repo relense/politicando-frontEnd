@@ -81,7 +81,10 @@ test("Seguir and Guardar: asked for an account first; with one, kept after a rel
 test("Passa ou chumba: anyone sees the votes; picking needs an account, and only then shows how the others picked", async ({
   page,
 }, testInfo) => {
+  // Once the page knows there's no session (before that, the API answers and the general note opens).
+  const checked = page.waitForResponse((response) => /\/api\/v2\/me$/.test(response.url()));
   await page.goto("/previsoes");
+  await checked;
   await expect(page.getByRole("heading", { level: 1, name: "Passa ou chumba?" })).toBeVisible();
   const choice = page.getByRole("group", { name: /^A tua previsão para/ });
   await expect(choice).toBeVisible();
@@ -102,6 +105,29 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
     "true",
   );
   await expect(page.getByText(/^Os leitores: \d+% passa/)).toBeVisible();
+  // The vote's thread: the reader's pick shows beside their name, as the others' do.
+  await expect(page.getByText(/^Fecha em/).first()).toBeVisible();
+  await page
+    .getByRole("link", { name: /^Defende a tua escolha/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/forum\/votacoes\/\d+$/);
+  await expect(page.getByText("✕ Chumba").first()).toBeVisible();
+  // Picking followed the thread.
+  await expect(page.getByRole("button", { name: /A seguir conversa/ })).toHaveAttribute("aria-pressed", "true");
+  const reply = `Defendo que passa (${testInfo.project.name} ${Date.now()})`;
+  await page.getByRole("textbox", { name: "Resposta" }).fill(reply);
+  await page.getByRole("button", { name: "Publicar" }).click();
+  const mine = page.getByRole("article").filter({ hasText: reply });
+  await expect(mine.getByText("✓ Passa")).toBeVisible();
+  await noSeriousA11yIssues(page);
+  // Readers don't open threads on this board.
+  await page.goto("/forum/votacoes");
+  await expect(page.getByText("Uma conversa por votação")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Nova discussão" })).toHaveCount(0);
+  await expect(page.getByRole("form", { name: /Nova discussão/ })).toHaveCount(0);
+
+  await page.goto("/previsoes");
   // Another vote comes up to the card.
   await page
     .getByRole("button", { name: /^Prever →/ })
@@ -121,4 +147,29 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
       .locator("visible=true")
       .first(),
   ).toBeVisible();
+});
+
+test("an initiative shows its Passa ou chumba beside it: the card while open; once decided, the result, how readers picked and the conversation", async ({
+  page,
+}) => {
+  // Decided: the readers' split is for everyone now.
+  await page.goto("/iniciativas/4996");
+  const box = page.getByRole("region", { name: "Passa ou chumba?" });
+  await expect(box).toContainText("Resultado: Rejeitado");
+  await expect(box).toContainText("O que os leitores previram");
+  await expect(box.getByText(/^Os leitores: \d+% passa/)).toBeVisible();
+  await expect(box.getByRole("link", { name: "Ver a discussão da votação →" })).toHaveAttribute("href", "/forum/votacoes/704");
+  await noSeriousA11yIssues(page);
+
+  // Open: the card to pick, with its countdown and conversation.
+  await page.goto("/iniciativas/5000");
+  const open = page.getByRole("region", { name: "Passa ou chumba?" });
+  await expect(open.getByRole("group", { name: /^A tua previsão para/ })).toBeVisible();
+  await expect(open.getByText(/^Fecha em/)).toBeVisible();
+  await expect(open.getByRole("link", { name: /^Defende a tua escolha/ })).toHaveAttribute("href", "/forum/votacoes/700");
+
+  // Without one, nothing.
+  await page.goto("/iniciativas/4990");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Passa ou chumba?" })).toHaveCount(0);
 });

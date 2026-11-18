@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { readerOf, type MockReader } from "./accountFixtures";
 import { publicPosts } from "./editorialAdmin";
-import { forumItem } from "./forumFixtures";
+import { addVoteThread, forumItem, registerPickLookup } from "./forumFixtures";
 import { initiatives } from "./parliamentFixtures";
 
 /*
@@ -84,13 +84,30 @@ const OPEN = initiatives.slice(0, 4).map((item, index) => ({
   phase: index === 0 ? "Votação na generalidade" : "Discussão generalidade",
   phaseDate: "2026-11-20",
   onAgenda: index < 2,
+  // On the agenda within 7 days; picks lock when the session starts.
+  closesAt: new Date(Date.now() + (index === 0 ? 134 : index * 24 * 60 + 60) * 60_000).toISOString(),
+  threadId: 700 + index,
 }));
+for (const item of OPEN) addVoteThread(item.threadId, { id: item.id, title: item.title });
+/** A vote already settled: the readers' split shows to everyone. */
+const DECIDED = {
+  id: initiatives[4]!.id,
+  title: initiatives[4]!.title,
+  state: "decided" as const,
+  closesAt: "2026-11-13T15:00:00.000Z",
+  threadId: 704,
+  split: { pass: 31, fail: 18 },
+  voteDate: "2026-11-04",
+  voteResult: "Rejeitado",
+};
+addVoteThread(DECIDED.threadId, { id: DECIDED.id, title: DECIDED.title });
 const crowd = new Map<number, { pass: number; fail: number }>(OPEN.map((item, index) => [item.id, { pass: 12 - index, fail: 7 + index }]));
 const picks = new Map<number, Map<number, "pass" | "fail">>();
 const picksOf = (reader: MockReader) => {
   if (!picks.has(reader.id)) picks.set(reader.id, new Map());
   return picks.get(reader.id)!;
 };
+registerPickLookup((readerId, initiativeId) => picks.get(readerId)?.get(initiativeId) ?? null);
 
 let commentLookup: (
   id: number,
@@ -145,6 +162,28 @@ export const engagementHandlers = [
       }),
     });
   }),
+  // One initiative's (proposed: GET /predictions/:initiativeId): the open ones, and one already decided.
+  http.get(`${API}/predictions/:id`, ({ request, params }) => {
+    const id = Number(params.id);
+    const reader = readerOf(request);
+    const mine = reader ? (picksOf(reader).get(id) ?? null) : null;
+    const open = OPEN.find((item) => item.id === id);
+    if (open)
+      return HttpResponse.json({
+        id,
+        title: open.title,
+        state: "open",
+        closesAt: open.closesAt,
+        threadId: open.threadId,
+        myPick: mine,
+        split: mine ? crowd.get(id) : null,
+        voteDate: open.phaseDate,
+        voteResult: null,
+        outcome: null,
+      });
+    if (id === DECIDED.id) return HttpResponse.json({ ...DECIDED, myPick: null, outcome: null });
+    return fail(404, "not_found");
+  }),
   http.put(`${API}/predictions/:id`, async ({ request, params }) => {
     const reader = readerOf(request);
     if (!reader) return fail(401, "login_required", "Log in to take part");
@@ -157,6 +196,9 @@ export const engagementHandlers = [
     if (before) split[before] -= 1;
     split[pick] += 1;
     picksOf(reader).set(id, pick);
+    // Picking follows the vote's thread.
+    const thread = OPEN.find((item) => item.id === id)?.threadId;
+    if (thread) reader.follows.threads = [thread, ...reader.follows.threads.filter((item) => item !== thread)];
     return HttpResponse.json({ pick, split });
   }),
   http.delete(`${API}/predictions/:id`, ({ request, params }) => {

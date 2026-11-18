@@ -173,6 +173,7 @@ function PosterLine({
   mine,
   createdAt,
   number,
+  pick = null,
 }: {
   nickname: string | null;
   posterId: string | null;
@@ -180,6 +181,7 @@ function PosterLine({
   mine: boolean;
   createdAt: string;
   number: number;
+  pick?: "pass" | "fail" | null;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
@@ -190,6 +192,19 @@ function PosterLine({
         </span>
       )}
       {isOp && <span className="rounded bg-ink px-1.5 py-0.5 font-bold text-paper">OP</span>}
+      {pick && (
+        <span
+          title="O que previu para esta votação"
+          className="rounded px-1.5 py-0.5 font-bold"
+          style={{
+            color: pick === "pass" ? "var(--favor)" : "var(--contra)",
+            background: `color-mix(in srgb, ${pick === "pass" ? "var(--favor)" : "var(--contra)"} 14%, transparent)`,
+          }}
+        >
+          <span className="sr-only">Previu: </span>
+          {pick === "pass" ? "✓ Passa" : "✕ Chumba"}
+        </span>
+      )}
       {mine && <span className="font-bold text-ink">(tu)</span>}
       <span aria-hidden="true">·</span>
       <RelativeTime value={createdAt} />
@@ -232,6 +247,7 @@ function Reply({
             mine={mine}
             createdAt={post.createdAt}
             number={post.id}
+            pick={post.pick ?? null}
           />
           {post.replyTo !== null && !quoted && (
             <p className="mt-2 font-mono text-xs text-muted">

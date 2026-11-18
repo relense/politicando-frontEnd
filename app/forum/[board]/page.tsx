@@ -7,7 +7,16 @@ import { IdeaVote } from "@/components/forum/IdeaVote";
 import { NewThreadForm } from "@/components/forum/NewThreadForm";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ApiError, getArticle, getInitiative } from "@/lib/api/client";
-import { getBoards, getThreads, IDEAS_BOARD, posterName, type Board, type ThreadLink, type ThreadSort } from "@/lib/api/forums";
+import {
+  getBoards,
+  getThreads,
+  IDEAS_BOARD,
+  VOTES_BOARD,
+  posterName,
+  type Board,
+  type ThreadLink,
+  type ThreadSort,
+} from "@/lib/api/forums";
 import { partyPath } from "@/lib/parties";
 
 const PAGE_SIZE = 25;
@@ -74,6 +83,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function BoardPage({ params, searchParams }: Props) {
   await connection();
   const board = await loadBoard((await params).board);
+  // The votes board: the site opens its threads (the API answers 403 board_closed to readers).
+  const closed = board.board === VOTES_BOARD;
   const { ordem, pagina, artigo, iniciativa } = await searchParams;
   const sort = sortOf(ordem);
   const page = pageOf(pagina);
@@ -136,9 +147,11 @@ export default async function BoardPage({ params, searchParams }: Props) {
               ))}
             </ul>
           </nav>
-          <a href="#nova" className="rounded-full bg-ink px-4 py-1.5 font-mono text-sm font-bold text-paper hover:opacity-90 xl:hidden">
-            Nova discussão
-          </a>
+          {!closed && (
+            <a href="#nova" className="rounded-full bg-ink px-4 py-1.5 font-mono text-sm font-bold text-paper hover:opacity-90 xl:hidden">
+              Nova discussão
+            </a>
+          )}
         </div>
 
         {threads.items.length === 0 ? (
@@ -215,7 +228,20 @@ export default async function BoardPage({ params, searchParams }: Props) {
         id="nova"
         className="scroll-mt-24 no-scrollbar xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto xl:overflow-x-hidden xl:overscroll-contain xl:pb-2"
       >
-        <NewThreadForm board={board.board} boardName={boardTitle(board)} link={link} />
+        {closed ? (
+          <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed">
+            <p className="font-bold">Uma conversa por votação</p>
+            <p className="mt-1 text-muted">
+              Abrimos uma discussão para cada votação na agenda do plenário. Escolhe «Passa» ou «Chumba» em{" "}
+              <Link href="/previsoes" className="font-bold text-ink underline">
+                Passa ou chumba?
+              </Link>{" "}
+              e defende a tua escolha na conversa dessa votação: a tua previsão aparece ao lado do teu nome.
+            </p>
+          </div>
+        ) : (
+          <NewThreadForm board={board.board} boardName={boardTitle(board)} link={link} />
+        )}
         <p className="mt-3 px-1 text-xs leading-relaxed text-muted">
           Texto simples, sem formatação. Sê civilizado e não publiques dados pessoais de ninguém. As mensagens podem ser denunciadas e
           removidas pela moderação.

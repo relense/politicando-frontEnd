@@ -35,11 +35,14 @@ type MockPost = {
   replyTo: number | null;
   createdAt: string;
   hidden: boolean;
+  /** Only on the votes board: the poster's prediction. */
+  pick?: "pass" | "fail" | null;
 };
 
 const BOARDS = [
   { board: "geral", name: "Geral", acronym: null as string | null },
   { board: "ideias", name: "Ideias", acronym: null as string | null },
+  { board: "votacoes", name: "Votações", acronym: null as string | null },
   ...parties.map((p) => ({ board: p.slug, name: p.name, acronym: p.acronym })),
 ];
 
@@ -278,6 +281,7 @@ export const forumHandlers = [
         body: post.hidden ? null : post.body,
         posterId: post.hidden ? null : post.posterId,
         isOp: !post.hidden && post.posterId === thread.posterId,
+        ...(thread.board === "votacoes" ? { pick: post.hidden ? null : (post.pick ?? null) } : {}),
       })),
       hasMore: false,
     });
@@ -306,6 +310,8 @@ export const forumHandlers = [
 
   http.post(`${API}/forums/:board/threads`, async ({ params, request }) => {
     if (!BOARDS.some((board) => board.board === params.board)) return fail(404, "not_found");
+    // The site opens the votes board's threads; readers only reply.
+    if (params.board === "votacoes") return fail(403, "board_closed");
     const parsed = newThreadSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
     // With an account: no captcha, and the account's name.
@@ -363,6 +369,7 @@ export const forumHandlers = [
       replyTo: replyTo ?? null,
       createdAt: now,
       hidden: false,
+      pick: thread.board === "votacoes" && reader && thread.link?.initiative ? pickOf(reader.id, thread.link.initiative.id) : null,
     });
     thread.bumpedAt = now;
     return HttpResponse.json({ id, posterId }, { status: 201 });
@@ -416,6 +423,54 @@ export const forumHandlers = [
 ];
 
 /** For the saved page: a visible thread or post, or null. */
+/** A reader's pick on the vote a megathread is about (engagementFixtures hands it over). */
+let pickOf: (readerId: number, initiativeId: number) => "pass" | "fail" | null = () => null;
+export const registerPickLookup = (lookup: typeof pickOf) => {
+  pickOf = lookup;
+};
+
+/** The site's thread for a vote on the plenary agenda, with two fictional replies from each side. */
+export function addVoteThread(id: number, initiative: { id: number; title: string }) {
+  if (threads.some((thread) => thread.id === id)) return;
+  threads.push({
+    id,
+    board: "votacoes",
+    title: `Passa ou chumba? ${initiative.title}`,
+    body: "A conversa desta votação. Diz porque achas que passa, ou que chumba.",
+    nickname: "Politicando",
+    posterId: "votacoes",
+    createdAt: hoursAgo(30),
+    bumpedAt: hoursAgo(2),
+    pinned: false,
+    locked: false,
+    link: { article: null, initiative },
+  });
+  posts.push(
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Os números estão lá: passa.",
+      nickname: null,
+      posterId: "aB3-x9Qe",
+      replyTo: null,
+      createdAt: hoursAgo(5),
+      hidden: false,
+      pick: "pass",
+    },
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Sem o voto do maior partido, chumba.",
+      nickname: null,
+      posterId: "Zt7-q1Lm",
+      replyTo: null,
+      createdAt: hoursAgo(3),
+      hidden: false,
+      pick: "fail",
+    },
+  );
+}
+
 export function forumItem(kind: "thread" | "post", id: number) {
   if (kind === "thread") {
     const thread = threads.find((item) => item.id === id && !item.hidden);
