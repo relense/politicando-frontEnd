@@ -19,7 +19,7 @@ import { formatNumber } from "@/lib/format";
 import { ageOn, partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
 import { deputySummary } from "@/lib/personSummary";
-import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
+import { breadcrumbs, jsonLd, personLd, pageTitle } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [path, votes] = await Promise.all([loadPath(id), loadVotes(id)]);
   const summary = deputySummary(deputy, path, votes?.summary ?? null);
   return {
-    title: summary.title,
+    title: pageTitle(summary.title),
     description: summary.description,
     alternates: { canonical: `/deputados/${deputy.id}` },
   };

@@ -40,7 +40,8 @@ export function DeputyPortrait({
         src={src}
         // Addresses other than our cached route (a CDN, later) are already small and cached; use them as they are.
         unoptimized={!src.startsWith("/")}
-        alt=""
+        alt={`Fotografia de ${deputy.name}`}
+        aria-hidden="true"
         width={PIXELS[size]}
         height={PIXELS[size]}
         onError={() => setFailed(true)}

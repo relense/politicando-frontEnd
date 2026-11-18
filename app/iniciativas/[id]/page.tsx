@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/format";
 import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import type { InitiativeDetail, Vote, VotePosition } from "@/lib/types";
-import { breadcrumbs, jsonLd, legislationLd } from "@/lib/seo";
+import { breadcrumbs, jsonLd, legislationLd, pageTitle } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const kind = initiative.plain?.type.label ?? initiative.type;
   const status = initiative.plain?.status.label ?? STATUS_LABELS[initiative.status];
   return {
-    title: headlineOf(initiative),
+    title: pageTitle(headlineOf(initiative)),
     description: `${kind}. ${status}. Quem propôs, em que fase está, como votaram os partidos e o texto oficial.`,
     alternates: { canonical: initiativePath(initiative.id) },
   };

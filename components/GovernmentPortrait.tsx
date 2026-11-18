@@ -20,7 +20,8 @@ export function GovernmentPortrait({ name, photoUrl, size }: { name: string; pho
     return (
       <Image
         src={photoUrl}
-        alt=""
+        alt={`Fotografia de ${name}`}
+        aria-hidden="true"
         width={PIXELS[size]}
         height={PIXELS[size]}
         // Only the portal's photos go through the optimiser (see next.config.ts); anything else as given.

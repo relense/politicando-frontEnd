@@ -108,7 +108,7 @@ function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPla
     <div className="flex items-center gap-3 rounded-xl bg-[#121212] p-2.5 text-white">
       <span className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-[#2a2a2a]">
         {isAllowedCover(episode?.imageUrl ?? null) ? (
-          <Image src={episode!.imageUrl!} alt="" fill sizes="64px" className="object-cover" />
+          <Image src={episode!.imageUrl!} alt={`Capa: ${episode!.title}`} aria-hidden="true" fill sizes="64px" className="object-cover" />
         ) : (
           <span aria-hidden="true" className="flex size-full items-center justify-center font-mono text-2xl font-bold text-[#f2c94c]">
             P

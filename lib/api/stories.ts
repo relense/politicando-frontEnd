@@ -39,7 +39,17 @@ const storySchema = z.object({
   lastPublishedAt: z.string(),
   articleCount: z.number(),
   sourceCount: z.number(),
-  sources: z.array(z.object({ name: z.string(), articleId: z.number(), title: z.string(), url: z.string(), publishedAt: z.string() })),
+  sources: z.array(
+    z.object({
+      name: z.string(),
+      articleId: z.number(),
+      title: z.string(),
+      url: z.string(),
+      publishedAt: z.string(),
+      /** Asked of the backend: this outlet's own photo (null when it has none). */
+      imageUrl: z.string().nullish(),
+    }),
+  ),
   parties: z.array(party),
   deputies: z.array(z.object({ id: z.number(), name: z.string(), party: z.string().nullable() })).default([]),
   government: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
@@ -87,6 +97,8 @@ export type StoryVersion = {
   title: string;
   url: string | null;
   publishedAt: string;
+  /** This outlet's own photo, null when it has none; undefined while the API doesn't say per outlet. */
+  imageUrl?: string | null;
 };
 export type DebateComment = { id: number; username: string | null; text: string; likes: number; createdAt: string };
 
@@ -142,6 +154,7 @@ function mapStory(api: z.infer<typeof storySchema>): Story {
       title: decode(item.title),
       url: safeHttpUrl(item.url),
       publishedAt: item.publishedAt,
+      ...(item.imageUrl !== undefined && { imageUrl: safeHttpUrl(item.imageUrl) }),
     })),
     parties: api.parties,
     deputies: api.deputies,
@@ -248,6 +261,48 @@ export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
   return page.items.map(mapStory);
 }
 
+/** The version whose headline is the story's, or the first one: whose name heads the card and whose page it opens. */
+export const leadOf = (story: Pick<Story, "title" | "versions">) =>
+  story.versions.find((item) => item.title === story.title) ?? story.versions[0]!;
+
 /** Where a story is read: the page of the version whose headline it shows, or the first one. */
-export const storyPath = (story: Pick<Story, "title" | "versions">) =>
-  `/article/${(story.versions.find((item) => item.title === story.title) ?? story.versions[0])?.articleId}`;
+export const storyPath = (story: Pick<Story, "title" | "versions">) => `/article/${leadOf(story).articleId}`;
+
+/** CDNs an outlet serves its photos from under another name. */
+const PHOTO_HOSTS: Record<string, string[]> = { "dn.pt": ["assettype.com"] };
+
+const mainLabel = (domain: string) =>
+  domain
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .split(".")[0] ?? "";
+
+/** Whether a photo's address is the outlet's own: its name in the host ("media-manager.noticiasaominuto.com"), or a known CDN. */
+export function isOutletPhoto(url: string, domain: string): boolean {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const site = domain.toLowerCase().replace(/^www\./, "");
+  const label = mainLabel(site);
+  if (label.length >= 3 && host.includes(label)) return true;
+  // "img.iol.pt" for "cnnportugal.iol.pt": the same site, unless it's a shared one such as sapo.pt.
+  const base = (name: string) => name.split(".").slice(-2).join(".");
+  if (base(host) === base(site) && base(site) !== "sapo.pt") return true;
+  return (PHOTO_HOSTS[site] ?? []).some((cdn) => host === cdn || host.endsWith(`.${cdn}`));
+}
+
+/**
+ * The photo for a story's card: the lead outlet's own, so the card's outlet, headline and photo are those of the article
+ * it opens. The story's photo can come from any outlet: with several, it's used only when it's recognisably the lead's.
+ * Null: the card shows that this outlet has no photo.
+ */
+export function storyImage(story: Pick<Story, "title" | "versions" | "imageUrl">): string | null {
+  const lead = leadOf(story);
+  if (lead.imageUrl !== undefined) return lead.imageUrl;
+  if (!story.imageUrl) return null;
+  if (story.versions.length <= 1) return story.imageUrl;
+  return isOutletPhoto(story.imageUrl, lead.sourceDomain) ? story.imageUrl : null;
+}

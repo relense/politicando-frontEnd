@@ -580,6 +580,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
         {post.coverImageUrl && (
           <ArticleImage
             src={post.coverImageUrl}
+            alt={post.title}
             href={href}
             className="relative z-10 mt-3 block aspect-video overflow-hidden rounded-xl bg-surface sm:hidden"
             imageClassName="size-full object-cover"
@@ -631,6 +632,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
       {post.coverImageUrl ? (
         <ArticleImage
           src={post.coverImageUrl}
+          alt={post.title}
           href={href}
           className="relative z-10 hidden aspect-[16/10] self-start overflow-hidden rounded-xl bg-surface sm:block"
           imageClassName="size-full object-cover"

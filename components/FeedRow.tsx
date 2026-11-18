@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { storyPath, type Story } from "@/lib/api/stories";
+import { storyImage, storyPath, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
 import { partyPath } from "@/lib/parties";
 import type { Article, ArticleParty } from "@/lib/types";
@@ -106,14 +106,16 @@ function Row({
           </span>
         </div>
       </div>
-      {imageUrl && (
-        <ArticleImage
-          src={imageUrl}
-          href={path}
-          className="relative z-10 block h-[72px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-[var(--inset)] sm:h-[88px] sm:w-[132px]"
-          imageClassName="size-full object-cover"
-        />
-      )}
+      <ArticleImage
+        src={imageUrl}
+        alt={title}
+        href={path}
+        source={source}
+        sourceDomain={sourceDomain}
+        compact
+        className="relative z-10 block h-[72px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-[var(--inset)] sm:h-[88px] sm:w-[132px]"
+        imageClassName="size-full object-cover"
+      />
     </article>
   );
 }
@@ -128,7 +130,7 @@ export function StoryRow({ story, why }: { story: Story; why: string }) {
       path={storyPath(story)}
       title={story.title}
       text={story.excerpt ? excerpt(story.excerpt) : ""}
-      imageUrl={story.imageUrl}
+      imageUrl={storyImage(story)}
       source={lead.source}
       sourceDomain={lead.sourceDomain}
       when={story.lastPublishedAt}

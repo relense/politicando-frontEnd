@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
-import { OG_BASE } from "@/lib/seo";
+import { OG_BASE, pageTitle } from "@/lib/seo";
 import type { ReactNode } from "react";
 import { cache } from "react";
 import { DeputyPortrait } from "@/components/DeputyProfile";
@@ -60,13 +60,25 @@ const loadTrail = cache(async (place: PlaceDetail): Promise<{ trail: Place[]; mu
 
 const districtName = (place: PlaceDetail) => (place.parent?.level === "district" ? place.parent.name : null);
 
-function titleOf(place: PlaceDetail, municipality: PlaceDetail | null): string {
-  if (place.level === "district") return `Distrito de ${place.name}: presidentes de câmara, deputados e eleições`;
-  if (place.level === "parish")
-    return `Freguesia de ${place.name}${municipality ? ` (${municipality.name})` : ""}: assembleia de freguesia e eleições`;
+/** The fullest wording first, then shorter ones for the <title> (see pageTitle). */
+function titlesOf(place: PlaceDetail, municipality: PlaceDetail | null): string[] {
+  if (place.level === "district")
+    return [`Distrito de ${place.name}: presidentes de câmara, deputados e eleições`, `Distrito de ${place.name}: autarcas e eleições`];
+  if (place.level === "parish") {
+    const where = municipality ? ` (${municipality.name})` : "";
+    return [
+      `Freguesia de ${place.name}${where}: assembleia de freguesia e eleições`,
+      `Freguesia de ${place.name}${where}: eleições`,
+      `Freguesia de ${place.name}${where}`,
+    ];
+  }
   // The mayor's name in the title: people search for the name as much as for the town.
-  if (place.mayor) return `Quem governa ${place.name}? ${place.mayor.name}, presidente da câmara`;
-  return `Quem governa ${place.name}? Presidente da câmara, vereadores, deputados e contratos`;
+  if (place.mayor)
+    return [`Quem governa ${place.name}? ${place.mayor.name}, presidente da câmara`, `Quem governa ${place.name}? ${place.mayor.name}`];
+  return [
+    `Quem governa ${place.name}? Presidente da câmara, vereadores, deputados e contratos`,
+    `Quem governa ${place.name}? Câmara e eleições`,
+  ];
 }
 
 function describe(place: PlaceDetail, municipality: PlaceDetail | null): string {
@@ -90,10 +102,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const place = await loadPlace((await params).key);
   if (place.level !== "district" && place.level !== "municipality" && place.level !== "parish") return { title: place.name };
   const { municipality } = await loadTrail(place);
-  const title = titleOf(place, municipality);
+  const titles = titlesOf(place, municipality);
+  const title = titles[0]!;
   const description = describe(place, municipality);
   return {
-    title,
+    title: pageTitle(...titles),
     description,
     alternates: { canonical: placePath(place.key) },
     openGraph: { ...OG_BASE, title, description, url: placePath(place.key) },

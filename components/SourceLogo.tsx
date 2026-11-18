@@ -21,7 +21,8 @@ export function SourceLogo({ domain, name, size, square = false }: { domain: str
   return (
     <Image
       src={`/fontes/${domain}.png`}
-      alt=""
+      alt={`Logótipo ${name}`}
+      aria-hidden="true"
       width={size}
       height={size}
       unoptimized

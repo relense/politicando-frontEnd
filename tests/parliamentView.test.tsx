@@ -20,8 +20,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, "aria-hidden": hidden }: { src: string; alt: string; "aria-hidden"?: boolean | "true" }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} aria-hidden={hidden} />
+  ),
 }));
 
 const server = setupServer(...handlers);

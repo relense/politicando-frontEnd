@@ -97,6 +97,8 @@ function storyOf(group: number[]) {
       title: item.title,
       url: item.url,
       publishedAt: item.publishedAt,
+      // Each outlet's own photo, as asked of the backend.
+      imageUrl: item.imageUrl,
     })),
     parties: [...new Map(versions.flatMap((item) => item.parties).map((party) => [party.slug, party])).values()],
     deputies: [],

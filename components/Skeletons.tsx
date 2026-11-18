@@ -58,11 +58,13 @@ export function PageSkeleton({
       <span className="sr-only">{label}</span>
       <header className="mb-8">
         {eyebrow && <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">{eyebrow}</p>}
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+        {/* Looks like the page's title but isn't a heading: the page streams in after it, in the same HTML, and two h1s
+            there read as two titles to search engines. */}
+        <p className="text-3xl font-bold leading-tight sm:text-4xl">
           {before && `${before} `}
           <span className={MARKER}>{marked}</span>
           {after && ` ${after}`}
-        </h1>
+        </p>
         {intro && <p className="mt-2 max-w-2xl leading-relaxed text-muted">{intro}</p>}
       </header>
       <div aria-hidden="true" className="animate-pulse">
