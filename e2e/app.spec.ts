@@ -1195,6 +1195,10 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
   expect((await request.get("/icon")).status()).toBe(200);
   const robots = await (await request.get("/robots.txt")).text();
   expect(robots).toContain("Disallow: /admin");
+  // Bing and the SEO crawlers are slowed (Google ignores Crawl-delay), with the same disallowed paths.
+  const bing = robots.slice(robots.indexOf("User-Agent: bingbot"));
+  expect(bing).toContain("Crawl-delay: 5");
+  expect(bing).toContain("Disallow: /admin");
   expect(await (await request.get("/sitemap.xml")).text()).toContain("/forum</loc>");
 });
 
@@ -1233,4 +1237,67 @@ test("feed view: cards or a compact list, remembered; the order tabs", async ({ 
   await expect(page.getByText(/primeiro$/i).first()).toBeVisible();
   await tabs.getByRole("button", { name: "Recentes" }).click();
   await expect(page).not.toHaveURL(/ordem=/);
+});
+
+test("the podcast box: the newest episode without Spotify, which loads and plays on ▶; also at the end of the blog", async ({
+  page,
+  isMobile,
+}) => {
+  // Spotify is never contacted. Its iFrame API is replaced by a stand-in that records what the box asks of it.
+  await page.route(/open\.spotify\.com/, (route) =>
+    route.request().url().includes("/embed/iframe-api/")
+      ? route.fulfill({
+          contentType: "text/javascript",
+          body: `window.onSpotifyIframeApiReady({ createController(element, options, done) {
+            const [, kind, id] = options.uri.split(":");
+            const frame = document.createElement("iframe");
+            frame.src = "https://open.spotify.com/embed/" + kind + "/" + id;
+            element.replaceWith(frame);
+            done({ addListener(event, callback) { if (event === "ready") callback(); }, play() { window.__spotifyPlay = true; } });
+          } });`,
+        })
+      : route.fulfill({ status: 200, contentType: "text/html", body: "<p>leitor</p>" }),
+  );
+  await page.goto("/");
+  const box = page.getByRole("region", { name: "Política, conversada" }).filter({ visible: true });
+  if (isMobile) await box.scrollIntoViewIfNeeded();
+  // The episode comes from our server: title, number, date and length, and no player yet.
+  await expect(box.getByText("18 nov. · O Orçamento na reta final, explicado")).toBeVisible();
+  // The date is already in the title, so only the length follows it.
+  await expect(box.getByText("24 min", { exact: true })).toBeVisible();
+  await expect(box.locator("iframe")).toHaveCount(0);
+  // "Abrir no Spotify" goes to the episode itself.
+  await expect(box.getByRole("link", { name: /Abrir no Spotify/ })).toHaveAttribute(
+    "href",
+    "https://open.spotify.com/episode/0000000000TesteEpis03",
+  );
+  await noSeriousA11yIssues(page);
+
+  await box.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ }).click();
+  await expect(box.locator("iframe")).toHaveAttribute("src", "https://open.spotify.com/embed/episode/0000000000TesteEpis03");
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spotifyPlay?: boolean }).__spotifyPlay)).toBe(true);
+
+  await page.goto("/editorial");
+  const end = page.getByRole("region", { name: "Política, conversada" });
+  await expect(end.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ })).toBeVisible();
+  await expect(end.getByRole("link", { name: /Abrir no Spotify/ })).toBeVisible();
+});
+
+test("our profiles: X and the podcast in the footer and the menu, and in the site's structured data", async ({ page, isMobile }) => {
+  await page.goto("/parlamento");
+  const footer = page.locator("footer");
+  await expect(footer.getByRole("link", { name: /@politicando_pt no X/ })).toHaveAttribute("href", "https://x.com/politicando_pt");
+  await expect(footer.getByRole("link", { name: /Podcast no Spotify/ })).toHaveAttribute(
+    "href",
+    "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
+  );
+  if (isMobile) {
+    await page.getByRole("button", { name: "Abrir menu" }).click();
+    await expect(page.locator("dialog[open]").getByRole("link", { name: /@politicando_pt no X/ })).toBeVisible();
+  } else {
+    await expect(page.getByRole("navigation", { name: "Secções" }).getByRole("link", { name: /@politicando_pt no X/ })).toBeVisible();
+  }
+  await expect(page.locator('meta[name="twitter:site"]')).toHaveAttribute("content", "@politicando_pt");
+  const site = await page.locator('script[type="application/ld+json"]').allTextContents();
+  expect(site.join("")).toContain('"sameAs":["https://x.com/politicando_pt","https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT"]');
 });

@@ -14,6 +14,9 @@ import { loadFeed } from "@/lib/api/feed";
 import { getToday } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
 import { TodayInFive } from "@/components/TodayInFive";
+import { PodcastBox } from "@/components/PodcastBox";
+import { getPodcast } from "@/lib/podcast";
+import { getLatestEpisode } from "@/lib/api/podcast";
 import { tidyName } from "@/lib/elections";
 import { FEED_COOKIE, isEmpty, orderKey, orderOf, orderPhrase, parseFilter, readSavedFilter } from "@/lib/feedFilter";
 import { ofParty, partyPath } from "@/lib/parties";
@@ -83,17 +86,19 @@ export default async function HomePage({ searchParams }: Props) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const [page, highlights, sidebar, nextEvent] = await Promise.all([
+  const [page, highlights, sidebar, nextEvent, episode] = await Promise.all([
     loadFeed({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
     getNextEvent(),
+    getLatestEpisode(),
   ]);
   // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
   const allToday = FEATURES.stories ? await getToday() : [];
   const today = allToday.length >= 3 ? allToday : [];
   // The blog has one box beside the news, so it never pushes the news down.
   const spotlight = highlights[0] ?? null;
+  const podcast = getPodcast();
 
   return (
     <div data-wide>
@@ -158,12 +163,16 @@ export default async function HomePage({ searchParams }: Props) {
             inserts={[
               ...(today.length > 0 ? [{ after: 3, node: <TodayInFive stories={today} headingId="hoje-em-5-feed" /> }] : []),
               ...(spotlight ? [{ after: 5, node: <BlogRow post={spotlight} /> }] : []),
+              ...(podcast
+                ? [{ after: 8, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
+                : []),
               ...(nextEvent ? [{ after: 12, node: <EventRow item={nextEvent} now={requestTime()} /> }] : []),
             ]}
           />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
           <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
+            {podcast && <PodcastBox podcast={podcast} episode={episode} />}
             {today.length > 0 && <TodayInFive stories={today} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
             {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
