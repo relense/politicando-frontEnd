@@ -8,12 +8,13 @@ import { http, HttpResponse } from "msw";
 const API = "*/api/v2";
 export const READER_COOKIE = "politicando_session";
 
-type MockReader = {
+export type MockReader = {
   id: number;
   username: string;
   password: string;
   createdAt: string;
-  saved: { articles: number[]; stories: number[] };
+  saved: { articles: number[]; stories: number[]; editorial: number[]; comments: number[]; threads: number[]; replies: number[] };
+  follows: { stories: number[]; threads: number[] };
   hidden: number[];
   muted: { sources: string[]; parties: string[] };
   read: number[];
@@ -25,7 +26,8 @@ const readers: MockReader[] = [
     username: "leitora_de_teste",
     password: "palavra-passe-de-teste",
     createdAt: "2026-11-10T10:00:00.000Z",
-    saved: { articles: [101], stories: [] },
+    saved: { articles: [101], stories: [], editorial: [], comments: [], threads: [], replies: [] },
+    follows: { stories: [], threads: [] },
     hidden: [],
     muted: { sources: [], parties: [] },
     read: [],
@@ -58,6 +60,7 @@ export const gateRefusal = (request: Request) =>
 const publicReader = ({ id, username, createdAt }: MockReader) => ({ id, username, createdAt });
 const stateOf = (reader: MockReader) => ({
   saved: reader.saved,
+  follows: reader.follows,
   hidden: reader.hidden,
   muted: reader.muted,
   read: reader.read,
@@ -108,7 +111,8 @@ export const accountHandlers = [
       username,
       password,
       createdAt: new Date().toISOString(),
-      saved: { articles: [], stories: [] },
+      saved: { articles: [], stories: [], editorial: [], comments: [], threads: [], replies: [] },
+      follows: { stories: [], threads: [] },
       hidden: [],
       muted: { sources: [], parties: [] },
       read: [],
@@ -141,6 +145,7 @@ export const accountHandlers = [
     withReader(async (reader, request) => {
       const body = (await request.json().catch(() => ({}))) as Partial<ReturnType<typeof stateOf>>;
       reader.saved = {
+        ...reader.saved,
         articles: newestFirst(body.saved?.articles ?? [], reader.saved.articles),
         stories: newestFirst(body.saved?.stories ?? [], reader.saved.stories),
       };
@@ -157,7 +162,16 @@ export const accountHandlers = [
     http[method](
       `${API}/me/saved/:kind/:id`,
       withReader((reader, _request, params) => {
-        const list = params.kind === "story" ? "stories" : "articles";
+        const LISTS = {
+          article: "articles",
+          story: "stories",
+          editorial: "editorial",
+          comment: "comments",
+          thread: "threads",
+          reply: "replies",
+        } as const;
+        const list = LISTS[params.kind as keyof typeof LISTS];
+        if (!list) return fail(404, "not_found");
         const id = Number(params.id);
         reader.saved[list] = method === "put" ? newestFirst([id], reader.saved[list]) : reader.saved[list].filter((item) => item !== id);
         return noContent();

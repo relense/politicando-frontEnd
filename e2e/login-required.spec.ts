@@ -43,28 +43,28 @@ test("without an account, the comment is written first, kept while logging in, a
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
 });
 
-test("without an account, a vote asks next to the button, and counts after logging in", async ({ page }) => {
+test("without an account, \"Importa\" asks next to the button, and counts after logging in", async ({ page }) => {
   await page.goto("/editorial");
   const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
-  const up = row.getByRole("button", { name: /^Votar a favor de/ });
-  await up.click();
-  const note = page.getByRole("dialog", { name: "Vota nesta notícia" });
+  const importa = row.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
+  await importa.click();
+  const note = page.getByRole("dialog", { name: "Diz-nos que este artigo importa" });
   await expect(note).toBeVisible();
-  await expect(note).toContainText("Depois de entrares, contamos o teu voto.");
-  await expect(up).toHaveAttribute("aria-pressed", "false");
+  await expect(note).toContainText("Depois de entrares, marcamos “Importa” por ti.");
+  await expect(importa).toHaveAttribute("aria-pressed", "false");
   // The note itself (the page has a badge of its own to fix).
   const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
   expect(violations.map((violation) => violation.id)).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(note).toHaveCount(0);
 
-  await up.click();
+  await importa.click();
   await note.getByRole("link", { name: /Entrar$/ }).click();
   await expect(page).toHaveURL(/\/entrar\?depois=%2Feditorial$/);
   await fillLogin(page);
   await expect(page).toHaveURL(/\/editorial$/);
-  await expect(page.getByRole("status").filter({ hasText: "O teu voto contou." })).toBeVisible();
-  await expect(up).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("status").filter({ hasText: "Marcaste “Importa” neste artigo." })).toBeVisible();
+  await expect(importa).toHaveAttribute("aria-pressed", "true");
 });
 
 test("without an account, the forum shows the way in instead of its forms; with one, the forms", async ({ page }) => {

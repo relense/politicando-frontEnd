@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { ApiError, voteArticle, votePost } from "@/lib/api/client";
+import { ApiError, voteArticle } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format";
 import { useAccountGate } from "@/lib/account";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
@@ -45,16 +45,19 @@ function remember(id: number | string, value: number) {
   window.dispatchEvent(new Event(EVENT));
 }
 
+/** The same store for blog posts' "Importa", kept as "post:slug": 1 (components/PostImporta.tsx). */
+export const voteStore = { read, subscribe, parse, remember };
+
 type VoteAnswer = { up: number; down: number; mine: number };
 
 /** An answer from outside the arrows (the vote finished after logging in). */
-export function applyVoteAnswer(id: number | string, answer: VoteAnswer) {
+export function applyVoteAnswer(id: number, answer: VoteAnswer) {
   remember(id, answer.mine);
   publishAnswer("vote", id, answer);
 }
 
-/** A news article by id, or a blog post as "post:slug" (kept beside the articles' ids). */
-type Props = { id: number | string; title: string; up: number; down: number; className?: string };
+/** A news article, by id. (Blog posts have "Importa" instead: components/PostImporta.tsx.) */
+type Props = { id: number; title: string; up: number; down: number; className?: string };
 
 /** Up and down arrows around the score (up minus down), as on Reddit. Pressing a lit arrow again takes the vote back. */
 export function ArticleVote({ id, title, up, down, className = "" }: Props) {
@@ -82,7 +85,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
     setFailed(false);
     setPending(next);
     try {
-      const answer = typeof id === "number" ? await voteArticle(id, next) : await votePost(id.replace(/^post:/, ""), next);
+      const answer = await voteArticle(id, next);
       setTotals(answer);
       remember(id, answer.mine);
     } catch (error) {

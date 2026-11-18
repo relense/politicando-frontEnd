@@ -11,6 +11,7 @@ import { useComments } from "./CommentsContext";
 import { ReportButton } from "./forum/ReportButton";
 import { CommentIcon, ShareIcon } from "./icons";
 import { RelativeTime } from "./RelativeTime";
+import { SaveButton } from "./account/SaveButton";
 
 /** Past this depth replies stop indenting, so deep threads stay readable on a phone. */
 const MAX_INDENT_DEPTH = 6;
@@ -142,6 +143,7 @@ export function CommentItem({ node, target, depth = 0 }: Props) {
                     </button>
                     <CopyLinkButton id={node.id} />
                     <ReportButton kind="comment" id={node.id} />
+                    <SaveButton kind="comment" id={node.id} compact />
                   </>
                 )}
               </div>

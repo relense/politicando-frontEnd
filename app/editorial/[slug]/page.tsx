@@ -8,7 +8,7 @@ import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleImage } from "@/components/ArticleImage";
 import { ConsentEmbed } from "@/components/ConsentEmbed";
 import { JumpLink } from "@/components/JumpLink";
-import { ArticleVote } from "@/components/ArticleVote";
+import { PostImporta } from "@/components/PostImporta";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
@@ -18,6 +18,7 @@ import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
 import { clip, OG_BASE, pageTitle } from "@/lib/seo";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { postComments, type Comment, type EditorialDetail } from "@/lib/types";
+import { SaveButton } from "@/components/account/SaveButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -161,7 +162,8 @@ export default async function EditorialPostPage({ params }: Props) {
             </span>
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            {post.votes && <ArticleVote id={`post:${post.slug}`} title={post.title} up={post.votes.up} down={post.votes.down} />}
+            {typeof post.importa === "number" && <PostImporta slug={post.slug} title={post.title} importa={post.importa} />}
+            <SaveButton kind="editorial" id={post.id} />
             <ArticleActions title={post.title} />
           </div>
         </div>

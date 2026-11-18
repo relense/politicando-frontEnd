@@ -154,7 +154,7 @@ test("when the API asks for an account, taking part offers to log in", async ({ 
   try {
     await page.goto("/editorial");
     const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
-    await row.getByRole("button", { name: /^Votar a favor de/ }).click();
+    await row.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ }).click();
     const ask = page.getByRole("dialog", { name: "Entra para participar" });
     await expect(ask).toBeVisible();
     await expect(ask.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/criar-conta?depois=%2Feditorial");

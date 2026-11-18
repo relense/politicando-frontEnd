@@ -9,7 +9,8 @@ import { forwardToApi } from "@/lib/api/proxy";
  */
 type Context = { params: Promise<{ path: string[] }> };
 
-const ACCOUNT = new Set(["auth", "me"]);
+// Reads that carry the reader: the account, and the predictions list with their own picks.
+const ACCOUNT = new Set(["auth", "me", "predictions"]);
 
 async function forward(request: NextRequest, { params }: Context): Promise<Response> {
   const { path } = await params;

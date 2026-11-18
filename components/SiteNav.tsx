@@ -43,13 +43,6 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         active: (path) => path.startsWith("/editorial"),
       },
       {
-        href: "/guardadas",
-        label: "Guardadas",
-        hint: "As notícias que guardaste",
-        icon: icon("M6 3h8a1 1 0 0 1 1 1v13l-5-3.5L5 17V4a1 1 0 0 1 1-1Z"),
-        active: (path) => path.startsWith("/guardadas"),
-      },
-      {
         href: "/agenda",
         label: "Agenda",
         hint: "O que vem aí e onde assistir",
@@ -95,6 +88,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         hint: "Leis e propostas, simples",
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 9h4M8 12h4M8 15h2"),
         active: (path) => path.startsWith("/iniciativas"),
+      },
+      {
+        href: "/previsoes",
+        label: "Passa ou chumba?",
+        hint: "Prevê as votações",
+        icon: icon("M4 10h4v6H4zM10 6h4v10h-4zM16 12h4v4h-4zM3 19h18"),
+        active: (path) => path.startsWith("/previsoes"),
       },
     ],
   },

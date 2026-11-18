@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
 import { CountRead } from "@/components/CountRead";
-import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions } from "@/components/StoryParts";
+import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions, FollowStoryBox } from "@/components/StoryParts";
 import { MarkStoryRead } from "@/components/TodayInFive";
 import { getStory } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -173,6 +173,7 @@ export default async function ArticlePage({ params }: Props) {
             story && (
               <>
                 <ImportaBox story={story} />
+                <FollowStoryBox story={story} />
                 <StoryContextBox story={story} />
               </>
             )

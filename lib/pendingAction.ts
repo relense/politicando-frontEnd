@@ -8,7 +8,8 @@ import type { CommentStance, CommentTarget } from "./types";
 export type PendingAction =
   | { kind: "comment"; target: CommentTarget; parentId: number | null; text: string; stance: CommentStance | null }
   | { kind: "importa"; id: number }
-  | { kind: "vote"; id: number | string; value: 1 | -1 }
+  | { kind: "vote"; id: number; value: 1 | -1 }
+  | { kind: "post"; slug: string }
   | { kind: "like"; id: number }
   | { kind: "idea"; id: number };
 

@@ -1128,23 +1128,26 @@ test("news menu: save, hide with undo, why, and report", async ({ page }) => {
   await noSeriousA11yIssues(page);
 });
 
-test("blog: readers vote on a post, in the list and on its page", async ({ page }) => {
+test("blog: readers mark a post \"Importa\", in the list and on its page", async ({ page }) => {
   await page.goto("/editorial");
   const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
-  const score = row.getByLabel(/^Pontuação:/);
-  const before = Number((await score.getAttribute("aria-label"))!.replace(/\D/g, ""));
+  const importa = row.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
+  // One mark, no down-vote.
+  await expect(row.getByRole("button", { name: /^Votar contra/ })).toHaveCount(0);
+  const count = async (button: typeof importa) => Number((await button.innerText()).replace(/\D/g, ""));
+  const before = await count(importa);
   const answered = page.waitForResponse((response) => /\/editorial\/a-maioria-que-nao-existe\/vote$/.test(response.url()));
-  await row.getByRole("button", { name: /^Votar a favor de/ }).click();
+  await importa.click();
   await answered;
-  await expect(row.getByRole("button", { name: /^Votar a favor de/ })).toHaveAttribute("aria-pressed", "true");
-  await expect(score).toHaveAttribute("aria-label", `Pontuação: ${before + 1}`);
-  // Remembered in this browser: the post's page shows the same vote, and pressing again takes it back.
+  await expect(importa).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => count(importa)).toBe(before + 1);
+  // Remembered in this browser: the post's page shows the same mark, and pressing again takes it back.
   await page.goto("/editorial/a-maioria-que-nao-existe");
-  const up = page.getByRole("button", { name: /^Votar a favor de/ });
-  await expect(up).toHaveAttribute("aria-pressed", "true");
-  await up.click();
-  await expect(up).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByLabel(/^Pontuação:/)).toHaveAttribute("aria-label", `Pontuação: ${before}`);
+  const onPage = page.getByRole("button", { name: /dizem que «A maioria que não existe» importa/ });
+  await expect(onPage).toHaveAttribute("aria-pressed", "true");
+  await onPage.click();
+  await expect(onPage).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(() => count(onPage)).toBe(before);
   await noSeriousA11yIssues(page);
 });
 
@@ -1247,7 +1250,7 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
       : route.fulfill({ status: 200, contentType: "text/html", body: "<p>leitor</p>" }),
   );
   await page.goto("/");
-  const box = page.getByRole("region", { name: "Política, conversada" }).filter({ visible: true });
+  const box = page.getByRole("region", { name: /^O dia de ontem na política/ }).filter({ visible: true });
   if (isMobile) await box.scrollIntoViewIfNeeded();
   // The episode comes from our server: title, number, date and length, and no player yet.
   await expect(box.getByText("18 nov. · O Orçamento na reta final, explicado")).toBeVisible();
@@ -1266,7 +1269,7 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spotifyPlay?: boolean }).__spotifyPlay)).toBe(true);
 
   await page.goto("/editorial");
-  const end = page.getByRole("region", { name: "Política, conversada" });
+  const end = page.getByRole("region", { name: /^O dia de ontem na política/ });
   await expect(end.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ })).toBeVisible();
   await expect(end.getByRole("link", { name: /Abrir no Spotify/ })).toBeVisible();
 });

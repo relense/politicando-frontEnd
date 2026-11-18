@@ -536,7 +536,7 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     ...(typeof api.views === "number" ? { views: api.views } : {}),
     ...(typeof api.recentViews === "number" ? { recentViews: api.recentViews } : {}),
     commentCount: typeof api.commentCount === "number" ? api.commentCount : null,
-    votes: typeof api.upvotes === "number" && typeof api.downvotes === "number" ? { up: api.upvotes, down: api.downvotes } : null,
+    importa: typeof api.importa === "number" ? api.importa : typeof api.upvotes === "number" ? api.upvotes : null,
   };
 }
 

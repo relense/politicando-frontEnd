@@ -474,8 +474,8 @@ export type EditorialPost = {
   recentViews?: number | null;
   /** Visible comments, when the API sends the count with the post. */
   commentCount?: number | null;
-  /** Readers' up and down votes, when the API counts them on posts. */
-  votes?: { up: number; down: number } | null;
+  /** Readers who marked it "Importa", when the API counts them. */
+  importa?: number | null;
 };
 
 export type EditorialDetail = EditorialPost & { body: string };

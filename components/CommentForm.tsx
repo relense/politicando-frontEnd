@@ -9,6 +9,7 @@ import { readDraft, savePending, writeDraft } from "@/lib/pendingAction";
 import { useReturnPath } from "./account/AccountMenu";
 import { GOLD, OUTLINE } from "./account/ui";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
+import { markFollowed } from "@/lib/accountExtras";
 
 const MAX_LENGTH = 500;
 const MAX_USERNAME = 20;
@@ -105,6 +106,9 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
       setText("");
       setStance(null);
       writeDraft(target, parentId, "");
+      // Commenting on a story follows it (backend docs/engagement-api.md).
+      const story = reader && /^\/stories\/(\d+)$/.exec(target);
+      if (story) markFollowed("story", Number(story[1]));
       onPosted?.(created);
     },
     // A token can only be used once, whether the request worked or not.

@@ -19,15 +19,20 @@ const LOGIN_REQUIRED = parseLoginRequired(process.env.NEXT_PUBLIC_LOGIN_REQUIRED
 export const needsAccount = (what: Participation) => LOGIN_REQUIRED.has(what);
 
 /** The buttons that ask for an account, and what each one needs. */
-export type AskKind = "importa" | "vote" | "like" | "idea" | "report" | "forum" | "any";
+export type AskKind = "importa" | "post" | "vote" | "like" | "idea" | "report" | "forum" | "follow" | "save" | "predict" | "any";
 
-export const ASK_NEEDS: Record<Exclude<AskKind, "any">, Participation> = {
+/** "account": kept only by an account (follows, the newer saves, predictions), so asked whatever the setting. */
+export const ASK_NEEDS: Record<Exclude<AskKind, "any">, Participation | "account"> = {
   importa: "votes",
+  post: "votes",
   vote: "votes",
   like: "votes",
   idea: "votes",
   report: "reports",
   forum: "forum",
+  follow: "account",
+  save: "account",
+  predict: "account",
 };
 
 /** One sentence about that action, and what happens after logging in. */
@@ -36,6 +41,12 @@ export const ASK_COPY: Record<AskKind, { label: string; title: string; text: str
     label: "Importa",
     title: "Diz-nos que esta notícia importa",
     text: "Cada “Importa” conta uma vez por pessoa. É isso que mantém o “Hoje em 5” honesto, por isso pedimos conta.",
+    after: "Depois de entrares, marcamos “Importa” por ti.",
+  },
+  post: {
+    label: "Importa",
+    title: "Diz-nos que este artigo importa",
+    text: "Cada “Importa” conta uma vez por pessoa, para que os artigos mais úteis cheguem a mais gente. Por isso pedimos conta.",
     after: "Depois de entrares, marcamos “Importa” por ti.",
   },
   vote: {
@@ -67,6 +78,24 @@ export const ASK_COPY: Record<AskKind, { label: string; title: string; text: str
     title: "Escreve no fórum",
     text: "Responder e abrir discussões pede uma conta. Ler continua livre.",
     after: "Depois de entrares, voltas a esta página.",
+  },
+  follow: {
+    label: "Seguir",
+    title: "Segue o que te interessa",
+    text: "Avisamos-te na tua conta quando há novidades: novas respostas numa discussão, ou mais jornais a contar a mesma história.",
+    after: "Depois de entrares, voltas a esta página para seguir.",
+  },
+  save: {
+    label: "Guardar",
+    title: "Guarda para ler depois",
+    text: "Artigos, comentários e discussões guardados ficam na tua conta, em todos os teus dispositivos.",
+    after: "Depois de entrares, voltas a esta página para guardar.",
+  },
+  predict: {
+    label: "Passa ou chumba?",
+    title: "Entra para prever",
+    text: "Diz se achas que passa na próxima votação e vê depois como votaram os outros. As tuas previsões são só tuas.",
+    after: "Depois de entrares, voltas aqui para escolher.",
   },
   any: {
     label: "Conta",

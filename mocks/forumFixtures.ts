@@ -407,6 +407,17 @@ export const forumHandlers = [
   }),
 ];
 
+/** For the saved page: a visible thread or post, or null. */
+export function forumItem(kind: "thread" | "post", id: number) {
+  if (kind === "thread") {
+    const thread = threads.find((item) => item.id === id && !item.hidden);
+    return thread ? { ...thread, replyCount: posts.filter((post) => post.threadId === id && !post.hidden).length } : null;
+  }
+  const post = posts.find((item) => item.id === id && !item.hidden);
+  const thread = post && threads.find((item) => item.id === post.threadId);
+  return post && thread ? { ...post, threadTitle: thread.title, board: thread.board } : null;
+}
+
 /** For the reports queue: what a reported thread or post says. */
 export function forumTarget(kind: "thread" | "post", id: number) {
   if (kind === "thread") {

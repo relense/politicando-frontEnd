@@ -4,9 +4,11 @@ import { itemsOf } from "@/components/account/AccountSettings";
 import { applyAccountState, clearLocalState, localStateToMerge } from "@/lib/account";
 import { safeReturn, type AccountState } from "@/lib/api/account";
 import { readerPrefs } from "@/lib/readerPrefs";
+import { currentExtras } from "@/lib/accountExtras";
 
 const state: AccountState = {
-  saved: { articles: [812, 790], stories: [41] },
+  saved: { articles: [812, 790], stories: [41], editorial: [3], comments: [1203], threads: [17], replies: [4410] },
+  follows: { stories: [41], threads: [17] },
   hidden: [777],
   muted: { sources: ["publico.pt"], parties: ["chega"] },
   read: [41, 39],
@@ -24,6 +26,11 @@ describe("the account in the browser", () => {
     expect(JSON.parse(window.localStorage.getItem("comment-likes")!)).toEqual([1203]);
     expect(window.localStorage.getItem("ideas-voted")).toBe("17");
     expect(JSON.parse(window.localStorage.getItem("stories-read")!)).toEqual([39, 41]);
+    // What only the account keeps: follows and the other saved things.
+    expect(currentExtras()).toEqual({
+      follows: { story: [41], thread: [17] },
+      saved: { editorial: [3], comment: [1203], thread: [17], reply: [4410] },
+    });
     // And sends them back newest first, without votes, to merge.
     expect(localStateToMerge()).toEqual({
       saved: { articles: [812, 790], stories: [] },
@@ -39,6 +46,7 @@ describe("the account in the browser", () => {
     expect(readerPrefs()).toEqual({ saved: [], hidden: [], mutedSources: [], mutedParties: [] });
     for (const key of ["article-votes", "story-importa", "comment-likes", "ideas-voted", "stories-read"])
       expect(window.localStorage.getItem(key)).toBeNull();
+    expect(currentExtras().follows.thread).toEqual([]);
   });
 });
 

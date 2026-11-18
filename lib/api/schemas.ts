@@ -478,8 +478,9 @@ export const editorialPostSchema = z.object({
   recentViews: z.number().nullish(),
   /** Visible comments and readers' votes, once the API sends them on posts (asked of the backend). */
   commentCount: z.number().nullish(),
+  /** Readers who marked the post "Importa"; `upvotes` carries the same number while the API sends both. */
+  importa: z.number().nullish(),
   upvotes: z.number().nullish(),
-  downvotes: z.number().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

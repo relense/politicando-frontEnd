@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SavedArticles } from "@/components/SavedArticles";
+import { SavedElsewhere } from "@/components/account/SavedElsewhere";
 
 export const metadata: Metadata = {
   title: "Notícias guardadas",
@@ -24,10 +25,11 @@ export default function SavedPage() {
           <Link href="/criar-conta?depois=%2Fguardadas" className="underline hover:text-ink">
             com conta
           </Link>
-          , aparecem em todos os teus dispositivos.
+          , aparecem em todos os teus dispositivos, junto com os artigos do blog, comentários e discussões que guardares.
         </p>
       </header>
       <SavedArticles />
+      <SavedElsewhere />
     </div>
   );
 }

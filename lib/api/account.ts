@@ -14,7 +14,11 @@ const ids = z.array(z.number()).catch([]);
 const strings = z.array(z.string()).catch([]);
 
 export const accountStateSchema = z.object({
-  saved: z.object({ articles: ids, stories: ids }).catch({ articles: [], stories: [] }),
+  saved: z
+    .object({ articles: ids, stories: ids, editorial: ids, comments: ids, threads: ids, replies: ids })
+    .catch({ articles: [], stories: [], editorial: [], comments: [], threads: [], replies: [] }),
+  /** Stories and forum threads the reader follows (backend docs/engagement-api.md). */
+  follows: z.object({ stories: ids, threads: ids }).catch({ stories: [], threads: [] }),
   hidden: ids,
   muted: z.object({ sources: strings, parties: strings }).catch({ sources: [], parties: [] }),
   read: ids,
@@ -30,7 +34,7 @@ export const accountStateSchema = z.object({
 });
 export type AccountState = z.infer<typeof accountStateSchema>;
 /** What the browser had before logging in (lists newest first). Votes aren't merged: they were already counted. */
-export type MergeInput = Pick<AccountState, "saved" | "hidden" | "muted" | "read">;
+export type MergeInput = { saved: Pick<AccountState["saved"], "articles" | "stories"> } & Pick<AccountState, "hidden" | "muted" | "read">;
 
 const json = (method: string, body?: unknown) => ({
   method,

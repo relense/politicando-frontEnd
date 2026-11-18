@@ -12,6 +12,9 @@ import { RelativeTime } from "../RelativeTime";
 import { ForumText } from "./ForumText";
 import { ReportButton } from "./ReportButton";
 import { SignInToTakePart } from "@/components/account/SignInToTakePart";
+import { FollowButton } from "@/components/account/FollowButton";
+import { SaveButton } from "@/components/account/SaveButton";
+import { markFollowed } from "@/lib/accountExtras";
 
 const POLL_MS = 20_000;
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -104,6 +107,10 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
         <div className="mt-2 flex flex-wrap items-center gap-1">
           {!thread.locked && <ReplyButton onClick={(button) => gate("forum", button) || form.current?.replyTo(null)} />}
           <ReportButton kind="thread" id={thread.id} />
+          <SaveButton kind="thread" id={thread.id} compact />
+          <span className="ml-auto">
+            <FollowButton kind="thread" id={thread.id} />
+          </span>
         </div>
       </article>
 
@@ -245,6 +252,7 @@ function Reply({
           <div className="mt-2 flex flex-wrap items-center gap-1">
             {!locked && <ReplyButton onClick={onReply} />}
             <ReportButton kind="post" id={post.id} />
+            <SaveButton kind="reply" id={post.id} compact />
           </div>
         </>
       )}
@@ -331,6 +339,8 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
       setBody("");
       setReplyTo(null);
       setStatus("Resposta publicada.");
+      // Replying follows the thread (backend docs/engagement-api.md).
+      if (reader) markFollowed("thread", threadId);
       onPosted(created.posterId);
     } catch (failure) {
       setError(forumErrorMessage(failure));
