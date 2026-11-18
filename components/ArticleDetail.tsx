@@ -4,6 +4,7 @@ import type { Article } from "@/lib/types";
 import { ArticleActions } from "./ArticleActions";
 import { ArticleImage } from "./ArticleImage";
 import { BackLink } from "./BackLink";
+import { PeopleInNews } from "./PeopleInNews";
 import { PartyChips } from "./PartyChips";
 
 /** The article page's main column. We only have a teaser, so the way to the original is the main action. */
@@ -69,6 +70,7 @@ export function ArticleDetail({ article, versions }: { article: Article; /** The
           <PartyChips parties={article.parties} />
         </div>
       )}
+      <PeopleInNews people={article.people ?? []} className="mt-4" />
     </article>
   );
 }

@@ -16,7 +16,9 @@ import { tidyName } from "@/lib/elections";
 import { partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
 import type { Government, GovernmentMember, GovernmentMemberKind } from "@/lib/types";
+import { governmentMemberSummary } from "@/lib/personSummary";
 import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
+import { WhoIs } from "@/components/WhoIs";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -31,14 +33,30 @@ const loadMember = cache(async (id: string) => {
   }
 });
 
+/** Everything the page and its metadata share: the member, their path, the Government in office and the parties. */
+const loadAll = cache(async (id: string) => {
+  const [member, path, government, parties] = await Promise.all([
+    loadMember(id),
+    /^[0-9a-f]{32}$/.test(id) ? tryPersonPath("government", id) : null,
+    getGovernment().catch(() => null),
+    getParties().catch(() => []),
+  ]);
+  if (!member) return null;
+  const current = member.positions.find((position) => !position.endDate) ?? member.positions[0];
+  const party = parties.find((item) => item.slug === member.partySlug) ?? null;
+  const governmentName =
+    current?.government && government?.code === current.government ? government.name : (current?.government?.toUpperCase() ?? null);
+  const summary = governmentMemberSummary(member, path, { partyAcronym: party?.acronym ?? null, governmentName });
+  return { member, path, government, parties, current, party, governmentName, summary };
+});
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const member = await loadMember((await params).id);
-  if (!member) return { title: "Membro do Governo não encontrado" };
-  const title = member.positions[0]?.title;
+  const loaded = await loadAll((await params).id);
+  if (!loaded) return { title: "Membro do Governo não encontrado" };
   return {
-    title: member.name,
-    description: `${member.name}${title ? `, ${title}` : ""}: percurso, cargos e notícias.`,
-    alternates: { canonical: `/governo/${member.id}` },
+    title: loaded.summary.title,
+    description: loaded.summary.description,
+    alternates: { canonical: `/governo/${loaded.member.id}` },
   };
 }
 
@@ -89,19 +107,11 @@ const romanOf = (name: string) => name.split(" ")[0] ?? name;
 export default async function GovernmentMemberPage({ params }: Props) {
   await connection();
   const { id } = await params;
-  const [member, path, government, parties] = await Promise.all([
-    loadMember(id),
-    /^[0-9a-f]{32}$/.test(id) ? tryPersonPath("government", id) : null,
-    getGovernment().catch(() => null),
-    getParties().catch(() => []),
-  ]);
-  if (!member) notFound();
-  const current = member.positions.find((position) => !position.endDate) ?? member.positions[0];
+  const loaded = await loadAll(id);
+  if (!loaded) notFound();
+  const { member, path, government, parties, current, party, governmentName, summary } = loaded;
   const female = member.gender === "F";
-  const party = parties.find((item) => item.slug === member.partySlug) ?? null;
   const color = member.partySlug ? partyColor(member.partySlug) : "var(--ink)";
-  const governmentName =
-    current?.government && government?.code === current.government ? government.name : (current?.government?.toUpperCase() ?? null);
   const { team, teamNote } = teamOf(member.id, government);
   const since =
     member.positions
@@ -123,6 +133,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
               party: parties.find((party) => party.slug === member.partySlug) ?? null,
               worksFor: member.inOffice ? "government" : undefined,
               sameAs: member.links.map((link) => link.url),
+              description: summary.sentences.join(" "),
             }),
             breadcrumbs([
               { name: "Governo", path: "/governo" },
@@ -197,6 +208,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
 
       <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
+          <WhoIs name={member.name} sentences={summary.sentences} />
           {FEATURES.record && path && <RecordsBox records={path.records} kind="government" id={member.id} />}
 
           {member.bio.length > 0 && (
@@ -311,7 +323,7 @@ export default async function GovernmentMemberPage({ params }: Props) {
           {member.links.length > 0 && (
             <section aria-labelledby="canais" className="rounded-2xl border border-line p-4">
               <h2 id="canais" className="mb-3 font-mono text-xs font-bold uppercase tracking-widest">
-                Canais oficiais
+                Ligações
               </h2>
               <ul className="flex flex-wrap gap-2">
                 {member.links.map((link) => (

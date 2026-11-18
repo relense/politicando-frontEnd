@@ -122,6 +122,7 @@ export function mapArticle(article: ApiArticle): Article {
         : null,
     initiatives: (article.initiatives ?? []).map((item) => ({ id: item.id, title: decode(item.title) })),
     storyId: article.storyId ?? null,
+    people: (article.people ?? []).map((person) => ({ ...person, name: decode(person.name) })),
   };
 }
 
@@ -155,6 +156,7 @@ export function mapDeputySummary(deputy: ApiDeputySummary): DeputySummary {
     positions: deputy.positions.map(plainText).filter(Boolean),
     role: deputy.parliamentRole ?? null,
     photoUrl: secureUrl(deputy.photoUrl),
+    gender: deputy.gender ?? null,
   };
 }
 
@@ -298,6 +300,10 @@ export function mapDeputyDetail(deputy: ApiDeputyDetail): DeputyDetail {
       role: committee.role ?? null,
     })),
     pastLegislatures: deputy.pastLegislatures,
+    links: deputy.links.flatMap((link) => {
+      const url = safeHttpUrl(link.url);
+      return url ? [{ network: link.network, url }] : [];
+    }),
     initiatives: { ...deputy.initiatives, latest: deputy.initiatives.latest.map(mapInitiative) },
     articles: deputy.articles.map(mapArticle),
   };

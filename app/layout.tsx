@@ -21,7 +21,7 @@ const redditSans = Reddit_Sans({ subsets: ["latin"], variable: "--font-reddit-sa
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} | Notícias dos partidos portugueses`, template: `%s | ${SITE_NAME}` },
+  title: { default: `${SITE_NAME} | Política em Portugal: notícias, Parlamento e eleições`, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   category: "politics",

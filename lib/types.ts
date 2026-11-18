@@ -24,7 +24,12 @@ export type Article = {
   initiatives: { id: number; title: string }[];
   /** The story with the other outlets' versions, when the API groups them. */
   storyId?: number | null;
+  /** Everyone named in it who has a page here, most mentioned first. */
+  people?: PersonMention[];
 };
+
+/** Someone named in a news item who has a page on this site. */
+export type PersonMention = { kind: "deputy" | "government" | "president" | "local"; id: string; name: string };
 
 /** `total`: how many match, when the API says. */
 export type ArticlePage = { articles: Article[]; nextCursor: string | null; total?: number | null };
@@ -91,6 +96,8 @@ export type DeputySummary = {
   /** A post in the chamber's leadership, such as "Vice-Presidente". */
   role: string | null;
   photoUrl: string | null;
+  /** From the Parliament's records, for "Deputado" or "Deputada"; null when unknown. */
+  gender: "M" | "F" | null;
 };
 
 export type InitiativeStatus = "approved" | "in_progress" | "rejected" | "withdrawn";
@@ -300,6 +307,7 @@ export type DeputyDetail = DeputySummary & {
   roles: { title: string; current: boolean }[];
   committees: { name: string; acronym: string | null; membership: string | null; role: string | null }[];
   pastLegislatures: string[];
+  links: { network: string; url: string }[];
   initiatives: { total: number; approved: number; latest: Initiative[] };
   articles: Article[];
 };

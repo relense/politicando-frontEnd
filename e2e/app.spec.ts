@@ -269,6 +269,9 @@ test("article page shows the excerpt and links to the original", async ({ page }
   await expect(page.locator("article h1 + p")).toContainText("…");
   await expect(page.locator("article time").first()).toContainText(/^[A-ZÁÉ][a-zçá-]+(-feira)?, \d+ de /);
   await expect(page.getByRole("button", { name: "Copiar ligação" })).toBeVisible();
+  // The people it names who have a page here, each linked to it.
+  await expect(page.getByRole("link", { name: "Marta Quintela", exact: true })).toHaveAttribute("href", "/autarcas/marta-quintela");
+  await expect(page.locator('a[href^="/deputados/"]', { hasText: /\S/ }).first()).toBeVisible();
   // Beside it: its parties with their forums, more news about each, the context in Parliament and the map.
   const beside = page.getByRole("complementary", { name: "Sobre esta notícia" });
   await expect(beside.getByRole("heading", { name: "Partidos nesta notícia" })).toBeVisible();
@@ -306,6 +309,8 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).not.toContain("/article/");
   expect(sitemap).toContain("/partido/cds-pp");
   expect(sitemap).toContain("/deputados/1100");
+  // Mayors have their own pages.
+  expect(sitemap).toContain("/autarcas/marta-quintela");
   expect(sitemap).toContain("/governo/00000000000000000000000000000001");
   expect(sitemap).toContain("/eleicoes/legislativas-2025/LOCAL-110000");
   expect(sitemap).toContain("/eleicoes/legislativas-2025/LOCAL-111100");

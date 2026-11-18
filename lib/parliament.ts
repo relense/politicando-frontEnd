@@ -49,6 +49,8 @@ export function ageOn(birthDate: string | null, now: Date): number | null {
 }
 
 const LEADER = /^(Presidente|Secretári[oa]-Geral|Porta-voz|Coordenador[a]?)\b(?!.*(Assembleia|Comiss|Grupo))/;
+/** "Presidente do CDS-PP", "Secretário-Geral do PS": a post leading a party, not a committee or the chamber. */
+export const isPartyLeaderPost = (post: string) => LEADER.test(post);
 
 /**
  * The party's leader and its leader in Parliament, when they sit as deputies. No open data says who leads each party,

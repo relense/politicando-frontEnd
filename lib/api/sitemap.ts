@@ -12,6 +12,7 @@ export const SITEMAP_KINDS = [
   "initiative",
   "editorial",
   "case",
+  "local-official",
 ] as const;
 export type SitemapKind = (typeof SITEMAP_KINDS)[number];
 

@@ -1,10 +1,10 @@
 import { decode } from "he";
 import { z } from "zod";
-import type { Article } from "@/lib/types";
+import type { Article, PersonMention } from "@/lib/types";
 import { sourceName } from "@/lib/sources";
 import { cached, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
-import { articleSchema } from "./schemas";
+import { articleSchema, peopleSchema } from "./schemas";
 
 /**
  * Stories: the same news told by several outlets, as one card ("7 jornais contaram isto"). Readers mark a story
@@ -44,6 +44,8 @@ const storySchema = z.object({
   deputies: z.array(z.object({ id: z.number(), name: z.string(), party: z.string().nullable() })).default([]),
   government: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   president: z.object({ id: z.string(), name: z.string() }).nullish(),
+  /** Everyone with a page named across the versions, most often first. */
+  people: peopleSchema.optional(),
   initiatives: z.array(initiative).default([]),
   importa: z.number(),
   importance: z.number(),
@@ -102,6 +104,8 @@ export type Story = {
   deputies: { id: number; name: string; party: string | null }[];
   government: { id: string; name: string }[];
   president: { id: string; name: string } | null;
+  /** Everyone with a page named across the versions, most often first. */
+  people: PersonMention[];
   initiatives: { id: number; title: string; status: string | null; lastVote: { date: string; result: string } | null }[];
   /** Readers who marked it "Importa", and 0–1 for the semicircle of dots. */
   importa: number;
@@ -143,6 +147,7 @@ function mapStory(api: z.infer<typeof storySchema>): Story {
     deputies: api.deputies,
     government: api.government,
     president: api.president ?? null,
+    people: (api.people ?? []).map((person) => ({ ...person, name: decode(person.name) })),
     initiatives: api.initiatives.map((item) => ({
       id: item.id,
       title: decode(item.title),

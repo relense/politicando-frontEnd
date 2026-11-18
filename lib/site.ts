@@ -1,5 +1,7 @@
 export const SITE_NAME = "Politicando";
-export const SITE_DESCRIPTION = "As notícias sobre os partidos políticos portugueses, num só lugar. Lê, compara e comenta.";
+/** What the site is, for search results and shares: Portugal's politics, said plainly (about 150 characters at most). */
+export const SITE_DESCRIPTION =
+  "Política portuguesa num só lugar: as notícias de todos os partidos, o Parlamento, o Governo, as eleições e as leis, explicados com clareza.";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 /** Where readers write: corrections, contact; people named in the record have a right of reply. An empty variable counts as unset. */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@politicando.pt";

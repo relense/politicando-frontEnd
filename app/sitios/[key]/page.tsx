@@ -14,6 +14,7 @@ import { electionPath, listColor, ORGAN_LABELS, tidyName } from "@/lib/elections
 import { formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { placeMap } from "@/lib/maps";
 import { partyPath } from "@/lib/parties";
+import { localOfficialPath } from "@/lib/api/localOfficials";
 import {
   electionName,
   formatEuros,
@@ -63,6 +64,8 @@ function titleOf(place: PlaceDetail, municipality: PlaceDetail | null): string {
   if (place.level === "district") return `Distrito de ${place.name}: presidentes de câmara, deputados e eleições`;
   if (place.level === "parish")
     return `Freguesia de ${place.name}${municipality ? ` (${municipality.name})` : ""}: assembleia de freguesia e eleições`;
+  // The mayor's name in the title: people search for the name as much as for the town.
+  if (place.mayor) return `Quem governa ${place.name}? ${place.mayor.name}, presidente da câmara`;
   return `Quem governa ${place.name}? Presidente da câmara, vereadores, deputados e contratos`;
 }
 
@@ -111,6 +114,24 @@ function jsonLd(place: PlaceDetail, trail: Place[]) {
         ? { "@type": "AdministrativeArea", name: parent.name, url: url(parent) }
         : { "@type": "Country", name: "Portugal" },
     },
+    // Who presides over the câmara: the person people search for, tied to the place.
+    ...(place.level === "municipality" && place.mayor
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "@id": place.mayor.id ? `${SITE_URL}${localOfficialPath(place.mayor.id)}#pessoa` : `${url(place)}#presidente-camara`,
+            ...(place.mayor.id ? { url: `${SITE_URL}${localOfficialPath(place.mayor.id)}` } : {}),
+            name: place.mayor.name,
+            jobTitle: `Presidente da Câmara Municipal de ${place.name}`,
+            nationality: { "@type": "Country", name: "Portugal" },
+            worksFor: { "@type": "GovernmentOrganization", name: `Câmara Municipal de ${place.name}`, url: url(place) },
+            ...(place.mayor.parties[0]
+              ? { memberOf: { "@type": "PoliticalParty", name: place.mayor.label, url: `${SITE_URL}${partyPath(place.mayor.parties[0])}` } }
+              : {}),
+          },
+        ]
+      : []),
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
@@ -396,7 +417,15 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
       <Initials mayor={mayor} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Presidente da câmara</p>
-        <p className="text-2xl font-bold leading-tight">{mayor.name}</p>
+        <p className="text-2xl font-bold leading-tight">
+          {mayor.id ? (
+            <Link href={localOfficialPath(mayor.id)} className="hover:underline">
+              {mayor.name}
+            </Link>
+          ) : (
+            mayor.name
+          )}
+        </p>
         <p className="mt-1 text-sm">
           Lista <span className="font-bold">{tidyName(mayor.label)}</span>
           {mayor.label !== mayor.list && <span className="font-mono text-xs text-muted"> ({mayor.list})</span>}

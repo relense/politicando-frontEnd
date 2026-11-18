@@ -343,7 +343,7 @@ export function FeedFilters({ parties, sources, filter, saved, q, order, view }:
   const sourceOf = (domain: string) => sources.find((source) => source.domain === domain);
 
   return (
-    <nav aria-label="Filtrar notícias" className="mb-6">
+    <nav aria-label="Filtrar notícias" className="mb-6" data-nosnippet>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
