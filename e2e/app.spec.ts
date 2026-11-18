@@ -303,6 +303,11 @@ test("hostile title cannot break out of JSON-LD", async ({ request }) => {
   expect(html).not.toContain("<script>window.__xss");
 });
 
+test("the initiatives list has a loading screen, and a missing initiative is still a real 404", async ({ request }) => {
+  expect((await request.get("/iniciativas")).status()).toBe(200);
+  expect((await request.get("/iniciativas/987654321")).status()).toBe(404);
+});
+
 test("sitemap and robots are served", async ({ request }) => {
   const sitemap = await (await request.get("/sitemap.xml")).text();
   // News pages carry another outlet's text: out of the map and noindex. Our own pages are all in.
