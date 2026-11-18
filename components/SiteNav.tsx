@@ -216,7 +216,12 @@ export function SiteNav() {
           </ul>
         </div>
       ))}
-      <SocialLinks className="mt-5 px-3" />
+      <div className="mt-2 border-t border-line px-3 pt-4">
+        <p aria-hidden="true" className="mb-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+          Segue-nos
+        </p>
+        <SocialLinks size="sm" />
+      </div>
     </nav>
   );
 }

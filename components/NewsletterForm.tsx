@@ -22,7 +22,8 @@ const DEFAULT_ERROR = "Não foi possível fazer a inscrição. Tenta novamente."
  * Sign-up with double opt-in. The answer is the same whether or not the address was already in, so the message
  * only says to check the inbox.
  */
-export function NewsletterForm({ compact = false }: { compact?: boolean }) {
+/** `band`: the footer's strip, field and button on one line, the button in gold. */
+export function NewsletterForm({ compact = false, band = false }: { compact?: boolean; band?: boolean }) {
   const id = useId();
   const captcha = useRef<CaptchaHandle>(null);
   const captchaOff = isCaptchaOff();
@@ -62,7 +63,7 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
       <div className={compact ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
         <label htmlFor={`${id}-email`} className="sr-only">
-          Email
+          {band ? "Email para o resumo da manhã" : "Email"}
         </label>
         <input
           id={`${id}-email`}
@@ -76,7 +77,9 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="h-10 shrink-0 rounded-full bg-ink px-4 font-mono text-xs font-bold text-paper hover:opacity-90 disabled:opacity-60"
+          className={`h-10 shrink-0 rounded-full px-4 font-mono text-xs font-bold hover:opacity-90 disabled:opacity-60 ${
+            band ? "bg-[#f2c94c] text-[#1b1d22]" : "bg-ink text-paper"
+          }`}
         >
           {mutation.isPending ? "A enviar…" : "Quero receber"}
         </button>
@@ -87,9 +90,12 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
           {error}
         </p>
       )}
-      <p className="font-mono text-[11px] leading-relaxed text-muted">
-        Guardamos só o email. Podes cancelar em qualquer altura, com a ligação em cada envio.
-      </p>
+      {/* The footer's strip says it above the field. */}
+      {!band && (
+        <p className="font-mono text-[11px] leading-relaxed text-muted">
+          Guardamos só o email. Podes cancelar em qualquer altura, com a ligação em cada envio.
+        </p>
+      )}
     </form>
   );
 }

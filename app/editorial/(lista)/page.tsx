@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SidebarFooter } from "@/components/FollowUs";
 import Link from "next/link";
 import { PodcastBox } from "@/components/PodcastBox";
 import { getLatestEpisode } from "@/lib/api/podcast";
@@ -489,6 +490,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
               </li>
             </ul>
           </section>
+          <SidebarFooter />
         </aside>
       </div>
 

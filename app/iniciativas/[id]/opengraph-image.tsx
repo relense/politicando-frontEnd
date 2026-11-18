@@ -5,6 +5,9 @@ import { ogCard, OG_SIZE, OG_TYPE } from "@/lib/ogCard";
 export const alt = "Iniciativa no Parlamento, no Politicando";
 export const size = OG_SIZE;
 export const contentType = OG_TYPE;
+/** Drawn once per page and kept for a day: crawlers (Threads, X, WhatsApp) give up after a few seconds. */
+export const revalidate = 86400;
+export const generateStaticParams = async () => [];
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

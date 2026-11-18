@@ -5,6 +5,9 @@ import { partyColor } from "@/lib/parliament";
 export const alt = "Notícia no Politicando";
 export const size = OG_SIZE;
 export const contentType = OG_TYPE;
+/** Drawn once per page and kept for a day: crawlers (Threads, X, WhatsApp) give up after a few seconds. */
+export const revalidate = 86400;
+export const generateStaticParams = async () => [];
 
 /** Our own card with the outlet's name and headline: the outlet's photo is theirs to share, not ours. */
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
