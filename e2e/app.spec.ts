@@ -1278,9 +1278,9 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   const box = page.getByRole("region", { name: /^O dia de ontem na política/ }).filter({ visible: true });
   if (isMobile) await box.scrollIntoViewIfNeeded();
   // The episode comes from our server: title, number, date and length, and no player yet.
-  await expect(box.getByText("18 nov. · O Orçamento na reta final, explicado")).toBeVisible();
-  // The date is already in the title, so only the length follows it.
-  await expect(box.getByText("24 min", { exact: true })).toBeVisible();
+  // The date Spotify puts in front of the title goes on the line below, so the title has the room.
+  await expect(box.getByText("O Orçamento na reta final, explicado", { exact: true })).toBeVisible();
+  await expect(box.getByText("18 nov · 24 min", { exact: true })).toBeVisible();
   await expect(box.locator("iframe")).toHaveCount(0);
   // "Abrir no Spotify" goes to the episode itself.
   await expect(box.getByRole("link", { name: /Abrir no Spotify/ })).toHaveAttribute(
@@ -1289,13 +1289,13 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   );
   await noSeriousA11yIssues(page);
 
-  await box.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ }).click();
+  await box.getByRole("button", { name: /^Ouvir aqui: O Orçamento na reta final/ }).click();
   await expect(box.locator("iframe")).toHaveAttribute("src", "https://open.spotify.com/embed/episode/0000000000TesteEpis03");
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spotifyPlay?: boolean }).__spotifyPlay)).toBe(true);
 
   await page.goto("/editorial");
   const end = page.getByRole("region", { name: /^O dia de ontem na política/ });
-  await expect(end.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ })).toBeVisible();
+  await expect(end.getByRole("button", { name: /^Ouvir aqui: O Orçamento na reta final/ })).toBeVisible();
   await expect(end.getByRole("link", { name: /Abrir no Spotify/ })).toBeVisible();
 });
 
