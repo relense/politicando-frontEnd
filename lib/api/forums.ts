@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ApiError, cached, request, screenedMessage, searchOf } from "./client";
+import { reservedNameMessage } from "../reservedNames";
 
 /* Anonymous forums: one board per party and a general one. Nobody signs in; each poster gets an ID per thread. */
 
@@ -258,6 +259,7 @@ const FORUM_ERRORS: Record<string, string> = {
 export function forumErrorMessage(error: unknown): string {
   return (
     screenedMessage(error) ||
+    reservedNameMessage(error) ||
     (error instanceof ApiError && error.code && FORUM_ERRORS[error.code]) ||
     "Não foi possível publicar. O teu texto foi mantido; tenta novamente."
   );

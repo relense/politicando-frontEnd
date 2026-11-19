@@ -73,6 +73,7 @@ describe("forum mappers", () => {
     expect(posterName("Zé")).toBe("Zé");
     expect(forumErrorMessage(new ApiError("x", 409, "thread_locked"))).toMatch(/fechada/);
     expect(forumErrorMessage(new ApiError("x", 429, "rate_limited"))).toMatch(/depressa/);
+    expect(forumErrorMessage(new ApiError("body/nickname That name is the team's", 400, "invalid_request"))).toMatch(/reservado/);
     expect(forumErrorMessage(new Error("x"))).toMatch(/Não foi possível/);
   });
 });
