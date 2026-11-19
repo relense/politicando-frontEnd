@@ -84,7 +84,7 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
         <div>
           <div className="flex items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-widest text-[color:var(--stage-debate)]">
-              <MicIcon /> Podcast diário
+              <MicIcon /> Podcast · segunda a sexta
             </p>
             <Freshness publishedAt={episode?.publishedAt ?? null} />
           </div>
@@ -93,8 +93,8 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">
             {wide
-              ? "Todas as manhãs, um resumo do dia anterior: o que se votou no Parlamento, o que decidiu o Governo e o que disseram os partidos. Para ouvir a caminho do trabalho."
-              : "Todas as manhãs, o essencial de ontem."}
+              ? "De segunda a sexta, de manhã, um resumo do dia anterior: o que se votou no Parlamento, o que decidiu o Governo e o que disseram os partidos. Para ouvir a caminho do trabalho."
+              : "De segunda a sexta, o essencial de ontem."}
           </p>
           {wide && <div className="hidden md:block md:max-w-xs">{openLink}</div>}
         </div>
