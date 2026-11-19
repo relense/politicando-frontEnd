@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 
 const API = "*/api/v2";
 
-/** Fictional corrections, in the shape of the contract in docs/api-handoff.md. */
+/** Fictional corrections, in the shape of the backend contract (docs/feedback-api.md in the backend repo). */
 const corrections = [
   {
     id: 4,

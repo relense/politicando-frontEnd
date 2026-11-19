@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PodcastEpisode } from "@/lib/api/podcast";
 import { embedsAllowed, setEmbedsAllowed, subscribeEmbeds } from "@/lib/consent";
-import type { Podcast } from "@/lib/podcast";
+import { episodeTitle, type Podcast } from "@/lib/podcast";
 import { isAllowedCover } from "@/lib/podcastCovers";
 
 type Props = {
@@ -84,7 +84,8 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
         <div>
           <div className="flex items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-widest text-[color:var(--stage-debate)]">
-              <MicIcon /> Podcast · segunda a sexta
+              {/* The narrow box says "De segunda a sexta" under its title. */}
+              <MicIcon /> {wide ? "Podcast · segunda a sexta" : "Podcast"}
             </p>
             <Freshness publishedAt={episode?.publishedAt ?? null} />
           </div>
@@ -108,6 +109,48 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
   );
 }
 
+/**
+ * The episodes before the newest one (blog, Podcasts filter), as rows like the box's play bar. As in the box, nothing
+ * comes from Spotify until the reader presses ▶, which loads Spotify's player on that episode only.
+ */
+export function EpisodeList({ podcast, episodes, className = "" }: { podcast: Podcast; episodes: PodcastEpisode[]; className?: string }) {
+  const remembered = useSyncExternalStore(subscribeEmbeds, embedsAllowed, () => false);
+  const [playing, setPlaying] = useState<number | null>(null);
+  if (episodes.length === 0) return null;
+  return (
+    <section aria-labelledby="episodios-anteriores" className={className}>
+      <h2 id="episodios-anteriores" className="font-mono text-xs font-bold uppercase tracking-widest text-muted">
+        Episódios anteriores
+      </h2>
+      <ul className="mt-3 grid gap-2">
+        {episodes.map((episode, index) => (
+          <li key={episode.url ?? index}>
+            {playing === index && episode.embedUrl ? (
+              <SpotifyPlayer embedUrl={episode.embedUrl} autoplay />
+            ) : (
+              <EpisodeBar episode={episode} onPlay={() => setPlaying(index)} />
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] leading-snug text-muted">
+        {!remembered && (
+          <>
+            O ▶ carrega o leitor do Spotify, que pode guardar cookies.{" "}
+            <Link href="/cookies" className="underline hover:text-ink">
+              Saber mais
+            </Link>{" "}
+            ·{" "}
+          </>
+        )}
+        <a href={podcast.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink underline">
+          Ver todos no Spotify ↗<span className="sr-only"> (abre a app ou um novo separador)</span>
+        </a>
+      </p>
+    </section>
+  );
+}
+
 const lisbonDay = (date: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 
@@ -127,7 +170,7 @@ function Freshness({ publishedAt }: { publishedAt: string | null }) {
   const day = lisbonDay(published);
   if (day === today)
     return (
-      <span className="rounded-full bg-[#1db954] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black">
+      <span className="shrink-0 whitespace-nowrap rounded-full bg-[#1db954] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black">
         Novo · hoje
       </span>
     );
@@ -137,13 +180,10 @@ const noSubscribe = () => () => {};
 
 /** Looks like Spotify's compact player; loads nothing from Spotify. */
 function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPlay: () => void }) {
-  const title = episode?.title ?? "Episódio mais recente";
+  // Spotify's titles start with the date ("18 nov. · …"): it goes on the details line, so the title has the room.
+  const title = episode?.title ? episodeTitle(episode.title) : "Episódio mais recente";
   const date = episode?.publishedAt ? shortDate(episode.publishedAt) : null;
-  const details = [
-    // Spotify's titles start with the date ("18 nov. · …"): not said twice.
-    date && !title.toLowerCase().startsWith(date) ? date : null,
-    episode?.durationSeconds ? `${Math.max(1, Math.round(episode.durationSeconds / 60))} min` : null,
-  ].filter(Boolean);
+  const details = [date, episode?.durationSeconds ? `${Math.max(1, Math.round(episode.durationSeconds / 60))} min` : null].filter(Boolean);
   return (
     <div className="flex items-center gap-3 rounded-xl bg-[#121212] p-2.5 text-white">
       <span className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-[#2a2a2a]">
@@ -156,7 +196,7 @@ function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPla
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 text-sm font-bold leading-snug">{title}</span>
+        <span className="line-clamp-3 text-sm font-bold leading-snug">{title}</span>
         <span className="mt-1 block truncate font-mono text-[11px] text-white/70">
           {details.length > 0 ? details.join(" · ") : "Politicando · o podcast"}
         </span>

@@ -24,4 +24,4 @@ npm run test:e2e
 ## Production settings
 Set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`. `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` is optional. Leave `NEXT_PUBLIC_CAPTCHA_MODE` empty. On a develop/testing deployment you can set it to `off` to hide the captcha, as long as that API uses Google's test `RECAPTCHA_SECRET`.
 
-What is still needed from the API is listed in [docs/api-handoff.md](docs/api-handoff.md).
+What the API serves, what is being deployed and what is still open is in [docs/api-handoff.md](docs/api-handoff.md).

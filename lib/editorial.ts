@@ -23,6 +23,10 @@ export const EDITORIAL_KINDS = Object.keys(KIND_LABELS) as EditorialKind[];
 export const comingSoon = (posts: Pick<EditorialPost, "kind">[], { podcastShow }: { podcastShow: boolean }) =>
   EDITORIAL_KINDS.filter((kind) => !(kind === "podcast" && podcastShow) && !posts.some((post) => post.kind === kind));
 
+/** "3 publicações" for a filtered list; nothing when the podcast show is shown instead of posts (there are none). */
+export const publicationCount = (count: number, { showInstead }: { showInstead: boolean }) =>
+  showInstead ? null : count === 1 ? "1 publicação" : `${count} publicações`;
+
 export const editorialPath = (slug: string) => `/editorial/${encodeURIComponent(slug)}`;
 
 /** Audio players are short strips; video players keep the picture's shape. */

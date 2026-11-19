@@ -68,3 +68,43 @@ export async function getLatestEpisode(): Promise<PodcastEpisode | null> {
     return null;
   }
 }
+
+// GET /podcast?limit= (backend docs/podcast-api.md): newest first, the newest included. Each episode read on its own,
+// so one malformed item doesn't empty the list.
+const listSchema = z.object({ episodes: z.array(z.unknown()).catch([]) });
+const listedSchema = z.object({
+  title: z.string().min(1),
+  publishedAt: z.string().nullable().optional(),
+  durationSeconds: z.number().positive().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+});
+
+/** The episodes before the newest one (the box above shows that), up to 10. Empty when there are none or the API fails. */
+export async function getEarlierEpisodes(): Promise<PodcastEpisode[]> {
+  try {
+    const answer = await request("/podcast?limit=11", listSchema, { next: { revalidate: 300 } });
+    // The first is the newest, whatever its shape: the box above shows it.
+    const episodes = answer.episodes.slice(1).flatMap((item): PodcastEpisode[] => {
+      const parsed = listedSchema.safeParse(item);
+      if (!parsed.success) return [];
+      // Only Spotify's own episode links: each row plays that episode.
+      const link = podcastFromUrl(parsed.data.url);
+      if (link?.kind !== "episode") return [];
+      return [
+        {
+          title: parsed.data.title.trim(),
+          publishedAt: parsed.data.publishedAt ?? null,
+          durationSeconds: parsed.data.durationSeconds ?? null,
+          imageUrl: safeHttpUrl(parsed.data.imageUrl),
+          url: link.url,
+          embedUrl: link.embedUrl,
+        },
+      ];
+    });
+    return episodes.slice(0, 10);
+  } catch (error) {
+    if (error instanceof ApiError) return [];
+    throw error;
+  }
+}

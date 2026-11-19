@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { gotoReady, noSeriousA11yIssues } from "./helpers";
 
 // Fictional readers made for each run: the mock API keeps its state between the desktop and the mobile runs, and the
 // inbox is seeded per reader on first look.
@@ -52,7 +52,7 @@ test("notifications: the bell counts what's unread, the panel and the page show 
 test("Seguir and Guardar: asked for an account first; with one, kept after a reload and listed on the saved page", async ({
   page,
 }, testInfo) => {
-  await page.goto("/forum/geral/8");
+  await gotoReady(page, "/forum/geral/8");
   await page.getByRole("button", { name: /^Seguir conversa/ }).click();
   await expect(page.getByRole("dialog", { name: "Segue o que te interessa" })).toBeVisible();
   await page.keyboard.press("Escape");

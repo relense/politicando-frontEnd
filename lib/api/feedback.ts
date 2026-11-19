@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiError, request, searchOf } from "./client";
 import { safeHttpUrl } from "./mappers";
 
-/** Readers' feedback and the public log of corrections (contract in docs/api-handoff.md, "Feedback"). Ideas live on the forum's ideas board. */
+/** Readers' feedback and the public log of corrections (contract: docs/feedback-api.md in the backend repo). Ideas live on the forum's ideas board. */
 
 export const FEEDBACK_KINDS = ["error", "idea", "broken", "other"] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];

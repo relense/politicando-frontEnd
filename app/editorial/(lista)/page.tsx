@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { SidebarFooter } from "@/components/FollowUs";
 import Link from "next/link";
-import { PodcastBox } from "@/components/PodcastBox";
-import { getLatestEpisode } from "@/lib/api/podcast";
+import { EpisodeList, PodcastBox } from "@/components/PodcastBox";
+import { getEarlierEpisodes, getLatestEpisode } from "@/lib/api/podcast";
 import { getPodcast } from "@/lib/podcast";
 import { Fragment } from "react";
 import { SearchToggle } from "@/components/SearchToggle";
@@ -13,7 +13,7 @@ import { CommentIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getEditorial, getParties } from "@/lib/api/client";
-import { comingSoon, EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
+import { comingSoon, EDITORIAL_KINDS, publicationCount, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
 import { fold, formatDayHeading, formatTime, lisbonDay } from "@/lib/format";
 import { localPosts } from "@/lib/localPosts";
 import type { EditorialKind, EditorialPost, Party } from "@/lib/types";
@@ -154,6 +154,9 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
   /** Podcasts with no episode posts yet: the show itself, not an empty list or a "0". */
   const showOnly = (kind: EditorialKind) => kind === "podcast" && Boolean(podcast) && counts.podcast === 0;
   const podcastOnTop = view.kind === "podcast" && showOnly("podcast");
+  // On the Podcasts filter only: the episodes before the newest, under the box that plays it.
+  const earlier = podcast && view.kind === "podcast" ? await getEarlierEpisodes() : [];
+  const count = publicationCount(shown.length, { showInstead: podcastOnTop });
   const partyOf = (tag: string) => parties.find((party) => party.slug === tag || party.acronym.toLowerCase() === tag) ?? null;
   const now = requestTime();
   const chip = (active: boolean) =>
@@ -325,9 +328,10 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
             {filtered ? (
               <>
-                <b className="text-ink">{shown.length === 1 ? "1 publicação" : `${shown.length} publicações`}</b>
+                {/* Podcasts with no posts show the Spotify show: "0 publicações" above it would be wrong. */}
+                {count ? <b className="text-ink">{count}</b> : <b className="text-ink">{view.kind && KIND_PLURALS[view.kind]}</b>}
                 {view.q && ` com «${view.q}»`}
-                {view.kind && ` · ${KIND_PLURALS[view.kind]}`}
+                {count && view.kind && ` · ${KIND_PLURALS[view.kind]}`}
                 {view.tag && ` · ${capital(view.tag)}`}
                 {" · "}
                 <Link href="/editorial" className="underline hover:text-ink">
@@ -342,7 +346,10 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           </p>
 
           {podcastOnTop && podcast ? (
-            <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" wide />
+            <>
+              <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" wide />
+              <EpisodeList podcast={podcast} episodes={earlier} className="mt-8" />
+            </>
           ) : onPage.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
               {view.kind && soon.includes(view.kind) ? <>Em breve. {KINDS[view.kind].soon}</> : "Não há publicações aqui."}
@@ -500,7 +507,12 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
       </div>
 
       {/* The podcast, at the end of the blog: the newest episode, ready to play here or in Spotify. */}
-      {podcast && !podcastOnTop && <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" className="mt-12" wide />}
+      {podcast && !podcastOnTop && (
+        <>
+          <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" className="mt-12" wide />
+          <EpisodeList podcast={podcast} episodes={earlier} className="mt-8" />
+        </>
+      )}
     </div>
   );
 }

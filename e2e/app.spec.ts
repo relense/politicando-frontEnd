@@ -244,6 +244,14 @@ test("article HTML carries SEO data without JavaScript", async ({ request }) => 
   expect(html).toContain("Este é o texto de exemplo");
 });
 
+test("the home page names its one address for search engines, whatever the order or period", async ({ request }) => {
+  for (const path of ["/", "/?ordem=votadas&periodo=hoje"]) {
+    const html = await (await request.get(path)).text();
+    // The site's address alone: politicando.pt, the www one and every ?ordem= are one page.
+    expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^"/]+\/?"\/>/);
+  }
+});
+
 test("article page shows the excerpt and links to the original", async ({ page }) => {
   await page.goto("/article/100");
   const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
@@ -633,6 +641,9 @@ test("parties can be ordered by votes, and the choice survives a reload", async 
   await expect(first).toContainText("B.E.");
 });
 
+// The position badge reads "×Contra": its mark (hidden from screen readers) and the word.
+const CONTRA = /^×\s*Contra$/;
+
 test("party page: Parliament card and tabs for deputies, initiatives and votes", async ({ page }) => {
   await page.goto("/partido/ps");
   const card = page.getByRole("region", { name: "PS no Parlamento" });
@@ -654,10 +665,16 @@ test("party page: Parliament card and tabs for deputies, initiatives and votes",
   await expect(page).toHaveURL(/ver=votacoes$/);
   const votes = page.getByRole("region", { name: "Votações do PS" });
   await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(20);
+  // The button turns at once; the filtered list comes after its own request, so wait for it before reading the rows.
+  const filtered = page.waitForResponse(
+    (response) => response.url().includes("/parties/ps/votes?") && response.url().includes("position=against"),
+  );
   await votes.getByRole("button", { name: /^Contra/ }).click();
   await expect(votes.getByRole("button", { name: /^Contra/ })).toHaveAttribute("aria-pressed", "true");
+  await filtered;
+  await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem").first().getByText(CONTRA)).toBeVisible();
   for (const item of await votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem").all())
-    await expect(item.getByText("Contra", { exact: true })).toBeVisible();
+    await expect(item.getByText(CONTRA)).toBeVisible();
   await votes.getByRole("button", { name: /^Todas/ }).click();
   await votes.getByRole("button", { name: "Carregar mais 20" }).click();
   await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(40);
@@ -1270,9 +1287,9 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   const box = page.getByRole("region", { name: /^O dia de ontem na política/ }).filter({ visible: true });
   if (isMobile) await box.scrollIntoViewIfNeeded();
   // The episode comes from our server: title, number, date and length, and no player yet.
-  await expect(box.getByText("18 nov. · O Orçamento na reta final, explicado")).toBeVisible();
-  // The date is already in the title, so only the length follows it.
-  await expect(box.getByText("24 min", { exact: true })).toBeVisible();
+  // The date Spotify puts in front of the title goes on the line below, so the title has the room.
+  await expect(box.getByText("O Orçamento na reta final, explicado", { exact: true })).toBeVisible();
+  await expect(box.getByText("18 nov · 24 min", { exact: true })).toBeVisible();
   await expect(box.locator("iframe")).toHaveCount(0);
   // "Abrir no Spotify" goes to the episode itself.
   await expect(box.getByRole("link", { name: /Abrir no Spotify/ })).toHaveAttribute(
@@ -1281,14 +1298,49 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   );
   await noSeriousA11yIssues(page);
 
-  await box.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ }).click();
+  await box.getByRole("button", { name: /^Ouvir aqui: O Orçamento na reta final/ }).click();
   await expect(box.locator("iframe")).toHaveAttribute("src", "https://open.spotify.com/embed/episode/0000000000TesteEpis03");
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spotifyPlay?: boolean }).__spotifyPlay)).toBe(true);
 
   await page.goto("/editorial");
   const end = page.getByRole("region", { name: /^O dia de ontem na política/ });
-  await expect(end.getByRole("button", { name: /^Ouvir aqui: 18 nov\./ })).toBeVisible();
+  await expect(end.getByRole("button", { name: /^Ouvir aqui: O Orçamento na reta final/ })).toBeVisible();
   await expect(end.getByRole("link", { name: /Abrir no Spotify/ })).toBeVisible();
+});
+
+test("the blog's Podcasts filter lists the earlier episodes, each playing on ▶; only that filter", async ({ page }) => {
+  // Spotify is never contacted: its player is a stand-in page.
+  await page.route(/open\.spotify\.com/, (route) =>
+    route.request().url().includes("/embed/iframe-api/")
+      ? route.abort()
+      : route.fulfill({ status: 200, contentType: "text/html", body: "<p>leitor</p>" }),
+  );
+  await page.goto("/editorial?tipo=podcast");
+  const list = page.getByRole("region", { name: "Episódios anteriores" });
+  await list.scrollIntoViewIfNeeded();
+  // The newest is in the box above: the three before it, newest first, with the date below each title.
+  const rows = list.getByRole("listitem");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.first()).toContainText("A semana no Parlamento começa com a saúde");
+  await expect(rows.first()).toContainText("17 nov · 6 min");
+  await expect(rows.first()).not.toContainText("17 nov. ·");
+  await expect(list.locator("iframe")).toHaveCount(0);
+  await expect(list.getByRole("link", { name: /Ver todos no Spotify/ })).toHaveAttribute(
+    "href",
+    "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
+  );
+  await noSeriousA11yIssues(page);
+
+  // ▶ loads Spotify's player on that episode only.
+  await rows
+    .nth(1)
+    .getByRole("button", { name: /^Ouvir aqui: O que o Governo aprovou/ })
+    .click();
+  await expect(list.locator("iframe")).toHaveCount(1);
+  await expect(list.locator("iframe")).toHaveAttribute("src", /\/embed\/episode\/0000000000TesteEpis01/);
+
+  await page.goto("/editorial");
+  await expect(page.getByRole("region", { name: "Episódios anteriores" })).toHaveCount(0);
 });
 
 test("our profiles: X and the podcast in the footer and the menu, and in the site's structured data", async ({ page, isMobile }) => {

@@ -60,4 +60,6 @@ export async function lastEmailToken(page: Page, to: string): Promise<string> {
 export async function gotoReady(page: Page, url: string) {
   await page.goto(url);
   await page.locator('html[data-account="ready"]').waitFor({ state: "attached" });
+  // And settled: what loads after (the account's lists, boxes filled in the browser) can move or redraw what's clicked next.
+  await page.waitForLoadState("networkidle");
 }
