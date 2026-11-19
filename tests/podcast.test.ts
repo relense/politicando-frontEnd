@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { podcastFromUrl } from "@/lib/podcast";
 
 describe("podcast link", () => {
@@ -25,5 +25,19 @@ describe("podcast link", () => {
       "https://open.spotify.com/show/x",
     ])
       expect(podcastFromUrl(value)).toBeNull();
+  });
+});
+
+describe("the newest episode", () => {
+  it("is cached for 5 minutes, not an hour: the API already reads Spotify hourly", async () => {
+    const calls: RequestInit[] = [];
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      calls.push(init ?? {});
+      return new Response(JSON.stringify({ title: "Episódio de teste", spotifyUrl: null }), { status: 200 });
+    });
+    const { getLatestEpisode } = await import("@/lib/api/podcast");
+    await getLatestEpisode();
+    spy.mockRestore();
+    expect((calls[0] as { next?: { revalidate?: number } }).next?.revalidate).toBe(300);
   });
 });
