@@ -1,8 +1,7 @@
-import { ApiError } from "./api/client";
-
 /*
  * Names that pass for the team, refused as anonymous nicknames and comment names (backend src/accounts/reserved.ts,
- * docs/forums-api.md). Checked here too so the reader hears it before posting; the API has the last word.
+ * docs/forums-api.md). Checked here too so the reader hears it before posting; the API has the last word. No imports:
+ * the mock API uses it as well.
  */
 
 /** Team words a signature can't contain ("Moderação", "A Equipa", "Admin1"; accents, case and spacing ignored). */
@@ -23,4 +22,6 @@ export const RESERVED_NAME_MESSAGE = "Esse nome está reservado à equipa do Pol
 
 /** The API refuses a team name with a plain 400 validation error; only its message tells it apart. */
 export const reservedNameMessage = (error: unknown): string | null =>
-  error instanceof ApiError && error.status === 400 && /the team's/i.test(error.message) ? RESERVED_NAME_MESSAGE : null;
+  error instanceof Error && (error as { status?: unknown }).status === 400 && /the team's/i.test(error.message)
+    ? RESERVED_NAME_MESSAGE
+    : null;
