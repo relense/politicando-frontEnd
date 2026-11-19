@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
-import { ProposalVotes } from "@/components/budget/ProposalItem";
+import { AutomaticLabel, ProposalVotes, WhatChanges } from "@/components/budget/ProposalItem";
 import { getBudgetProposal } from "@/lib/api/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -64,6 +64,7 @@ export default async function BudgetProposalPage({ params }: Props) {
         <ResultBadge result={proposal.result} />
       </p>
       <h1 className="mt-1 font-serif text-3xl font-bold leading-tight">{proposal.title}</h1>
+      <WhatChanges proposal={proposal} className="mt-4 rounded-xl border border-line p-4" />
       <dl className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {facts
           .filter((fact): fact is [string, string] => Boolean(fact[1]))
@@ -103,9 +104,15 @@ export default async function BudgetProposalPage({ params }: Props) {
             Fonte: Parlamento <span aria-hidden="true">↗</span>
           </a>
         )}
+        <AutomaticLabel proposal={proposal} />
       </p>
       <p className="mt-4 font-mono text-[11px] text-muted">
-        Resultados nos termos do Parlamento. O texto da proposta está no PDF oficial; ainda não temos um resumo simples.
+        Resultados nos termos do Parlamento. O texto da proposta está no PDF oficial
+        {proposal.plain?.automatic
+          ? "; o resumo foi escrito automaticamente a partir dele."
+          : proposal.plain
+            ? "."
+            : "; ainda não temos um resumo simples."}
       </p>
     </article>
   );

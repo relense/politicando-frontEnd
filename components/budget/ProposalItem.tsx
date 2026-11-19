@@ -27,6 +27,23 @@ export function ProposalMeta({ proposal, today }: { proposal: BudgetProposal; to
   );
 }
 
+/** «O que muda», when written (lib/api/budget `plain`). */
+export function WhatChanges({ proposal, className = "" }: { proposal: BudgetProposal; className?: string }) {
+  if (!proposal.plain) return null;
+  return (
+    <div className={className}>
+      <p className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--contra)" }}>
+        O que muda
+      </p>
+      <p className="mt-1 font-serif text-lg leading-snug">{proposal.plain.summary}</p>
+    </div>
+  );
+}
+
+/** Beside «PDF oficial» when a model wrote the summary from it. */
+export const AutomaticLabel = ({ proposal }: { proposal: BudgetProposal }) =>
+  proposal.plain?.automatic ? <span className="self-center font-mono text-[11px] text-muted">Resumo automático</span> : null;
+
 /** The vote that decided it: the last one (the plenary's, when called up). */
 export const latestVote = (proposal: BudgetProposal): BudgetVote | null => proposal.votes[proposal.votes.length - 1] ?? null;
 
@@ -86,6 +103,7 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
         {vote && vote.parties.length > 0 && <VoteChips vote={vote} label={`Como votou cada partido na proposta ${proposal.number}`} />}
       </summary>
       <div className="mt-3 rounded-xl border border-line p-3">
+        <WhatChanges proposal={proposal} className="mb-3" />
         <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">Votação</p>
         <ProposalVotes proposal={proposal} />
         <p className="mt-3 flex flex-wrap gap-2">
@@ -105,6 +123,7 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
               PDF oficial <span aria-hidden="true">↗</span>
             </a>
           )}
+          <AutomaticLabel proposal={proposal} />
         </p>
       </div>
     </details>

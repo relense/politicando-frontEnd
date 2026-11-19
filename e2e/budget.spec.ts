@@ -29,6 +29,9 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   const irs = proposals.locator(":scope > li").filter({ hasText: "Artigo 9.º do Código do IRS" });
   await irs.getByText("Artigo 9.º do Código do IRS").click();
   await expect(irs).toContainText("Rui Valadares: contra");
+  // «O que muda», marked as written by a model.
+  await expect(irs).toContainText("Muda os escalões do IRS Jovem");
+  await expect(irs).toContainText("Resumo automático");
   await expect(irs.getByRole("link", { name: /PDF oficial/ })).toHaveAttribute("href", "https://example.com/oe/28301.pdf");
   await irs.getByRole("link", { name: /Página da proposta/ }).click();
   await expect(page).toHaveURL(/\/orcamento\/2027\/proposta\/28301$/);

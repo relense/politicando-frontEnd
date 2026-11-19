@@ -241,6 +241,7 @@ export function BudgetYearView({
                   <p className={`${label} mt-2 text-muted`}>Última votação</p>
                   <h3 className="mt-1 font-serif text-xl font-bold leading-snug">{todayVoted[0]!.title}</h3>
                   <ProposalMeta proposal={todayVoted[0]!} today={today} />
+                  {todayVoted[0]!.plain && <p className="mt-2 text-sm leading-snug">{todayVoted[0]!.plain.summary}</p>}
                   <p className="mt-3 flex flex-wrap gap-2">
                     <Link
                       href={proposalPath(todayVoted[0]!)}
