@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { READER_KEY, useReader } from "@/lib/account";
+import { ApiError } from "@/lib/api/client";
 import { accountErrorMessage, emailProblem, remindLater, removeEmail, setEmail, setNewsletter, type Reader } from "@/lib/api/account";
 import { GOLD } from "./ui";
 
@@ -26,20 +26,29 @@ function useUpdateReader() {
 
 const sentText = (email: string) => `Enviámos-te um email para ${email}. Abre a ligação que lá está para o confirmares.`;
 
-/** The email field and «Adicionar»; the newsletter box unticked. Stays after sending, to say where the link went. */
+/**
+ * The email field and «Adicionar»; the newsletter box unticked, unless the reader came from the newsletter switch (then
+ * ticked, and the field focused). Stays after sending, to say where the link went.
+ */
 function AddEmailForm({
   initial = "",
   submitLabel = "Adicionar",
   onSent,
+  forNewsletter = false,
 }: {
   initial?: string;
   submitLabel?: string;
   onSent?: () => void;
+  forNewsletter?: boolean;
 }) {
   const id = useId();
   const update = useUpdateReader();
+  const field = useRef<HTMLInputElement>(null);
   const [email, setValue] = useState(initial);
-  const [newsletter, setWants] = useState(false);
+  const [newsletter, setWants] = useState(forNewsletter);
+  useEffect(() => {
+    if (forNewsletter) field.current?.focus();
+  }, [forNewsletter]);
   const [problem, setProblem] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: (input: { email: string; newsletter: boolean }) => setEmail(input.email, input.newsletter || undefined),
@@ -70,6 +79,7 @@ function AddEmailForm({
           Email
         </label>
         <input
+          ref={field}
           id={`${id}-email`}
           type="email"
           value={email}
@@ -111,7 +121,7 @@ function AddEmailForm({
  * "Junta um email…": in the profile on every visit while the account has none (no «Agora não» there), and in the feed
  * when the API says to ask (`askForEmail`), where «Agora não» puts it off for 30 days.
  */
-export function EmailAsk({ where }: { where: "profile" | "feed" }) {
+export function EmailAsk({ where, forNewsletter = false }: { where: "profile" | "feed"; forNewsletter?: boolean }) {
   const id = useId();
   const update = useUpdateReader();
   const [dismissed, setDismissed] = useState(false);
@@ -150,7 +160,7 @@ export function EmailAsk({ where }: { where: "profile" | "feed" }) {
         </div>
       </div>
       <div className="mt-3">
-        <AddEmailForm />
+        <AddEmailForm forNewsletter={forNewsletter} />
       </div>
       {where === "feed" && (
         <button
@@ -177,20 +187,29 @@ export function EmailPrompt() {
 export function AccountEmail({ reader }: { reader: Reader }) {
   // Kept up after adding one, so the card can say where the link went; back when the email is removed.
   const [asking, setAsking] = useState(!reader.email);
+  /** The newsletter switch without an email: the card again, its field focused and the newsletter ticked. */
+  const [askedFromSwitch, setAskedFromSwitch] = useState(0);
   return (
     <>
-      {asking && <EmailAsk where="profile" />}
+      {asking && <EmailAsk key={askedFromSwitch} where="profile" forNewsletter={askedFromSwitch > 0} />}
       <section id="email" aria-labelledby="email-titulo" className="scroll-mt-20 border-t border-line pt-6">
         <h2 id="email-titulo" className="mb-3 text-xl font-bold">
           Email e newsletter
         </h2>
-        <EmailDetails reader={reader} onRemoved={() => setAsking(true)} />
+        <EmailDetails
+          reader={reader}
+          onRemoved={() => setAsking(true)}
+          onNeedEmail={() => {
+            setAsking(true);
+            setAskedFromSwitch((count) => count + 1);
+          }}
+        />
       </section>
     </>
   );
 }
 
-function EmailDetails({ reader, onRemoved }: { reader: Reader; onRemoved: () => void }) {
+function EmailDetails({ reader, onRemoved, onNeedEmail }: { reader: Reader; onRemoved: () => void; onNeedEmail: () => void }) {
   const update = useUpdateReader();
   const [changing, setChanging] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -279,30 +298,24 @@ function EmailDetails({ reader, onRemoved }: { reader: Reader; onRemoved: () => 
       ) : (
         <p className="text-sm text-muted">A conta ainda não tem email.</p>
       )}
-      <NewsletterSwitch reader={reader} />
+      <NewsletterSwitch reader={reader} onNeedEmail={onNeedEmail} />
     </div>
   );
 }
 
-/** The weekly newsletter for the account's email. Until the API says the account's state, the newsletter page instead. */
-function NewsletterSwitch({ reader }: { reader: Reader }) {
+/** The weekly newsletter for the account's email: pending until the email is confirmed; without one, the card asks for it. */
+function NewsletterSwitch({ reader, onNeedEmail }: { reader: Reader; onNeedEmail: () => void }) {
   const id = useId();
   const update = useUpdateReader();
   const toggle = useMutation({
     mutationFn: (on: boolean) => setNewsletter(on),
-    onSuccess: (_answer, on) => update({ newsletter: on ? (reader.emailConfirmed ? "confirmed" : "pending") : "none" }),
+    onSuccess: (newsletter) => update({ newsletter }),
+    onError: (error) => {
+      if (error instanceof ApiError && error.code === "no_email") onNeedEmail();
+    },
   });
-  if (reader.newsletter === null)
-    return (
-      <p className="text-sm text-muted">
-        A newsletter semanal:{" "}
-        <Link href="/newsletter" className="underline hover:text-ink">
-          inscreve-te aqui
-        </Link>
-        .
-      </p>
-    );
-  const on = reader.newsletter !== "none";
+  const needsEmail = toggle.error instanceof ApiError && toggle.error.code === "no_email";
+  const on = reader.newsletter === "pending" || reader.newsletter === "confirmed";
   return (
     <div className="flex items-start gap-3 border-t border-line pt-4">
       <div className="min-w-0 flex-1">
@@ -313,10 +326,10 @@ function NewsletterSwitch({ reader }: { reader: Reader }) {
           {!reader.email
             ? "Junta um email para a receberes."
             : reader.newsletter === "pending"
-              ? "Começa quando confirmares o email."
+              ? "Confirma o teu email para começares a receber."
               : "O essencial da semana política, no teu email."}
         </p>
-        {toggle.isError && (
+        {toggle.isError && !needsEmail && (
           <p role="alert" className="mt-1 text-sm text-danger">
             {accountErrorMessage(toggle.error)}
           </p>
@@ -328,7 +341,7 @@ function NewsletterSwitch({ reader }: { reader: Reader }) {
         aria-checked={on}
         aria-labelledby={`${id}-label`}
         aria-describedby={`${id}-hint`}
-        disabled={!reader.email || toggle.isPending}
+        disabled={toggle.isPending}
         onClick={() => toggle.mutate(!on)}
         className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? "bg-[var(--favor)]" : "bg-line"}`}
       >

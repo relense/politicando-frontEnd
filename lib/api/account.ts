@@ -141,8 +141,22 @@ export const forgotPassword = (email: string, captchaToken: string) =>
 export const resetPassword = async (token: string, password: string) =>
   (await request("/auth/password/reset", userAnswer, json("POST", { token, password }))).user;
 
-/** The weekly newsletter for the account's confirmed email (asked of the backend: docs/api-handoff.md). */
-export const setNewsletter = (on: boolean) => request("/me/newsletter", z.unknown(), json(on ? "PUT" : "DELETE"));
+/**
+ * The weekly newsletter for the account's email. On: "confirmed", or "pending" until the email is confirmed (one
+ * confirmation does both); 409 `no_email` without one. Off: "none".
+ */
+export async function setNewsletter(on: boolean): Promise<"none" | "pending" | "confirmed"> {
+  if (!on) {
+    await request("/me/newsletter", z.unknown(), json("DELETE"));
+    return "none";
+  }
+  const answer = await request(
+    "/me/newsletter",
+    z.object({ newsletter: z.enum(["none", "pending", "confirmed"]), emailSent: flag }),
+    json("PUT"),
+  );
+  return answer.newsletter;
+}
 
 const when = z.string();
 export const activitySchema = z.object({
