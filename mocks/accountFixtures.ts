@@ -209,8 +209,10 @@ export const accountHandlers = [
       return fail(400, "invalid_token", "This link is no longer valid");
     if (emailTaken(mail.email, reader.id)) return fail(409, "email_taken", "Another account confirmed this email");
     reader.emailConfirmed = true;
-    if (mail.newsletter) reader.newsletter = "confirmed";
-    return HttpResponse.json({ status: "confirmed", newsletter: mail.newsletter });
+    // One confirmation does both: the newsletter asked for with this email, or switched on while it waited.
+    const newsletter = mail.newsletter || reader.newsletter === "pending";
+    if (newsletter) reader.newsletter = "confirmed";
+    return HttpResponse.json({ status: "confirmed", newsletter });
   }),
   http.put(
     `${API}/me/email`,
@@ -241,13 +243,14 @@ export const accountHandlers = [
       return noContent();
     }),
   ),
-  // Proposed to the backend (docs/api-handoff.md): the account's newsletter, for its confirmed email.
+  // The account's newsletter (accounts-api.md): pending until the email is confirmed; 409 no_email without one.
   http.put(
     `${API}/me/newsletter`,
     withReader((reader) => {
-      if (!reader.email) return fail(409, "email_required", "Add an email first");
+      if (!reader.email) return fail(409, "no_email", "Add an email first");
       reader.newsletter = reader.emailConfirmed ? "confirmed" : "pending";
-      return noContent();
+      if (!reader.emailConfirmed) send({ to: reader.email, kind: "confirm", readerId: reader.id, email: reader.email, newsletter: true });
+      return HttpResponse.json({ newsletter: reader.newsletter, emailSent: !reader.emailConfirmed });
     }),
   ),
   http.delete(

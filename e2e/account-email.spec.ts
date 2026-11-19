@@ -60,28 +60,40 @@ test("the profile asks for an email on every visit, adds, confirms and removes i
   await page.reload();
   await expect(card).toBeVisible();
 
-  await card.getByLabel("Email", { exact: true }).fill(email);
-  await card.getByRole("button", { name: "Adicionar" }).click();
-  await expect(page.locator("main").getByRole("status")).toContainText(`Enviámos-te um email para ${email}`);
+  // The newsletter without an email: the API answers no_email, and the card asks for one, the newsletter ticked.
   const section = page.getByRole("region", { name: "Email e newsletter" });
-  await expect(section).toContainText(email);
-  await expect(section).toContainText("por confirmar");
-
-  await page.goto(`/conta/confirmar-email?token=${await lastEmailToken(page, email)}`);
-  await page.getByRole("button", { name: "Confirmar" }).click();
-  await expect(page.locator("main").getByRole("status")).toContainText("Email confirmado");
-  await page.goto("/conta");
-  await expect(card).toHaveCount(0);
-  await expect(section).toContainText("confirmado");
-
   const toggle = section.getByRole("switch", { name: "Newsletter semanal" });
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await toggle.click();
+  const field = card.getByLabel("Email", { exact: true });
+  await expect(field).toBeFocused();
+  await expect(card.getByRole("checkbox", { name: "Quero receber a newsletter semanal" })).toBeChecked();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+
+  await field.fill(email);
+  await card.getByRole("button", { name: "Adicionar" }).click();
+  await expect(page.locator("main").getByRole("status")).toContainText(`Enviámos-te um email para ${email}`);
+  await expect(section).toContainText(email);
+  await expect(section).toContainText("por confirmar");
+  // Asked for with the email: pending until the email is confirmed.
   await expect(toggle).toHaveAttribute("aria-checked", "true");
-  await page.reload();
+  await expect(section).toContainText("Confirma o teu email para começares a receber");
+
+  await page.goto(`/conta/confirmar-email?token=${await lastEmailToken(page, email)}`);
+  await page.getByRole("button", { name: "Confirmar" }).click();
+  await expect(page.locator("main").getByRole("status")).toContainText("Email confirmado e estás inscrito na newsletter");
+  await page.goto("/conta");
+  await expect(card).toHaveCount(0);
+  await expect(section).toContainText("confirmado");
   await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await expect(section).not.toContainText("Confirma o teu email para começares a receber");
+
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await page.reload();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
 
   await section.getByRole("button", { name: "Remover o email" }).click();
   await section.getByRole("button", { name: "Sim, remover" }).click();
