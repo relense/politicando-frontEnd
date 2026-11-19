@@ -112,12 +112,3 @@ Fields: `kind` (`error | idea | broken | other`; ideas normally go to the ideas 
 The blog shows "Mais lidos" (a toggle and a box) as soon as the API counts reads; until then both stay hidden.
 - `POST /editorial/:slug/view`: no body, sent by the browser once per post per visit (`navigator.sendBeacon`, so it may arrive as `text/plain`). Count it; keep nothing about the reader beyond what rate limiting needs. Answer 204. Unknown slugs 404 (ignored).
 - `GET /editorial?sort=popular&days=7&limit=`: posts ordered by reads in the last `days`, each with `views` (that count). Posts with no reads may be left out.
-
-## Account newsletter (needed from the API)
-The profile has a "Newsletter semanal" switch (`components/account/AccountEmail.tsx`, mocked in `mocks/accountFixtures.ts`). Until `/me` says the account's newsletter state, the switch stays hidden and the profile links to `/newsletter` instead.
-- **`newsletter` on the user** (`GET /me`, `PUT /me/email`, register and login answers): `"none" | "pending" | "confirmed"`, for the account's email. `pending`: asked for, waiting for the email's confirmation. A subscription made earlier with the public form for the same address counts once that address is confirmed on the account.
-- **`PUT /me/newsletter`**, no body: subscribes the account's email. 204. Confirmed email: `confirmed` at once, no new email. Unconfirmed: `pending`, confirmed together with the email (resend the confirmation if needed). No email: 409 `email_required`.
-- **`DELETE /me/newsletter`**: unsubscribes that address (as the email's unsubscribe link does). 204, also when not subscribed.
-
-## Agenda: party hearings with their times (needed from the API)
-Party hearings come as one `allDay` item per day, with the times only in `summary` ("15h00 - Conselho de Redação…"), and later hearings that day are dropped (19 Nov 2026: the PS's 16:00 one is missing). Send **one item per hearing**: `start` with its time (`2026-11-19T15:00:00+00:00`), `allDay: false`, `summary` only who is heard. The site then shows "15:00" with no change.
