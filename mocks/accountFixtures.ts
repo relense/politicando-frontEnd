@@ -18,6 +18,11 @@ export type MockReader = {
   hidden: number[];
   muted: { sources: string[]; parties: string[] };
   read: number[];
+  email?: string | null;
+  emailConfirmed?: boolean;
+  /** "Agora não" until then (ms). */
+  remindAfter?: number;
+  newsletter?: "none" | "pending" | "confirmed";
 };
 
 const readers: MockReader[] = [
@@ -57,7 +62,38 @@ export function readerOf(request: Request): MockReader | null {
 export const gateRefusal = (request: Request) =>
   gate.loginRequired && !readerOf(request) ? fail(401, "login_required", "Log in to take part") : null;
 
-const publicReader = ({ id, username, createdAt }: MockReader) => ({ id, username, createdAt });
+const publicReader = ({
+  id,
+  username,
+  createdAt,
+  email = null,
+  emailConfirmed = false,
+  remindAfter = 0,
+  newsletter = "none",
+}: MockReader) => ({
+  id,
+  username,
+  createdAt,
+  email,
+  emailConfirmed,
+  askForEmail: !emailConfirmed && remindAfter <= Date.now(),
+  newsletter,
+});
+
+/*
+ * The emails the API would send, kept for tests: GET /__mock/last-email?to=… gives the newest link's token. Tokens
+ * containing "expirado" are refused as expired.
+ */
+type MockMail = { to: string; kind: "confirm" | "reset"; token: string; readerId: number; email: string; newsletter: boolean };
+const mails: MockMail[] = [];
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const send = (mail: Omit<MockMail, "token">) => {
+  const token = `${mail.kind}-${Math.random().toString(36).slice(2)}`;
+  mails.push({ ...mail, token });
+  return token;
+};
+const emailTaken = (email: string, except: number) =>
+  readers.some((reader) => reader.id !== except && reader.emailConfirmed && reader.email?.toLowerCase() === email.toLowerCase());
 
 /** Each reader's votes on news and marks on blog posts, as /me/state lists them (0 takes one back). */
 const readerVotes = new Map<number, { articles: Record<string, number>; editorial: Record<string, number> }>();
@@ -85,7 +121,7 @@ const signIn = (reader: MockReader, status = 200) => {
   return HttpResponse.json({ user: publicReader(reader) }, { status, headers: { "Set-Cookie": cookie(token, 2592000) } });
 };
 
-type Body = { username?: unknown; password?: unknown; recaptchaToken?: unknown };
+type Body = { username?: unknown; password?: unknown; recaptchaToken?: unknown; email?: unknown; newsletter?: unknown };
 const newestFirst = <T>(added: T[], existing: T[]) => [...new Set([...added, ...existing])];
 
 const withReader =
@@ -118,6 +154,9 @@ export const accountHandlers = [
       readers.some((reader) => reader.username.toLowerCase() === username.toLowerCase())
     )
       return fail(409, "username_taken", "That username is taken");
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const newsletter = body.newsletter === true;
+    if ((email && !EMAIL.test(email)) || (newsletter && !email)) return fail(400, "invalid_email", "That is not a valid email address");
     const reader: MockReader = {
       id: nextId++,
       username,
@@ -128,9 +167,18 @@ export const accountHandlers = [
       hidden: [],
       muted: { sources: [], parties: [] },
       read: [],
+      email: email || null,
+      newsletter: newsletter ? "pending" : "none",
     };
     readers.push(reader);
-    return signIn(reader, 201);
+    if (!email) return signIn(reader, 201);
+    send({ to: email, kind: "confirm", readerId: reader.id, email, newsletter });
+    const answer = signIn(reader, 201);
+    const user = ((await answer.json()) as { user: unknown }).user;
+    return HttpResponse.json(
+      { user, emailSent: true, ...(newsletter ? { newsletter: "pending" } : {}) },
+      { status: 201, headers: answer.headers },
+    );
   }),
   http.post(`${API}/auth/login`, async ({ request }) => {
     const body = (await request.json().catch(() => ({}))) as Body;
@@ -148,6 +196,85 @@ export const accountHandlers = [
     `${API}/me`,
     withReader((reader) => HttpResponse.json(publicReader(reader))),
   ),
+  http.get(`${API}/__mock/last-email`, ({ request }) => {
+    const to = new URL(request.url).searchParams.get("to")?.toLowerCase();
+    const mail = mails.findLast((item) => item.to.toLowerCase() === to);
+    return mail ? HttpResponse.json({ kind: mail.kind, token: mail.token }) : fail(404, "not_found");
+  }),
+  http.post(`${API}/auth/email/confirm`, async ({ request }) => {
+    const { token } = (await request.json().catch(() => ({}))) as { token?: string };
+    const mail = mails.find((item) => item.kind === "confirm" && item.token === token);
+    const reader = readers.find((item) => item.id === mail?.readerId);
+    if (!mail || !reader || reader.email !== mail.email || token?.includes("expirado"))
+      return fail(400, "invalid_token", "This link is no longer valid");
+    if (emailTaken(mail.email, reader.id)) return fail(409, "email_taken", "Another account confirmed this email");
+    reader.emailConfirmed = true;
+    if (mail.newsletter) reader.newsletter = "confirmed";
+    return HttpResponse.json({ status: "confirmed", newsletter: mail.newsletter });
+  }),
+  http.put(
+    `${API}/me/email`,
+    withReader(async (reader, request) => {
+      const body = (await request.json().catch(() => ({}))) as { email?: unknown; newsletter?: unknown };
+      const email = typeof body.email === "string" ? body.email.trim() : "";
+      if (!EMAIL.test(email)) return fail(400, "invalid_email", "That is not a valid email address");
+      const newsletter = body.newsletter === true;
+      reader.email = email;
+      reader.emailConfirmed = false;
+      if (newsletter) reader.newsletter = "pending";
+      send({ to: email, kind: "confirm", readerId: reader.id, email, newsletter });
+      return HttpResponse.json({ user: publicReader(reader), emailSent: true });
+    }),
+  ),
+  http.delete(
+    `${API}/me/email`,
+    withReader((reader) => {
+      reader.email = null;
+      reader.emailConfirmed = false;
+      return noContent();
+    }),
+  ),
+  http.post(
+    `${API}/me/email/remind-later`,
+    withReader((reader) => {
+      reader.remindAfter = Date.now() + 30 * 86_400_000;
+      return noContent();
+    }),
+  ),
+  // Proposed to the backend (docs/api-handoff.md): the account's newsletter, for its confirmed email.
+  http.put(
+    `${API}/me/newsletter`,
+    withReader((reader) => {
+      if (!reader.email) return fail(409, "email_required", "Add an email first");
+      reader.newsletter = reader.emailConfirmed ? "confirmed" : "pending";
+      return noContent();
+    }),
+  ),
+  http.delete(
+    `${API}/me/newsletter`,
+    withReader((reader) => {
+      reader.newsletter = "none";
+      return noContent();
+    }),
+  ),
+  http.post(`${API}/auth/password/forgot`, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { email?: string; recaptchaToken?: string };
+    if (!body.recaptchaToken) return fail(403, "recaptcha_failed");
+    const reader = readers.find((item) => item.emailConfirmed && item.email?.toLowerCase() === body.email?.trim().toLowerCase());
+    if (reader?.email) send({ to: reader.email, kind: "reset", readerId: reader.id, email: reader.email, newsletter: false });
+    return HttpResponse.json({ status: "sent" }, { status: 202 });
+  }),
+  http.post(`${API}/auth/password/reset`, async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { token?: string; password?: string };
+    const index = mails.findIndex((item) => item.kind === "reset" && item.token === body.token);
+    const reader = readers.find((item) => item.id === mails[index]?.readerId);
+    if (index < 0 || !reader || body.token?.includes("expirado")) return fail(400, "invalid_token", "This link is no longer valid");
+    if (!body.password || body.password.length < 8) return fail(400, "validation_failed", "body/password: Too small");
+    mails.splice(index, 1);
+    reader.password = body.password;
+    for (const [token, id] of sessions) if (id === reader.id) sessions.delete(token);
+    return signIn(reader);
+  }),
   http.get(
     `${API}/me/state`,
     withReader((reader) => HttpResponse.json(stateOf(reader))),
