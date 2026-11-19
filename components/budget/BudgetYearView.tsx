@@ -257,7 +257,8 @@ export function BudgetYearView({
                 >
                   {box?.state === "session" && (
                     <p className={label} style={{ color: "var(--contra)" }}>
-                      <span aria-hidden="true">● </span>Sessão de votação · {box.session.title}
+                      <span aria-hidden="true">● </span>Sessão de votação · começou às {sessionTime(box.session.startsAt)} ·{" "}
+                      {box.session.title}
                     </p>
                   )}
                   <p className={`${label} mt-2 text-muted`}>Última votação</p>
