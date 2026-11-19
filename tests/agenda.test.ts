@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapUrl, placeLabel, summaryParts, toIcs, type AgendaItem } from "@/lib/agenda";
+import { mapUrl, nextEventOf, placeLabel, summaryParts, toIcs, type AgendaItem } from "@/lib/agenda";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll } from "vitest";
 import { getAgenda, getNextEvent, mapAgendaItem } from "@/lib/api/agenda";
@@ -109,5 +109,29 @@ describe("agenda", () => {
       total: 216,
     });
     expect(summaryParts("10h30 - Gonçalo de Oliveira", "Audiências").lines).toEqual(["10h30 - Gonçalo de Oliveira"]);
+  });
+});
+
+describe("nextEventOf: the front page's «Próximo evento»", () => {
+  const at = (id: string, start: string, extra: Partial<AgendaItem> = {}): AgendaItem => ({ ...base, id, start, end: null, ...extra });
+  const noon = Date.parse("2026-11-19T12:19:00Z");
+  it("skips a timed event that already started and has no end (19 Nov: 10:00 shown past noon)", () => {
+    const items = [at("debate", "2026-11-19T10:00:00+00:00"), at("forum", "2026-11-19T12:20:00+00:00")];
+    expect(nextEventOf(items, noon)?.id).toBe("forum");
+  });
+  it("keeps one still running until its end, and all-day ones for the whole day", () => {
+    expect(nextEventOf([at("running", "2026-11-19T11:00:00Z", { end: "2026-11-19T13:00:00Z" })], noon)?.id).toBe("running");
+    expect(nextEventOf([at("day", "2026-11-19", { allDay: true })], noon)?.id).toBe("day");
+    expect(nextEventOf([at("yesterday", "2026-11-18", { allDay: true })], noon)).toBeNull();
+  });
+  it("prefers the editors' pick among those still to come, and never a cancelled one", () => {
+    const items = [
+      at("past-pick", "2026-11-19T09:00:00Z", { featured: true }),
+      at("cancelled", "2026-11-19T13:00:00Z", { status: "cancelled" }),
+      at("next", "2026-11-19T14:00:00Z"),
+      at("pick", "2026-11-20T10:00:00Z", { featured: true }),
+    ];
+    expect(nextEventOf(items, noon)?.id).toBe("pick");
+    expect(nextEventOf(items.slice(0, 3), noon)?.id).toBe("next");
   });
 });

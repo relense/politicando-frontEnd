@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AGENDA_KINDS, type AgendaItem, type AgendaKind } from "@/lib/agenda";
+import { AGENDA_KINDS, nextEventOf, type AgendaItem, type AgendaKind } from "@/lib/agenda";
 import { ApiError, cached, request, searchOf } from "./client";
 import { safeHttpUrl } from "./mappers";
 
@@ -90,6 +90,6 @@ export async function getAgenda({ kinds = [], district, open, from, cursor, limi
 /** For the front page: the next featured event in the coming weeks, else simply the next one; null when there is none. */
 export async function getNextEvent(): Promise<AgendaItem | null> {
   const page = await getAgenda({ limit: 20 }).catch(() => null);
-  const coming = (page?.items ?? []).filter((item) => item.status !== "cancelled");
-  return coming.find((item) => item.featured) ?? coming[0] ?? null;
+  // At render time (the front page is rendered per visit): what already started without an end isn't "next".
+  return nextEventOf(page?.items ?? [], Date.now());
 }

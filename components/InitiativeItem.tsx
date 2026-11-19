@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDate } from "@/lib/format";
-import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel, stageTone, toneColor } from "@/lib/initiatives";
+import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel, stageTone, toneColor, stageDate } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import type { Initiative, InitiativePresidency, PlainStage } from "@/lib/types";
 import type { Prediction } from "@/lib/api/engagement";
@@ -10,7 +10,10 @@ import { StageProgress } from "./StageProgress";
 /** On the card, the official title only when it says more than the headline: not its first words repeated. */
 function officialWorthShowing(initiative: Initiative): boolean {
   if (!hasPlainTitle(initiative)) return false;
-  const plain = initiative.plain!.title!.trim().toLowerCase().replace(/[.…]+$/, "");
+  const plain = initiative
+    .plain!.title!.trim()
+    .toLowerCase()
+    .replace(/[.…]+$/, "");
   return !initiative.title.trim().toLowerCase().startsWith(plain);
 }
 
@@ -64,7 +67,9 @@ export function InitiativeItem({
   const { plain, presidency } = initiative;
   const color = toneColor(stageTone(plain?.status.stage, plain?.type.makesLaw ?? true));
   const parties = initiative.authors.other ? [] : initiative.authors.parties.map((party) => party.acronym);
-  const updated = formatDate(initiative.phaseDate);
+  // A stage dated ahead is the day the Parliament scheduled it, not when it was updated (lib/initiatives stageDate).
+  const stage = stageDate(initiative.phaseDate);
+  const stageDay = formatDate(stage?.date);
 
   return (
     <article
@@ -142,7 +147,9 @@ export function InitiativeItem({
             </li>
           ))}
         </ul>
-        <p className="font-mono text-[11px] text-muted">{updated && <>Atualizada a {updated}</>}</p>
+        <p className="font-mono text-[11px] text-muted">
+          {stageDay && <>{stage?.scheduled ? `Marcada para ${stageDay}` : `Atualizada a ${stageDay}`}</>}
+        </p>
       </div>
     </article>
   );
