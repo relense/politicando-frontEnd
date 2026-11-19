@@ -4,7 +4,7 @@ import { getInitiatives } from "@/lib/api/client";
 import { mapInitiative } from "@/lib/api/mappers";
 import { getInitiativeTopics, getPresidency, mapPresidency, presidencySchema } from "@/lib/api/presidency";
 import { initiativeSchema } from "@/lib/api/schemas";
-import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress, stageTone } from "@/lib/initiatives";
+import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress, stageTone, updatedOn } from "@/lib/initiatives";
 import { handlers } from "@/mocks/handlers";
 import { initiatives } from "@/mocks/parliamentFixtures";
 import { presidency } from "@/mocks/presidencyFixtures";
@@ -116,5 +116,17 @@ describe("presidency api", () => {
     );
     expect(data.president.photoUrl).toBeNull();
     expect(data.president.url).toBeNull();
+  });
+});
+
+describe("updatedOn: «Atualizada a» on the list", () => {
+  const now = Date.parse("2026-11-19T12:00:00Z");
+  it("is the stage's date when it's today or before", () => {
+    expect(updatedOn("2026-11-18", now)).toBe("2026-11-18");
+    expect(updatedOn("2026-11-19", now)).toBe("2026-11-19");
+  });
+  it("is nothing for a date still to come (19 Nov: OE2027 «Atualizada a 23-11-2026») or none", () => {
+    expect(updatedOn("2026-11-23", now)).toBeNull();
+    expect(updatedOn(null, now)).toBeNull();
   });
 });
