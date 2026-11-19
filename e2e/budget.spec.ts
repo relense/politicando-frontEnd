@@ -51,7 +51,15 @@ test("State Budget: the current one, today's votes, each party, the filters and 
 
   await page.goto("/orcamento");
   // When a session began, never «a decorrer»: the parliament doesn't say when it ends.
-  if (!isMobile) await expect(page.getByRole("region", { name: "Orçamento do Estado 2027" })).toContainText(/Começou às \d\dh\d\d/);
+  if (!isMobile) {
+    const side = page.getByRole("region", { name: "Orçamento do Estado 2027" });
+    await expect(side).toContainText(/Começou às \d\dh\d\d/);
+    // The count is at the top already: the side box doesn't repeat it.
+    await expect(side).not.toContainText("por votar");
+    await expect(side.getByRole("img", { name: /^Propostas de alteração/ })).toHaveCount(0);
+  }
+  // «por votar» once in the tally, not again in its legend.
+  await expect(page.getByRole("region", { name: /propostas de alteração já votadas/ }).getByText(/por votar/)).toHaveCount(1);
   await noSeriousA11yIssues(page);
 });
 

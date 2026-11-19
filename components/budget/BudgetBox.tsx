@@ -47,17 +47,19 @@ const label = "font-mono text-[11px] font-bold uppercase tracking-widest";
 /**
  * «Orçamento do Estado 2027»: votes counted, then (during a session) the session and the latest vote, (on a day
  * without votes) the next session and the last vote, or (after the final vote) the result. On the news for 7 days
- * after the final vote; `keep` on the Budget's own page.
+ * after the final vote; `keep` on the Budget's own page, where `tally={false}` leaves out the count the page shows at the top.
  */
 export function BudgetBox({
   data,
   now,
   keep = false,
+  tally = true,
   headingId = "caixa-orcamento",
 }: {
   data: BudgetBoxData;
   now: number;
   keep?: boolean;
+  tally?: boolean;
   headingId?: string;
 }) {
   const { year, summary, latest } = data;
@@ -71,42 +73,49 @@ export function BudgetBox({
   };
 
   return (
-    <section aria-labelledby={headingId} className="rounded-2xl border border-line bg-[var(--card-hover)] p-4">
+    <section
+      aria-labelledby={headingId}
+      className="rounded-2xl border border-line bg-[var(--card-hover)] p-4 [&>h2+div]:mt-2 [&>h2+div]:border-t-0 [&>h2+div]:pt-0"
+    >
       <h2 id={headingId} className={label}>
         <Link href="/orcamento" className="hover:underline">
           Orçamento do Estado {year.year}
         </Link>
       </h2>
-      {box.state === "final" ? (
-        <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
-          <span className="font-serif text-3xl font-bold">{/^aprovad/i.test(box.final.result) ? "Aprovado" : "Chumbado"}</span>
-          <span className="font-mono text-xs text-muted">
-            a {formatDate(box.final.date)} · {formatNumber(year.voted)} propostas votadas
-          </span>
-        </p>
-      ) : (
-        <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
-          <span className="font-serif text-3xl font-bold">{formatNumber(year.voted)}</span>
-          <span className="font-mono text-xs text-muted">votadas · {formatNumber(year.pending)} por votar</span>
-        </p>
+      {tally && (
+        <>
+          {box.state === "final" ? (
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
+              <span className="font-serif text-3xl font-bold">{/^aprovad/i.test(box.final.result) ? "Aprovado" : "Chumbado"}</span>
+              <span className="font-mono text-xs text-muted">
+                a {formatDate(box.final.date)} · {formatNumber(year.voted)} propostas votadas
+              </span>
+            </p>
+          ) : (
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
+              <span className="font-serif text-3xl font-bold">{formatNumber(year.voted)}</span>
+              <span className="font-mono text-xs text-muted">votadas · {formatNumber(year.pending)} por votar</span>
+            </p>
+          )}
+          <div className="mt-2">
+            <ProgressBar approved={approved} rejected={rejected} total={year.proposals} label="Propostas de alteração" />
+            <p className="mt-1 flex gap-3 font-mono text-[11px] text-muted">
+              <span>
+                <span aria-hidden="true" style={{ color: "var(--favor)" }}>
+                  ●
+                </span>{" "}
+                {formatNumber(approved)} aprovadas
+              </span>
+              <span>
+                <span aria-hidden="true" style={{ color: "var(--contra)" }}>
+                  ●
+                </span>{" "}
+                {formatNumber(rejected)} rejeitadas
+              </span>
+            </p>
+          </div>
+        </>
       )}
-      <div className="mt-2">
-        <ProgressBar approved={approved} rejected={rejected} total={year.proposals} label="Propostas de alteração" />
-        <p className="mt-1 flex gap-3 font-mono text-[11px] text-muted">
-          <span>
-            <span aria-hidden="true" style={{ color: "var(--favor)" }}>
-              ●
-            </span>{" "}
-            {formatNumber(approved)} aprovadas
-          </span>
-          <span>
-            <span aria-hidden="true" style={{ color: "var(--contra)" }}>
-              ●
-            </span>{" "}
-            {formatNumber(rejected)} rejeitadas
-          </span>
-        </p>
-      </div>
 
       {box.state === "session" && (
         <div className="mt-4 border-t border-line pt-3">

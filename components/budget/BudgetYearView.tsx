@@ -234,7 +234,6 @@ export function BudgetYearView({
                   </span>
                   {formatNumber(rejected)} rejeitadas
                 </span>
-                <span>{formatNumber(year.pending)} por votar</span>
               </span>
               {sessionDays(summary, now) && <span>Próximos dias de votação: {sessionDays(summary, now)}</span>}
             </p>
@@ -505,6 +504,7 @@ export function BudgetYearView({
               data={{ year, summary, latest: todayVoted[0] ?? page?.items.find((item) => item.votes.length > 0) ?? null }}
               now={now}
               keep
+              tally={false}
               headingId="caixa-orcamento-pagina"
             />
           )}
