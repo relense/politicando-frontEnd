@@ -5,7 +5,8 @@ import { buildBacklinks, buildCommentTree, countReplies, displayName, mentionsOf
 import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatLongDateTime, formatRelative } from "@/lib/format";
 import { findPartyByParam, getPartyLogo, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
-import type { Comment } from "@/lib/types";
+import { comingSoon } from "@/lib/editorial";
+import type { Comment, EditorialKind, EditorialPost } from "@/lib/types";
 
 const comment = (id: number, parentId: number | null = null, username: string | null = null): Comment => ({
   id,
@@ -186,5 +187,15 @@ describe("format", () => {
     expect(formatRelative("2026-07-01T12:05:00Z", now)).toBe("01-07-2026");
     expect(formatRelative(ago(-60_000), now)).toBe("agora");
     expect(formatRelative(null, now)).toBeNull();
+  });
+});
+
+describe("the blog's formats still to come", () => {
+  const post = (kind: EditorialKind) => ({ kind }) as EditorialPost;
+  it("lists the formats with no posts", () => {
+    expect(comingSoon([post("article"), post("opinion")], { podcastShow: false })).toEqual(["podcast", "interview", "video"]);
+  });
+  it("never lists podcasts while the show is on Spotify, posts or not", () => {
+    expect(comingSoon([post("article")], { podcastShow: true })).toEqual(["opinion", "interview", "video"]);
   });
 });
