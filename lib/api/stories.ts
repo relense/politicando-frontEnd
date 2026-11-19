@@ -1,6 +1,7 @@
 import { decode } from "he";
 import { z } from "zod";
 import type { Article, PersonMention } from "@/lib/types";
+import { formatRelative, lisbonDay } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
 import { cached, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
@@ -39,6 +40,8 @@ const storySchema = z.object({
   lastPublishedAt: z.string(),
   articleCount: z.number(),
   sourceCount: z.number(),
+  /** "Hoje em 5" only: the outlets with an article in the last 24 hours. */
+  recentSourceCount: z.number().nullish(),
   sources: z.array(
     z.object({
       name: z.string(),
@@ -110,6 +113,8 @@ export type Story = {
   firstPublishedAt: string;
   lastPublishedAt: string;
   sourceCount: number;
+  /** "Hoje em 5" only: the outlets with an article in the last 24 hours; null elsewhere or from an older API. */
+  recentSourceCount: number | null;
   /** One per outlet, first to publish first, each with its own headline. */
   versions: StoryVersion[];
   parties: { slug: string; acronym: string; name: string }[];
@@ -147,6 +152,7 @@ function mapStory(api: z.infer<typeof storySchema>): Story {
     firstPublishedAt: api.firstPublishedAt,
     lastPublishedAt: api.lastPublishedAt,
     sourceCount: api.sourceCount,
+    recentSourceCount: api.recentSourceCount ?? null,
     versions: api.sources.map((item) => ({
       source: sourceName(item.name),
       sourceDomain: item.name,
@@ -231,6 +237,26 @@ export async function getStory(id: number): Promise<StoryDetail | null> {
     if (error instanceof Error && "status" in error && error.status === 404) return null;
     throw error;
   }
+}
+
+const weekday = new Intl.DateTimeFormat("pt-PT", { weekday: "long", timeZone: "Europe/Lisbon" });
+
+/**
+ * "4 jornais · há 2 h · desde ontem": how fresh a "Hoje em 5" story is. The outlets of the last 24 hours, the latest
+ * article's age, and the day it began when that wasn't today.
+ */
+export function freshnessLine(story: Pick<Story, "recentSourceCount" | "firstPublishedAt" | "lastPublishedAt">, now: number): string {
+  const count = story.recentSourceCount;
+  const began = lisbonDay(story.firstPublishedAt);
+  const since =
+    began === lisbonDay(new Date(now).toISOString())
+      ? null
+      : began === lisbonDay(new Date(now - 86_400_000).toISOString())
+        ? "desde ontem"
+        : `desde ${weekday.format(new Date(story.firstPublishedAt)).replace("-feira", "")}`;
+  return [count === null ? null : `${count} ${count === 1 ? "jornal" : "jornais"}`, formatRelative(story.lastPublishedAt, now), since]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** "Hoje em 5": the stories of the last 24 hours that matter most. Empty when the API can't say. */
