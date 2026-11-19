@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { Feed } from "@/components/Feed";
 import { loadHighlights } from "@/components/Highlights";
-import { NextEvent } from "@/components/NextEvent";
 import { BlogRow, EventRow } from "@/components/FeedInserts";
 import { getNextEvent } from "@/lib/api/agenda";
 import { FollowCard, SidebarFooter } from "@/components/FollowUs";
@@ -182,7 +181,8 @@ export default async function HomePage({ searchParams }: Props) {
               ...(podcast
                 ? [{ after: 10, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
                 : []),
-              ...(nextEvent ? [{ after: 12, node: <EventRow item={nextEvent} now={requestTime()} /> }] : []),
+              // The agenda only lives in the feed, on every screen, to leave the side column room.
+              ...(nextEvent ? [{ after: 12, node: <EventRow item={nextEvent} now={requestTime()} />, everywhere: true }] : []),
             ]}
           />
         </div>
@@ -192,7 +192,6 @@ export default async function HomePage({ searchParams }: Props) {
             {today.length > 0 && <TodayInFive stories={today} />}
             {predictions.length > 0 && <PredictionsCard initial={predictions} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
-            {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
             <SidebarFooter />
