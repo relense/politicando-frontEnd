@@ -1022,8 +1022,11 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
     .filter({ has: page.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }) })
     .first();
   await expect(card).toContainText("+3 jornais");
-  // No photo from the outlet it names: a dark frame of the same size says so, instead of the card shrinking.
-  await expect(card.getByText(/^Sem imagem · /)).toBeVisible();
+  // No photo from the outlet it names: a light branded frame of the same size, with the outlet, instead of the card shrinking.
+  const noImage = card.locator("[data-no-image]");
+  await expect(noImage).toBeVisible();
+  await expect(noImage).toContainText("OLITICANDO");
+  await expect(card.getByText(/Sem imagem/i)).toHaveCount(0);
   // How each outlet headlined it, folded under the logos.
   await card.getByText("4 jornais contaram isto").click();
   await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
@@ -1310,12 +1313,14 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
   );
 });
 
-test("a card without a photo keeps its shape, with a dark frame naming the outlet", async ({ page }) => {
+test("a card without a photo keeps its shape, with a branded frame naming the outlet", async ({ page }) => {
   test.skip(FEATURES.stories, "With stories on, the stories test covers it.");
   await page.goto("/");
   const card = page.locator("main article").first();
-  const frame = card.getByText(/^Sem imagem · /);
+  const frame = card.locator("[data-no-image]");
   await expect(frame).toBeVisible();
+  await expect(frame).toContainText("OLITICANDO");
+  await expect(card.getByText(/Sem imagem/i)).toHaveCount(0);
   const box = await frame.locator("xpath=ancestor::a[1]").boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(180);
 });
