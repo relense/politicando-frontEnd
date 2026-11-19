@@ -32,3 +32,14 @@ export function umamiEvent(name: string, details: Details = {}): Record<string, 
   for (const [key, value] of Object.entries(filled(details))) attributes[`data-umami-event-${key}`] = String(value);
   return attributes;
 }
+
+/** A link out to a news outlet: its domain ("publico.pt") and where on the site the link was. */
+export function outletClick(url: string | null | undefined, where: string): Record<string, string> {
+  let domain: string | null = null;
+  try {
+    domain = url ? new URL(url).hostname.replace(/^www\./, "") : null;
+  } catch {
+    domain = null;
+  }
+  return umamiEvent("outlet-click", { domain, where });
+}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { track, umamiEvent } from "@/lib/analytics";
+import { outletClick, track, umamiEvent } from "@/lib/analytics";
 
 type WithUmami = { umami?: { track: (name: string, data?: Record<string, unknown>) => void } };
 
@@ -43,5 +43,18 @@ describe("umamiEvent: the attributes Umami counts a press by", () => {
   });
   it("leaves out empty details", () => {
     expect(umamiEvent("podcast-play", { episode: null })).toEqual({ "data-umami-event": "podcast-play" });
+  });
+});
+
+describe("outletClick: a link out to a news outlet", () => {
+  it("names the outlet's domain and where on the site it was", () => {
+    expect(outletClick("https://www.publico.pt/2026/11/19/politica/x", "card")).toEqual({
+      "data-umami-event": "outlet-click",
+      "data-umami-event-domain": "publico.pt",
+      "data-umami-event-where": "card",
+    });
+  });
+  it("is a plain event for a broken address", () => {
+    expect(outletClick("not a url", "page")).toEqual({ "data-umami-event": "outlet-click", "data-umami-event-where": "page" });
   });
 });
