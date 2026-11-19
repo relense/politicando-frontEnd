@@ -1,3 +1,4 @@
+import { lisbonDay } from "@/lib/format";
 /** The political calendar: kinds, districts and the calendar file, shared by the page and its buttons. */
 
 export const AGENDA_KINDS = [
@@ -194,4 +195,23 @@ export function summaryParts(summary: string, title: string): SummaryParts {
     lines.push(line);
   }
   return { lines, times, total };
+}
+
+/**
+ * The front page's «Próximo evento»: the editors' pick among what's still to come, else the soonest. The API lists what
+ * hasn't ended, and a timed event without an end stays listed all day, so here: all-day ones count until their last
+ * day is over, timed ones with an end while running, and those without an end only before they start.
+ */
+export function nextEventOf(items: AgendaItem[], now: number): AgendaItem | null {
+  const today = lisbonDay(new Date(now).toISOString());
+  const coming = items.filter((item) => {
+    if (item.status === "cancelled") return false;
+    if (item.allDay) {
+      const last = lisbonDay(item.end ?? item.start) ?? item.start.slice(0, 10);
+      return today !== null && last >= today;
+    }
+    const until = Date.parse(item.end ?? item.start);
+    return Number.isFinite(until) && until > now;
+  });
+  return coming.find((item) => item.featured) ?? coming[0] ?? null;
 }
