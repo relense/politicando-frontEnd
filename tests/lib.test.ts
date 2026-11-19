@@ -5,7 +5,7 @@ import { buildBacklinks, buildCommentTree, countReplies, displayName, mentionsOf
 import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatLongDateTime, formatRelative } from "@/lib/format";
 import { findPartyByParam, getPartyLogo, partyPath } from "@/lib/parties";
 import { getPartyProfile } from "@/lib/partyProfiles";
-import { comingSoon } from "@/lib/editorial";
+import { comingSoon, publicationCount } from "@/lib/editorial";
 import type { Comment, EditorialKind, EditorialPost } from "@/lib/types";
 
 const comment = (id: number, parentId: number | null = null, username: string | null = null): Comment => ({
@@ -197,5 +197,15 @@ describe("the blog's formats still to come", () => {
   });
   it("never lists podcasts while the show is on Spotify, posts or not", () => {
     expect(comingSoon([post("article")], { podcastShow: true })).toEqual(["opinion", "interview", "video"]);
+  });
+});
+
+describe("the blog's count of what a filter shows", () => {
+  it("counts the posts", () => {
+    expect(publicationCount(1, { showInstead: false })).toBe("1 publicação");
+    expect(publicationCount(0, { showInstead: false })).toBe("0 publicações");
+  });
+  it("says nothing when the podcast show stands in for the posts (19 Nov: «0 publicações» above today's episode)", () => {
+    expect(publicationCount(0, { showInstead: true })).toBeNull();
   });
 });

@@ -50,7 +50,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   if (q || filter.sources.length > 0 || filter.parties.length > 1) return { robots: { index: false, follow: true } };
   return filter.parties.length === 1
     ? { alternates: { canonical: partyPath(filter.parties[0]!) }, robots: { index: false, follow: true } }
-    : {};
+    : // One address for the home page, however it's reached (politicando.pt, www., ?ordem=…).
+      { alternates: { canonical: "/" } };
 }
 
 /** The highlighter stroke under a word of the title. */

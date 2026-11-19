@@ -35,3 +35,9 @@ export function podcastFromUrl(value: string | null | undefined): Podcast | null
 }
 
 export const getPodcast = () => podcastFromUrl(PODCAST_SHOW_URL);
+
+/** An episode's title without the date Spotify's titles start with ("19 nov. · …"): the box says the date apart. */
+export function episodeTitle(title: string): string {
+  const rest = title.replace(/^\d{1,2} [a-zç]{3,4}\.? · /i, "");
+  return rest.trim() ? rest : title;
+}
