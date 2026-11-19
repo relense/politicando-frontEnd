@@ -3,6 +3,8 @@ import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
 import {
   authorsShort,
   budgetBox,
+  finalVoteSession,
+  sessionTime,
   budgetStage,
   byChoice,
   choiceShares,
@@ -92,18 +94,32 @@ describe("the State Budget's rules (lib/budget)", () => {
 
   describe("the side box: during a session, a day without votes, after the final vote", () => {
     const now = Date.parse("2026-11-19T16:42:00Z");
-    const session = (startsAt: string, allDay = false): BudgetSession => ({
+    const session = (startsAt: string, allDay = false, more: Partial<BudgetSession> = {}): BudgetSession => ({
       id: startsAt,
       title: "Comissão de Orçamento",
       kind: "committee",
+      stage: "committee",
       startsAt,
+      endsAt: null,
       allDay,
+      started: null,
+      ...more,
     });
     const open = [bill("in_progress", [headline("2026-10-31", "Votação na generalidade")])];
 
     it("a session that started today: «Sessão de votação»", () => {
       const box = budgetBox({ bills: open, schedule: [session("2026-11-19T15:00:00Z"), session("2026-11-20T15:00:00Z")], pending: 9 }, now);
       expect(box).toMatchObject({ state: "session", session: { startsAt: "2026-11-19T15:00:00Z" } });
+    });
+    it("the API's «started» decides: a session it says began counts, one it says hasn't doesn't, whatever the clock", () => {
+      const late = session("2026-11-19T17:00:00Z", false, { started: true });
+      expect(budgetBox({ bills: open, schedule: [late], pending: 9 }, now)).toMatchObject({ state: "session", session: { id: late.id } });
+      const notYet = session("2026-11-19T15:00:00Z", false, { started: false });
+      expect(budgetBox({ bills: open, schedule: [notYet], pending: 9 }, now)).toMatchObject({ state: "between" });
+    });
+    it("a session that began on another day isn't today's, even if a cached page still says started", () => {
+      const yesterday = session("2026-11-18T10:00:00Z", false, { started: true });
+      expect(budgetBox({ bills: open, schedule: [yesterday], pending: 9 }, now)).toMatchObject({ state: "between" });
     });
     it("otherwise the next session to come", () => {
       const box = budgetBox({ bills: open, schedule: [session("2026-11-18T15:00:00Z"), session("2026-11-20T15:00:00Z")], pending: 9 }, now);
@@ -158,5 +174,27 @@ describe("names and headings readers understand (owner's review, 20 Nov)", () =>
       }),
     ).toBe("Votada a 24-11-2026, no Plenário");
     expect(votedLine(base)).toBeNull();
+  });
+});
+
+describe("the final overall vote's session, shown ahead of time", () => {
+  const entry = (stage: BudgetSession["stage"], startsAt: string): BudgetSession => ({
+    id: startsAt,
+    title: "Sessão",
+    kind: "parliament",
+    stage,
+    startsAt,
+    endsAt: null,
+    allDay: false,
+    started: false,
+  });
+  it("the session marked final_vote, or none when the agenda doesn't show it yet", () => {
+    const final = entry("final_vote", "2026-11-24T10:00:00Z");
+    expect(finalVoteSession([entry("committee", "2026-11-20T15:00:00Z"), final])).toBe(final);
+    expect(finalVoteSession([entry("plenary", "2026-11-21T10:00:00Z")])).toBeNull();
+  });
+  it("«10h00»: hours as written in Portugal, in Lisbon's time", () => {
+    expect(sessionTime("2026-11-24T10:00:00Z")).toBe("10h00");
+    expect(sessionTime("2026-07-24T14:30:00Z")).toBe("15h30");
   });
 });

@@ -86,7 +86,21 @@ export type BudgetYear = {
   syncedAt: string | null;
   bills: BudgetBill[];
 };
-export type BudgetSession = { id: string; title: string; kind: string; startsAt: string; allDay: boolean };
+export type BudgetSessionStage = "committee" | "plenary" | "general_vote" | "final_vote";
+/**
+ * A Budget voting session from the parliament's agenda. `stage: "final_vote"` is the session that ends with the final
+ * overall vote. `started` is the API's word that it began (null from an older API); `endsAt` is almost always null.
+ */
+export type BudgetSession = {
+  id: string;
+  title: string;
+  kind: string;
+  stage: BudgetSessionStage | null;
+  startsAt: string;
+  endsAt: string | null;
+  allDay: boolean;
+  started: boolean | null;
+};
 export type BudgetPartySummary = {
   party: BudgetParty;
   proposals: number;
@@ -222,8 +236,11 @@ const summarySchema = z.object({
       id: z.union([z.string(), z.number()]).transform(String),
       title: z.string(),
       kind: z.string().nullish(),
+      stage: z.string().nullish(),
       startsAt: z.string(),
+      endsAt: z.string().nullish(),
       allDay: z.boolean().nullish(),
+      started: z.boolean().nullish(),
     }),
   ),
   sourceUrl: z.string().nullish(),
@@ -375,8 +392,11 @@ export function getBudgetSummary(year: number, days: BudgetDays = {}): Promise<B
         id: item.id,
         title: item.title,
         kind: item.kind ?? "other",
+        stage: oneOf(["committee", "plenary", "general_vote", "final_vote"] as const, item.stage),
         startsAt: item.startsAt,
+        endsAt: item.endsAt ?? null,
         allDay: item.allDay ?? false,
+        started: item.started ?? null,
       })),
       sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
     };

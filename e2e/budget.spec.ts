@@ -12,6 +12,8 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   // A one-letter acronym says the name.
   await expect(page.getByRole("navigation", { name: "Proposta por" }).getByRole("link", { name: "LIVRE", exact: true })).toBeVisible();
   await expect(page.getByText("Em especialidade", { exact: true })).toBeVisible();
+  // The final overall vote's day, ahead of time, once the agenda shows its session.
+  await expect(page.getByText(/^Votação final global marcada para \d\d-\d\d-\d{4}, às \d\dh\d\d$/)).toBeVisible();
   // The running tally first: 5 of the 8 fictional proposals voted.
   await expect(page.getByRole("region", { name: /propostas de alteração já votadas/ })).toContainText("de 8");
   // The Budget's own vote on the general principles.
@@ -48,7 +50,8 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await noSeriousA11yIssues(page);
 
   await page.goto("/orcamento");
-  if (!isMobile) await expect(page.getByRole("region", { name: "Orçamento do Estado 2027" })).toContainText("Sessão de votação");
+  // When a session began, never «a decorrer»: the parliament doesn't say when it ends.
+  if (!isMobile) await expect(page.getByRole("region", { name: "Orçamento do Estado 2027" })).toContainText(/Começou às \d\dh\d\d/);
   await noSeriousA11yIssues(page);
 });
 

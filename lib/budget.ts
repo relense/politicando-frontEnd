@@ -1,6 +1,6 @@
 import type { BudgetBill, BudgetChoice, BudgetParty, BudgetProposal, BudgetResult, BudgetSession, BudgetVote } from "@/lib/api/budget";
 import { tidyName } from "@/lib/elections";
-import { formatDate, lisbonDay } from "@/lib/format";
+import { formatDate, formatTime, lisbonDay } from "@/lib/format";
 import type { Vote } from "@/lib/types";
 
 /** The State Budget pages' rules: wording in the parliament's neutral terms, never "won" or "lost". */
@@ -157,8 +157,8 @@ export type BudgetBox =
 
 /**
  * The Budget's box (on its page and beside the news), while it's being voted:
- * - "session": a Budget voting session started today (the API says which sessions are for Budget votes, not when one
- *   ends, nor which proposal is on the floor);
+ * - "session": a Budget voting session began today (the API's `started`, or the clock when an older API doesn't say;
+ *   it never says when one ends, nor which proposal is on the floor, so we say when it began, not that it's running);
  * - "between": otherwise, with the next session if one is scheduled;
  * - "final": after the final overall vote, for 7 days beside the news (`keep`: for good, on the Budget's page).
  * Null when there's nothing to follow.
@@ -175,7 +175,16 @@ export function budgetBox(
   }
   if (pending === 0 && schedule.length === 0) return null;
   const today = lisbonDay(new Date(now).toISOString());
-  const started = schedule.find((item) => !item.allDay && Date.parse(item.startsAt) <= now && lisbonDay(item.startsAt) === today);
+  const started = schedule.find(
+    (item) => !item.allDay && (item.started ?? Date.parse(item.startsAt) <= now) && lisbonDay(item.startsAt) === today,
+  );
   if (started) return { state: "session", session: started };
   return { state: "between", next: schedule.find((item) => Date.parse(item.startsAt) > now) ?? null };
 }
+
+/** The session that ends with the final overall vote, once the parliament's agenda shows it. */
+export const finalVoteSession = (schedule: BudgetSession[]): BudgetSession | null =>
+  schedule.find((item) => item.stage === "final_vote") ?? null;
+
+/** «10h00», in Lisbon's time. */
+export const sessionTime = (value: string): string | null => formatTime(value)?.replace(":", "h") ?? null;

@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type BudgetSummary, type BudgetYear } from "@/lib/api/budget";
-import { budgetBox, budgetStage, choiceShares, headlineVotes, partyFull, partyShort, proposalHeading } from "@/lib/budget";
+import {
+  budgetBox,
+  budgetStage,
+  choiceShares,
+  finalVoteSession,
+  headlineVotes,
+  partyFull,
+  partyShort,
+  proposalHeading,
+  sessionTime,
+} from "@/lib/budget";
 import { budgetFilters, budgetPath, queryOf, RESULT_TABS, TAB_RESULTS, type BudgetFilters, type BudgetSearch } from "@/lib/budgetFilters";
 import { formatDate, formatDayHeading, formatNumber, formatRelative, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -98,6 +108,8 @@ export function BudgetYearView({
   const { general, final } = headlineVotes(year.bills);
   const headline = final ?? general;
   const bill = year.bills[year.bills.length - 1] ?? null;
+  // Its day ahead of time, from the agenda; gone once the vote is in.
+  const finalSession = !final && current && summary ? finalVoteSession(summary.schedule) : null;
   const acronymOf = (slug: string) => {
     const party = summary?.parties.find((entry) => entry.party.slug === slug)?.party;
     return party ? partyShort(party) : slug.toUpperCase();
@@ -140,6 +152,13 @@ export function BudgetYearView({
                 {/^aprovad/i.test(general.result) ? "Aprovado" : "Chumbado"} na generalidade a {formatDate(general.date)}
               </span>
             ) : null}
+            {finalSession && general && <span aria-hidden="true">·</span>}
+            {finalSession && (
+              <span>
+                Votação final global marcada para {formatDate(finalSession.startsAt)}
+                {!finalSession.allDay && sessionTime(finalSession.startsAt) ? `, às ${sessionTime(finalSession.startsAt)}` : ""}
+              </span>
+            )}
             {bill?.legislature && !current && <span>· {bill.legislature} Legislatura</span>}
             {current && year.syncedAt && <span>· atualizado {formatRelative(year.syncedAt, now)}</span>}
           </p>

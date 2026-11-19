@@ -61,7 +61,8 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     expect(summary?.parties[0]).toMatchObject({ party: { slug: "psd" } });
     expect(summary?.parties[0]!.votesOnOthers.favor).toBeGreaterThan(0);
     expect(summary?.schedule.length).toBeGreaterThan(0);
-    expect(summary?.schedule[0]).toMatchObject({ kind: "committee", allDay: false });
+    expect(summary?.schedule[0]).toMatchObject({ kind: "committee", allDay: false, stage: "committee", started: true });
+    expect(summary?.schedule.find((item) => item.stage === "final_vote")).toMatchObject({ started: false, endsAt: null });
     expect(await getBudgetSummary(1999)).toBeNull();
   });
 

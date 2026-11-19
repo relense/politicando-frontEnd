@@ -7,8 +7,8 @@ import {
   type BudgetSummary,
   type BudgetYear,
 } from "@/lib/api/budget";
-import { authorsShort, budgetBox, partyShort, proposalHeading, type BudgetBox as BoxState } from "@/lib/budget";
-import { formatDate, formatLongDate, formatNumber, formatTime, lisbonDay } from "@/lib/format";
+import { authorsShort, budgetBox, partyShort, proposalHeading, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
+import { formatDate, formatLongDate, formatNumber, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
 import { latestVote, proposalPath } from "./ProposalItem";
@@ -111,9 +111,11 @@ export function BudgetBox({
       {box.state === "session" && (
         <div className="mt-4 border-t border-line pt-3">
           <p className={label} style={{ color: "var(--contra)" }}>
-            <span aria-hidden="true">● </span>Sessão de votação · desde as {formatTime(box.session.startsAt)}
+            <span aria-hidden="true">● </span>Sessão de votação
           </p>
-          <p className="mt-1 text-sm">{box.session.title}</p>
+          <p className="mt-1 text-sm">
+            <strong>Começou às {sessionTime(box.session.startsAt)}</strong> · {box.session.title}
+          </p>
         </div>
       )}
       {box.state === "between" && box.next && (
