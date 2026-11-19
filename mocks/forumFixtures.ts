@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { z } from "zod";
 import { parties } from "./fixtures";
 import { addReport, audit, requireAdmin } from "./adminState";
+import { readerOf } from "./accountFixtures";
 
 const API = "*/api/v2";
 
@@ -34,11 +35,14 @@ type MockPost = {
   replyTo: number | null;
   createdAt: string;
   hidden: boolean;
+  /** Only on the votes board: the poster's prediction. */
+  pick?: "pass" | "fail" | null;
 };
 
 const BOARDS = [
   { board: "geral", name: "Geral", acronym: null as string | null },
   { board: "ideias", name: "Ideias", acronym: null as string | null },
+  { board: "votacoes", name: "Votações", acronym: null as string | null },
   ...parties.map((p) => ({ board: p.slug, name: p.name, acronym: p.acronym })),
 ];
 
@@ -218,13 +222,13 @@ const newThreadSchema = z.strictObject({
   nickname: z.string().trim().max(40).nullish(),
   articleId: z.number().int().positive().nullish(),
   initiativeId: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  recaptchaToken: z.string().min(1).nullish(),
 });
 const newPostSchema = z.strictObject({
   body: z.string().trim().min(1).max(5000),
   nickname: z.string().trim().max(40).nullish(),
   replyTo: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  recaptchaToken: z.string().min(1).nullish(),
 });
 // News articles take their own reasons; mixing the two lists is 400, as in the API.
 const reportSchema = z.union([
@@ -277,6 +281,7 @@ export const forumHandlers = [
         body: post.hidden ? null : post.body,
         posterId: post.hidden ? null : post.posterId,
         isOp: !post.hidden && post.posterId === thread.posterId,
+        ...(thread.board === "votacoes" ? { pick: post.hidden ? null : (post.pick ?? null) } : {}),
       })),
       hasMore: false,
     });
@@ -305,9 +310,15 @@ export const forumHandlers = [
 
   http.post(`${API}/forums/:board/threads`, async ({ params, request }) => {
     if (!BOARDS.some((board) => board.board === params.board)) return fail(404, "not_found");
+    // The site opens the votes board's threads; readers only reply.
+    if (params.board === "votacoes") return fail(403, "board_closed");
     const parsed = newThreadSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { title, body, nickname, articleId, initiativeId } = parsed.data;
+    // With an account: no captcha, and the account's name.
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { title, body, articleId, initiativeId } = parsed.data;
+    const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
     const id = nextThreadId++;
     const now = new Date().toISOString();
@@ -340,7 +351,10 @@ export const forumHandlers = [
     if (thread.locked) return fail(409, "thread_locked");
     const parsed = newPostSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { body, nickname, replyTo } = parsed.data;
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { body, replyTo } = parsed.data;
+    const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
     if (replyTo && !posts.some((post) => post.id === replyTo && post.threadId === thread.id)) return fail(400, "invalid_reply");
     const id = nextPostId++;
@@ -355,6 +369,7 @@ export const forumHandlers = [
       replyTo: replyTo ?? null,
       createdAt: now,
       hidden: false,
+      pick: thread.board === "votacoes" && reader && thread.link?.initiative ? pickOf(reader.id, thread.link.initiative.id) : null,
     });
     thread.bumpedAt = now;
     return HttpResponse.json({ id, posterId }, { status: 201 });
@@ -406,6 +421,76 @@ export const forumHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 ];
+
+/** For the saved page: a visible thread or post, or null. */
+/** A reader's pick on the vote a megathread is about (engagementFixtures hands it over). */
+let pickOf: (readerId: number, initiativeId: number) => "pass" | "fail" | null = () => null;
+export const registerPickLookup = (lookup: typeof pickOf) => {
+  pickOf = lookup;
+};
+
+/** The site's thread for a vote on the plenary agenda, with two fictional replies from each side. */
+export function addVoteThread(id: number, initiative: { id: number; title: string }) {
+  if (threads.some((thread) => thread.id === id)) return;
+  threads.push({
+    id,
+    board: "votacoes",
+    title: `Passa ou chumba? ${initiative.title}`,
+    body: "A conversa desta votação. Diz porque achas que passa, ou que chumba.",
+    nickname: "Politicando",
+    posterId: "redacao",
+    createdAt: hoursAgo(30),
+    bumpedAt: hoursAgo(2),
+    pinned: true,
+    locked: false,
+    link: { article: null, initiative },
+  });
+  posts.push(
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Os números estão lá: passa.",
+      nickname: null,
+      posterId: "aB3-x9Qe",
+      replyTo: null,
+      createdAt: hoursAgo(5),
+      hidden: false,
+      pick: "pass",
+    },
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Sem o voto do maior partido, chumba.",
+      nickname: null,
+      posterId: "Zt7-q1Lm",
+      replyTo: null,
+      createdAt: hoursAgo(3),
+      hidden: false,
+      pick: "fail",
+    },
+    {
+      id: nextPostId++,
+      threadId: id,
+      body: "Atualização: o PSD anunciou abstenção.",
+      nickname: "Politicando",
+      posterId: "redacao",
+      replyTo: null,
+      createdAt: hoursAgo(2),
+      hidden: false,
+      pick: null,
+    },
+  );
+}
+
+export function forumItem(kind: "thread" | "post", id: number) {
+  if (kind === "thread") {
+    const thread = threads.find((item) => item.id === id && !item.hidden);
+    return thread ? { ...thread, replyCount: posts.filter((post) => post.threadId === id && !post.hidden).length } : null;
+  }
+  const post = posts.find((item) => item.id === id && !item.hidden);
+  const thread = post && threads.find((item) => item.id === post.threadId);
+  return post && thread ? { ...post, threadTitle: thread.title, board: thread.board } : null;
+}
 
 /** For the reports queue: what a reported thread or post says. */
 export function forumTarget(kind: "thread" | "post", id: number) {

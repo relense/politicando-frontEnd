@@ -17,7 +17,7 @@ import { partyColor } from "@/lib/parliament";
 import { FEATURES } from "@/lib/features";
 import type { Government, GovernmentMember, GovernmentMemberKind } from "@/lib/types";
 import { governmentMemberSummary } from "@/lib/personSummary";
-import { breadcrumbs, jsonLd, personLd } from "@/lib/seo";
+import { breadcrumbs, jsonLd, personLd, pageTitle } from "@/lib/seo";
 import { WhoIs } from "@/components/WhoIs";
 
 type Props = { params: Promise<{ id: string }> };
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const loaded = await loadAll((await params).id);
   if (!loaded) return { title: "Membro do Governo não encontrado" };
   return {
-    title: loaded.summary.title,
+    title: pageTitle(loaded.summary.title),
     description: loaded.summary.description,
     alternates: { canonical: `/governo/${loaded.member.id}` },
   };

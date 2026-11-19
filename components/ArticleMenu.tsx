@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { readerPrefs, toggleIn, updateReaderPrefs, useReaderPrefs, type ReaderPrefs } from "@/lib/readerPrefs";
 import { ReportButton } from "./forum/ReportButton";
+import { useAccountGate } from "@/lib/account";
 
 type MenuArticle = { id: number; title: string; source: string; sourceDomain: string; parties: { slug: string; acronym: string }[] };
 
@@ -16,14 +17,15 @@ function change(id: number, message: string, edit: (prefs: ReaderPrefs) => Reade
 }
 
 /**
- * The "…" on a news card: save, hide, why it's shown, and report. There are no
- * accounts, so the choices stay in this browser (see lib/readerPrefs.ts).
+ * The "…" on a news card: save (with an account), hide, why it's shown, and report. Hiding stays in this browser
+ * too (see lib/readerPrefs.ts); with an account the account keeps it all.
  */
 export function ArticleMenu({ article, why }: { article: MenuArticle; why: string }) {
   const prefs = useReaderPrefs();
   const [open, setOpen] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const gate = useAccountGate();
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -83,9 +85,12 @@ export function ArticleMenu({ article, why }: { article: MenuArticle; why: strin
             type="button"
             aria-pressed={saved}
             className={item}
-            onClick={() => {
-              updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, article.id) }));
+            onClick={(event) => {
+              // The note points at the "…", as the menu closes.
+              const blocked = gate("save", button.current ?? event.currentTarget);
               close();
+              if (blocked) return;
+              updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, article.id) }));
             }}
           >
             <Icon d="M6 3h8a1 1 0 0 1 1 1v13l-5-3.5L5 17V4a1 1 0 0 1 1-1Z" filled={saved} />
@@ -112,7 +117,7 @@ export function ArticleMenu({ article, why }: { article: MenuArticle; why: strin
             className={item}
             onClick={() => {
               close();
-              setReporting(true);
+              if (!gate("report", button.current)) setReporting(true);
             }}
           >
             <Icon d="M5 17V3m0 1h9l-2 3.5 2 3.5H5" />

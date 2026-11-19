@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { voteArticle, votePost } from "@/lib/api/client";
+import { ApiError, voteArticle } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format";
+import { useAccountGate } from "@/lib/account";
+import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
 
 // This reader's votes on news, kept on the device as {"12":1,"40":-1}. Storage may be blocked: then the arrows simply
 // don't stay lit after a reload, and the API still keeps one vote per reader.
@@ -43,8 +45,19 @@ function remember(id: number | string, value: number) {
   window.dispatchEvent(new Event(EVENT));
 }
 
-/** A news article by id, or a blog post as "post:slug" (kept beside the articles' ids). */
-type Props = { id: number | string; title: string; up: number; down: number; className?: string };
+/** The same store for blog posts' "Importa", kept as "post:slug": 1 (components/PostImporta.tsx). */
+export const voteStore = { read, subscribe, parse, remember };
+
+type VoteAnswer = { up: number; down: number; mine: number };
+
+/** An answer from outside the arrows (the vote finished after logging in). */
+export function applyVoteAnswer(id: number, answer: VoteAnswer) {
+  remember(id, answer.mine);
+  publishAnswer("vote", id, answer);
+}
+
+/** A news article, by id. (Blog posts have "Importa" instead: components/PostImporta.tsx.) */
+type Props = { id: number; title: string; up: number; down: number; className?: string };
 
 /** Up and down arrows around the score (up minus down), as on Reddit. Pressing a lit arrow again takes the vote back. */
 export function ArticleVote({ id, title, up, down, className = "" }: Props) {
@@ -55,6 +68,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
   const [pending, setPending] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   const mine = pending ?? (totals.mine || remembered);
+  useAnswer<VoteAnswer>("vote", id, setTotals);
 
   // While a vote travels, the score moves at once.
   const shown = (() => {
@@ -64,16 +78,19 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
   })();
   const score = shown.up - shown.down;
 
-  async function vote(value: 1 | -1) {
+  const gate = useAccountGate();
+  async function vote(value: 1 | -1, button: HTMLElement) {
     const next = mine === value ? 0 : value;
+    if (next !== 0 && gate("vote", button, { kind: "vote", id, value })) return;
     setFailed(false);
     setPending(next);
     try {
-      const answer = typeof id === "number" ? await voteArticle(id, next) : await votePost(id.replace(/^post:/, ""), next);
+      const answer = await voteArticle(id, next);
       setTotals(answer);
       remember(id, answer.mine);
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
     } finally {
       setPending(null);
     }
@@ -94,7 +111,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
         type="button"
         aria-pressed={mine === 1}
         aria-label={`Votar a favor de «${title}»`}
-        onClick={() => void vote(1)}
+        onClick={(event) => void vote(1, event.currentTarget)}
         className={arrow(1)}
       >
         <Arrow up filled={mine === 1} />
@@ -110,7 +127,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
         type="button"
         aria-pressed={mine === -1}
         aria-label={`Votar contra «${title}»`}
-        onClick={() => void vote(-1)}
+        onClick={(event) => void vote(-1, event.currentTarget)}
         className={arrow(-1)}
       >
         <Arrow filled={mine === -1} />

@@ -47,6 +47,8 @@ const postSchema = z.object({
   replyTo: z.number().nullable(),
   createdAt: z.string(),
   hidden: z.boolean(),
+  // Only on the "Votações" board: what the poster predicted for that vote.
+  pick: z.enum(["pass", "fail"]).nullable().optional().catch(null),
 });
 
 const threadDetailSchema = z.object({
@@ -88,12 +90,15 @@ export type ForumPost = {
   replyTo: number | null;
   createdAt: string;
   hidden: boolean;
+  pick?: "pass" | "fail" | null;
 };
 export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean };
 export type ThreadSort = "active" | "new" | "top";
 
 /** The board where readers propose ideas for the site and vote on them. */
 export const IDEAS_BOARD = "ideias";
+/** One thread per vote on the plenary agenda, opened by the site ("Passa ou chumba?"); readers reply, never open one. */
+export const VOTES_BOARD = "votacoes";
 export const IDEA_STATUSES = ["reviewing", "planned", "in_progress", "done", "declined"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: string }> = {
@@ -190,9 +195,10 @@ export type NewThread = {
   nickname: string;
   articleId: number | null;
   initiativeId: number | null;
-  captchaToken: string;
+  /** Null with an account. */
+  captchaToken: string | null;
 };
-export type NewPost = { body: string; nickname: string; replyTo: number | null; captchaToken: string };
+export type NewPost = { body: string; nickname: string; replyTo: number | null; captchaToken: string | null };
 
 const post = (body: unknown) => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
@@ -207,7 +213,7 @@ export async function createThread(board: string, input: NewThread): Promise<{ i
       ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(input.articleId ? { articleId: input.articleId } : {}),
       ...(input.initiativeId ? { initiativeId: input.initiativeId } : {}),
-      recaptchaToken: input.captchaToken,
+      ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   );
 }
@@ -220,7 +226,7 @@ export async function createPost(threadId: number, input: NewPost): Promise<{ id
       body: input.body,
       ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
-      recaptchaToken: input.captchaToken,
+      ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   );
 }
@@ -239,6 +245,7 @@ export async function createReport(input: { kind: ReportKind; id: number; reason
 }
 
 const FORUM_ERRORS: Record<string, string> = {
+  login_required: "Entra na tua conta para publicar. O teu texto foi mantido.",
   recaptcha_failed: "A verificação anti-robô falhou. O teu texto foi mantido; confirma novamente e publica.",
   recaptcha_unavailable: "O fórum está temporariamente indisponível. O teu texto foi mantido; tenta daqui a pouco.",
   rate_limited: "Estás a publicar depressa demais. O teu texto foi mantido; espera um minuto e tenta novamente.",

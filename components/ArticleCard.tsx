@@ -70,15 +70,16 @@ export function ArticleCard({
 
       {text && <p className={cardExcerpt}>{text}</p>}
 
-      {article.imageUrl && (
-        <ArticleImage
-          src={article.imageUrl}
-          href={articlePath}
-          caption={`Imagem · ${article.source}`}
-          className={cardImage}
-          imageClassName="size-full object-cover"
-        />
-      )}
+      <ArticleImage
+        src={article.imageUrl}
+        alt={article.title}
+        href={articlePath}
+        caption={`Imagem · ${article.source}`}
+        source={article.source}
+        sourceDomain={article.sourceDomain}
+        className={cardImage}
+        imageClassName="size-full object-cover"
+      />
 
       {article.parties.length > 0 && <PartyChips parties={article.parties} className="relative z-10 mt-2.5" />}
 

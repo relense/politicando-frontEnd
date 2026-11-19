@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
 import { CountRead } from "@/components/CountRead";
-import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions } from "@/components/StoryParts";
+import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions, FollowStoryBox } from "@/components/StoryParts";
 import { MarkStoryRead } from "@/components/TodayInFive";
 import { getStory } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -13,7 +13,7 @@ import type { MoreAboutGroup } from "@/components/MoreAbout";
 import { ApiError, getArticle, getComments, getFeedPage, getInitiative, getInitiatives } from "@/lib/api/client";
 import { excerpt } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
-import { OG_BASE } from "@/lib/seo";
+import { clip, OG_BASE, pageTitle } from "@/lib/seo";
 import { articleComments, type Article } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }> };
@@ -83,10 +83,13 @@ async function loadContext(article: Article): Promise<ArticleContext | null> {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await loadArticle((await params).id);
-  const description = excerpt(article.excerpt, 160) || undefined;
+  // Never undefined: that would drop the site's description too, leaving the page with none.
+  const description =
+    excerpt(article.excerpt, 160) ||
+    clip(`Notícia do ${article.source}: ${article.title}. Os partidos e as pessoas referidas, e o debate no Politicando.`);
   const path = `/article/${article.id}`;
   return {
-    title: article.title,
+    title: pageTitle(article.title),
     description,
     alternates: { canonical: path },
     // Only another outlet's headline and excerpt: kept out of search results (links are still followed), so search
@@ -140,6 +143,13 @@ export default async function ArticlePage({ params }: Props) {
             versions={story && <StoryVersions story={story} current={article.id} />}
           />
           {story && <HowEachToldList story={story} current={article.id} />}
+          {/* On narrower screens, before the comments: in a long thread they'd be lost below it. */}
+          {story && (
+            <div className="mt-8 flex flex-col gap-4 xl:hidden">
+              <ImportaBox story={story} />
+              <FollowStoryBox story={story} headingId="seguir-historia-topo" />
+            </div>
+          )}
           <CommentSection
             target={target}
             initialComments={comments}
@@ -167,7 +177,10 @@ export default async function ArticlePage({ params }: Props) {
           top={
             story && (
               <>
-                <ImportaBox story={story} />
+                <div className="hidden flex-col gap-4 xl:flex">
+                  <ImportaBox story={story} />
+                  <FollowStoryBox story={story} />
+                </div>
                 <StoryContextBox story={story} />
               </>
             )

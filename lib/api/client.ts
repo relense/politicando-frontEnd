@@ -74,6 +74,18 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v
 export const API_BASE_URL = BASE_URL;
 const REVALIDATE_SECONDS = 60;
 
+/**
+ * In the browser, the reader's account (/auth, /me) and every write go through the site's own server, so the session
+ * cookie (first-party on this site, scoped to /api/v2) is sent: app/api/v2/[...path]. Public reads go straight to the
+ * API and stay the same for everyone.
+ */
+export const SITE_API_PATH = "/api/v2";
+export const LOGIN_REQUIRED_EVENT = "politicando:login-required";
+// /predictions too: the open list carries the reader's own picks (backend docs/engagement-api.md).
+const ACCOUNT_PATH = /^\/(auth|me|predictions)(\/|\?|$)/;
+const baseFor = (path: string, method = "GET") =>
+  typeof window !== "undefined" && (method.toUpperCase() !== "GET" || ACCOUNT_PATH.test(path)) ? SITE_API_PATH : BASE_URL;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -106,7 +118,7 @@ export async function request<T>(path: string, schema: z.ZodType<T>, init?: Requ
     // "#server-headers" is the real module only in React's server layer (package.json "imports"), an empty one elsewhere.
     const extra = await serverHeaders(isCachedRequest(init));
     const withHeaders = Object.keys(extra).length > 0 ? { ...init, headers: { ...headersOf(init?.headers), ...extra } } : init;
-    response = await fetch(`${BASE_URL}${path}`, withHeaders);
+    response = await fetch(`${baseFor(path, init?.method)}${path}`, withHeaders);
   } catch (cause) {
     throw new ApiError(`Network error on ${path}: ${String(cause)}`);
   }
@@ -114,6 +126,9 @@ export async function request<T>(path: string, schema: z.ZodType<T>, init?: Requ
 
   if (!response.ok) {
     const failure = errorSchema.safeParse(json);
+    // Taking part needs an account (when the API asks for it): the page offers to log in (components/account/AccountRuntime).
+    if (typeof window !== "undefined" && response.status === 401 && failure.success && failure.data.error.code === "login_required")
+      window.dispatchEvent(new Event(LOGIN_REQUIRED_EVENT));
     throw new ApiError(
       failure.success ? failure.data.error.message : `${response.status} on ${path}`,
       response.status,
@@ -219,9 +234,13 @@ export async function voteArticle(id: number, value: 1 | -1 | 0): Promise<{ up: 
   return voteOn(`/articles/${id}/vote`, value);
 }
 
-/** The same for a blog post (asked of the backend: `POST /editorial/:slug/vote`, same body and answer). */
-export async function votePost(slug: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
-  return voteOn(`/editorial/${encodeURIComponent(slug)}/vote`, value);
+/** "Importa" on a blog post (editorial-api.md "Importa"): 1 marks it, 0 takes it back. Answers the new total. */
+export async function markPost(slug: string, value: 1 | 0): Promise<{ importa: number; mine: number }> {
+  return request(`/editorial/${encodeURIComponent(slug)}/vote`, z.object({ importa: z.number(), mine: z.number() }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
 }
 
 async function voteOn(path: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
@@ -275,7 +294,7 @@ export async function createComment(input: NewComment): Promise<Comment> {
       body: input.text,
       ...(input.parentId !== null ? { parentId: input.parentId } : {}),
       ...(input.stance ? { stance: input.stance } : {}),
-      recaptchaToken: input.captchaToken,
+      ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   });
   return mapComment(created);

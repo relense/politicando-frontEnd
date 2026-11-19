@@ -2,11 +2,22 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getInitiatives, type InitiativeQuery } from "@/lib/api/client";
+import type { Prediction } from "@/lib/api/engagement";
 import type { InitiativePage } from "@/lib/types";
 import { InitiativeItem } from "./InitiativeItem";
 
 /** The filtered list, starting from the page the server rendered, with "Mostrar mais" for the next ones. */
-export function InitiativeList({ query, initialPage }: { query: Omit<InitiativeQuery, "cursor">; initialPage: InitiativePage }) {
+export function InitiativeList({
+  query,
+  initialPage,
+  polls = [],
+}: {
+  query: Omit<InitiativeQuery, "cursor">;
+  initialPage: InitiativePage;
+  /** The open "Passa ou chumba?" votes, shown on their initiatives. */
+  polls?: Prediction[];
+}) {
+  const pollOf = new Map(polls.filter((poll) => poll.state === "open").map((poll) => [poll.id, poll]));
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } = useInfiniteQuery({
     queryKey: ["initiatives", "list", query],
     queryFn: ({ pageParam }) => getInitiatives({ ...query, cursor: pageParam }),
@@ -24,7 +35,7 @@ export function InitiativeList({ query, initialPage }: { query: Omit<InitiativeQ
       <ul aria-label="Iniciativas" className="flex flex-col">
         {items.map((initiative) => (
           <li key={initiative.id}>
-            <InitiativeItem initiative={initiative} heading="h2" />
+            <InitiativeItem initiative={initiative} heading="h2" poll={pollOf.get(initiative.id) ?? null} />
           </li>
         ))}
       </ul>

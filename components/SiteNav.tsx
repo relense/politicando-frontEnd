@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useReader } from "@/lib/account";
 import { SocialLinks } from "./SocialLinks";
+import { ThemeChoice } from "./ThemeChoice";
 import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -39,13 +41,6 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         hint: "Artigos, opinião e podcasts",
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 10h4M8 13h4"),
         active: (path) => path.startsWith("/editorial"),
-      },
-      {
-        href: "/guardadas",
-        label: "Guardadas",
-        hint: "As notícias que guardaste",
-        icon: icon("M6 3h8a1 1 0 0 1 1 1v13l-5-3.5L5 17V4a1 1 0 0 1 1-1Z"),
-        active: (path) => path.startsWith("/guardadas"),
       },
       {
         href: "/agenda",
@@ -93,6 +88,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         hint: "Leis e propostas, simples",
         icon: icon("M5 3h7l3 3v11H5V3Zm7 0v3h3M8 9h4M8 12h4M8 15h2"),
         active: (path) => path.startsWith("/iniciativas"),
+      },
+      {
+        href: "/previsoes",
+        label: "Passa ou chumba?",
+        hint: "Prevê as votações",
+        icon: icon("M4 10h4v6H4zM10 6h4v10h-4zM16 12h4v4h-4zM3 19h18"),
+        active: (path) => path.startsWith("/previsoes"),
       },
     ],
   },
@@ -197,8 +199,10 @@ export function SectionLink({
 
 /** Desktop: the site's sections in a sticky column on the left. */
 export function SiteNav() {
+  const reader = useReader();
   return (
     <nav
+      data-site-nav
       aria-label="Secções"
       className="no-scrollbar sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto overflow-x-hidden pb-4 2xl:w-[var(--side-column)] lg:block"
     >
@@ -216,7 +220,21 @@ export function SiteNav() {
           </ul>
         </div>
       ))}
-      <SocialLinks className="mt-5 px-3" />
+      <div className="mt-2 border-t border-line px-3 pt-4">
+        <p aria-hidden="true" className="mb-2 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+          Segue-nos
+        </p>
+        <SocialLinks size="sm" />
+        {/* With an account, the theme is in the account menu. */}
+        {reader === null && (
+          <>
+            <p aria-hidden="true" className="mb-2 mt-5 font-mono text-xs font-bold uppercase tracking-widest text-muted">
+              Tema
+            </p>
+            <ThemeChoice />
+          </>
+        )}
+      </div>
     </nav>
   );
 }

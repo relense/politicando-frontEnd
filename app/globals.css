@@ -377,3 +377,9 @@ article[id^="comentario-"]:target {
     cursor: pointer;
   }
 }
+
+/* Pages that stand on their own (logging in, creating an account): no sections column and no footer around them. */
+body:has([data-bare]) [data-site-nav],
+body:has([data-bare]) [data-site-footer] {
+  display: none;
+}

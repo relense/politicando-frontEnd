@@ -147,7 +147,18 @@ export const initiativeSchema = z.object({
   }),
   lastVote: z.object({ date: z.string().nullish(), phase: z.string().nullish(), result: z.string(), unanimous: z.boolean() }).nullish(),
   /** How much news we found about it. Approximate: matched by keywords from the title. */
-  coverage: z.object({ articles: z.number(), sources: z.number(), lastAt: z.string().nullish() }).nullish(),
+  coverage: z
+    .object({
+      articles: z.number(),
+      sources: z.number(),
+      lastAt: z.string().nullish(),
+      /** Proposed: the latest few (up to 3), so the list shows headlines without opening each initiative. */
+      latest: z
+        .array(z.object({ id: z.number(), title: z.string(), source: z.string(), publishedAt: z.string() }))
+        .nullish()
+        .catch(null),
+    })
+    .nullish(),
   topics: list(z.object({ slug: z.string(), label: z.string() })),
   plain: z
     .object({
@@ -478,8 +489,9 @@ export const editorialPostSchema = z.object({
   recentViews: z.number().nullish(),
   /** Visible comments and readers' votes, once the API sends them on posts (asked of the backend). */
   commentCount: z.number().nullish(),
+  /** Readers who marked the post "Importa"; `upvotes` carries the same number while the API sends both. */
+  importa: z.number().nullish(),
   upvotes: z.number().nullish(),
-  downvotes: z.number().nullish(),
 });
 
 export const editorialPageSchema = z.object({ items: z.array(editorialPostSchema), total: z.number() });

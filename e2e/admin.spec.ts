@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { noSeriousA11yIssues, signUp } from "./helpers";
 
 // The mock team (mocks/adminState.ts): fictional people, test-only passwords.
 const ADMIN = { email: "admin@exemplo.pt", password: "palavra-passe-de-teste" };
 const MODERATOR = { email: "moderador@exemplo.pt", password: "palavra-passe-de-teste" };
+const AUTHOR = { email: "autora@exemplo.pt", password: "palavra-passe-de-teste" };
 
 // The mock API keeps its state between the desktop and the mobile runs: every test undoes what it changes.
 
@@ -38,6 +39,7 @@ test("the moderation area asks to sign in, refuses a wrong password, and is kept
 
 test("a reported thread can be hidden from the queue and shown again from the forum section", async ({ page }) => {
   // A reader reports it.
+  await signUp(page);
   await page.goto("/forum/ps/10");
   const op = page.locator("#op");
   await op.getByRole("button", { name: "Denunciar" }).click();
@@ -170,4 +172,84 @@ test("account: the password form checks the new one and the current one", async 
   await page.getByRole("button", { name: "Mudar palavra-passe" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Email ou palavra-passe errados." })).toBeVisible();
   await noSeriousA11yIssues(page);
+});
+
+test("blog: an author writes a draft, previews it, publishes it, then takes it back and deletes it", async ({ page }, testInfo) => {
+  const title = `Um guia de teste para ${testInfo.project.name}`;
+  await signIn(page, AUTHOR, "/admin");
+  // Authors don't moderate: the reports queue sends them to their posts.
+  await page.getByRole("link", { name: "Ir para Artigos" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Artigos do blog" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Secções da moderação" }).getByRole("link")).toHaveText(["Artigos", "A minha conta"]);
+  await noSeriousA11yIssues(page);
+
+  await page.getByRole("link", { name: "Novo artigo" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Novo artigo" })).toBeVisible();
+  // The editor checks the API's rules first, next to each field.
+  await page.getByLabel("Título", { exact: true }).fill("Um");
+  await page.getByLabel("Imagem de capa").fill("http://exemplo.pt/capa.jpg");
+  await page.getByRole("button", { name: "Guardar rascunho" }).click();
+  await expect(page.getByText("O título precisa de pelo menos 3 letras.")).toBeVisible();
+  await expect(page.getByText("Tem de ser um link https://.")).toBeVisible();
+  await expect(page.getByLabel("Título", { exact: true })).toHaveAttribute("aria-invalid", "true");
+
+  await page.getByLabel("Título", { exact: true }).fill(title);
+  await page.getByLabel("Imagem de capa").fill("");
+  await page.getByLabel("Etiquetas").fill("Parlamento, guias");
+  await page.getByRole("textbox", { name: "Texto" }).fill("## O essencial\n\nUm texto com **negrito** e <b>html</b> que fica como texto.");
+  await page.getByRole("button", { name: "Pré-visualizar" }).click();
+  const preview = page.getByRole("region", { name: "Pré-visualização" });
+  await expect(preview.getByRole("heading", { name: "O essencial" })).toBeVisible();
+  await expect(preview.locator("strong")).toHaveText("negrito");
+  await expect(preview).toContainText("<b>html</b>");
+  await expect(preview).toContainText("Inês Carvalho");
+  await noSeriousA11yIssues(page);
+
+  await page.getByRole("button", { name: "Guardar rascunho" }).click();
+  await expect(page).toHaveURL(/\/admin\/artigos\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Editar artigo" })).toBeVisible();
+  // The API's tidy version: tags in lower case.
+  await expect(page.getByLabel("Etiquetas")).toHaveValue("parlamento, guias");
+  const slug = await page.getByLabel("Endereço").inputValue();
+  expect(slug).toMatch(/^um-guia-de-teste-para-/);
+
+  await page.getByRole("button", { name: "Publicar" }).click();
+  await expect(page.getByText("Publicado. Pode demorar até um minuto a aparecer no site.")).toBeVisible();
+  // Authors don't choose the front page.
+  await expect(page.getByRole("button", { name: "Pôr em destaque" })).toHaveCount(0);
+  await page.goto(`/editorial/${slug}`);
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+
+  await page.goto("/admin/artigos");
+  const row = page.getByRole("list", { name: "Artigos" }).getByRole("listitem").filter({ hasText: title });
+  await expect(row).toContainText("Publicado");
+  await row.getByRole("link", { name: `Editar ${title}` }).click();
+  await page.getByRole("button", { name: "Despublicar" }).click();
+  await expect(page.getByText("Voltou a rascunho: já não aparece no site.")).toBeVisible();
+  await page.getByRole("button", { name: "Apagar rascunho" }).click();
+  await page.getByRole("button", { name: "Apagar de vez" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Artigos do blog" })).toBeVisible();
+  await expect(page.getByText(title)).toHaveCount(0);
+});
+
+test("blog: unsaved writing survives a reload, and a moderator can feature any post", async ({ page }) => {
+  await signIn(page, MODERATOR, "/admin/artigos");
+  const row = page.getByRole("list", { name: "Artigos" }).getByRole("listitem").filter({ hasText: "Como se faz uma lei" });
+  await row.getByRole("link", { name: "Editar Como se faz uma lei" }).click();
+  await expect(page.getByLabel("Título", { exact: true })).toHaveValue("Como se faz uma lei");
+
+  await page.getByLabel("Subtítulo").fill("Uma frase ainda por guardar.");
+  await expect(page.getByText("Alterações por guardar.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Subtítulo")).toHaveValue("Da proposta à promulgação, passo a passo.");
+  await page.getByRole("button", { name: "Recuperar" }).click();
+  await expect(page.getByLabel("Subtítulo")).toHaveValue("Uma frase ainda por guardar.");
+  await page.getByLabel("Subtítulo").fill("Da proposta à promulgação, passo a passo.");
+  await expect(page.getByText("Alterações por guardar.")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Pôr em destaque" }).click();
+  await expect(page.getByText("Em destaque na página inicial.")).toBeVisible();
+  await page.getByRole("button", { name: "Tirar do destaque" }).click();
+  await expect(page.getByText("Saiu dos destaques.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pôr em destaque" })).toBeVisible();
 });

@@ -7,9 +7,12 @@ const env = {
   // Pinned (a .env.local doesn't decide it), and the same for the server and the tests: stories off unless asked,
   // e.g. NEXT_PUBLIC_FEATURE_STORIES=1 npx playwright test.
   NEXT_PUBLIC_FEATURE_STORIES: process.env.NEXT_PUBLIC_FEATURE_STORIES ?? "0",
+  // What needs an account: none unless asked (e2e/login-required.spec.ts).
 };
 
 process.env.NEXT_PUBLIC_FEATURE_STORIES = env.NEXT_PUBLIC_FEATURE_STORIES;
+// The tests talk to the mock API too (e2e/accounts.spec.ts switches its login gate).
+process.env.NEXT_PUBLIC_API_URL = env.NEXT_PUBLIC_API_URL;
 
 export default defineConfig({
   testDir: "./e2e",

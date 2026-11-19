@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api/client";
 import { markImporta } from "@/lib/api/stories";
 import { formatNumber } from "@/lib/format";
+import { useAccountGate } from "@/lib/account";
 
 // The stories this reader marked "Importa", kept on the device as {"29":1}, to draw the button filled. Storage may be
 // blocked: then it isn't filled after a reload, and the API still keeps one mark per reader.
@@ -61,6 +63,14 @@ const useLive = (id: number) =>
     () => live.get(id) ?? null,
     () => null,
   );
+
+type ImportaAnswer = { importa: number; importance: number; mine: number };
+
+/** An answer from outside the buttons (the mark finished after logging in): every button of the story follows. */
+export function applyImportaAnswer(id: number, answer: ImportaAnswer) {
+  remember(id, answer.mine === 1);
+  setLive(id, { importa: answer.importa, importance: answer.importance, mine: answer.mine === 1 });
+}
 
 /** What to show for a story: this visit's latest answer, or the page's numbers with the reader's own mark counted. */
 function useImporta(id: number, importa: number, importance: number) {
@@ -135,16 +145,17 @@ export function ImportaButton({
   // While the mark travels, the count moves at once.
   const count = pending === null || pending === state.mine ? state.importa : Math.max(0, state.importa + (pending ? 1 : -1));
 
-  async function toggle() {
+  const gate = useAccountGate();
+  async function toggle(button: HTMLElement) {
     const next = !mine;
+    if (next && gate("importa", button, { kind: "importa", id })) return;
     setPending(next);
     setFailed(false);
     try {
-      const answer = await markImporta(id, next ? 1 : 0);
-      remember(id, answer.mine === 1);
-      setLive(id, { importa: answer.importa, importance: answer.importance, mine: answer.mine === 1 });
-    } catch {
-      setFailed(true);
+      applyImportaAnswer(id, await markImporta(id, next ? 1 : 0));
+    } catch (error) {
+      // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
     } finally {
       setPending(null);
     }
@@ -156,7 +167,7 @@ export function ImportaButton({
         <button
           type="button"
           aria-pressed={mine}
-          onClick={() => void toggle()}
+          onClick={(event) => void toggle(event.currentTarget)}
           className={`-mx-1.5 inline-flex h-7 items-center gap-1 rounded-full px-1.5 font-mono text-xs ${
             mine ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "hover:bg-[var(--button)]"
           }`}
@@ -169,7 +180,7 @@ export function ImportaButton({
         <button
           type="button"
           aria-pressed={mine}
-          onClick={() => void toggle()}
+          onClick={(event) => void toggle(event.currentTarget)}
           className={`inline-flex h-[38px] items-center gap-[7px] rounded-full pl-2.5 pr-3.5 font-mono text-[12.5px] font-medium ${
             mine ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--button)] hover:bg-[var(--button-hover)]"
           }`}

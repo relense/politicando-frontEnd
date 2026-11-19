@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { likeComment } from "@/lib/api/client";
+import { ApiError, likeComment } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format";
+import { useAccountGate } from "@/lib/account";
+import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
 
 // The comments this reader liked, kept on the device. Storage may be blocked: then the button still works this visit.
 const KEY = "comment-likes";
@@ -39,6 +41,14 @@ function remember(id: number, on: boolean) {
   }
 }
 
+type LikeAnswer = { likes: number; mine: number };
+
+/** An answer from outside the button (the like finished after logging in). */
+export function applyLikeAnswer(id: number, answer: LikeAnswer) {
+  remember(id, answer.mine === 1);
+  publishAnswer("like", id, answer);
+}
+
 /** "▲ 9": one like per reader per comment; pressing again takes it back. */
 export function CommentLike({ id, likes, name }: { id: number; likes: number; name: string }) {
   const remembered = parse(useSyncExternalStore(subscribe, read, () => "[]")).includes(id);
@@ -47,18 +57,22 @@ export function CommentLike({ id, likes, name }: { id: number; likes: number; na
   const [failed, setFailed] = useState(false);
   const was = state.mine ?? remembered;
   const mine = pending ?? was;
+  useAnswer<LikeAnswer>("like", id, (answer) => setState({ likes: answer.likes, mine: answer.mine === 1 }));
   const count = state.likes + (pending === null || pending === was ? 0 : pending ? 1 : -1);
 
-  async function toggle() {
+  const gate = useAccountGate();
+  async function toggle(button: HTMLElement) {
     const next = !mine;
+    if (next && gate("like", button, { kind: "like", id })) return;
     setPending(next);
     setFailed(false);
     try {
       const answer = await likeComment(id, next ? 1 : 0);
       remember(id, answer.mine === 1);
       setState({ likes: answer.likes, mine: answer.mine === 1 });
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
     } finally {
       setPending(null);
     }
@@ -69,7 +83,7 @@ export function CommentLike({ id, likes, name }: { id: number; likes: number; na
       <button
         type="button"
         aria-pressed={mine}
-        onClick={() => void toggle()}
+        onClick={(event) => void toggle(event.currentTarget)}
         className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-bold hover:bg-surface ${mine ? "text-[var(--accent)]" : "text-muted hover:text-ink"}`}
       >
         <span aria-hidden="true">▲</span>

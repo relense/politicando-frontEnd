@@ -31,6 +31,7 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
   const remembered = useSyncExternalStore(subscribeEmbeds, embedsAllowed, () => false);
   const [pressed, setPressed] = useState(false);
   const embedUrl = episode?.embedUrl ?? podcast.embedUrl;
+  const minutes = episode?.durationSeconds ? Math.max(1, Math.round(episode.durationSeconds / 60)) : null;
 
   const player = pressed ? (
     <SpotifyPlayer embedUrl={embedUrl} autoplay />
@@ -48,6 +49,15 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
         <Link href="/cookies" className="underline hover:text-ink">
           Saber mais
         </Link>
+        {!wide && (
+          <>
+            {" "}
+            ·{" "}
+            <a href={episode?.url ?? podcast.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink underline">
+              Abrir no Spotify ↗<span className="sr-only"> (abre a app ou um novo separador)</span>
+            </a>
+          </>
+        )}
       </p>
     </>
   );
@@ -74,26 +84,56 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
         <div>
           <div className="flex items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-widest text-[color:var(--stage-debate)]">
-              <MicIcon /> Podcast
+              <MicIcon /> Podcast diário
             </p>
-            {!wide && <span className="font-mono text-[11px] text-muted">Episódio mais recente</span>}
+            <Freshness publishedAt={episode?.publishedAt ?? null} />
           </div>
           <h2 id={headingId} className={`mt-2 font-bold leading-snug ${wide ? "text-2xl sm:text-3xl" : "text-xl"}`}>
-            Política, conversada
+            O dia de ontem na política{minutes ? `, em ${minutes} minutos` : ""}
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            O que se passa no Parlamento, no Governo e nos partidos, explicado em voz alta.
+            {wide
+              ? "Todas as manhãs, um resumo do dia anterior: o que se votou no Parlamento, o que decidiu o Governo e o que disseram os partidos. Para ouvir a caminho do trabalho."
+              : "Todas as manhãs, o essencial de ontem."}
           </p>
           {wide && <div className="hidden md:block md:max-w-xs">{openLink}</div>}
         </div>
         <div className={wide ? "" : "mt-3"}>
           {player}
-          <div className={wide ? "md:hidden" : ""}>{openLink}</div>
+          {/* Beside the cookie note when narrow; a button only once the real player is there, or on the blog. */}
+          {(wide || pressed || remembered) && <div className={wide ? "md:hidden" : ""}>{openLink}</div>}
         </div>
       </div>
     </section>
   );
 }
+
+const lisbonDay = (date: Date) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+
+/** "Novo · hoje" on the morning it comes out; "De ontem" the day after; otherwise just the date. */
+function Freshness({ publishedAt }: { publishedAt: string | null }) {
+  // Says the day in the browser only: a cached page from yesterday mustn't say "hoje".
+  const now = useSyncExternalStore(
+    noSubscribe,
+    () => Math.floor(Date.now() / 60_000),
+    () => null,
+  );
+  const published = publishedAt ? new Date(publishedAt) : null;
+  if (!published || Number.isNaN(published.getTime()) || now === null)
+    return <span className="font-mono text-[11px] text-muted">Episódio mais recente</span>;
+  const today = lisbonDay(new Date(now * 60_000));
+  const yesterday = lisbonDay(new Date(now * 60_000 - 86_400_000));
+  const day = lisbonDay(published);
+  if (day === today)
+    return (
+      <span className="rounded-full bg-[#1db954] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black">
+        Novo · hoje
+      </span>
+    );
+  return <span className="font-mono text-[11px] text-muted">{day === yesterday ? "De ontem" : `De ${shortDate(publishedAt!)}`}</span>;
+}
+const noSubscribe = () => () => {};
 
 /** Looks like Spotify's compact player; loads nothing from Spotify. */
 function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPlay: () => void }) {
@@ -108,7 +148,7 @@ function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPla
     <div className="flex items-center gap-3 rounded-xl bg-[#121212] p-2.5 text-white">
       <span className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-[#2a2a2a]">
         {isAllowedCover(episode?.imageUrl ?? null) ? (
-          <Image src={episode!.imageUrl!} alt="" fill sizes="64px" className="object-cover" />
+          <Image src={episode!.imageUrl!} alt={`Capa: ${episode!.title}`} aria-hidden="true" fill sizes="64px" className="object-cover" />
         ) : (
           <span aria-hidden="true" className="flex size-full items-center justify-center font-mono text-2xl font-bold text-[#f2c94c]">
             P

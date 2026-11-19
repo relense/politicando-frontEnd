@@ -3,13 +3,31 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type Ref } from "react";
-import { createPost, forumErrorMessage, getThread, posterName, THREAD_LIMITS, type ForumPost, type ThreadDetail } from "@/lib/api/forums";
+import {
+  createPost,
+  forumErrorMessage,
+  getThread,
+  posterName,
+  THREAD_LIMITS,
+  VOTES_BOARD,
+  type ForumPost,
+  type ThreadDetail,
+} from "@/lib/api/forums";
+import type { Pick } from "@/lib/api/engagement";
+import { NameAvatar } from "../Avatar";
+import { useInitiativePrediction, VotePickBar } from "../Predictions";
+import { VoteThreadAside } from "./VoteThreadAside";
 import { parsePosterIds, posterIdsSnapshot, rememberPosterId, subscribePosterIds } from "@/lib/forumSession";
 import { quotesOf } from "@/lib/forumText";
+import { useAccountGate, useLockedOut, useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 import { RelativeTime } from "../RelativeTime";
 import { ForumText } from "./ForumText";
 import { ReportButton } from "./ReportButton";
+import { SignInToTakePart } from "@/components/account/SignInToTakePart";
+import { FollowButton } from "@/components/account/FollowButton";
+import { SaveButton } from "@/components/account/SaveButton";
+import { markFollowed } from "@/lib/accountExtras";
 
 const POLL_MS = 20_000;
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -62,8 +80,78 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
   }, [posts]);
 
   const form = useRef<ReplyFormHandle>(null);
+  const gate = useAccountGate();
 
-  return (
+  // A vote's thread ("Passa ou chumba?"): the reader's pick under the opening post, each side filterable, answers nested.
+  const initiativeId = thread.board === VOTES_BOARD && thread.link?.kind === "initiative" ? thread.link.id : null;
+  const vote = initiativeId !== null;
+  const prediction = useInitiativePrediction(initiativeId);
+  const [side, setSide] = useState<"all" | Pick>("all");
+  const [newestFirst, setNewestFirst] = useState(false);
+
+  const groups = useMemo(() => {
+    const shown = posts.filter((post) => side === "all" || post.pick === side);
+    if (!vote || side !== "all") return shown.map((post) => ({ post, children: [] as ForumPost[] }));
+    // One level of nesting: each answer goes under the message it answers, or that message's own parent.
+    const byId = new Map(shown.map((post) => [post.id, post]));
+    const rootOf = (post: ForumPost) => {
+      let current = post;
+      for (let step = 0; step < 50 && current.replyTo !== null && byId.has(current.replyTo); step++) current = byId.get(current.replyTo)!;
+      return current.id;
+    };
+    const list: { post: ForumPost; children: ForumPost[] }[] = [];
+    const index = new Map<number, (typeof list)[number]>();
+    for (const post of shown) {
+      const root = rootOf(post);
+      if (root === post.id) {
+        const group = { post, children: [] };
+        index.set(post.id, group);
+        list.push(group);
+      } else index.get(root)?.children.push(post);
+    }
+    return list;
+  }, [posts, side, vote]);
+  const ordered = newestFirst ? [...groups].reverse() : groups;
+
+  const replyForm = (
+    <section aria-labelledby="reply-heading" className="mt-8">
+      <h2 id="reply-heading" className={vote ? "sr-only" : "mb-3 text-lg font-bold"}>
+        Responder
+      </h2>
+      {thread.locked ? (
+        <p className="rounded-2xl border border-dashed border-line p-4 text-muted">
+          Esta discussão foi fechada pela moderação e já não aceita respostas.
+        </p>
+      ) : (
+        <ReplyForm
+          ref={form}
+          threadId={threadId}
+          pick={vote ? (prediction.data?.myPick ?? null) : undefined}
+          onPosted={(posterId) => {
+            rememberPosterId(threadId, posterId);
+            void queryClient.refetchQueries({ queryKey });
+          }}
+        />
+      )}
+    </section>
+  );
+
+  const renderReply = (post: ForumPost) => (
+    <Reply
+      post={post}
+      mine={post.posterId !== null && mine.includes(post.posterId)}
+      anchors={anchors}
+      answers={backlinks.get(post.id) ?? []}
+      locked={thread.locked}
+      vote={vote}
+      onReply={(button) => gate("forum", button) || form.current?.replyTo(post.id)}
+    />
+  );
+
+  const tab = (on: boolean) =>
+    `rounded-full px-3 py-1 font-mono text-[11px] font-bold ${on ? "bg-ink text-paper" : "text-muted hover:bg-surface hover:text-ink"}`;
+
+  const main = (
     <>
       <article id="op" aria-labelledby="thread-title" className="scroll-mt-24 rounded-2xl border border-line p-4 target:border-ink sm:p-5">
         <div className="mb-2 flex flex-wrap items-center gap-2 font-mono text-xs">
@@ -98,30 +186,86 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
           <ForumText body={thread.body} anchors={anchors} />
         </div>
         <Backlinks ids={backlinks.get(thread.id) ?? []} />
+        {prediction.data && <VotePickBar item={prediction.data} />}
         <div className="mt-2 flex flex-wrap items-center gap-1">
-          {!thread.locked && <ReplyButton onClick={() => form.current?.replyTo(null)} />}
+          {!thread.locked && <ReplyButton onClick={(button) => gate("forum", button) || form.current?.replyTo(null)} />}
           <ReportButton kind="thread" id={thread.id} />
+          <SaveButton kind="thread" id={thread.id} compact />
+          <span className="ml-auto">
+            <FollowButton kind="thread" id={thread.id} />
+          </span>
         </div>
       </article>
 
+      {vote && replyForm}
+
       <section aria-labelledby="replies-heading" className="mt-8">
-        <h2 id="replies-heading" className="mb-4 font-mono text-sm font-bold uppercase tracking-widest text-muted">
-          {posts.length === 0 ? "Ainda sem respostas" : posts.length === 1 ? "1 resposta" : `${posts.length} respostas`}
-        </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="replies-heading" className="font-mono text-sm font-bold uppercase tracking-widest text-muted">
+            {posts.length === 0 ? "Ainda sem respostas" : posts.length === 1 ? "1 resposta" : `${posts.length} respostas`}
+          </h2>
+          {posts.length > 1 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <div role="group" aria-label="Ordem das respostas" className="flex gap-1">
+                <button type="button" aria-pressed={!newestFirst} onClick={() => setNewestFirst(false)} className={tab(!newestFirst)}>
+                  Por ordem
+                </button>
+                <button type="button" aria-pressed={newestFirst} onClick={() => setNewestFirst(true)} className={tab(newestFirst)}>
+                  Mais recentes
+                </button>
+              </div>
+              {vote && (
+                <div role="group" aria-label="Mostrar respostas de" className="flex gap-1">
+                  {(
+                    [
+                      ["all", "Todos"],
+                      ["pass", "Passa"],
+                      ["fail", "Chumba"],
+                    ] as const
+                  ).map(([value, text]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={side === value}
+                      onClick={() => setSide(value)}
+                      className={`rounded-full border px-3 py-1 font-mono text-[11px] font-bold ${
+                        side === value ? "border-ink" : "border-line text-muted hover:text-ink"
+                      }`}
+                      style={
+                        side === value && value !== "all"
+                          ? {
+                              color: `var(--${value === "pass" ? "favor" : "contra"})`,
+                              borderColor: `var(--${value === "pass" ? "favor" : "contra"})`,
+                            }
+                          : undefined
+                      }
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <ol className="flex flex-col gap-3">
-          {posts.map((post) => (
+          {ordered.map(({ post, children }) => (
             <li key={post.id}>
-              <Reply
-                post={post}
-                mine={post.posterId !== null && mine.includes(post.posterId)}
-                anchors={anchors}
-                answers={backlinks.get(post.id) ?? []}
-                locked={thread.locked}
-                onReply={() => form.current?.replyTo(post.id)}
-              />
+              {renderReply(post)}
+              {children.length > 0 && (
+                <ol
+                  aria-label={`Respostas a No.${post.id}`}
+                  className="ml-4 mt-2 flex flex-col gap-2 border-l-2 border-line pl-3 sm:ml-6 sm:pl-4"
+                >
+                  {children.map((child) => (
+                    <li key={child.id}>{renderReply(child)}</li>
+                  ))}
+                </ol>
+              )}
             </li>
           ))}
         </ol>
+        {side !== "all" && groups.length === 0 && <p className="text-sm text-muted">Ninguém deste lado escreveu ainda.</p>}
         {hasMore && (
           <button
             type="button"
@@ -133,26 +277,16 @@ export function ThreadView({ initial }: { initial: ThreadDetail }) {
         )}
       </section>
 
-      <section aria-labelledby="reply-heading" className="mt-8">
-        <h2 id="reply-heading" className="mb-3 text-lg font-bold">
-          Responder
-        </h2>
-        {thread.locked ? (
-          <p className="rounded-2xl border border-dashed border-line p-4 text-muted">
-            Esta discussão foi fechada pela moderação e já não aceita respostas.
-          </p>
-        ) : (
-          <ReplyForm
-            ref={form}
-            threadId={threadId}
-            onPosted={(posterId) => {
-              rememberPosterId(threadId, posterId);
-              void queryClient.refetchQueries({ queryKey });
-            }}
-          />
-        )}
-      </section>
+      {!vote && replyForm}
     </>
+  );
+
+  if (!vote) return main;
+  return (
+    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="min-w-0">{main}</div>
+      <VoteThreadAside initiativeId={initiativeId} threadId={threadId} posts={posts} prediction={prediction.data ?? null} />
+    </div>
   );
 }
 
@@ -163,6 +297,8 @@ function PosterLine({
   mine,
   createdAt,
   number,
+  pick = null,
+  vote = false,
 }: {
   nickname: string | null;
   posterId: string | null;
@@ -170,9 +306,13 @@ function PosterLine({
   mine: boolean;
   createdAt: string;
   number: number;
+  pick?: "pass" | "fail" | null;
+  /** On a vote's thread: "sem previsão" when the poster didn't pick. */
+  vote?: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
+      <NameAvatar name={posterName(nickname)} size="sm" />
       <span className="font-bold text-ink">{posterName(nickname)}</span>
       {posterId && (
         <span title="O ID identifica quem escreve dentro desta discussão" className="rounded bg-surface px-1.5 py-0.5 text-ink">
@@ -180,6 +320,20 @@ function PosterLine({
         </span>
       )}
       {isOp && <span className="rounded bg-ink px-1.5 py-0.5 font-bold text-paper">OP</span>}
+      {pick && (
+        <span
+          title="O que previu para esta votação"
+          className="rounded px-1.5 py-0.5 font-bold"
+          style={{
+            color: pick === "pass" ? "var(--favor)" : "var(--contra)",
+            background: `color-mix(in srgb, ${pick === "pass" ? "var(--favor)" : "var(--contra)"} 14%, transparent)`,
+          }}
+        >
+          <span className="sr-only">Previu: </span>
+          {pick === "pass" ? "✓ Passa" : "✕ Chumba"}
+        </span>
+      )}
+      {vote && !pick && !isOp && <span className="rounded bg-surface px-1.5 py-0.5">sem previsão</span>}
       {mine && <span className="font-bold text-ink">(tu)</span>}
       <span aria-hidden="true">·</span>
       <RelativeTime value={createdAt} />
@@ -195,6 +349,7 @@ function Reply({
   anchors,
   answers,
   locked,
+  vote = false,
   onReply,
 }: {
   post: ForumPost;
@@ -202,7 +357,8 @@ function Reply({
   anchors: ReadonlyMap<number, string>;
   answers: number[];
   locked: boolean;
-  onReply: () => void;
+  vote?: boolean;
+  onReply: (button: HTMLElement) => void;
 }) {
   const quoted = post.body !== null && post.replyTo !== null && quotesOf(post.body).includes(post.replyTo);
   return (
@@ -222,6 +378,8 @@ function Reply({
             mine={mine}
             createdAt={post.createdAt}
             number={post.id}
+            pick={post.pick ?? null}
+            vote={vote}
           />
           {post.replyTo !== null && !quoted && (
             <p className="mt-2 font-mono text-xs text-muted">
@@ -242,6 +400,7 @@ function Reply({
           <div className="mt-2 flex flex-wrap items-center gap-1">
             {!locked && <ReplyButton onClick={onReply} />}
             <ReportButton kind="post" id={post.id} />
+            <SaveButton kind="reply" id={post.id} compact />
           </div>
         </>
       )}
@@ -263,11 +422,11 @@ function Backlinks({ ids }: { ids: number[] }) {
   );
 }
 
-function ReplyButton({ onClick }: { onClick: () => void }) {
+function ReplyButton({ onClick }: { onClick: (button: HTMLElement) => void }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => onClick(event.currentTarget)}
       className="rounded-full px-2.5 py-1.5 font-mono text-xs font-bold text-muted hover:bg-surface hover:text-ink"
     >
       Responder
@@ -277,7 +436,18 @@ function ReplyButton({ onClick }: { onClick: () => void }) {
 
 type ReplyFormHandle = { replyTo: (id: number | null) => void };
 
-function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (posterId: string) => void; ref: Ref<ReplyFormHandle> }) {
+function ReplyForm({
+  threadId,
+  onPosted,
+  pick,
+  ref,
+}: {
+  threadId: number;
+  onPosted: (posterId: string) => void;
+  /** On a vote's thread: the reader's pick (shown beside the reply), null without one. */
+  pick?: Pick | null;
+  ref: Ref<ReplyFormHandle>;
+}) {
   const id = useId();
   const captcha = useRef<CaptchaHandle>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -289,7 +459,10 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
   const [captchaShown, setCaptchaShown] = useState(false);
-  const captchaOff = isCaptchaOff();
+  const reader = useReader();
+  const lockedOut = useLockedOut("forum");
+  // With an account: no captcha, and the name is the account's.
+  const captchaOff = isCaptchaOff() || Boolean(reader);
 
   // The parent's "Responder" buttons point the form at a post and quote it.
   useImperativeHandle(ref, () => ({
@@ -302,23 +475,32 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
     },
   }));
 
-  if (!isCaptchaConfigured()) return <p className="text-muted">As respostas estão temporariamente indisponíveis.</p>;
+  if (lockedOut)
+    return (
+      <SignInToTakePart title="Entra para responder">
+        Escrever no fórum pede uma conta. Ler continua livre. É grátis e só precisa de um nome e uma palavra-passe.
+      </SignInToTakePart>
+    );
+  if (!reader && !isCaptchaConfigured()) return <p className="text-muted">As respostas estão temporariamente indisponíveis.</p>;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     const clean = body.trim();
     if (!clean) return setError("Escreve uma resposta antes de publicar.");
-    const captchaToken = captchaOff ? CAPTCHA_OFF_TOKEN : token;
-    if (!captchaToken) return setError("Confirma que não és um robô antes de publicar.");
+    const captchaToken = reader ? null : captchaOff ? CAPTCHA_OFF_TOKEN : token;
+    if (!reader && !captchaToken) return setError("Confirma que não és um robô antes de publicar.");
     setError(null);
     setSending(true);
     try {
-      // Only point at a post the text still quotes.
-      const target = replyTo !== null && clean.includes(`>>${replyTo}`) ? replyTo : null;
+      // "Responder" on a post always answers that post (replyTo notifies its author: "respondeu-te"), until cancelled.
+      // Without it, the reply only reaches the thread's followers.
+      const target = replyTo;
       const created = await createPost(threadId, { body: clean, nickname: nickname.trim(), replyTo: target, captchaToken });
       setBody("");
       setReplyTo(null);
       setStatus("Resposta publicada.");
+      // Replying follows the thread (backend docs/engagement-api.md).
+      if (reader) markFollowed("thread", threadId);
       onPosted(created.posterId);
     } catch (failure) {
       setError(forumErrorMessage(failure));
@@ -348,13 +530,33 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
       <label htmlFor={`${id}-body`} className="sr-only">
         Resposta
       </label>
+      {pick !== undefined && (
+        <p className="flex items-center gap-2 font-mono text-[11px] text-muted">
+          {pick ? (
+            <>
+              Respondes como
+              <span
+                className="rounded px-1.5 py-0.5 font-bold"
+                style={{
+                  color: `var(--${pick === "pass" ? "favor" : "contra"})`,
+                  background: `color-mix(in srgb, var(--${pick === "pass" ? "favor" : "contra"}) 14%, transparent)`,
+                }}
+              >
+                {pick === "pass" ? "✓ Passa" : "✕ Chumba"}
+              </span>
+            </>
+          ) : (
+            "Ainda sem previsão: a tua resposta aparece como «sem previsão»."
+          )}
+        </p>
+      )}
       <textarea
         id={`${id}-body`}
         ref={textarea}
         value={body}
         rows={4}
         maxLength={THREAD_LIMITS.body}
-        placeholder="Escreve a tua resposta. Usa >>número para citar outra mensagem."
+        placeholder={pick !== undefined ? "Defende a tua escolha…" : "Escreve a tua resposta. Usa >>número para citar outra mensagem."}
         onChange={(event) => {
           setBody(event.target.value);
           if (event.target.value.trim()) setCaptchaShown(true);
@@ -371,18 +573,26 @@ function ReplyForm({ threadId, onPosted, ref }: { threadId: number; onPosted: (p
         {status}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={`${id}-nickname`} className="sr-only">
-          Nome (opcional)
-        </label>
-        <input
-          id={`${id}-nickname`}
-          value={nickname}
-          maxLength={THREAD_LIMITS.nickname}
-          autoComplete="off"
-          placeholder="Nome (opcional): Anónimo"
-          onChange={(event) => setNickname(event.target.value)}
-          className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
-        />
+        {reader ? (
+          <p className="min-w-0 flex-1 basis-40 px-1 font-mono text-xs text-muted">
+            A publicar como <b className="text-ink">{reader.username}</b>
+          </p>
+        ) : (
+          <>
+            <label htmlFor={`${id}-nickname`} className="sr-only">
+              Nome (opcional)
+            </label>
+            <input
+              id={`${id}-nickname`}
+              value={nickname}
+              maxLength={THREAD_LIMITS.nickname}
+              autoComplete="off"
+              placeholder="Nome (opcional): Anónimo"
+              onChange={(event) => setNickname(event.target.value)}
+              className="min-w-0 flex-1 basis-40 rounded-full border border-line bg-paper px-3 py-1.5 font-mono text-xs text-ink placeholder:text-muted"
+            />
+          </>
+        )}
         <span className="font-mono text-xs text-muted">
           {body.length}/{THREAD_LIMITS.body}
         </span>

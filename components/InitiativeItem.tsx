@@ -3,7 +3,16 @@ import { formatDate } from "@/lib/format";
 import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel, stageTone, toneColor } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import type { Initiative, InitiativePresidency, PlainStage } from "@/lib/types";
+import type { Prediction } from "@/lib/api/engagement";
+import { NewsLine, POLL_LINE, POLL_TEXT, PollStrip } from "./InitiativeExtras";
 import { StageProgress } from "./StageProgress";
+
+/** On the card, the official title only when it says more than the headline: not its first words repeated. */
+function officialWorthShowing(initiative: Initiative): boolean {
+  if (!hasPlainTitle(initiative)) return false;
+  const plain = initiative.plain!.title!.trim().toLowerCase().replace(/[.…]+$/, "");
+  return !initiative.title.trim().toLowerCase().startsWith(plain);
+}
 
 /** True when the plain status already says what the President did, so it isn't repeated. */
 function statusSaysIt(presidency: InitiativePresidency, stage: PlainStage | null | undefined): boolean {
@@ -41,16 +50,27 @@ const chip = "inline-flex items-center gap-1.5 rounded-full border border-line p
  * plain title linking to its page, the official title beside an "Oficial" tag, its path, who proposed it and its
  * topics.
  */
-export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Initiative; heading?: "h2" | "h3" | "h4" }) {
+export function InitiativeItem({
+  initiative,
+  heading = "h3",
+  poll = null,
+}: {
+  initiative: Initiative;
+  heading?: "h2" | "h3" | "h4";
+  /** Its open "Passa ou chumba?", when it has one: a strip to predict, a tag, and a line on the left. */
+  poll?: Prediction | null;
+}) {
   const Heading = heading;
   const { plain, presidency } = initiative;
   const color = toneColor(stageTone(plain?.status.stage, plain?.type.makesLaw ?? true));
   const parties = initiative.authors.other ? [] : initiative.authors.parties.map((party) => party.acronym);
-  const related = initiative.coverage.articles;
   const updated = formatDate(initiative.phaseDate);
 
   return (
-    <article className="border-b border-line py-6">
+    <article
+      className={`border-b border-line py-6 ${poll ? "-ml-3 border-l-2 pl-3 sm:-ml-4 sm:pl-4" : ""}`}
+      style={poll ? { borderLeftColor: POLL_LINE } : undefined}
+    >
       <p className="mb-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 font-mono text-xs text-muted">
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-bold"
@@ -70,6 +90,14 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
           </span>
         )}
         {presidency && !statusSaysIt(presidency, plain?.status.stage) && <span>· {presidencyLabel(presidency)}</span>}
+        {poll && (
+          <span
+            className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${POLL_TEXT}`}
+            style={{ background: `color-mix(in srgb, ${POLL_LINE} 14%, transparent)` }}
+          >
+            Previsão aberta
+          </span>
+        )}
       </p>
 
       <Heading className="text-xl font-bold leading-snug sm:text-2xl">
@@ -77,7 +105,7 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
           {headlineOf(initiative)}
         </Link>
       </Heading>
-      {hasPlainTitle(initiative) && (
+      {officialWorthShowing(initiative) && (
         <p className="mt-2 flex gap-3 text-sm leading-relaxed text-muted">
           <span className="mt-0.5 h-fit shrink-0 rounded border border-line px-1.5 py-px font-mono text-[10px] font-bold tracking-widest">
             OFICIAL
@@ -91,6 +119,9 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
           <StageProgress stage={plain.status.stage} makesLaw={plain.type.makesLaw} />
         </div>
       )}
+
+      {poll && <PollStrip initiativeId={initiative.id} poll={poll} />}
+      <NewsLine initiative={initiative} />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <ul aria-label="Autores e temas" className="flex flex-wrap gap-1.5">
@@ -111,10 +142,7 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
             </li>
           ))}
         </ul>
-        <p className="font-mono text-[11px] text-muted">
-          {related > 0 && <>{related === 1 ? "1 notícia" : `${related} notícias`} · </>}
-          {updated && <>Atualizada a {updated}</>}
-        </p>
+        <p className="font-mono text-[11px] text-muted">{updated && <>Atualizada a {updated}</>}</p>
       </div>
     </article>
   );

@@ -105,6 +105,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/privacidade", { changeFrequency: "yearly" }),
     at("/cookies", { changeFrequency: "yearly" }),
     at("/termos", { changeFrequency: "yearly" }),
+    at("/sobre", { changeFrequency: "yearly" }),
+    at("/previsoes", { changeFrequency: "daily" }),
     at("/iniciativas", { changeFrequency: "daily" }),
     at("/eleicoes", { changeFrequency: "monthly" }),
     at("/sitios", { changeFrequency: "monthly" }),

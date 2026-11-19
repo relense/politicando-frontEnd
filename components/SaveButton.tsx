@@ -1,8 +1,9 @@
 "use client";
 
+import { useAccountGate } from "@/lib/account";
 import { toggleIn, updateReaderPrefs, useReaderPrefs } from "@/lib/readerPrefs";
 
-/** "Guardar" as a pill on the card: the same list as the "…" menu's, kept in this browser (see /guardadas). */
+/** "Guardar" as a pill on the card: the same list as the "…" menu's, kept in the account (see /guardadas). */
 export function SaveButton({
   articleId,
   title,
@@ -16,12 +17,16 @@ export function SaveButton({
   iconOnly?: boolean;
 }) {
   const { saved } = useReaderPrefs();
+  const gate = useAccountGate();
   const on = saved.includes(articleId);
   return (
     <button
       type="button"
       aria-pressed={on}
-      onClick={() => updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, articleId) }))}
+      onClick={(event) => {
+        if (gate("save", event.currentTarget)) return;
+        updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, articleId) }));
+      }}
       className={`${className} ${on ? "text-[var(--accent)]" : ""}`}
     >
       <svg

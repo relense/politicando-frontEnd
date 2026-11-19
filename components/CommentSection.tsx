@@ -68,13 +68,19 @@ export function CommentSection({ target, initialComments, title = "Comentários"
                     order === value ? "bg-ink text-paper" : "border border-line text-muted hover:text-ink"
                   }`}
                 >
-                  {value === "oldest" ? "Mais antigos" : "Mais recentes"}
+                  {value === "oldest" ? "Por ordem" : "Mais recentes"}
                 </button>
               ))}
             </div>
           )}
         </div>
         {intro}
+        {comments.length > 1 && (
+          <p className="mb-4 rounded-lg border border-line px-3 py-2 font-mono text-[11px] text-muted">
+            Os comentários aparecem pela ordem em que foram escritos. Os ▲ mostram apoio, mas não mudam a ordem: assim ninguém fica
+            enterrado.
+          </p>
+        )}
 
         <div id="novo-comentario" className="mb-8 scroll-mt-24">
           {open ? (
@@ -114,7 +120,7 @@ export function CommentSection({ target, initialComments, title = "Comentários"
             </span>
             <p>
               <span className="block font-bold">Ainda não há comentários.</span>
-              <span className="block text-sm text-muted">Sê a primeira pessoa a comentar. Não precisas de conta.</span>
+              <span className="block text-sm text-muted">Sê a primeira pessoa a comentar.</span>
             </p>
           </div>
         ) : (

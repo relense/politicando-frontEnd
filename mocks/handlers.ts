@@ -5,7 +5,7 @@ import { electionResult, elections, partiesWithResults } from "./electionFixture
 import { government, governmentMember } from "./governmentFixtures";
 import { governmentHistory, timeline } from "./historyFixtures";
 import { becomeDeputyHandlers } from "./becomeDeputyFixtures";
-import { editorialPosts } from "./editorialFixtures";
+import { editorialAdminHandlers, publicPosts } from "./editorialAdmin";
 import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
 import { legislatureHandlers } from "./legislatureFixtures";
@@ -13,6 +13,8 @@ import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
+import { accountHandlers, gateRefusal, readerOf, recordVote } from "./accountFixtures";
+import { engagementHandlers, registerCommentLookup } from "./engagementFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
@@ -23,6 +25,13 @@ import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, pa
 
 export const API = "*/api/v2";
 const store = new Map(Object.entries(seedComments).map(([id, list]) => [Number(id), [...list]]));
+registerCommentLookup((id) => {
+  for (const [articleId, list] of store) {
+    const comment = list.find((item) => item.id === id);
+    if (comment) return { id, body: comment.body, username: comment.username ?? null, createdAt: comment.createdAt, articleId };
+  }
+  return null;
+});
 let nextCommentId = 1000;
 const postCommentStore = new Map<
   string,
@@ -62,7 +71,8 @@ const newCommentSchema = z.strictObject({
   username: z.string().trim().max(50).nullish(),
   body: z.string().trim().min(1).max(500),
   parentId: z.number().int().positive().nullish(),
-  recaptchaToken: z.string().min(1),
+  // Accounts need none (accounts-api.md).
+  recaptchaToken: z.string().min(1).optional(),
 });
 
 /** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
@@ -108,14 +118,15 @@ const postViews = new Map<string, number>([["o-que-muda-no-orcamento", 1284]]);
 
 /** The mock's one reader's votes on articles. */
 const myVotes = new Map<number, number>();
-/** Votes on our posts (editorial-api.md "Votes"): totals by slug, and this mock reader's own vote. */
-const postVotes = new Map<string, { up: number; down: number }>([["a-maioria-que-nao-existe", { up: 12, down: 1 }]]);
-const myPostVotes = new Map<string, number>();
-/** What every post in the list carries: visible comments and votes. */
+/** "Importa" on our posts (editorial-api.md "Importa"): totals by slug, and this mock reader's own mark. */
+const postImporta = new Map<string, number>([["a-maioria-que-nao-existe", 11]]);
+const myPostMarks = new Set<string>();
+/** What every post in the list carries: visible comments and Importa (and the old up/down, as the API still sends). */
 const postCounts = (slug: string) => ({
   commentCount: (postCommentStore.get(slug) ?? []).length,
-  upvotes: postVotes.get(slug)?.up ?? 0,
-  downvotes: postVotes.get(slug)?.down ?? 0,
+  importa: postImporta.get(slug) ?? 0,
+  upvotes: postImporta.get(slug) ?? 0,
+  downvotes: 0,
 });
 
 export const handlers = [
@@ -136,7 +147,7 @@ export const handlers = [
     const kind = params.get("kind");
     const limit = Number(params.get("limit") ?? 10);
     const page = Number(params.get("page") ?? 1);
-    const matching = editorialPosts.filter(
+    const matching = publicPosts().filter(
       (post) => (featured === null || String(post.featured) === featured) && (!kind || post.kind === kind),
     );
     // The list has no body.
@@ -144,42 +155,42 @@ export const handlers = [
     return HttpResponse.json({ items, total: matching.length });
   }),
   http.get(`${API}/editorial/:slug`, ({ params }) => {
-    const post = editorialPosts.find((item) => item.slug === params.slug);
+    const post = publicPosts().find((item) => item.slug === params.slug);
     // `views`: all the post's reads so far (asked of the backend; the page shows it only when it comes).
     return post ? HttpResponse.json({ ...post, views: postViews.get(post.slug) ?? 0, ...postCounts(post.slug) }) : fail(404, "not_found");
   }),
   // A read, sent by the browser (editorial-api.md "Most read"): no body, 204.
   http.post(`${API}/editorial/:slug/view`, ({ params }) => {
     const slug = String(params.slug);
-    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === slug)) return fail(404, "not_found");
     postViews.set(slug, (postViews.get(slug) ?? 0) + 1);
     return new HttpResponse(null, { status: 204 });
   }),
   // A vote on a post, as on news: `{ value: 1 | -1 | 0 }`, answering the new totals.
   http.post(`${API}/editorial/:slug/vote`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const slug = String(params.slug);
-    if (!editorialPosts.some((item) => item.slug === slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === slug)) return fail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
     const value = body?.value;
     if (value !== 1 && value !== -1 && value !== 0) return fail(400, "invalid_request");
-    const before = myPostVotes.get(slug) ?? 0;
-    const totals = postVotes.get(slug) ?? { up: 0, down: 0 };
-    const next = {
-      up: totals.up - (before === 1 ? 1 : 0) + (value === 1 ? 1 : 0),
-      down: totals.down - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0),
-    };
-    postVotes.set(slug, next);
-    if (value === 0) myPostVotes.delete(slug);
-    else myPostVotes.set(slug, value);
-    return HttpResponse.json({ ...next, mine: value });
+    // -1 is still accepted for the old buttons: it takes the mark back.
+    const mark = value === 1;
+    const importa = (postImporta.get(slug) ?? 0) - (myPostMarks.has(slug) ? 1 : 0) + (mark ? 1 : 0);
+    postImporta.set(slug, importa);
+    if (mark) myPostMarks.add(slug);
+    else myPostMarks.delete(slug);
+    recordVote(request, "editorial", slug, mark ? 1 : 0);
+    return HttpResponse.json({ importa, mine: mark ? 1 : 0, up: importa, down: 0 });
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
   http.get(`${API}/editorial/:slug/comments`, ({ params }) => {
-    if (!editorialPosts.some((item) => item.slug === params.slug)) return fail(404, "not_found");
+    if (!publicPosts().some((item) => item.slug === params.slug)) return fail(404, "not_found");
     return HttpResponse.json(postCommentStore.get(String(params.slug)) ?? []);
   }),
   http.post(`${API}/editorial/:slug/comments`, async ({ params, request }) => {
-    const post = editorialPosts.find((item) => item.slug === params.slug);
+    const post = publicPosts().find((item) => item.slug === params.slug);
     if (!post) return fail(404, "not_found");
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
@@ -382,7 +393,26 @@ export const handlers = [
     const page = after.slice(0, limit);
     // `total` counts every match, not just what is left after the cursor.
     return HttpResponse.json({
-      items: page,
+      // Half of those with news carry their latest headlines (the proposed coverage.latest); the rest load them when opened.
+      items: page.map((item) =>
+        item.coverage?.articles && item.id % 10 === 0
+          ? {
+              ...item,
+              coverage: {
+                ...item.coverage,
+                latest: articles
+                  .slice(item.id % 20, (item.id % 20) + 3)
+                  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+                  .map((article) => ({
+                    id: article.id,
+                    title: article.title,
+                    source: article.source,
+                    publishedAt: article.publishedAt,
+                  })),
+              },
+            }
+          : item,
+      ),
       nextCursor: after.length > limit ? `i${page.at(-1)!.id}` : null,
       total: inStage.length,
       stages,
@@ -496,6 +526,8 @@ export const handlers = [
   }),
   // A vote (articles-api.md "Votes"): one per reader, replaced by the next, 0 takes it back. The mock has one reader.
   http.post(`${API}/articles/:id/vote`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const article = articles.find((item) => item.id === Number(params.id));
     if (!article) return fail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
@@ -506,6 +538,7 @@ export const handlers = [
     article.downvotes = (article.downvotes ?? 0) - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0);
     if (value === 0) myVotes.delete(article.id);
     else myVotes.set(article.id, value);
+    recordVote(request, "articles", article.id, value);
     return HttpResponse.json({ up: article.upvotes, down: article.downvotes, mine: value });
   }),
   // A read of our article page, sent by the browser: no body, 204 (as for blog posts).
@@ -516,9 +549,15 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
   http.post(`${API}/articles/:id/comments`, async ({ params, request }) => {
+    const refused = gateRefusal(request);
+    if (refused) return refused;
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
-    const { username, body, parentId } = parsed.data;
+    const reader = readerOf(request);
+    if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    const { body, parentId } = parsed.data;
+    // With an account the comment carries its username; any name sent is ignored.
+    const username = reader ? reader.username : parsed.data.username;
     // Comments containing these words simulate API failures in tests.
     if (body.includes("ERRO-SERVIDOR")) return fail(500, "internal_error");
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
@@ -538,6 +577,7 @@ export const handlers = [
       parentUsername: null,
       body,
       createdAt: new Date().toISOString(),
+      account: Boolean(reader),
     };
     store.set(articleId, [...(store.get(articleId) ?? []), created]);
     return HttpResponse.json(created, { status: 201 });
@@ -550,6 +590,9 @@ export const handlers = [
   ...forumHandlers,
   ...storyHandlers,
   ...adminHandlers,
+  ...accountHandlers,
+  ...engagementHandlers,
+  ...editorialAdminHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,
   ...becomeDeputyHandlers,

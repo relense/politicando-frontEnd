@@ -7,16 +7,17 @@ import { ArticleActions } from "@/components/ArticleActions";
 import { ArticleImage } from "@/components/ArticleImage";
 import { ConsentEmbed } from "@/components/ConsentEmbed";
 import { JumpLink } from "@/components/JumpLink";
-import { ArticleVote } from "@/components/ArticleVote";
+import { PostImporta } from "@/components/PostImporta";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
 import { commentLinkLabel, excerpt, formatLongDate, readsLabel } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
-import { OG_BASE } from "@/lib/seo";
+import { clip, OG_BASE, pageTitle } from "@/lib/seo";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { postComments, type Comment, type EditorialDetail } from "@/lib/types";
+import { SaveButton } from "@/components/account/SaveButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -40,14 +41,15 @@ async function loadComments(post: EditorialDetail): Promise<Comment[] | null> {
   return getComments(postComments(post.slug)).catch(() => null);
 }
 
-const describe = (post: EditorialDetail) => post.subtitle ?? (excerpt(plainText(post.body), 160) || undefined);
+/** Never undefined: that would drop the site's description too, leaving the page with none. */
+const describe = (post: EditorialDetail) => post.subtitle || excerpt(plainText(post.body), 160) || clip(post.title);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await loadPost((await params).slug);
   const description = describe(post);
   const path = editorialPath(post.slug);
   return {
-    title: post.title,
+    title: pageTitle(post.title),
     description,
     alternates: { canonical: path },
     authors: post.authorName ? [{ name: post.authorName }] : undefined,
@@ -159,7 +161,8 @@ export default async function EditorialPostPage({ params }: Props) {
             </span>
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            {post.votes && <ArticleVote id={`post:${post.slug}`} title={post.title} up={post.votes.up} down={post.votes.down} />}
+            {typeof post.importa === "number" && <PostImporta slug={post.slug} title={post.title} importa={post.importa} />}
+            <SaveButton kind="editorial" id={post.id} />
             <ArticleActions title={post.title} />
           </div>
         </div>
@@ -173,6 +176,7 @@ export default async function EditorialPostPage({ params }: Props) {
       {post.coverImageUrl && !post.media && (
         <ArticleImage
           src={post.coverImageUrl}
+          alt={post.title}
           backdrop
           className="mt-6 block aspect-video max-w-4xl overflow-hidden rounded-2xl bg-surface"
           imageClassName="size-full object-contain"

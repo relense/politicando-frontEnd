@@ -30,3 +30,17 @@ export async function openNewsSearch(page: Page) {
   await toggle.click();
   await expect(box).toBeVisible();
 }
+
+let readers = 0;
+/**
+ * A fresh fictional reader for this test, signed in: taking part needs an account. Made through the API (the mock's
+ * test captcha), so the test starts where it means to.
+ */
+export async function signUp(page: Page): Promise<string> {
+  const username = `t${Date.now().toString(36)}${(readers++).toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
+  const answer = await page.request.post("/api/v2/auth/register", {
+    data: { username, password: "uma-frase-bem-comprida", recaptchaToken: "captcha-disabled", acceptTerms: true },
+  });
+  expect(answer.ok(), await answer.text()).toBe(true);
+  return username;
+}

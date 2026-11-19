@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
+import { accountMarkRead } from "@/lib/account";
 import { storyPath, type Story } from "@/lib/api/stories";
 
 // The stories this reader opened, kept on the device (the last 200 ids), for the ticks in "Hoje em 5". Storage may be
@@ -40,6 +41,7 @@ export function MarkStoryRead({ id }: { id: number }) {
     } catch {
       // Not remembered on this device.
     }
+    accountMarkRead(id);
   }, [id]);
   return null;
 }

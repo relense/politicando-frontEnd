@@ -21,7 +21,8 @@ export function PartyLogo({ slug, acronym, size }: { slug: string; acronym: stri
   return (
     <Image
       src={`/parties/${logo}`}
-      alt=""
+      alt={`Logótipo ${acronym}`}
+      aria-hidden="true"
       width={size}
       height={size}
       // Many logos are dark text on transparency; a white tile keeps them legible in the dark theme.

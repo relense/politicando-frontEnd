@@ -13,7 +13,7 @@ import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { partyPath } from "@/lib/parties";
 import { localOfficialSummary } from "@/lib/personSummary";
-import { absolute, breadcrumbs, jsonLd } from "@/lib/seo";
+import { absolute, breadcrumbs, jsonLd, pageTitle } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const loaded = await load((await params).id);
   if (!loaded) return { title: "Autarca não encontrado" };
   return {
-    title: loaded.summary.title,
+    title: pageTitle(loaded.summary.title),
     description: loaded.summary.description,
     alternates: { canonical: localOfficialPath(loaded.official.id) },
   };

@@ -27,8 +27,8 @@ type Props = {
   order?: FeedOrder;
   /** Cards or the compact list (front page only; elsewhere always cards). */
   initialView?: FeedView;
-  /** Boxes shown between the news on screens without the side column: each after that many news. */
-  inserts?: { after: number; node: ReactNode }[];
+  /** Boxes between the news, each after that many: on screens without the side column, or on all with `everywhere`. */
+  inserts?: { after: number; node: ReactNode; everywhere?: boolean }[];
 };
 
 export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWEST, inserts = [], initialView }: Props) {
@@ -148,7 +148,7 @@ export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWE
                 .filter((insert) => insert.after === index + 1)
                 .map((insert) => (
                   // A boxed note between the news: no rule around it, the box marks it off.
-                  <div key={`insert-${insert.after}`} className={`xl:hidden ${list ? "my-3" : ""}`}>
+                  <div key={`insert-${insert.after}`} className={`${insert.everywhere ? "" : "xl:hidden"} ${list ? "my-3" : ""}`}>
                     {insert.node}
                   </div>
                 ))}
