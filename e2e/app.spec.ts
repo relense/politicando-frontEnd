@@ -244,6 +244,14 @@ test("article HTML carries SEO data without JavaScript", async ({ request }) => 
   expect(html).toContain("Este é o texto de exemplo");
 });
 
+test("the home page names its one address for search engines, whatever the order or period", async ({ request }) => {
+  for (const path of ["/", "/?ordem=votadas&periodo=hoje"]) {
+    const html = await (await request.get(path)).text();
+    // The site's address alone: politicando.pt, the www one and every ?ordem= are one page.
+    expect(html).toMatch(/<link rel="canonical" href="https?:\/\/[^"/]+\/?"\/>/);
+  }
+});
+
 test("article page shows the excerpt and links to the original", async ({ page }) => {
   await page.goto("/article/100");
   const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
