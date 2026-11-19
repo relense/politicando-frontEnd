@@ -25,6 +25,7 @@ import { ofParty, partyPath } from "@/lib/parties";
 import { SOURCE_COUNT, sourceName } from "@/lib/sources";
 import { PredictionsCard } from "@/components/Predictions";
 import { getOpenPredictions } from "@/lib/api/engagement";
+import { EmailPrompt } from "@/components/account/AccountEmail";
 
 type Props = {
   searchParams: Promise<{
@@ -174,6 +175,8 @@ export default async function HomePage({ searchParams }: Props) {
                 ? [{ after: 6, node: <PredictionsCard initial={predictions} headingId="passa-ou-chumba-feed" /> }]
                 : []),
               // Rarely: deep in the feed, at most once a week, gone for good once dismissed.
+              // Accounts without a confirmed email, once in a while (the API decides when: askForEmail).
+              { after: 8, node: <EmailPrompt />, everywhere: true },
               { after: 24, node: <FollowCard />, everywhere: true },
               ...(podcast
                 ? [{ after: 10, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
