@@ -19,6 +19,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
+  // CI's machines are slow: a server render after a click (a tab, a filter) can take longer than the default 5 s there.
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   use: { baseURL: "http://localhost:3000", trace: "on-first-retry" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
