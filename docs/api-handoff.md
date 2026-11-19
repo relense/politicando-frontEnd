@@ -5,6 +5,7 @@ only `lib/api/` knows their shape. For local work, run either the mock (`npm run
 4000, not both. Every page keeps a calm "em breve" or empty state when an endpoint answers 404 or fails.
 
 ## Live (checked against production, 19 Nov 2026)
+
 - **Launch:** production API, CORS for this site, the reCAPTCHA pair, the article scanner with excerpts.
 - **Stories** (`/stories`, `/stories/:id`, `/today`), with `recentSourceCount` on `/today`.
 - **Parliament** (`docs/parliament-api.md`), **elections** (`docs/elections-api.md`), **parties** with `leader`, and
@@ -18,6 +19,7 @@ only `lib/api/` knows their shape. For local work, run either the mock (`npm run
 - **Podcast:** `GET /podcast/latest` and `GET /podcast` (the episode list on the blog's Podcasts filter).
 
 ## Being deployed
+
 - **A photo per outlet:** `imageUrl` on each `sources[]` item of `/stories`, `/stories/:id` and `/today` (null when
   that article has none). The frontend already reads it (`storyPhoto` in `lib/api/stories.ts`): a card then shows its
   headline outlet's own photo, and borrows another outlet's, credited, only when it has none.
@@ -26,7 +28,9 @@ only `lib/api/` knows their shape. For local work, run either the mock (`npm run
   that changes.
 
 ## Open, not confirmed
+
 These were asked before and may already be done; check with the backend before building on them.
+
 - **Excerpt markup:** some excerpts contained literal HTML. The frontend strips it as a safeguard; the API should strip
   it at import.
 - **Hiding comments in admin,** without SQL.
