@@ -195,8 +195,10 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
   const captchaOff = isCaptchaOff();
 
   const submit = useMutation({
-    mutationFn: ({ name, captchaToken }: { name: string; captchaToken: string }) =>
-      (register_ ? register : logIn)({ username: name, password, captchaToken }),
+    mutationFn: async ({ name, captchaToken }: { name: string; captchaToken: string }) =>
+      register_
+        ? (await register({ username: name, password, captchaToken })).user
+        : logIn({ username: name, password, captchaToken }),
     onSuccess: async (reader) => {
       await adoptAccount(client, reader);
       router.push(back);

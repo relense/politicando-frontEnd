@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { passwordStrength } from "@/components/account/AuthPage";
 import { itemsOf } from "@/components/account/AccountSettings";
 import { applyAccountState, clearLocalState, localStateToMerge } from "@/lib/account";
-import { safeReturn, type AccountState } from "@/lib/api/account";
+import { ApiError } from "@/lib/api/client";
+import { accountErrorMessage, emailProblem, registerAnswerSchema, safeReturn, userSchema, type AccountState } from "@/lib/api/account";
 import { readerPrefs } from "@/lib/readerPrefs";
 import { currentExtras } from "@/lib/accountExtras";
 
@@ -80,5 +81,49 @@ describe("the account's activity", () => {
       ["Resposta no fórum", null],
       ["Comentário", "/article/5#comentarios"],
     ]);
+  });
+});
+
+describe("the account's email", () => {
+  it("reads an older API's user as one with no email", () => {
+    expect(userSchema.parse({ id: 1, username: "leitora", createdAt: "2026-11-10T10:00:00.000Z" })).toMatchObject({
+      email: null,
+      emailConfirmed: false,
+      askForEmail: false,
+      newsletter: null,
+    });
+  });
+
+  it("reads the email, whether it's confirmed, the prompt and the newsletter", () => {
+    const user = { id: 1, username: "leitora", createdAt: "x", email: "leitora@exemplo.pt", emailConfirmed: true, askForEmail: false };
+    expect(userSchema.parse({ ...user, newsletter: "pending" })).toMatchObject({
+      email: "leitora@exemplo.pt",
+      emailConfirmed: true,
+      newsletter: "pending",
+    });
+    expect(userSchema.parse({ ...user, newsletter: "weekly?" }).newsletter).toBeNull();
+  });
+
+  it("reads a sign-up's answer: the email sent, the newsletter pending", () => {
+    const user = { id: 2, username: "novo", createdAt: "x" };
+    expect(registerAnswerSchema.parse({ user })).toMatchObject({ emailSent: false, newsletter: null });
+    expect(registerAnswerSchema.parse({ user, emailSent: true, newsletter: "pending" })).toMatchObject({
+      emailSent: true,
+      newsletter: "pending",
+    });
+  });
+
+  it("checks an address before sending it, and only when there is one", () => {
+    expect(emailProblem("")).toBeNull();
+    expect(emailProblem("  ana@exemplo.pt ")).toBeNull();
+    expect(emailProblem("ana@")).toMatch(/email/);
+    expect(emailProblem("ana exemplo.pt")).toMatch(/email/);
+  });
+
+  it("words the email's errors", () => {
+    expect(accountErrorMessage(new ApiError("x", 400, "invalid_email"))).toMatch(/email/);
+    expect(accountErrorMessage(new ApiError("x", 400, "invalid_token"))).toMatch(/já não é válida/);
+    expect(accountErrorMessage(new ApiError("x", 409, "email_taken"))).toMatch(/outra conta/);
+    expect(accountErrorMessage(new ApiError("x", 503, "mail_unavailable"))).toMatch(/email/);
   });
 });
