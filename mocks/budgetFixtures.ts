@@ -399,7 +399,7 @@ function summaryOf(year: number, votedFrom: string | null, votedTo: string | nul
               id: "ar-1",
               title: "Comissão de Orçamento, Finanças e Administração Pública",
               kind: "committee",
-              startsAt: new Date(Date.now() - 60 * 60_000).toISOString(),
+              startsAt: new Date(Date.now() - 60_000).toISOString(),
               allDay: false,
             },
             {
