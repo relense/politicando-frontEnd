@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { accountMarkRead } from "@/lib/account";
-import { storyPath, type Story } from "@/lib/api/stories";
+import { freshnessLine, storyPath, type Story } from "@/lib/api/stories";
+import { useNow } from "@/lib/useNow";
 
 // The stories this reader opened, kept on the device (the last 200 ids), for the ticks in "Hoje em 5". Storage may be
 // blocked: then nothing is ticked, and the box still works as a list.
@@ -54,6 +55,7 @@ export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Sto
   const opened = parse(useSyncExternalStore(subscribe, read, () => "[]"));
   const done = stories.filter((story) => opened.includes(story.id)).length;
   const all = done === stories.length;
+  const now = useNow();
   return (
     <section
       aria-labelledby={headingId}
@@ -82,9 +84,14 @@ export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Sto
               <span className={`w-4 shrink-0 text-lg font-bold leading-tight ${seen ? "text-muted" : "text-[var(--vote-up)]"}`}>
                 {index + 1}
               </span>
-              <Link href={storyPath(story)} className={`min-w-0 flex-1 font-bold leading-snug hover:underline ${seen ? "text-muted" : ""}`}>
-                {story.title}
-              </Link>
+              <span className="min-w-0 flex-1">
+                <Link href={storyPath(story)} className={`font-bold leading-snug hover:underline ${seen ? "text-muted" : ""}`}>
+                  {story.title}
+                </Link>
+                <span className="mt-0.5 block font-mono text-[11px] text-muted" suppressHydrationWarning>
+                  {freshnessLine(story, now)}
+                </span>
+              </span>
               <span
                 aria-label={seen ? "Já leste" : "Por ler"}
                 role="img"

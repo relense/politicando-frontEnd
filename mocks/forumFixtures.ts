@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
+import { looksLikeTeam } from "../lib/reservedNames";
 import { parties } from "./fixtures";
 import { addReport, audit, requireAdmin } from "./adminState";
 import { readerOf } from "./accountFixtures";
@@ -317,6 +318,9 @@ export const forumHandlers = [
     // With an account: no captcha, and the account's name.
     const reader = readerOf(request);
     if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    // As the API: a nickname that passes for the team is a plain validation error.
+    if (!reader && parsed.data.nickname && looksLikeTeam(parsed.data.nickname))
+      return HttpResponse.json({ error: { code: "invalid_request", message: "body/nickname That name is the team's" } }, { status: 400 });
     const { title, body, articleId, initiativeId } = parsed.data;
     const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");
@@ -353,6 +357,9 @@ export const forumHandlers = [
     if (!parsed.success) return fail(400, "invalid_request");
     const reader = readerOf(request);
     if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
+    // As the API: a nickname that passes for the team is a plain validation error.
+    if (!reader && parsed.data.nickname && looksLikeTeam(parsed.data.nickname))
+      return HttpResponse.json({ error: { code: "invalid_request", message: "body/nickname That name is the team's" } }, { status: 400 });
     const { body, replyTo } = parsed.data;
     const nickname = reader ? reader.username : parsed.data.nickname;
     if (body.includes("ERRO-LIMITE")) return fail(429, "rate_limited");

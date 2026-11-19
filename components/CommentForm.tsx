@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { ApiError, createComment, screenedMessage } from "@/lib/api/client";
+import { reservedNameMessage } from "@/lib/reservedNames";
 import type { Comment, CommentStance, NewComment, CommentTarget } from "@/lib/types";
 import { useLockedOut, useReader } from "@/lib/account";
 import { readDraft, savePending, writeDraft } from "@/lib/pendingAction";
@@ -97,7 +98,12 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
     },
     onError: (failure, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) => current.filter((comment) => comment.id !== context?.tempId));
-      setError(screenedMessage(failure) || (failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR);
+      setError(
+        screenedMessage(failure) ||
+          reservedNameMessage(failure) ||
+          (failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) ||
+          DEFAULT_ERROR,
+      );
     },
     onSuccess: (created, _input, context) => {
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) =>

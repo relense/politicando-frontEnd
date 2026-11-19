@@ -6,14 +6,14 @@ type Props = { searchParams: Promise<{ estado?: string | string[] }> };
 
 export const metadata: Metadata = {
   title: "Newsletter",
-  description: "O resumo da política portuguesa no teu email: o que mudou nas leis, no Governo e no Parlamento.",
+  description: "A newsletter semanal do Politicando: o que mudou na semana nas leis, no Governo e no Parlamento.",
 };
 
 const MARKER = "bg-[linear-gradient(transparent_55%,var(--marker)_55%,var(--marker)_92%,transparent_92%)] px-1";
 
 /** Where the links in the emails land, after the API has done the work. */
 const STATES: Record<string, { title: string; text: string; form: boolean }> = {
-  confirmado: { title: "Inscrição confirmada. Obrigado!", text: "Vais começar a receber a newsletter no teu email.", form: false },
+  confirmado: { title: "Inscrição confirmada. Obrigado!", text: "Vais começar a receber a newsletter semanal no teu email.", form: false },
   cancelado: { title: "Cancelaste a inscrição.", text: "Não vais receber mais emails. Apagámos o teu endereço.", form: false },
   invalido: {
     title: "Esta ligação já não é válida.",
@@ -29,12 +29,13 @@ export default async function NewsletterPage({ searchParams }: Props) {
   return (
     <div data-wide>
       <header className="mb-6">
-        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Por email · grátis</p>
+        <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Por email · grátis · uma vez por semana</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
           A <span className={MARKER}>newsletter</span>
         </h1>
         <p className="mt-2 max-w-2xl leading-relaxed text-muted">
-          O que mudou nas leis, no Governo e no Parlamento, explicado em linguagem simples e com as fontes. Sem publicidade.
+          Uma vez por semana, o que mudou nas leis, no Governo e no Parlamento, explicado em linguagem simples e com as fontes. Sem
+          publicidade.
         </p>
       </header>
 

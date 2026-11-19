@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
+import { looksLikeTeam } from "../lib/reservedNames";
 import { articles, comments as seedComments, parties } from "./fixtures";
 import { electionResult, elections, partiesWithResults } from "./electionFixtures";
 import { government, governmentMember } from "./governmentFixtures";
@@ -74,6 +75,12 @@ const newCommentSchema = z.strictObject({
   // Accounts need none (accounts-api.md).
   recaptchaToken: z.string().min(1).optional(),
 });
+
+/** As the API: a name that passes for the team is a plain validation error (docs/forums-api.md). */
+const teamName = (field: string, name: string | null | undefined) =>
+  name && looksLikeTeam(name)
+    ? HttpResponse.json({ error: { code: "invalid_request", message: `body/${field} That name is the team's` } }, { status: 400 })
+    : null;
 
 /** Leaders, as the real API curates them: one in the Government, one a deputy, one with no page of ours. */
 const psLeader = deputies.find((deputy) => deputy.party === "ps")!;
@@ -194,6 +201,8 @@ export const handlers = [
     if (!post) return fail(404, "not_found");
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
+    const reserved = teamName("username", parsed.data.username);
+    if (reserved) return reserved;
     const { username, body, parentId } = parsed.data;
     const slug = String(params.slug);
     const created = {
@@ -243,6 +252,14 @@ export const handlers = [
     if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return fail(400, "invalid_email");
     return HttpResponse.json({ status: "pending" }, { status: 202 });
   }),
+  // The buttons on the pages the emails link to (newsletter-api.md). Tokens containing "expirado" are no longer valid.
+  ...(["confirm", "unsubscribe"] as const).map((action) =>
+    http.post(`${API}/newsletter/${action}`, async ({ request }) => {
+      const body = (await request.json().catch(() => null)) as { token?: unknown } | null;
+      if (typeof body?.token !== "string" || !body.token || body.token.includes("expirado")) return fail(400, "invalid_token");
+      return HttpResponse.json({ status: action === "confirm" ? "confirmed" : "unsubscribed" });
+    }),
+  ),
   // Mainland Portugal's box: anywhere inside is Águeda, the fixtures' first municipality.
   http.get(`${API}/places/locate`, ({ request }) => {
     const search = new URL(request.url).searchParams;
@@ -554,6 +571,8 @@ export const handlers = [
     const parsed = newCommentSchema.safeParse(await request.json());
     if (!parsed.success) return fail(400, "invalid_request");
     const reader = readerOf(request);
+    const reserved = reader ? null : teamName("username", parsed.data.username);
+    if (reserved) return reserved;
     if (!reader && !parsed.data.recaptchaToken) return fail(403, "recaptcha_failed");
     const { body, parentId } = parsed.data;
     // With an account the comment carries its username; any name sent is ignored.

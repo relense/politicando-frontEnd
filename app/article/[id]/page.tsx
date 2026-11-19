@@ -146,7 +146,7 @@ export default async function ArticlePage({ params }: Props) {
           {/* On narrower screens, before the comments: in a long thread they'd be lost below it. */}
           {story && (
             <div className="mt-8 flex flex-col gap-4 xl:hidden">
-              <ImportaBox story={story} />
+              <ImportaBox story={story} headingId="importa-topo" />
               <FollowStoryBox story={story} headingId="seguir-historia-topo" />
             </div>
           )}
