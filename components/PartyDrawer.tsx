@@ -62,7 +62,7 @@ export function PartyDrawer({ ref }: { ref: Ref<HTMLDialogElement> }) {
               onClick={(event) => event.currentTarget.closest("dialog")?.close()}
               className="mt-4 flex h-10 items-center justify-center rounded-xl border border-line font-mono text-xs font-bold hover:bg-surface"
             >
-              Receber o resumo da manhã
+              Receber a newsletter semanal
             </Link>
             <p aria-hidden="true" className="mb-2 mt-5 font-mono text-xs font-bold uppercase tracking-widest text-muted">
               Tema

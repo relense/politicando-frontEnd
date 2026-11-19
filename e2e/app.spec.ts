@@ -1346,7 +1346,7 @@ test("follow us: rarely in the feed until dismissed, at the side column's end, i
   }
 
   const footer = page.locator("footer");
-  await expect(footer.getByRole("heading", { name: "A política do dia, em 5 notícias, às 8h." })).toBeVisible();
+  await expect(footer.getByRole("heading", { name: "A semana política, num só email." })).toBeVisible();
   await expect(footer.getByRole("link", { name: "Registo de correções" })).toHaveAttribute("href", "/feedback/correcoes");
   await expect(footer.getByRole("link", { name: /Voltar ao topo/ })).toBeVisible();
 

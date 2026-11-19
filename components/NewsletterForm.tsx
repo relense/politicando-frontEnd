@@ -63,7 +63,7 @@ export function NewsletterForm({ compact = false, band = false }: { compact?: bo
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
       <div className={compact ? "flex flex-col gap-2" : "flex flex-wrap gap-2"}>
         <label htmlFor={`${id}-email`} className="sr-only">
-          {band ? "Email para o resumo da manhã" : "Email"}
+          {band ? "Email para a newsletter semanal" : "Email"}
         </label>
         <input
           id={`${id}-email`}
