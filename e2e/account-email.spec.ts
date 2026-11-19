@@ -53,7 +53,7 @@ test("the profile asks for an email on every visit, adds, confirms and removes i
   await signUp(page);
   const email = `p${unique()}@exemplo.pt`;
   await page.goto("/conta");
-  const card = page.getByRole("region", { name: "Junta um email à tua conta" });
+  const card = page.getByRole("region", { name: "Protege a tua conta" });
   await expect(card).toContainText("Junta um email para não perderes a conta se te esqueceres da palavra-passe");
   await expect(card.getByRole("button", { name: "Agora não" })).toHaveCount(0);
   await noSeriousA11yIssues(page);
@@ -91,7 +91,7 @@ test("the profile asks for an email on every visit, adds, confirms and removes i
 test("the feed asks once in a while for an email, and «Agora não» puts it off", async ({ page }) => {
   await signUp(page);
   await page.goto("/");
-  const prompt = page.getByRole("region", { name: "Junta um email à tua conta" });
+  const prompt = page.getByRole("region", { name: "Protege a tua conta" });
   await prompt.scrollIntoViewIfNeeded();
   await expect(prompt).toContainText("Junta um email para não perderes a conta se te esqueceres da palavra-passe");
   await prompt.getByRole("button", { name: "Agora não" }).click();

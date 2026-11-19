@@ -144,7 +144,7 @@ export function EmailAsk({ where }: { where: "profile" | "feed" }) {
         </span>
         <div className="min-w-0 flex-1">
           <h2 id={`${id}-title`} className="font-bold">
-            Junta um email à tua conta
+            Protege a tua conta
           </h2>
           <p className="mt-0.5 text-sm text-muted">{ASK_TEXT} É privado: só tu o vês.</p>
         </div>
@@ -277,7 +277,7 @@ function EmailDetails({ reader, onRemoved }: { reader: Reader; onRemoved: () => 
           )}
         </div>
       ) : (
-        <p className="text-sm text-muted">A conta não tem email. {ASK_TEXT}</p>
+        <p className="text-sm text-muted">A conta ainda não tem email.</p>
       )}
       <NewsletterSwitch reader={reader} />
     </div>
@@ -334,7 +334,7 @@ function NewsletterSwitch({ reader }: { reader: Reader }) {
       >
         <span
           aria-hidden="true"
-          className={`absolute top-0.5 size-5 rounded-full bg-paper shadow transition-transform ${on ? "translate-x-[1.375rem]" : "translate-x-0.5"}`}
+          className={`absolute left-0 top-0.5 size-5 rounded-full bg-paper shadow transition-transform ${on ? "translate-x-[1.375rem]" : "translate-x-0.5"}`}
         />
       </button>
     </div>
