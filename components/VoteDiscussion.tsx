@@ -198,12 +198,8 @@ export function VotesBoardBox({ threads, open }: { threads: ThreadSummary[]; ope
   };
   return (
     <section aria-labelledby="quadro-votacoes" className="mt-5 rounded-2xl border border-line p-4">
-      <h2
-        id="quadro-votacoes"
-        className="flex flex-wrap justify-between gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted"
-      >
+      <h2 id="quadro-votacoes" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
         Quadro “Votações” no fórum
-        <span className="font-normal normal-case tracking-normal">sem botão “Nova discussão”</span>
       </h2>
       <p className="mt-1 text-sm text-muted">
         Cada votação na agenda ganha uma discussão automaticamente. Os leitores respondem, mas não abrem discussões novas neste quadro.

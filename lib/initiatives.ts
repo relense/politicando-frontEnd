@@ -1,3 +1,4 @@
+import { lisbonDay } from "@/lib/format";
 import type { Initiative, InitiativePresidency, PlainStage } from "./types";
 
 export const initiativePath = (id: number) => `/iniciativas/${id}`;
@@ -119,4 +120,17 @@ export function presidencyLabel(presidency: InitiativePresidency): string {
   if (presidency.status === "promulgated" && presidency.vetoedAt) return "Vetada e depois promulgada";
   if (presidency.status === "vetoed" && presidency.vetoKind === "unconstitutionality") return "Vetada por inconstitucionalidade";
   return PRESIDENCY_LABELS[presidency.status];
+}
+
+/**
+ * The latest stage's date, and whether it's still to come. The Parliament records some stages ahead with the day it
+ * scheduled them (the OE2027's specialty debate: 23 Nov, one of its days), and that day can move with the schedule.
+ * So: after today (Lisbon), «Marcada para»; from that day on, simply the stage's date («Atualizada a»).
+ */
+// `now` defaults to the clock: it only decides whether a day has come, so a re-render can't change the answer except
+// across midnight, and server and browser agree.
+export function stageDate(phaseDate: string | null | undefined, now: number = Date.now()): { date: string; scheduled: boolean } | null {
+  if (!phaseDate) return null;
+  const today = lisbonDay(new Date(now).toISOString());
+  return { date: phaseDate, scheduled: today !== null && phaseDate.slice(0, 10) > today };
 }

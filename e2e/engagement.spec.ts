@@ -120,6 +120,8 @@ test("Passa ou chumba: anyone sees the votes; picking needs an account, and only
   // The board, and the news about the proposal, newest first.
   // "ao vivo" when the vote is today (the mock's closes in about 2 hours, which may be tomorrow), "aberta" otherwise.
   await expect(page.getByRole("region", { name: /Quadro “Votações”/ })).toContainText(/ao vivo|aberta/);
+  // No design notes on the page (19 Nov: «sem botão "Nova discussão"» showed beside the heading).
+  await expect(page.getByRole("region", { name: /Quadro “Votações”/ })).not.toContainText("sem botão");
   const news = page.getByRole("region", { name: "Notícias sobre esta proposta" });
   await expect(news.getByRole("listitem").first()).toBeVisible();
   await page
