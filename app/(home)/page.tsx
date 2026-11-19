@@ -1,3 +1,4 @@
+import { BudgetBox, loadBudgetBox, showsBudgetBox } from "@/components/budget/BudgetBox";
 import { FEED_VIEW_COOKIE, parseFeedView } from "@/lib/feedViewCookie";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -93,7 +94,7 @@ export default async function HomePage({ searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   // The day's blocks, side by side ("Hoje", backend docs/engagement-api.md): each is cached on its own.
-  const [page, highlights, sidebar, nextEvent, episode, allToday, predictions] = await Promise.all([
+  const [page, highlights, sidebar, nextEvent, episode, allToday, predictions, budget] = await Promise.all([
     loadFeed({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
@@ -102,7 +103,10 @@ export default async function HomePage({ searchParams }: Props) {
     FEATURES.stories ? getToday() : Promise.resolve([]),
     // Anonymous, so cacheable: the reader's own picks come in the browser.
     getOpenPredictions(3, cached).catch(() => []),
+    // The State Budget's box, while it's being voted (and a week after the final vote).
+    loadBudgetBox(),
   ]);
+  const budgetShown = showsBudgetBox(budget, requestTime()) ? budget : null;
   // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
   const today = allToday.length >= 3 ? allToday : [];
   // The blog has one box beside the news, so it never pushes the news down.
@@ -171,6 +175,9 @@ export default async function HomePage({ searchParams }: Props) {
             // On smaller screens, without the column beside the news, its two boxes come between the news.
             inserts={[
               ...(today.length > 0 ? [{ after: 3, node: <TodayInFive stories={today} headingId="hoje-em-5-feed" /> }] : []),
+              ...(budgetShown
+                ? [{ after: 4, node: <BudgetBox data={budgetShown} now={requestTime()} headingId="caixa-orcamento-feed" /> }]
+                : []),
               ...(spotlight ? [{ after: 5, node: <BlogRow post={spotlight} /> }] : []),
               ...(predictions.length > 0
                 ? [{ after: 6, node: <PredictionsCard initial={predictions} headingId="passa-ou-chumba-feed" /> }]
@@ -189,6 +196,7 @@ export default async function HomePage({ searchParams }: Props) {
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
           <ScrollableSide className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
             {podcast && <PodcastBox podcast={podcast} episode={episode} />}
+            {budgetShown && <BudgetBox data={budgetShown} now={requestTime()} />}
             {today.length > 0 && <TodayInFive stories={today} />}
             {predictions.length > 0 && <PredictionsCard initial={predictions} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
