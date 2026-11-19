@@ -44,3 +44,11 @@ export async function signUp(page: Page): Promise<string> {
   expect(answer.ok(), await answer.text()).toBe(true);
   return username;
 }
+
+/** The newest link the mock API "emailed" to an address: its token (mocks/accountFixtures.ts). */
+export async function lastEmailToken(page: Page, to: string): Promise<string> {
+  const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
+  const answer = await page.request.get(`${api}/__mock/last-email?to=${encodeURIComponent(to)}`);
+  expect(answer.ok(), await answer.text()).toBe(true);
+  return ((await answer.json()) as { token: string }).token;
+}
