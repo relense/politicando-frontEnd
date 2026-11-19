@@ -1,5 +1,6 @@
-import type { BudgetBill, BudgetChoice, BudgetResult, BudgetSession, BudgetVote } from "@/lib/api/budget";
-import { lisbonDay } from "@/lib/format";
+import type { BudgetBill, BudgetChoice, BudgetParty, BudgetProposal, BudgetResult, BudgetSession, BudgetVote } from "@/lib/api/budget";
+import { tidyName } from "@/lib/elections";
+import { formatDate, lisbonDay } from "@/lib/format";
 import type { Vote } from "@/lib/types";
 
 /** The State Budget pages' rules: wording in the parliament's neutral terms, never "won" or "lost". */
@@ -41,6 +42,31 @@ export const CHOICE_COLORS: Record<BudgetChoice, string> = {
   absent: "var(--line)",
 };
 
+/** In lists: the acronym, unless it's one letter nobody reads («L»): then the name as the party writes it («LIVRE»). */
+export const partyShort = (party: Pick<BudgetParty, "acronym" | "name">) =>
+  party.acronym.length > 1 ? party.acronym : party.name.toLocaleUpperCase("pt");
+/** On a proposal's page: the name, written normally («Livre», «Partido Social Democrata»). */
+export const partyFull = (party: Pick<BudgetParty, "name">) => tidyName(party.name);
+
+/** Who proposed it, short: parties as `partyShort`, then deputies named without a group; the source's label as a last resort. */
+export function authorsShort(authors: BudgetProposal["authors"]): string {
+  const names = [...authors.parties.map(partyShort), ...authors.deputies];
+  return names.length > 0 ? names.join(", ") : (authors.label ?? "");
+}
+
+/** The heading: «O que muda» when written, with the official title (often just which paragraphs change) under it. */
+export function proposalHeading(proposal: Pick<BudgetProposal, "title" | "plain">): { main: string; official: string | null } {
+  return proposal.plain ? { main: proposal.plain.summary, official: proposal.title } : { main: proposal.title, official: null };
+}
+
+/** «Votada a 19-11-2026, em Comissão»: the last vote, which decided it. */
+export function votedLine(proposal: { votes: { votedOn: string | null; phase: "committee" | "plenary" | null }[] }): string | null {
+  const last = proposal.votes.findLast((vote) => vote.votedOn);
+  if (!last) return null;
+  const where = last.phase === "plenary" ? ", no Plenário" : last.phase === "committee" ? ", em Comissão" : "";
+  return `Votada a ${formatDate(last.votedOn)}${where}`;
+}
+
 export type PartyLine = {
   key: string;
   label: string;
@@ -56,7 +82,7 @@ export function partyLines(vote: BudgetVote): PartyLine[] {
     if (line.deputy && line.party) continue;
     lines.push(
       line.party
-        ? { key: line.party.slug, label: line.party.acronym, slug: line.party.slug, vote: line.vote, apart: [] }
+        ? { key: line.party.slug, label: partyShort(line.party), slug: line.party.slug, vote: line.vote, apart: [] }
         : { key: line.deputy ?? line.group, label: line.deputy ?? line.group, slug: null, vote: line.vote, apart: [] },
     );
   }
@@ -65,7 +91,13 @@ export function partyLines(vote: BudgetVote): PartyLine[] {
     const group = lines.find((entry) => entry.slug === line.party!.slug);
     if (group) group.apart.push({ deputy: line.deputy, vote: line.vote });
     else
-      lines.push({ key: line.deputy, label: `${line.deputy} (${line.party.acronym})`, slug: line.party.slug, vote: line.vote, apart: [] });
+      lines.push({
+        key: line.deputy,
+        label: `${line.deputy} (${partyShort(line.party)})`,
+        slug: line.party.slug,
+        vote: line.vote,
+        apart: [],
+      });
   }
   return lines;
 }

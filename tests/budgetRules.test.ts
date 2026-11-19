@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
-import { budgetBox, budgetStage, byChoice, choiceShares, headlineVotes, partyLines, RESULT_LABELS } from "@/lib/budget";
+import {
+  authorsShort,
+  budgetBox,
+  budgetStage,
+  byChoice,
+  choiceShares,
+  headlineVotes,
+  partyFull,
+  partyLines,
+  partyShort,
+  proposalHeading,
+  RESULT_LABELS,
+  votedLine,
+} from "@/lib/budget";
 import type { Vote } from "@/lib/types";
 
 const party = (slug: string, acronym = slug.toUpperCase()) => ({ slug, acronym, name: acronym });
@@ -110,5 +123,40 @@ describe("the State Budget's rules (lib/budget)", () => {
     it("nothing for a Budget with nothing left and no final vote recorded", () => {
       expect(budgetBox({ bills: open, schedule: [], pending: 0 }, now)).toBeNull();
     });
+  });
+});
+
+describe("names and headings readers understand (owner's review, 20 Nov)", () => {
+  const livre = { slug: "livre", acronym: "L", name: "LIVRE" };
+  const psd = { slug: "psd", acronym: "PSD", name: "Partido Social Democrata" };
+  it("a one-letter acronym says the name: «LIVRE», not «L»; the page spells it out: «Livre»", () => {
+    expect(partyShort(livre)).toBe("LIVRE");
+    expect(partyShort(psd)).toBe("PSD");
+    expect(partyFull(livre)).toBe("Livre");
+    expect(authorsShort({ parties: [livre, psd], deputies: [], label: "L, PSD" })).toBe("LIVRE, PSD");
+    expect(authorsShort({ parties: [], deputies: ["Ana Lopes"], label: "Ana Lopes" })).toBe("Ana Lopes");
+  });
+  const base = {
+    title: "Alínea f), N.º 1, N.º 5, Artigo 9.º do Código do IRS",
+    plain: null,
+    votes: [] as { votedOn: string | null; phase: "committee" | "plenary" | null }[],
+  };
+  it("«O que muda» leads when written, the official title under it; otherwise the official title alone", () => {
+    expect(proposalHeading(base)).toEqual({ main: base.title, official: null });
+    const plain = { summary: "Muda os escalões do IRS Jovem.", automatic: true, updatedAt: null };
+    expect(proposalHeading({ ...base, plain })).toEqual({ main: "Muda os escalões do IRS Jovem.", official: base.title });
+  });
+  it("when and where it was voted: «Votada a 19-11-2026, em Comissão»", () => {
+    expect(votedLine({ ...base, votes: [{ votedOn: "2026-11-19", phase: "committee" }] })).toBe("Votada a 19-11-2026, em Comissão");
+    expect(
+      votedLine({
+        ...base,
+        votes: [
+          { votedOn: "2026-11-19", phase: "committee" },
+          { votedOn: "2026-11-24", phase: "plenary" },
+        ],
+      }),
+    ).toBe("Votada a 24-11-2026, no Plenário");
+    expect(votedLine(base)).toBeNull();
   });
 });
