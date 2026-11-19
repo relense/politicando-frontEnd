@@ -141,10 +141,10 @@ function Side({ comment, label, color, compact }: { comment: DebateComment; labe
 }
 
 /** Beside the story: how many readers say it matters, and the button to say so. */
-export function ImportaBox({ story }: { story: StoryDetail }) {
+export function ImportaBox({ story, headingId = "importa" }: { story: StoryDetail; headingId?: string }) {
   return (
-    <section aria-labelledby="importa" className="flex items-center gap-3 rounded-2xl border border-line p-4">
-      <ImportaCount id={story.id} importa={story.importa} importance={story.importance} />
+    <section aria-labelledby={headingId} className="flex items-center gap-3 rounded-2xl border border-line p-4">
+      <ImportaCount id={story.id} importa={story.importa} importance={story.importance} headingId={headingId} />
       <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
     </section>
   );

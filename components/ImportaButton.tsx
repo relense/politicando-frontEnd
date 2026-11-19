@@ -82,13 +82,24 @@ function useImporta(id: number, importa: number, importance: number) {
 }
 
 /** The number of readers who say a story matters, kept in step with the story's Importa buttons. */
-export function ImportaCount({ id, importa, importance }: { id: number; importa: number; importance: number }) {
+export function ImportaCount({
+  id,
+  importa,
+  importance,
+  headingId = "importa",
+}: {
+  id: number;
+  importa: number;
+  importance: number;
+  /** Unique on the page: the article page shows the box twice (before the comments on phones, in the column on wide screens). */
+  headingId?: string;
+}) {
   const shown = useImporta(id, importa, importance);
   return (
     <>
       <ImportanceDots importance={shown.importance} className="w-12 shrink-0" />
       <div className="min-w-0 flex-1">
-        <h2 id="importa" className="text-2xl font-bold leading-none">
+        <h2 id={headingId} className="text-2xl font-bold leading-none">
           {formatNumber(shown.importa)}
         </h2>
         <p className="font-mono text-[11px] text-muted">{shown.importa === 1 ? "leitor diz que importa" : "leitores dizem que importa"}</p>
