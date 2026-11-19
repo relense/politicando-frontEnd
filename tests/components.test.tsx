@@ -153,108 +153,119 @@ describe("comments", () => {
     expect(screen.queryByLabelText("Comentário")).toBeNull();
   });
 
-  it("rejects an empty comment and a missing captcha with a message", async () => {
+  it("without an account, asks to log in in place of Publicar, and keeps what was written", async () => {
     const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/100" initialComments={[]} />);
+    withQuery(<CommentSection target="/articles/59" initialComments={[]} />);
     await openBox(user);
-
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Escreve um comentário");
-
-    await user.type(screen.getByLabelText("Comentário"), "   ");
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Escreve um comentário");
-
-    await user.type(screen.getByLabelText("Comentário"), "olá");
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("não és um robô");
-  });
-
-  it("posts a comment without blanking the page, then closes the box", async () => {
-    const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/50" initialComments={[]} />);
-    await openBox(user);
-    await user.type(screen.getByLabelText("Comentário"), "Novo comentário");
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-
-    expect(await screen.findByText("Novo comentário")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByLabelText("Comentário")).toBeNull());
-    expect(screen.getByRole("button", { name: "Junta-te à conversa…" })).toBeInTheDocument();
-  });
-
-  it("removes the optimistic comment and keeps the text when the API fails", async () => {
-    server.use(http.post(`${API}/articles/:id/comments`, () => HttpResponse.json({}, { status: 500 })));
-    const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/51" initialComments={[]} />);
-    await openBox(user);
-    await user.type(screen.getByLabelText("Comentário"), "Vai falhar");
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível publicar");
-    expect(screen.getByLabelText("Comentário")).toHaveValue("Vai falhar");
-    expect(screen.queryByRole("list")).toBeNull();
-  });
-
-  it("explains rate limiting using the API's error code", async () => {
-    const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/54" initialComments={[]} />);
-    await openBox(user);
-    await user.type(screen.getByLabelText("Comentário"), "ERRO-LIMITE");
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Publicar" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("depressa demais");
-  });
-
-  it("shows the captcha only once something is written", async () => {
-    const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/55" initialComments={[]} />);
-    await openBox(user);
+    await user.type(screen.getByLabelText("Comentário"), "Rascunho");
+    expect(await screen.findByText("Falta só entrar.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publicar" })).toBeNull();
     expect(screen.queryByRole("checkbox")).toBeNull();
-    await user.type(screen.getByLabelText("Comentário"), "a");
-    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Criar conta e publicar" })).toBeInTheDocument();
+    expect(screen.getByText("✓ Rascunho guardado neste dispositivo")).toBeInTheDocument();
   });
 
-  it("hides the captcha completely when it is switched off for testing", async () => {
-    vi.stubEnv("NEXT_PUBLIC_CAPTCHA_MODE", "off");
-    let token: unknown;
-    server.use(
-      http.post(`${API}/articles/:id/comments`, async ({ request }) => {
-        token = ((await request.json()) as { recaptchaToken: string }).recaptchaToken;
-        return HttpResponse.json({ id: 900, username: null, text: "Sem captcha", parentId: null, createdAt: null }, { status: 201 });
-      }),
-    );
-    try {
+  describe("with an account", () => {
+    const posted: unknown[] = [];
+    // A signed-in reader, and the API taking their comments (the session cookie isn't sent in these tests).
+    const signedIn = () =>
+      server.use(
+        http.get(`${API}/me`, () => HttpResponse.json({ id: 1, username: "leitora", createdAt: "2026-01-01T00:00:00Z" })),
+        http.post(`${API}/articles/:id/comments`, async ({ request }) => {
+          const body = (await request.json()) as { body: string; parentId?: number | null; recaptchaToken?: unknown };
+          posted.push(body);
+          if (body.body.includes("ERRO-LIMITE"))
+            return HttpResponse.json({ error: { code: "rate_limited", message: "rate_limited" } }, { status: 429 });
+          return HttpResponse.json(
+            {
+              id: 900 + posted.length,
+              articleId: 1,
+              parentId: body.parentId ?? null,
+              username: "leitora",
+              parentUsername: null,
+              body: body.body,
+              createdAt: new Date().toISOString(),
+              account: true,
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+    it("rejects an empty comment with a message, and needs no captcha or name", async () => {
+      signedIn();
       const user = userEvent.setup();
-      withQuery(<CommentSection target="/articles/58" initialComments={[]} />);
+      withQuery(<CommentSection target="/articles/100" initialComments={[]} />);
       await openBox(user);
-      await user.type(screen.getByLabelText("Comentário"), "Sem captcha");
-      expect(screen.queryByRole("checkbox")).toBeNull();
+      expect(await screen.findByText("leitora")).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Publicar" }));
-      await waitFor(() => expect(token).toBe("captcha-disabled"));
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
+      expect(screen.getByRole("alert")).toHaveTextContent("Escreve um comentário");
+      await user.type(screen.getByLabelText("Comentário"), "   ");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
+      expect(screen.getByRole("alert")).toHaveTextContent("Escreve um comentário");
+      await user.type(screen.getByLabelText("Comentário"), "olá");
+      expect(screen.queryByRole("checkbox")).toBeNull();
+      expect(screen.queryByLabelText("Nome (opcional)")).toBeNull();
+    });
 
-  it("resets only the captcha of the form that posted", async () => {
-    const user = userEvent.setup();
-    withQuery(<CommentSection target="/articles/52" initialComments={initial} />);
-    await openBox(user);
-    await user.click(screen.getAllByRole("button", { name: "Responder" })[0]!);
+    it("posts a comment without blanking the page, then closes the box", async () => {
+      signedIn();
+      const user = userEvent.setup();
+      withQuery(<CommentSection target="/articles/50" initialComments={[]} />);
+      await openBox(user);
+      await screen.findByText("leitora");
+      await user.type(screen.getByLabelText("Comentário"), "Novo comentário");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
 
-    await user.type(screen.getByLabelText("Comentário"), "Principal");
-    await user.type(screen.getByLabelText("Resposta"), "Resposta nova");
-    const mainForm = screen.getByLabelText("Comentário").closest("form")!;
-    const replyForm = screen.getByLabelText("Resposta").closest("form")!;
-    await user.click(within(mainForm).getByRole("checkbox"));
-    await user.click(within(replyForm).getByRole("checkbox"));
-    await user.click(within(replyForm).getByRole("button", { name: "Publicar" }));
+      expect(await screen.findByText("Novo comentário")).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByLabelText("Comentário")).toBeNull());
+      expect(screen.getByRole("button", { name: "Junta-te à conversa…" })).toBeInTheDocument();
+      expect(posted.at(-1)).toMatchObject({ body: "Novo comentário" });
+      expect((posted.at(-1) as { recaptchaToken?: unknown }).recaptchaToken ?? null).toBeNull();
+    });
 
-    await waitFor(() => expect(screen.queryByLabelText("Resposta")).toBeNull());
-    expect(within(mainForm).getByRole("checkbox")).toBeChecked();
-    expect(await screen.findByText("Resposta nova")).toBeInTheDocument();
+    it("removes the optimistic comment and keeps the text when the API fails", async () => {
+      signedIn();
+      server.use(http.post(`${API}/articles/:id/comments`, () => HttpResponse.json({}, { status: 500 })));
+      const user = userEvent.setup();
+      withQuery(<CommentSection target="/articles/51" initialComments={[]} />);
+      await openBox(user);
+      await screen.findByText("leitora");
+      await user.type(screen.getByLabelText("Comentário"), "Vai falhar");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível publicar");
+      expect(screen.getByLabelText("Comentário")).toHaveValue("Vai falhar");
+      expect(screen.queryByRole("list")).toBeNull();
+    });
+
+    it("explains rate limiting using the API's error code", async () => {
+      signedIn();
+      const user = userEvent.setup();
+      withQuery(<CommentSection target="/articles/54" initialComments={[]} />);
+      await openBox(user);
+      await screen.findByText("leitora");
+      await user.type(screen.getByLabelText("Comentário"), "ERRO-LIMITE");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("depressa demais");
+    });
+
+    it("a reply leaves the main box as it was", async () => {
+      signedIn();
+      const user = userEvent.setup();
+      withQuery(<CommentSection target="/articles/52" initialComments={initial} />);
+      await openBox(user);
+      await user.click(screen.getAllByRole("button", { name: "Responder" })[0]!);
+      await screen.findAllByText("leitora");
+      await user.type(screen.getByLabelText("Comentário"), "Principal");
+      await user.type(screen.getByLabelText("Resposta"), "Resposta nova");
+      const replyForm = screen.getByLabelText("Resposta").closest("form")!;
+      await user.click(within(replyForm).getByRole("button", { name: "Publicar" }));
+
+      await waitFor(() => expect(screen.queryByLabelText("Resposta")).toBeNull());
+      expect(screen.getByLabelText("Comentário")).toHaveValue("Principal");
+      expect(await screen.findByText("Resposta nova")).toBeInTheDocument();
+    });
   });
 
   it("closes a reply form with Cancelar", async () => {

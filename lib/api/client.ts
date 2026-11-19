@@ -81,7 +81,8 @@ const REVALIDATE_SECONDS = 60;
  */
 export const SITE_API_PATH = "/api/v2";
 export const LOGIN_REQUIRED_EVENT = "politicando:login-required";
-const ACCOUNT_PATH = /^\/(auth|me)(\/|\?|$)/;
+// /predictions too: the open list carries the reader's own picks (backend docs/engagement-api.md).
+const ACCOUNT_PATH = /^\/(auth|me|predictions)(\/|\?|$)/;
 const baseFor = (path: string, method = "GET") =>
   typeof window !== "undefined" && (method.toUpperCase() !== "GET" || ACCOUNT_PATH.test(path)) ? SITE_API_PATH : BASE_URL;
 
@@ -233,9 +234,13 @@ export async function voteArticle(id: number, value: 1 | -1 | 0): Promise<{ up: 
   return voteOn(`/articles/${id}/vote`, value);
 }
 
-/** The same for a blog post (asked of the backend: `POST /editorial/:slug/vote`, same body and answer). */
-export async function votePost(slug: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {
-  return voteOn(`/editorial/${encodeURIComponent(slug)}/vote`, value);
+/** "Importa" on a blog post (editorial-api.md "Importa"): 1 marks it, 0 takes it back. Answers the new total. */
+export async function markPost(slug: string, value: 1 | 0): Promise<{ importa: number; mine: number }> {
+  return request(`/editorial/${encodeURIComponent(slug)}/vote`, z.object({ importa: z.number(), mine: z.number() }), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
 }
 
 async function voteOn(path: string, value: 1 | -1 | 0): Promise<{ up: number; down: number; mine: number }> {

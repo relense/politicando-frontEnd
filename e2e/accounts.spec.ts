@@ -4,8 +4,6 @@ import { noSeriousA11yIssues } from "./helpers";
 // The mock readers (mocks/accountFixtures.ts): fictional names, test-only passwords. The mock API keeps its state between
 // the desktop and the mobile runs, so names that tests create carry the project's name.
 const READER = { username: "leitora_de_teste", password: "palavra-passe-de-teste" };
-// The mock API the Playwright config started (playwright.config.ts sets it for the tests too).
-const MOCK_API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v2";
 
 const accountButton = (page: Page, username: string) => page.getByRole("button", { name: new RegExp(username) });
 
@@ -65,7 +63,9 @@ test("create an account, log out, log back in, change the password and delete it
   await noSeriousA11yIssues(page);
   await menu.getByRole("button", { name: "Terminar sessão" }).click();
   await expect(accountButton(page, username)).toHaveCount(0);
-  await expect(page.getByRole("link", { name: testInfo.project.name === "mobile" ? "Entrar ou criar conta" : "Entrar" })).toBeVisible();
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: testInfo.project.name === "mobile" ? "Entrar ou criar conta" : "Entrar" }),
+  ).toBeVisible();
 
   // A wrong password says so without saying which part was wrong.
   await page.goto("/entrar");
@@ -145,25 +145,6 @@ test("with an account, comments carry its name and need no captcha", async ({ pa
   const comment = page.locator("main li, main article").filter({ hasText: unique }).last();
   await expect(comment).toBeVisible();
   await expect(comment).toContainText(READER.username);
-});
-
-test("when the API asks for an account, taking part offers to log in", async ({ page, request }) => {
-  // With the site's own setting on, it asks before the API can (e2e/login-required.spec.ts).
-  test.skip(Boolean(process.env.NEXT_PUBLIC_LOGIN_REQUIRED), "the site asks first");
-  await request.post(`${MOCK_API}/__mock/login-required`, { data: { on: true } });
-  try {
-    await page.goto("/editorial");
-    const row = page.locator("main article").filter({ hasText: "A maioria que não existe" });
-    await row.getByRole("button", { name: /^Votar a favor de/ }).click();
-    const ask = page.getByRole("dialog", { name: "Entra para participar" });
-    await expect(ask).toBeVisible();
-    await expect(ask.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/criar-conta?depois=%2Feditorial");
-    // A note on desktop (×), a sheet on phones ("Agora não").
-    await ask.getByRole("button", { name: /^(Fechar|Agora não)$/ }).click();
-    await expect(ask).toHaveCount(0);
-  } finally {
-    await request.post(`${MOCK_API}/__mock/login-required`, { data: { on: false } });
-  }
 });
 
 test("without an account, the theme is chosen at the bottom of the menu, and kept across reloads without a flash", async ({

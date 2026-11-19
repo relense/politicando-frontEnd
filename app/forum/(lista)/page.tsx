@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { BoardBadge } from "@/components/forum/BoardBadge";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ApiError } from "@/lib/api/client";
-import { getBoards, IDEAS_BOARD, type Board } from "@/lib/api/forums";
+import { getBoards, IDEAS_BOARD, VOTES_BOARD, type Board } from "@/lib/api/forums";
 import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -27,7 +27,9 @@ export default async function ForumIndexPage() {
   await connection();
   const boards = await loadBoards();
   // Ideas for the site have their own page, with votes.
-  const general = boards.filter((board) => board.acronym === null && board.board !== IDEAS_BOARD);
+  const general = boards.filter((board) => board.acronym === null && board.board !== IDEAS_BOARD && board.board !== VOTES_BOARD);
+  // One thread per vote on the agenda, opened by the site.
+  const votes = boards.filter((board) => board.board === VOTES_BOARD);
   const hasIdeas = boards.some((board) => board.board === IDEAS_BOARD);
   const parties = boards.filter((board) => board.acronym !== null);
 
@@ -56,6 +58,21 @@ export default async function ForumIndexPage() {
                 Propõe-a e vota nas outras →
               </Link>
             </p>
+          )}
+          {votes.length > 0 && (
+            <section aria-labelledby="votacoes" className="mt-10">
+              <h2 id="votacoes" className="mb-1 font-mono text-sm font-bold uppercase tracking-widest text-muted">
+                Votações
+              </h2>
+              <p className="mb-4 text-sm text-muted">
+                Uma conversa por cada votação da semana no plenário. Faz a tua previsão em{" "}
+                <Link href="/previsoes" className="font-bold text-link underline">
+                  Passa ou chumba?
+                </Link>{" "}
+                e defende-a aqui.
+              </p>
+              <BoardList boards={votes} label="Votações no plenário" />
+            </section>
           )}
           {parties.length > 0 && (
             <section aria-labelledby="partidos" className="mt-10">

@@ -8,7 +8,7 @@ import { Fragment } from "react";
 import { SearchToggle } from "@/components/SearchToggle";
 import { connection } from "next/server";
 import { ArticleImage } from "@/components/ArticleImage";
-import { ArticleVote } from "@/components/ArticleVote";
+import { PostImporta } from "@/components/PostImporta";
 import { CommentIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { PartyLogo } from "@/components/PartyLogo";
@@ -616,9 +616,9 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
               ))}
           </ul>
         )}
-        {(post.votes || typeof post.commentCount === "number") && (
+        {(typeof post.importa === "number" || typeof post.commentCount === "number") && (
           <div className="relative z-10 mt-3 flex flex-wrap items-center gap-2">
-            {post.votes && <ArticleVote id={`post:${post.slug}`} title={post.title} up={post.votes.up} down={post.votes.down} />}
+            {typeof post.importa === "number" && <PostImporta slug={post.slug} title={post.title} importa={post.importa} />}
             {typeof post.commentCount === "number" && (
               <Link href={`${href}#comentarios`} className={action}>
                 <CommentIcon />

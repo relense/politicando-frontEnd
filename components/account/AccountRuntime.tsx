@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { markSignedOut, pullAccountState, useReader, type LoginAsk } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
-import { createComment, likeComment, LOGIN_REQUIRED_EVENT, voteArticle, votePost } from "@/lib/api/client";
+import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, voteArticle } from "@/lib/api/client";
 import { voteThread } from "@/lib/api/forums";
 import { markImporta } from "@/lib/api/stories";
 import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
@@ -13,6 +13,7 @@ import { applyVoteAnswer } from "../ArticleVote";
 import { applyLikeAnswer } from "../CommentLike";
 import { applyIdeaAnswer } from "../forum/IdeaVote";
 import { applyImportaAnswer } from "../ImportaButton";
+import { applyPostAnswer } from "../PostImporta";
 import { useReturnPath } from "./AccountMenu";
 import { LoginNote } from "./LoginNote";
 
@@ -114,14 +115,12 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
       case "importa":
         applyImportaAnswer(action.id, await markImporta(action.id, 1));
         return { text: "Sessão iniciada. Marcaste “Importa” nesta notícia." };
-      case "vote": {
-        const answer =
-          typeof action.id === "number"
-            ? await voteArticle(action.id, action.value)
-            : await votePost(action.id.replace(/^post:/, ""), action.value);
-        applyVoteAnswer(action.id, answer);
+      case "vote":
+        applyVoteAnswer(action.id, await voteArticle(action.id, action.value));
         return { text: "Sessão iniciada. O teu voto contou." };
-      }
+      case "post":
+        applyPostAnswer(action.slug, await markPost(action.slug, 1));
+        return { text: "Sessão iniciada. Marcaste “Importa” neste artigo." };
       case "like":
         applyLikeAnswer(action.id, await likeComment(action.id, 1));
         return { text: "Sessão iniciada. O teu gosto contou." };

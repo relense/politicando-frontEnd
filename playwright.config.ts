@@ -8,7 +8,6 @@ const env = {
   // e.g. NEXT_PUBLIC_FEATURE_STORIES=1 npx playwright test.
   NEXT_PUBLIC_FEATURE_STORIES: process.env.NEXT_PUBLIC_FEATURE_STORIES ?? "0",
   // What needs an account: none unless asked (e2e/login-required.spec.ts).
-  NEXT_PUBLIC_LOGIN_REQUIRED: process.env.NEXT_PUBLIC_LOGIN_REQUIRED ?? "",
 };
 
 process.env.NEXT_PUBLIC_FEATURE_STORIES = env.NEXT_PUBLIC_FEATURE_STORIES;

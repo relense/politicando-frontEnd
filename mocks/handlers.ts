@@ -13,7 +13,8 @@ import { agendaHandlers } from "./agendaFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
-import { accountHandlers, gateRefusal, readerOf } from "./accountFixtures";
+import { accountHandlers, gateRefusal, readerOf, recordVote } from "./accountFixtures";
+import { engagementHandlers, registerCommentLookup } from "./engagementFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
@@ -24,6 +25,13 @@ import { deputies, deputyDetail, deputyVotes, initiativeDetails, initiatives, pa
 
 export const API = "*/api/v2";
 const store = new Map(Object.entries(seedComments).map(([id, list]) => [Number(id), [...list]]));
+registerCommentLookup((id) => {
+  for (const [articleId, list] of store) {
+    const comment = list.find((item) => item.id === id);
+    if (comment) return { id, body: comment.body, username: comment.username ?? null, createdAt: comment.createdAt, articleId };
+  }
+  return null;
+});
 let nextCommentId = 1000;
 const postCommentStore = new Map<
   string,
@@ -110,14 +118,15 @@ const postViews = new Map<string, number>([["o-que-muda-no-orcamento", 1284]]);
 
 /** The mock's one reader's votes on articles. */
 const myVotes = new Map<number, number>();
-/** Votes on our posts (editorial-api.md "Votes"): totals by slug, and this mock reader's own vote. */
-const postVotes = new Map<string, { up: number; down: number }>([["a-maioria-que-nao-existe", { up: 12, down: 1 }]]);
-const myPostVotes = new Map<string, number>();
-/** What every post in the list carries: visible comments and votes. */
+/** "Importa" on our posts (editorial-api.md "Importa"): totals by slug, and this mock reader's own mark. */
+const postImporta = new Map<string, number>([["a-maioria-que-nao-existe", 11]]);
+const myPostMarks = new Set<string>();
+/** What every post in the list carries: visible comments and Importa (and the old up/down, as the API still sends). */
 const postCounts = (slug: string) => ({
   commentCount: (postCommentStore.get(slug) ?? []).length,
-  upvotes: postVotes.get(slug)?.up ?? 0,
-  downvotes: postVotes.get(slug)?.down ?? 0,
+  importa: postImporta.get(slug) ?? 0,
+  upvotes: postImporta.get(slug) ?? 0,
+  downvotes: 0,
 });
 
 export const handlers = [
@@ -166,16 +175,14 @@ export const handlers = [
     const body = (await request.json().catch(() => null)) as { value?: unknown } | null;
     const value = body?.value;
     if (value !== 1 && value !== -1 && value !== 0) return fail(400, "invalid_request");
-    const before = myPostVotes.get(slug) ?? 0;
-    const totals = postVotes.get(slug) ?? { up: 0, down: 0 };
-    const next = {
-      up: totals.up - (before === 1 ? 1 : 0) + (value === 1 ? 1 : 0),
-      down: totals.down - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0),
-    };
-    postVotes.set(slug, next);
-    if (value === 0) myPostVotes.delete(slug);
-    else myPostVotes.set(slug, value);
-    return HttpResponse.json({ ...next, mine: value });
+    // -1 is still accepted for the old buttons: it takes the mark back.
+    const mark = value === 1;
+    const importa = (postImporta.get(slug) ?? 0) - (myPostMarks.has(slug) ? 1 : 0) + (mark ? 1 : 0);
+    postImporta.set(slug, importa);
+    if (mark) myPostMarks.add(slug);
+    else myPostMarks.delete(slug);
+    recordVote(request, "editorial", slug, mark ? 1 : 0);
+    return HttpResponse.json({ importa, mine: mark ? 1 : 0, up: importa, down: 0 });
   }),
   // Comments on our posts: the same as on news, by slug (editorial-api.md "Comments").
   http.get(`${API}/editorial/:slug/comments`, ({ params }) => {
@@ -386,7 +393,26 @@ export const handlers = [
     const page = after.slice(0, limit);
     // `total` counts every match, not just what is left after the cursor.
     return HttpResponse.json({
-      items: page,
+      // Half of those with news carry their latest headlines (the proposed coverage.latest); the rest load them when opened.
+      items: page.map((item) =>
+        item.coverage?.articles && item.id % 10 === 0
+          ? {
+              ...item,
+              coverage: {
+                ...item.coverage,
+                latest: articles
+                  .slice(item.id % 20, (item.id % 20) + 3)
+                  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+                  .map((article) => ({
+                    id: article.id,
+                    title: article.title,
+                    source: article.source,
+                    publishedAt: article.publishedAt,
+                  })),
+              },
+            }
+          : item,
+      ),
       nextCursor: after.length > limit ? `i${page.at(-1)!.id}` : null,
       total: inStage.length,
       stages,
@@ -512,6 +538,7 @@ export const handlers = [
     article.downvotes = (article.downvotes ?? 0) - (before === -1 ? 1 : 0) + (value === -1 ? 1 : 0);
     if (value === 0) myVotes.delete(article.id);
     else myVotes.set(article.id, value);
+    recordVote(request, "articles", article.id, value);
     return HttpResponse.json({ up: article.upvotes, down: article.downvotes, mine: value });
   }),
   // A read of our article page, sent by the browser: no body, 204 (as for blog posts).
@@ -564,6 +591,7 @@ export const handlers = [
   ...storyHandlers,
   ...adminHandlers,
   ...accountHandlers,
+  ...engagementHandlers,
   ...editorialAdminHandlers,
   ...presidencyHandlers,
   ...peopleHandlers,

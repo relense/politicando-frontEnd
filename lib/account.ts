@@ -15,6 +15,7 @@ import {
 import { LOGIN_REQUIRED_EVENT } from "./api/client";
 import { ASK_NEEDS, needsAccount, type AskKind, type Participation } from "./participation";
 import type { PendingAction } from "./pendingAction";
+import { clearExtras, setExtrasFrom } from "./accountExtras";
 import { onReaderPrefsChange, readerPrefs, replaceReaderPrefs, type ReaderPrefs } from "./readerPrefs";
 
 /*
@@ -46,7 +47,8 @@ export function askToLogIn(kind: AskKind = "any", anchor: HTMLElement | null = n
 export function useAccountGate(): (kind: Exclude<AskKind, "any">, anchor?: HTMLElement | null, pending?: PendingAction) => boolean {
   const reader = useReader();
   return (kind, anchor = null, pending) => {
-    if (reader !== null || !needsAccount(ASK_NEEDS[kind])) return false;
+    const needs = ASK_NEEDS[kind];
+    if (reader !== null || (needs !== "account" && !needsAccount(needs))) return false;
     askToLogIn(kind, anchor, pending ?? null);
     return true;
   };
@@ -95,6 +97,7 @@ export function applyAccountState(state: AccountState) {
   write("comment-likes", JSON.stringify(state.votes.comments));
   write("ideas-voted", state.votes.forum.join(","));
   write("stories-read", JSON.stringify(oldestFirst(state.read)));
+  setExtrasFrom(state);
 }
 
 /** Empties this browser's lists (on logging out or deleting the account). */
@@ -106,6 +109,7 @@ export function clearLocalState() {
     applying = false;
   }
   for (const key of STORES) if (key !== "reader-prefs") write(key, null);
+  clearExtras();
 }
 
 function readJson(key: string): unknown {

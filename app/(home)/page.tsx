@@ -9,8 +9,9 @@ import { BlogRow, EventRow } from "@/components/FeedInserts";
 import { getNextEvent } from "@/lib/api/agenda";
 import { FollowCard, SidebarFooter } from "@/components/FollowUs";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
+import { ScrollableSide } from "@/components/ScrollableSide";
 import { FeedFilters } from "@/components/FeedFilters";
-import { FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
+import { cached, FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
 import { loadFeed } from "@/lib/api/feed";
 import { getToday } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -22,6 +23,8 @@ import { tidyName } from "@/lib/elections";
 import { FEED_COOKIE, isEmpty, orderKey, orderOf, orderPhrase, parseFilter, readSavedFilter } from "@/lib/feedFilter";
 import { ofParty, partyPath } from "@/lib/parties";
 import { SOURCE_COUNT, sourceName } from "@/lib/sources";
+import { PredictionsCard } from "@/components/Predictions";
+import { getOpenPredictions } from "@/lib/api/engagement";
 
 type Props = {
   searchParams: Promise<{
@@ -87,15 +90,18 @@ export default async function HomePage({ searchParams }: Props) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const [page, highlights, sidebar, nextEvent, episode] = await Promise.all([
+  // The day's blocks, side by side ("Hoje", backend docs/engagement-api.md): each is cached on its own.
+  const [page, highlights, sidebar, nextEvent, episode, allToday, predictions] = await Promise.all([
     loadFeed({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
     getNextEvent(),
     getLatestEpisode(),
+    FEATURES.stories ? getToday() : Promise.resolve([]),
+    // Anonymous, so cacheable: the reader's own picks come in the browser.
+    getOpenPredictions(3, cached).catch(() => []),
   ]);
   // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
-  const allToday = FEATURES.stories ? await getToday() : [];
   const today = allToday.length >= 3 ? allToday : [];
   // The blog has one box beside the news, so it never pushes the news down.
   const spotlight = highlights[0] ?? null;
@@ -164,8 +170,11 @@ export default async function HomePage({ searchParams }: Props) {
             inserts={[
               ...(today.length > 0 ? [{ after: 3, node: <TodayInFive stories={today} headingId="hoje-em-5-feed" /> }] : []),
               ...(spotlight ? [{ after: 5, node: <BlogRow post={spotlight} /> }] : []),
-              // Once per reader, on every screen: the main way to our profiles on phones.
-              { after: 8, node: <FollowCard />, everywhere: true },
+              ...(predictions.length > 0
+                ? [{ after: 6, node: <PredictionsCard initial={predictions} headingId="passa-ou-chumba-feed" /> }]
+                : []),
+              // Rarely: deep in the feed, at most once a week, gone for good once dismissed.
+              { after: 24, node: <FollowCard />, everywhere: true },
               ...(podcast
                 ? [{ after: 10, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
                 : []),
@@ -174,15 +183,16 @@ export default async function HomePage({ searchParams }: Props) {
           />
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
-          <div className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
+          <ScrollableSide className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
             {podcast && <PodcastBox podcast={podcast} episode={episode} />}
             {today.length > 0 && <TodayInFive stories={today} />}
+            {predictions.length > 0 && <PredictionsCard initial={predictions} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
             {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
             <SidebarFooter />
-          </div>
+          </ScrollableSide>
         </aside>
       </div>
     </div>

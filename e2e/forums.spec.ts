@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { noSeriousA11yIssues, signUp } from "./helpers";
 
 test("forum index lists the general board first, then the parties", async ({ page }) => {
   await page.goto("/forum");
@@ -14,6 +14,7 @@ test("forum index lists the general board first, then the parties", async ({ pag
 });
 
 test("board lists threads with the pinned one first, and hostile text stays text", async ({ page }) => {
+  await signUp(page);
   await page.goto("/forum/geral");
   await expect(page.getByRole("heading", { level: 1, name: "Fórum geral" })).toBeVisible();
   const threads = page.getByRole("list", { name: "Discussões" }).getByRole("listitem");
@@ -27,7 +28,10 @@ test("board lists threads with the pinned one first, and hostile text stays text
   await page.getByRole("link", { name: "Mais votadas" }).click();
   await expect(page).toHaveURL(/ordem=votadas/);
   await expect(threads.nth(1)).toContainText("O que acham do debate do orçamento?");
-  await threads.nth(1).getByRole("button", { name: /^Votar em «O que acham do debate do orçamento\?»/ }).click();
+  await threads
+    .nth(1)
+    .getByRole("button", { name: /^Votar em «O que acham do debate do orçamento\?»/ })
+    .click();
   await expect(threads.nth(1).getByRole("button", { name: /^Votaste em/ })).toBeDisabled();
 });
 
@@ -39,6 +43,7 @@ test("unknown board is a 404 and a thread on the wrong board moves to the right 
 });
 
 test("thread shows the OP, replies, quotes and removed posts, and takes a reply", async ({ page }, testInfo) => {
+  await signUp(page);
   const text = `Resposta de teste no fórum (${testInfo.project.name})`;
   await page.goto("/forum/geral/8");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
@@ -56,19 +61,11 @@ test("thread shows the OP, replies, quotes and removed posts, and takes a reply"
   await expect(field).toBeFocused();
   await expect(field).toHaveValue(/^>>33\n/);
   await field.pressSequentially(text);
-  await page.getByLabel("Não sou um robô (teste)").check();
   await page.getByRole("button", { name: "Publicar" }).click();
   const mine = page.getByRole("article").filter({ hasText: text });
   await expect(mine).toBeVisible();
   await expect(mine.getByText("(tu)")).toBeVisible();
   await expect(field).toHaveValue("");
-});
-
-test("a reply without the captcha is refused with a message", async ({ page }) => {
-  await page.goto("/forum/geral/8");
-  await page.getByRole("textbox", { name: "Resposta" }).fill("Sem captcha");
-  await page.getByRole("button", { name: "Publicar" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "não és um robô" })).toBeVisible();
 });
 
 test("a locked thread has no reply form", async ({ page }) => {
@@ -78,6 +75,7 @@ test("a locked thread has no reply form", async ({ page }) => {
 });
 
 test("reporting a post asks for a reason and thanks the reader", async ({ page }) => {
+  await signUp(page);
   await page.goto("/forum/geral/8");
   const post = page.getByRole("article", { name: /Resposta 31/ });
   await post.getByRole("button", { name: "Denunciar" }).click();
@@ -89,6 +87,7 @@ test("reporting a post asks for a reason and thanks the reader", async ({ page }
 });
 
 test("an article opens a new thread on its party's board, linked to it", async ({ page }) => {
+  await signUp(page);
   await page.goto("/article/100");
   const link = page.getByRole("link", { name: /^Discutir no fórum do / }).first();
   await expect(link).toHaveAttribute("href", /\/forum\/[a-z-]+\?artigo=100#nova/);
@@ -98,8 +97,6 @@ test("an article opens a new thread on its party's board, linked to it", async (
   await noSeriousA11yIssues(page);
   await form.getByLabel("Título").fill("Discussão de teste sobre a notícia");
   await form.getByLabel("Texto").fill("Primeira mensagem.");
-  await form.getByLabel("Nome (opcional)").fill("Testador");
-  await form.getByLabel("Não sou um robô (teste)").check();
   await form.getByRole("button", { name: "Publicar discussão" }).click();
   await expect(page).toHaveURL(/\/forum\/ps\/\d+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Discussão de teste sobre a notícia" })).toBeVisible();
@@ -108,6 +105,7 @@ test("an article opens a new thread on its party's board, linked to it", async (
 });
 
 test("an article comment can be reported", async ({ page }) => {
+  await signUp(page);
   await page.goto("/article/100");
   const report = page.getByRole("button", { name: "Denunciar" }).first();
   test.skip((await report.count()) === 0, "This article has no comments in the mocks");
@@ -118,6 +116,7 @@ test("an article comment can be reported", async ({ page }) => {
 });
 
 test("ideas board: most voted first, filter by status, vote once, propose one and read the team's answer", async ({ page }) => {
+  await signUp(page);
   await page.goto("/forum/ideias");
   await expect(page).toHaveURL(/\/feedback\/ideias$/);
   await expect(page.getByRole("heading", { level: 1, name: "Ideias para o Politicando" })).toBeVisible();
@@ -134,7 +133,7 @@ test("ideas board: most voted first, filter by status, vote once, propose one an
   // A finished idea takes no more votes.
   await expect(ideas.first().getByRole("button", { name: /Votar em/ })).toBeDisabled();
 
-  // A vote counts once on this device.
+  // A vote counts once.
   await page.goto("/feedback/ideias");
   const vote = page.getByRole("button", { name: /^Votar em «Modo de leitura sem imagens», (\d+) votos$/ });
   const before = Number((await vote.getAttribute("aria-label"))!.match(/(\d+) votos/)![1]);
@@ -151,7 +150,6 @@ test("ideas board: most voted first, filter by status, vote once, propose one an
   const form = page.getByRole("form", { name: "Nova ideia" });
   await form.getByLabel("Título").fill("Ideia de teste para o quadro");
   await form.getByLabel("Explica a ideia").fill("Uma ideia escrita pelo teste.");
-  await form.getByLabel("Não sou um robô (teste)").check();
   await form.getByRole("button", { name: "Publicar ideia" }).click();
   await expect(page).toHaveURL(/\/feedback\/ideias\/\d+$/);
   await expect(page.getByRole("heading", { level: 1, name: "Ideia de teste para o quadro" })).toBeVisible();

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { FollowStrip } from "@/components/FollowUs";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
 import { CountRead } from "@/components/CountRead";
-import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions } from "@/components/StoryParts";
+import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions, FollowStoryBox } from "@/components/StoryParts";
 import { MarkStoryRead } from "@/components/TodayInFive";
 import { getStory } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -144,7 +143,13 @@ export default async function ArticlePage({ params }: Props) {
             versions={story && <StoryVersions story={story} current={article.id} />}
           />
           {story && <HowEachToldList story={story} current={article.id} />}
-          <FollowStrip className="mt-8" />
+          {/* On narrower screens, before the comments: in a long thread they'd be lost below it. */}
+          {story && (
+            <div className="mt-8 flex flex-col gap-4 xl:hidden">
+              <ImportaBox story={story} />
+              <FollowStoryBox story={story} headingId="seguir-historia-topo" />
+            </div>
+          )}
           <CommentSection
             target={target}
             initialComments={comments}
@@ -172,7 +177,10 @@ export default async function ArticlePage({ params }: Props) {
           top={
             story && (
               <>
-                <ImportaBox story={story} />
+                <div className="hidden flex-col gap-4 xl:flex">
+                  <ImportaBox story={story} />
+                  <FollowStoryBox story={story} />
+                </div>
                 <StoryContextBox story={story} />
               </>
             )

@@ -8,6 +8,7 @@ import { signOut, useReader } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
 import { useReaderPrefs } from "@/lib/readerPrefs";
 import { ThemeChoice } from "../ThemeChoice";
+import { NotificationBell, useUnreadCount } from "./Inbox";
 
 /** Where to come back to after logging in: this page, unless it's the login page itself. */
 export function useReturnPath(): string {
@@ -72,6 +73,7 @@ function SignedIn({ reader }: { reader: Reader }) {
   const id = useId();
   const client = useQueryClient();
   const prefs = useReaderPrefs();
+  const unread = useUnreadCount();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -91,7 +93,8 @@ function SignedIn({ reader }: { reader: Reader }) {
   const close = () => setOpen(false);
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-1">
+      <NotificationBell />
       <button
         ref={button}
         type="button"
@@ -128,8 +131,20 @@ function SignedIn({ reader }: { reader: Reader }) {
               <MenuLink href="/guardadas" onClick={close} icon="M6 3h12v18l-6-4-6 4V3Z" count={prefs.saved.length}>
                 Guardadas
               </MenuLink>
+              <MenuLink
+                href="/conta/notificacoes"
+                onClick={close}
+                icon="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"
+                count={unread}
+                countLabel="por ler"
+              >
+                Notificações
+              </MenuLink>
               <MenuLink href="/conta/comentarios" onClick={close} icon="M4 5h16v11H8l-4 4V5Z">
                 Os meus comentários
+              </MenuLink>
+              <MenuLink href="/conta/previsoes" onClick={close} icon="M4 19V5m0 14h16M8 15l3-4 3 2 5-6">
+                As minhas previsões
               </MenuLink>
               <MenuLink href="/newsletter" onClick={close} icon="M3 6h18v12H3V6Zm0 0 9 7 9-7">
                 Resumo da manhã
@@ -182,12 +197,14 @@ function MenuLink({
   href,
   icon,
   count,
+  countLabel = "guardadas",
   onClick,
   children,
 }: {
   href: string;
   icon: string;
   count?: number;
+  countLabel?: string;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -203,7 +220,7 @@ function MenuLink({
         {count !== undefined && count > 0 && (
           <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] text-muted">
             {count}
-            <span className="sr-only"> guardadas</span>
+            <span className="sr-only"> {countLabel}</span>
           </span>
         )}
       </Link>

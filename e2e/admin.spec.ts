@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { noSeriousA11yIssues } from "./helpers";
+import { noSeriousA11yIssues, signUp } from "./helpers";
 
 // The mock team (mocks/adminState.ts): fictional people, test-only passwords.
 const ADMIN = { email: "admin@exemplo.pt", password: "palavra-passe-de-teste" };
@@ -39,6 +39,7 @@ test("the moderation area asks to sign in, refuses a wrong password, and is kept
 
 test("a reported thread can be hidden from the queue and shown again from the forum section", async ({ page }) => {
   // A reader reports it.
+  await signUp(page);
   await page.goto("/forum/ps/10");
   const op = page.locator("#op");
   await op.getByRole("button", { name: "Denunciar" }).click();

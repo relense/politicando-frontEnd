@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { ThreadView } from "@/components/forum/ThreadView";
 import { ApiError } from "@/lib/api/client";
-import { getBoards, getThread, IDEAS_BOARD, type ThreadDetail } from "@/lib/api/forums";
+import { getBoards, getThread, IDEAS_BOARD, VOTES_BOARD, type ThreadDetail } from "@/lib/api/forums";
 
 type Props = { params: Promise<{ board: string; id: string }> };
 
@@ -41,7 +41,8 @@ export default async function ThreadPage({ params }: Props) {
   const boardLabel = boardInfo?.acronym ?? boardInfo?.name ?? thread.board;
 
   return (
-    <div>
+    // A vote's thread has a column beside it.
+    <div data-wide={thread.board === VOTES_BOARD ? true : undefined}>
       <nav aria-label="Caminho" className="mb-4 font-mono text-sm">
         <Link href="/forum" className="text-link underline">
           Fórum

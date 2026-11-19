@@ -203,6 +203,14 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
       articles: initiative.coverage?.articles ?? 0,
       sources: initiative.coverage?.sources ?? 0,
       lastAt: initiative.coverage?.lastAt ?? null,
+      // As with articles, `source` is the outlet's domain.
+      latest: (initiative.coverage?.latest ?? []).map((item) => ({
+        id: item.id,
+        title: decode(item.title),
+        source: sourceName(item.source),
+        sourceDomain: item.source,
+        publishedAt: item.publishedAt,
+      })),
     },
     topics: initiative.topics,
     plain: initiative.plain
@@ -536,7 +544,7 @@ export function mapEditorialPost(api: ApiEditorialPost): EditorialPost {
     ...(typeof api.views === "number" ? { views: api.views } : {}),
     ...(typeof api.recentViews === "number" ? { recentViews: api.recentViews } : {}),
     commentCount: typeof api.commentCount === "number" ? api.commentCount : null,
-    votes: typeof api.upvotes === "number" && typeof api.downvotes === "number" ? { up: api.upvotes, down: api.downvotes } : null,
+    importa: typeof api.importa === "number" ? api.importa : typeof api.upvotes === "number" ? api.upvotes : null,
   };
 }
 

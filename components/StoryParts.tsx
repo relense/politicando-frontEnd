@@ -6,6 +6,7 @@ import { partyPath } from "@/lib/parties";
 import type { EditorialKind } from "@/lib/types";
 import { ImportaButton, ImportaCount } from "./ImportaButton";
 import { SourceLogo } from "./SourceLogo";
+import { FollowButton } from "./account/FollowButton";
 
 /** The parts of an article page when the article is one outlet's version of a story. */
 
@@ -145,6 +146,28 @@ export function ImportaBox({ story }: { story: StoryDetail }) {
     <section aria-labelledby="importa" className="flex items-center gap-3 rounded-2xl border border-line p-4">
       <ImportaCount id={story.id} importa={story.importa} importance={story.importance} />
       <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
+    </section>
+  );
+}
+
+/** "Seguir esta história": told when another outlet covers it, and how following works. */
+export function FollowStoryBox({ story, headingId = "seguir-historia" }: { story: StoryDetail; headingId?: string }) {
+  return (
+    <section aria-labelledby={headingId} className="rounded-2xl border border-line p-4">
+      <h2 id={headingId} className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+        Seguir esta história
+      </h2>
+      <FollowButton kind="story" id={story.id} large className="mt-3" />
+      <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted">Avisamos-te quando outro jornal pegar nela.</p>
+      <ul className="mt-3 list-disc space-y-1 pl-4 text-xs leading-relaxed text-muted">
+        <li>
+          Seguir uma <b className="text-ink">história</b>: avisamos quando há nova cobertura.
+        </li>
+        <li>
+          Seguir uma <b className="text-ink">conversa</b> no fórum: avisamos de novas respostas, agrupadas.
+        </li>
+        <li>Ao comentar, segues a história automaticamente. Podes desligar aqui.</li>
+      </ul>
     </section>
   );
 }
