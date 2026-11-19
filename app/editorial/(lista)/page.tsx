@@ -13,7 +13,7 @@ import { CommentIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getEditorial, getParties } from "@/lib/api/client";
-import { EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
+import { comingSoon, EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
 import { fold, formatDayHeading, formatTime, lisbonDay } from "@/lib/format";
 import { localPosts } from "@/lib/localPosts";
 import type { EditorialKind, EditorialPost, Party } from "@/lib/types";
@@ -150,7 +150,10 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
         <Newsletter id="newsletter-lista" />
       </li>
     );
-  const soon = EDITORIAL_KINDS.filter((kind) => !all.some((post) => post.kind === kind));
+  const soon = comingSoon(all, { podcastShow: Boolean(podcast) });
+  /** Podcasts with no episode posts yet: the show itself, not an empty list or a "0". */
+  const showOnly = (kind: EditorialKind) => kind === "podcast" && Boolean(podcast) && counts.podcast === 0;
+  const podcastOnTop = view.kind === "podcast" && showOnly("podcast");
   const partyOf = (tag: string) => parties.find((party) => party.slug === tag || party.acronym.toLowerCase() === tag) ?? null;
   const now = requestTime();
   const chip = (active: boolean) =>
@@ -309,7 +312,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                   className={chip(view.kind === kind)}
                 >
                   <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: KINDS[kind].color }} />
-                  {KIND_PLURALS[kind]} <span className="font-normal opacity-70">{counts[kind]}</span>
+                  {KIND_PLURALS[kind]} {!showOnly(kind) && <span className="font-normal opacity-70">{counts[kind]}</span>}
                 </Link>
               </li>
             ))}
@@ -338,7 +341,9 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
             )}
           </p>
 
-          {onPage.length === 0 ? (
+          {podcastOnTop && podcast ? (
+            <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" wide />
+          ) : onPage.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
               {view.kind && soon.includes(view.kind) ? <>Em breve. {KINDS[view.kind].soon}</> : "Não há publicações aqui."}
             </p>
@@ -495,7 +500,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
       </div>
 
       {/* The podcast, at the end of the blog: the newest episode, ready to play here or in Spotify. */}
-      {podcast && <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" className="mt-12" wide />}
+      {podcast && !podcastOnTop && <PodcastBox podcast={podcast} episode={episode} headingId="podcast-blog" className="mt-12" wide />}
     </div>
   );
 }
@@ -519,7 +524,9 @@ function Newsletter({ id, className = "" }: { id: string; className?: string }) 
       <h2 id={id} className="mt-1 text-2xl font-bold leading-tight">
         Recebe os novos artigos no email
       </h2>
-      <p className="mb-3 mt-2 text-sm leading-relaxed">Um email quando sai algo novo. Sem spam, cancelas quando quiseres.</p>
+      <p className="mb-3 mt-2 text-sm leading-relaxed">
+        Os novos artigos chegam na newsletter semanal. Sem spam, cancelas quando quiseres.
+      </p>
       <NewsletterForm compact />
     </section>
   );

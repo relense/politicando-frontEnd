@@ -52,3 +52,34 @@ test("newsletter: sign up, and the pages the email links land on", async ({ page
   await expect(page.getByRole("button", { name: "Quero receber" })).toBeVisible();
   await noSeriousA11yIssues(page);
 });
+
+test("newsletter links open pages that act only on the button: confirm and unsubscribe", async ({ page }) => {
+  let posts = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && /\/newsletter\/(confirm|unsubscribe)/.test(request.url())) posts++;
+  });
+  await page.goto("/newsletter/confirmar?token=boa-ligacao");
+  const main = page.locator("main");
+  await expect(main.getByRole("heading", { level: 1, name: "Confirma a tua inscrição na newsletter" })).toBeVisible();
+  await noSeriousA11yIssues(page);
+  expect(posts).toBe(0);
+  await main.getByRole("button", { name: "Confirmar" }).click();
+  await expect(main.getByRole("status")).toContainText("Inscrição confirmada. Obrigado!");
+  expect(posts).toBe(1);
+
+  await page.goto("/newsletter/confirmar?token=ligacao-expirado");
+  await main.getByRole("button", { name: "Confirmar" }).click();
+  await expect(main.getByRole("alert")).toContainText("Esta ligação já não é válida");
+  // With the sign-up form, to try again.
+  await expect(main.getByRole("button", { name: "Quero receber" })).toBeVisible();
+
+  await page.goto("/newsletter/cancelar?token=boa-ligacao");
+  await expect(main.getByRole("heading", { level: 1, name: "Queres deixar de receber a newsletter?" })).toBeVisible();
+  await noSeriousA11yIssues(page);
+  await main.getByRole("button", { name: "Cancelar inscrição" }).click();
+  await expect(main.getByRole("status")).toContainText("Cancelaste a inscrição. Não vais receber mais emails.");
+
+  await page.goto("/newsletter/cancelar?token=ligacao-expirado");
+  await main.getByRole("button", { name: "Cancelar inscrição" }).click();
+  await expect(main.getByRole("alert")).toContainText("Esta ligação já não é válida");
+});

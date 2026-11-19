@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues, openNewsSearch, signUp } from "./helpers";
+import { gotoReady, noSeriousA11yIssues, openNewsSearch, signUp } from "./helpers";
 import { FEATURES } from "../lib/features";
 
 test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
@@ -992,7 +992,7 @@ test("news: opening an article counts one read, sent by the browser, and the car
 test("news: readers vote up or down, take the vote back, and sort by the most voted", async ({ page }) => {
   await signUp(page);
   test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
-  await page.goto("/?ordem=votadas&periodo=hoje");
+  await gotoReady(page, "/?ordem=votadas&periodo=hoje");
   const first = page.locator("main article").first();
   await expect(first).toContainText("Notícia de teste número 98");
   const score = first.getByLabel(/^Pontuação:/);
@@ -1016,14 +1016,19 @@ test("news: readers vote up or down, take the vote back, and sort by the most vo
 
 test("stories: one card per news told by several outlets, Importa, Hoje em 5, every version and one debate", async ({ page }) => {
   test.skip(!FEATURES.stories, "Stories are switched off in lib/features.ts.");
+  // Importa needs an account.
+  await signUp(page);
   await page.goto("/");
   const card = page
     .locator("main article")
     .filter({ has: page.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }) })
     .first();
   await expect(card).toContainText("+3 jornais");
-  // No photo from the outlet it names: a dark frame of the same size says so, instead of the card shrinking.
-  await expect(card.getByText(/^Sem imagem · /)).toBeVisible();
+  // No photo from the outlet it names: a light branded frame of the same size, with the outlet, instead of the card shrinking.
+  const noImage = card.locator("[data-no-image]");
+  await expect(noImage).toBeVisible();
+  await expect(noImage).toContainText("OLITICANDO");
+  await expect(card.getByText(/Sem imagem/i)).toHaveCount(0);
   // How each outlet headlined it, folded under the logos.
   await card.getByText("4 jornais contaram isto").click();
   await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
@@ -1038,6 +1043,8 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // Hoje em 5: the story opened gets its tick.
   const today = page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true });
   await expect(today).toContainText("0 de 5");
+  // How fresh each one is: the outlets of the last 24 hours and the latest article's age.
+  await expect(today.getByRole("listitem").first()).toContainText(/\d+ jorna(l|is) · /);
   await noSeriousA11yIssues(page);
 
   await card.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }).click();
@@ -1052,7 +1059,7 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // The mark carries over, and the story's count follows it, even if the page was cached before the mark.
   const storyImporta = page.getByRole("button", { name: /^Importa/ });
   await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#importa")).toHaveText(String(marked));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked));
   // Contexto: our post that explains it, the party's votes, what's coming.
   const context = page.getByRole("region", { name: /^Contexto/ });
   await expect(context).toContainText("#OE2027");
@@ -1083,19 +1090,19 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
   // The same Importa, and it can be taken back there.
   await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#importa")).toHaveText(String(marked));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked));
   const takenBack = page.waitForResponse((response) => /\/stories\/100\/vote$/.test(response.url()));
   await storyImporta.click();
   await takenBack;
   await expect(storyImporta).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator("#importa")).toHaveText(String(marked - 1));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked - 1));
   await page.goto("/");
   await expect(page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true })).toContainText(/[12] de 5/);
 });
 
 test("news menu: save, hide with undo, why, and report", async ({ page }) => {
   await signUp(page);
-  await page.goto("/");
+  await gotoReady(page, "/");
   const card = page.locator("main article").filter({ hasText: "Notícia de teste número 98" });
   const menu = () => card.getByRole("button", { name: /^Mais opções para/ });
 
@@ -1157,7 +1164,7 @@ test('blog: readers mark a post "Importa", in the list and on its page', async (
 test("blog: readers comment on a post as on the news", async ({ page }, testInfo) => {
   await signUp(page);
   const text = `Comentário de teste no blog (${testInfo.project.name})`;
-  await page.goto("/editorial/o-que-muda-no-orcamento");
+  await gotoReady(page, "/editorial/o-que-muda-no-orcamento");
   const section = page.getByRole("region", { name: /Comentários/ });
   await expect(section.getByText("Bem explicado, obrigado.")).toBeVisible();
   await section.getByRole("button", { name: "Junta-te à conversa…" }).click();
@@ -1197,10 +1204,17 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
 });
 
 test("feed view: cards or a compact list, remembered; the order tabs", async ({ page }) => {
-  await page.goto("/");
+  // Importa (from the list, with stories on) needs an account.
+  await signUp(page);
+  await gotoReady(page, "/");
   const choose = async (name: string) => {
-    await page.getByRole("button", { name: /^Vista das notícias/ }).click();
-    await page.getByRole("group", { name: "Vista das notícias" }).getByRole("button", { name }).click();
+    const group = page.getByRole("group", { name: "Vista das notícias" });
+    // A click before the page is interactive does nothing: press again until the menu opens.
+    await expect(async () => {
+      if (!(await group.isVisible())) await page.getByRole("button", { name: /^Vista das notícias/ }).click();
+      await expect(group).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await group.getByRole("button", { name }).click();
   };
   await expect(page.getByRole("button", { name: /^Vista das notícias/ })).toContainText("Cartões");
   await choose("Lista compacta");
@@ -1310,12 +1324,14 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
   );
 });
 
-test("a card without a photo keeps its shape, with a dark frame naming the outlet", async ({ page }) => {
+test("a card without a photo keeps its shape, with a branded frame naming the outlet", async ({ page }) => {
   test.skip(FEATURES.stories, "With stories on, the stories test covers it.");
   await page.goto("/");
   const card = page.locator("main article").first();
-  const frame = card.getByText(/^Sem imagem · /);
+  const frame = card.locator("[data-no-image]");
   await expect(frame).toBeVisible();
+  await expect(frame).toContainText("OLITICANDO");
+  await expect(card.getByText(/Sem imagem/i)).toHaveCount(0);
   const box = await frame.locator("xpath=ancestor::a[1]").boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(180);
 });
@@ -1341,7 +1357,7 @@ test("follow us: rarely in the feed until dismissed, at the side column's end, i
   }
 
   const footer = page.locator("footer");
-  await expect(footer.getByRole("heading", { name: "A política do dia, em 5 notícias, às 8h." })).toBeVisible();
+  await expect(footer.getByRole("heading", { name: "A semana política, num só email." })).toBeVisible();
   await expect(footer.getByRole("link", { name: "Registo de correções" })).toHaveAttribute("href", "/feedback/correcoes");
   await expect(footer.getByRole("link", { name: /Voltar ao topo/ })).toBeVisible();
 

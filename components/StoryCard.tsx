@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { leadOf, storyImage, storyPath, type Story } from "@/lib/api/stories";
+import { leadOf, storyPath, storyPhoto, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
 import { initiativePath } from "@/lib/initiatives";
 import { partyPath } from "@/lib/parties";
@@ -24,6 +24,8 @@ export { leadOf };
 export function StoryCard({ story, why }: { story: Story; why?: string }) {
   const path = storyPath(story);
   const lead = leadOf(story);
+  // The lead outlet's photo, or another outlet's credited to it: an empty frame only when no outlet has one.
+  const photo = storyPhoto(story);
   const others = story.sourceCount - 1;
   const text = story.excerpt ? excerpt(story.excerpt) : "";
 
@@ -73,10 +75,10 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
       {text && <p className={`${cardExcerpt} max-sm:hidden`}>{text}</p>}
 
       <ArticleImage
-        src={storyImage(story)}
+        src={photo?.url ?? null}
         alt={story.title}
         href={path}
-        caption={`Imagem · ${lead.source}`}
+        caption={photo?.credit ? `Imagem · ${photo.credit}` : "Imagem de outro jornal"}
         source={lead.source}
         sourceDomain={lead.sourceDomain}
         className={cardImage}

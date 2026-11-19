@@ -19,6 +19,10 @@ export const KIND_PLURALS: Record<EditorialKind, string> = {
 
 export const EDITORIAL_KINDS = Object.keys(KIND_LABELS) as EditorialKind[];
 
+/** The formats still to come: none published yet. Podcasts are already here while the show is on Spotify. */
+export const comingSoon = (posts: Pick<EditorialPost, "kind">[], { podcastShow }: { podcastShow: boolean }) =>
+  EDITORIAL_KINDS.filter((kind) => !(kind === "podcast" && podcastShow) && !posts.some((post) => post.kind === kind));
+
 export const editorialPath = (slug: string) => `/editorial/${encodeURIComponent(slug)}`;
 
 /** Audio players are short strips; video players keep the picture's shape. */

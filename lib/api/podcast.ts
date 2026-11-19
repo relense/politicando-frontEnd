@@ -32,7 +32,8 @@ const oembedSchema = z.object({ title: z.string().min(1), thumbnail_url: z.strin
 
 export async function getLatestEpisode(): Promise<PodcastEpisode | null> {
   try {
-    const latest = await request("/podcast/latest", latestSchema, hourly);
+    // Five minutes, not an hour: the API already reads Spotify hourly, and this is one cheap read.
+    const latest = await request("/podcast/latest", latestSchema, { next: { revalidate: 300 } });
     // Only Spotify links: anything else is dropped (the box then opens and plays the show).
     const episode = podcastFromUrl(latest.spotifyUrl);
     return {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { storyImage, storyPath, type Story } from "@/lib/api/stories";
+import { storyPhoto, storyPath, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
 import { partyPath } from "@/lib/parties";
 import type { Article, ArticleParty } from "@/lib/types";
@@ -130,7 +130,7 @@ export function StoryRow({ story, why }: { story: Story; why: string }) {
       path={storyPath(story)}
       title={story.title}
       text={story.excerpt ? excerpt(story.excerpt) : ""}
-      imageUrl={storyImage(story)}
+      imageUrl={storyPhoto(story)?.url ?? null}
       source={lead.source}
       sourceDomain={lead.sourceDomain}
       when={story.lastPublishedAt}

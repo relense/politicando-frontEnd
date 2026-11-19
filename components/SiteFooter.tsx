@@ -3,6 +3,7 @@ import { FooterNewsletter } from "./FooterNewsletter";
 import { ReportProblem } from "./ReportProblem";
 import { SocialLinks } from "./SocialLinks";
 import { CONTACT_EMAIL, SITE_DESCRIPTION } from "@/lib/site";
+import { Wordmark } from "./Wordmark";
 
 type Column = { title: string; links: { href: string; label: string }[] };
 
@@ -60,14 +61,6 @@ export const LEGAL_LINKS = [
 
 const heading = "mb-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted";
 
-/** The site's name as in the header: the first letter in the icon's gold. */
-export function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <span className={`font-logo font-bold tracking-[0.2em] ${className}`}>
-      <span className="text-brand">P</span>OLITICANDO
-    </span>
-  );
-}
 
 /**
  * The end of pages that have one (articles, Parliament, contracts…): the morning email first, then the site's map, our
