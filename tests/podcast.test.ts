@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { podcastFromUrl } from "@/lib/podcast";
+import { episodeTitle, podcastFromUrl } from "@/lib/podcast";
 
 describe("podcast link", () => {
   it("takes Spotify's share links for a show or an episode", () => {
@@ -39,5 +39,16 @@ describe("the newest episode", () => {
     await getLatestEpisode();
     spy.mockRestore();
     expect((calls[0] as { next?: { revalidate?: number } }).next?.revalidate).toBe(300);
+  });
+});
+
+describe("episodeTitle", () => {
+  it("drops Spotify's leading date, said on the details line instead", () => {
+    expect(episodeTitle("19 nov. · Orçamento: oposição aprova medidas")).toBe("Orçamento: oposição aprova medidas");
+    expect(episodeTitle("3 dez · Debate quinzenal")).toBe("Debate quinzenal");
+  });
+  it("keeps a title without one", () => {
+    expect(episodeTitle("Orçamento: 19 nov. · votações")).toBe("Orçamento: 19 nov. · votações");
+    expect(episodeTitle("19 nov. · ")).toBe("19 nov. · ");
   });
 });
