@@ -9,6 +9,7 @@ import { accountErrorMessage, emailProblem, logIn, register } from "@/lib/api/ac
 import { ApiError } from "@/lib/api/client";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 import { GOLD, OUTLINE } from "./ui";
+import { track } from "@/lib/analytics";
 
 type Mode = "login" | "register";
 
@@ -232,6 +233,10 @@ function AuthForm({ mode, back, onCreated }: { mode: Mode; back: string; onCreat
       return register({ username: name, password, captchaToken, ...(given ? { email: given, newsletter } : {}) });
     },
     onSuccess: async (answer) => {
+      if (register_) {
+        track("register", { email: Boolean(answer.user.email) });
+        if (answer.newsletter === "pending") track("newsletter-subscribe", { where: "register" });
+      } else track("login");
       if (register_ && answer.user.email) onCreated({ sent: answer.emailSent, newsletter: answer.newsletter === "pending" });
       await adoptAccount(client, answer.user);
       if (!(register_ && answer.user.email)) router.push(back);

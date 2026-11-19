@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/api/client";
 import { markImporta } from "@/lib/api/stories";
 import { formatNumber } from "@/lib/format";
 import { useAccountGate } from "@/lib/account";
+import { track } from "@/lib/analytics";
 
 // The stories this reader marked "Importa", kept on the device as {"29":1}, to draw the button filled. Storage may be
 // blocked: then it isn't filled after a reload, and the API still keeps one mark per reader.
@@ -164,6 +165,7 @@ export function ImportaButton({
     setFailed(false);
     try {
       applyImportaAnswer(id, await markImporta(id, next ? 1 : 0));
+      if (next) track("importa", { where: "story", story: id });
     } catch (error) {
       // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
       if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);

@@ -28,6 +28,7 @@ import { SignInToTakePart } from "@/components/account/SignInToTakePart";
 import { FollowButton } from "@/components/account/FollowButton";
 import { SaveButton } from "@/components/account/SaveButton";
 import { markFollowed } from "@/lib/accountExtras";
+import { track } from "@/lib/analytics";
 
 const POLL_MS = 20_000;
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -499,6 +500,7 @@ function ReplyForm({
       setBody("");
       setReplyTo(null);
       setStatus("Resposta publicada.");
+      track("forum-reply", { thread: threadId });
       // Replying follows the thread (backend docs/engagement-api.md).
       if (reader) markFollowed("thread", threadId);
       onPosted(created.posterId);

@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { readerPrefs, toggleIn, updateReaderPrefs, useReaderPrefs, type ReaderPrefs } from "@/lib/readerPrefs";
 import { ReportButton } from "./forum/ReportButton";
 import { useAccountGate } from "@/lib/account";
+import { track } from "@/lib/analytics";
 
 type MenuArticle = { id: number; title: string; source: string; sourceDomain: string; parties: { slug: string; acronym: string }[] };
 
@@ -91,6 +92,8 @@ export function ArticleMenu({ article, why }: { article: MenuArticle; why: strin
               close();
               if (blocked) return;
               updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, article.id) }));
+              // Kept by the reader's preferences, synced to the account (lib/readerPrefs).
+              if (!saved) track("save", { kind: "article", id: article.id });
             }}
           >
             <Icon d="M6 3h8a1 1 0 0 1 1 1v13l-5-3.5L5 17V4a1 1 0 0 1 1-1Z" filled={saved} />

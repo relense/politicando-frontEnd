@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { ApiError, subscribeNewsletter } from "@/lib/api/client";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
+import { track } from "@/lib/analytics";
 
 /** Sent when the captcha is switched off for testing. The API decides whether it is accepted. */
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -33,6 +34,7 @@ export function NewsletterForm({ compact = false, band = false }: { compact?: bo
 
   const mutation = useMutation({
     mutationFn: ({ address, captchaToken }: { address: string; captchaToken: string }) => subscribeNewsletter(address, captchaToken),
+    onSuccess: () => track("newsletter-subscribe", { where: band ? "band" : compact ? "box" : "page" }),
     onError: (failure) => setError((failure instanceof ApiError && failure.code && ERROR_MESSAGES[failure.code]) || DEFAULT_ERROR),
     // A token can only be used once, whether the request worked or not.
     onSettled: () => captcha.current?.reset(),

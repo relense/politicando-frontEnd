@@ -9,6 +9,7 @@ import { IDEAS_BOARD } from "@/lib/api/forums";
 import { CONTACT_EMAIL } from "@/lib/site";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 import { NewThreadForm } from "./forum/NewThreadForm";
+import { track } from "@/lib/analytics";
 
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
 const MAX_LENGTH = 1000;
@@ -82,6 +83,7 @@ export function FeedbackForm({
 
   const mutation = useMutation({
     mutationFn: sendFeedback,
+    onSuccess: (_answer, input) => track("feedback-sent", { kind: input.kind }),
     onError: (failure) =>
       setError(
         (failure instanceof ApiError && failure.code && ERRORS[failure.code]) ||

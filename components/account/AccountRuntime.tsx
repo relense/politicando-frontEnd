@@ -16,6 +16,7 @@ import { applyImportaAnswer } from "../ImportaButton";
 import { applyPostAnswer } from "../PostImporta";
 import { useReturnPath } from "./AccountMenu";
 import { LoginNote } from "./LoginNote";
+import { track } from "@/lib/analytics";
 
 type Done = { text: string; href?: string; failed?: boolean };
 
@@ -115,6 +116,7 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
           stance: action.stance,
         });
         writeDraft(action.target, action.parentId, "");
+        track("comment-sent", { where: action.target.split("/")[1], reply: action.parentId !== null, afterLogin: true });
         await client.invalidateQueries({ queryKey: ["comments", action.target] });
         return {
           text: `Sessão iniciada. ${action.parentId === null ? "O teu comentário foi publicado." : "A tua resposta foi publicada."}`,
@@ -123,12 +125,14 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
       }
       case "importa":
         applyImportaAnswer(action.id, await markImporta(action.id, 1));
+        track("importa", { where: "story", story: action.id, afterLogin: true });
         return { text: "Sessão iniciada. Marcaste “Importa” nesta notícia." };
       case "vote":
         applyVoteAnswer(action.id, await voteArticle(action.id, action.value));
         return { text: "Sessão iniciada. O teu voto contou." };
       case "post":
         applyPostAnswer(action.slug, await markPost(action.slug, 1));
+        track("importa", { where: "blog", post: action.slug, afterLogin: true });
         return { text: "Sessão iniciada. Marcaste “Importa” neste artigo." };
       case "like":
         applyLikeAnswer(action.id, await likeComment(action.id, 1));
