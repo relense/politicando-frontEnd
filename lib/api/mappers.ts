@@ -203,6 +203,14 @@ export function mapInitiative(initiative: ApiInitiative): Initiative {
       articles: initiative.coverage?.articles ?? 0,
       sources: initiative.coverage?.sources ?? 0,
       lastAt: initiative.coverage?.lastAt ?? null,
+      // As with articles, `source` is the outlet's domain.
+      latest: (initiative.coverage?.latest ?? []).map((item) => ({
+        id: item.id,
+        title: decode(item.title),
+        source: sourceName(item.source),
+        sourceDomain: item.source,
+        publishedAt: item.publishedAt,
+      })),
     },
     topics: initiative.topics,
     plain: initiative.plain

@@ -95,10 +95,28 @@ test("initiative detail: unknown id is a 404, and list cards link to the detail 
   await expect(page).toHaveURL(/\/iniciativas\/\d+$/);
 });
 
-test("initiatives show the news about them: a chip on the card, and a column on the page, newest first, vote or not", async ({ page }) => {
+test("initiatives show the news about them: a line on the card, the open vote, and a column on the page, newest first, vote or not", async ({
+  page,
+}) => {
   await page.goto("/iniciativas");
-  const chip = page.getByRole("link", { name: "3 notícias" }).first();
-  await expect(chip).toHaveAttribute("href", /^\/iniciativas\/\d+#noticias$/);
+  await expect(page.getByRole("link", { name: /^\d+ com previsão aberta/ })).toHaveAttribute("href", "/previsoes");
+  // 5000: an open vote and its latest headlines in the list.
+  const withPoll = page.getByRole("article").filter({ has: page.locator('a[href="/iniciativas/5000"]') });
+  await expect(withPoll).toContainText("Previsão aberta");
+  await expect(withPoll).toContainText(/Passa ou chumba\? Vai a votos/);
+  await expect(withPoll.getByRole("link", { name: /^Prever/ })).toHaveAttribute("href", "/iniciativas/5000#previsao-iniciativa");
+  await expect(withPoll).toContainText("3 notícias");
+  await withPoll.getByRole("button", { name: /^Abrir/ }).click();
+  await expect(withPoll.getByRole("list", { name: "Últimas notícias" }).getByRole("listitem")).toHaveCount(3);
+  await expect(withPoll.getByRole("link", { name: "Ver as 3 notícias na página da iniciativa →" })).toHaveAttribute(
+    "href",
+    "/iniciativas/5000#noticias",
+  );
+  await noSeriousA11yIssues(page);
+  // 4995: no headlines in the list; they load when opened.
+  const lazy = page.getByRole("article").filter({ has: page.locator('a[href="/iniciativas/4995"]') });
+  await lazy.getByRole("button", { name: /^Abrir/ }).click();
+  await expect(lazy.getByRole("list", { name: "Últimas notícias" }).getByRole("listitem")).toHaveCount(3);
   // 4990 has news and no Passa ou chumba.
   await page.goto("/iniciativas/4990");
   const news = page.getByRole("region", { name: /Notícias sobre esta proposta/ });

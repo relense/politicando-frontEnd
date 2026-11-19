@@ -2,6 +2,9 @@ export type ArticleParty = { slug: string; acronym: string; name: string };
 
 export type Party = ArticleParty & { website: string | null };
 
+/** A news item in an initiative's coverage, as lists carry it. */
+export type CoverageArticle = { id: number; title: string; source: string; sourceDomain: string; publishedAt: string };
+
 export type Article = {
   id: number;
   title: string;
@@ -127,7 +130,13 @@ export type Initiative = {
   authors: { parties: ArticleParty[]; deputies: { id: number; name: string; partySlug: string | null }[]; other: string | null };
   lastVote: { date: string | null; phase: string | null; result: string; unanimous: boolean } | null;
   /** News found about it. Approximate (matched by keywords), so the UI calls it "related". */
-  coverage: { articles: number; sources: number; lastAt: string | null };
+  coverage: {
+    articles: number;
+    sources: number;
+    lastAt: string | null;
+    /** The latest few, newest first, when the API sends them (lists); empty otherwise. */
+    latest: CoverageArticle[];
+  };
   /** Subjects found in the title; empty when none fits. */
   topics: InitiativeTopic[];
   /** The plain-language reading, from fixed rules; null when the API has none. */

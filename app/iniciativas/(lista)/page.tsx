@@ -3,7 +3,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { InitiativeList } from "@/components/InitiativeList";
 import { PartyLogo } from "@/components/PartyLogo";
-import { ApiError, getInitiatives, getParliament, type InitiativeQuery } from "@/lib/api/client";
+import { ApiError, cached, getInitiatives, getParliament, type InitiativeQuery } from "@/lib/api/client";
+import { getOpenPredictions } from "@/lib/api/engagement";
 import { getInitiativeTopics, type TopicCount } from "@/lib/api/presidency";
 import { tidyName } from "@/lib/elections";
 import { formatNumber } from "@/lib/format";
@@ -124,7 +125,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
   const filtered = Boolean(filters.topic || filters.q);
   // The figures at the top are for everything, or for the chosen party; with a topic or a search, they need a page of
   // their own. Each party's count follows the other filters.
-  const [page, everything, partyCounts] = await Promise.all([
+  const [page, everything, partyCounts, polls] = await Promise.all([
     loadPage(query),
     filtered ? loadPage({ party: filters.party ?? undefined, limit: 1 }) : null,
     Promise.all(
@@ -134,6 +135,10 @@ export default async function InitiativesPage({ searchParams }: Props) {
           .catch(() => [item.slug, null] as const),
       ),
     ),
+    // The open votes ("Passa ou chumba?"), shown on their initiatives.
+    getOpenPredictions(20, cached)
+      .then((items) => items.filter((item) => item.state === "open"))
+      .catch(() => []),
   ]);
   const countOf = new Map(partyCounts);
 
@@ -292,6 +297,11 @@ export default async function InitiativesPage({ searchParams }: Props) {
               <span className={shown !== null ? "text-muted" : "font-bold"}>{shown === 1 ? "iniciativa" : "iniciativas"}</span>
               <span className="text-muted"> · {filters.oldest ? "mais antigas primeiro" : "mais recentes primeiro"}</span>
             </p>
+            {polls.length > 0 && (
+              <Link href="/previsoes" className="ml-auto font-bold text-[#17766b] hover:underline dark:text-[#5fd3c4]">
+                {polls.length} com previsão aberta →
+              </Link>
+            )}
             {activeStep?.plain && (
               <p className="basis-full font-sans text-sm text-muted">
                 {activeStep.label}: {activeStep.plain}
@@ -318,7 +328,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
           </div>
 
           {page ? (
-            <InitiativeList key={pathOf(filters)} query={query} initialPage={page} />
+            <InitiativeList key={pathOf(filters)} query={query} initialPage={page} polls={polls} />
           ) : (
             <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
               As iniciativas ainda não estão disponíveis. Volta em breve.

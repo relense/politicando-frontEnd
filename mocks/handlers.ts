@@ -393,7 +393,26 @@ export const handlers = [
     const page = after.slice(0, limit);
     // `total` counts every match, not just what is left after the cursor.
     return HttpResponse.json({
-      items: page,
+      // Half of those with news carry their latest headlines (the proposed coverage.latest); the rest load them when opened.
+      items: page.map((item) =>
+        item.coverage?.articles && item.id % 10 === 0
+          ? {
+              ...item,
+              coverage: {
+                ...item.coverage,
+                latest: articles
+                  .slice(item.id % 20, (item.id % 20) + 3)
+                  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+                  .map((article) => ({
+                    id: article.id,
+                    title: article.title,
+                    source: article.source,
+                    publishedAt: article.publishedAt,
+                  })),
+              },
+            }
+          : item,
+      ),
       nextCursor: after.length > limit ? `i${page.at(-1)!.id}` : null,
       total: inStage.length,
       stages,
