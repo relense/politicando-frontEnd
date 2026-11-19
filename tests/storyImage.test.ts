@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOutletPhoto, storyImage } from "@/lib/api/stories";
+import { isOutletPhoto, storyPhoto } from "@/lib/api/stories";
 
 const version = (sourceDomain: string, title: string, extra: { imageUrl?: string | null } = {}) => ({
   source: sourceDomain,
@@ -26,25 +26,48 @@ describe("isOutletPhoto", () => {
   });
 });
 
-describe("storyImage", () => {
+describe("storyPhoto", () => {
   const title = "O Orçamento na reta final";
-  it("uses the lead outlet's own photo when the API gives one per outlet, even null", () => {
+  it("uses the lead outlet's own photo, credited to it", () => {
+    const versions = [version("observador.pt", "Outro título"), version("cmjornal.pt", title)];
+    expect(storyPhoto({ title, versions, imageUrl: "https://cdn.cmjornal.pt/a.jpg" })).toEqual({
+      url: "https://cdn.cmjornal.pt/a.jpg",
+      credit: "cmjornal.pt",
+    });
+  });
+  it("uses another outlet's photo rather than none, credited to that outlet (19 Nov: CM's photo on a DNOTICIAS card)", () => {
+    const versions = [version("cmjornal.pt", "Outro título"), version("dnoticias.pt", title)];
+    expect(storyPhoto({ title, versions, imageUrl: "https://cdn.cmjornal.pt/b.jpg" })).toEqual({
+      url: "https://cdn.cmjornal.pt/b.jpg",
+      credit: "cmjornal.pt",
+    });
+  });
+  it("credits no one when the photo's outlet can't be told", () => {
+    const versions = [version("observador.pt", "Outro título"), version("dn.pt", title)];
+    expect(storyPhoto({ title, versions, imageUrl: "https://elsewhere.com/a.jpg" })).toEqual({
+      url: "https://elsewhere.com/a.jpg",
+      credit: null,
+    });
+  });
+  it("trusts the photo of a story told by one outlet", () => {
+    expect(storyPhoto({ title, versions: [version("dn.pt", title)], imageUrl: "https://elsewhere.com/a.jpg" })).toEqual({
+      url: "https://elsewhere.com/a.jpg",
+      credit: "dn.pt",
+    });
+  });
+  it("with a photo per outlet: the lead's, else the first outlet that has one; none when no outlet has one", () => {
     const versions = [
       version("publico.pt", "Outro título", { imageUrl: "https://x.pt/a.jpg" }),
       version("dn.pt", title, { imageUrl: null }),
     ];
-    expect(storyImage({ title, versions, imageUrl: "https://x.pt/a.jpg" })).toBeNull();
+    expect(storyPhoto({ title, versions, imageUrl: "https://x.pt/a.jpg" })).toEqual({ url: "https://x.pt/a.jpg", credit: "publico.pt" });
     versions[1]!.imageUrl = "https://media.assettype.com/dn/b.jpg";
-    expect(storyImage({ title, versions, imageUrl: "https://x.pt/a.jpg" })).toBe("https://media.assettype.com/dn/b.jpg");
-  });
-  it("keeps the story's photo only when it is recognisably the lead's", () => {
-    const versions = [version("observador.pt", "Outro título"), version("cmjornal.pt", title)];
-    expect(storyImage({ title, versions, imageUrl: "https://wm.observador.pt/a.jpg" })).toBeNull();
-    expect(storyImage({ title, versions, imageUrl: "https://cdn.cmjornal.pt/a.jpg" })).toBe("https://cdn.cmjornal.pt/a.jpg");
-  });
-  it("trusts the photo of a story told by one outlet", () => {
-    expect(storyImage({ title, versions: [version("dn.pt", title)], imageUrl: "https://elsewhere.com/a.jpg" })).toBe(
-      "https://elsewhere.com/a.jpg",
-    );
+    expect(storyPhoto({ title, versions, imageUrl: "https://x.pt/a.jpg" })).toEqual({
+      url: "https://media.assettype.com/dn/b.jpg",
+      credit: "dn.pt",
+    });
+    versions[0]!.imageUrl = null;
+    versions[1]!.imageUrl = null;
+    expect(storyPhoto({ title, versions, imageUrl: null })).toBeNull();
   });
 });

@@ -1204,6 +1204,8 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
 });
 
 test("feed view: cards or a compact list, remembered; the order tabs", async ({ page }) => {
+  // Importa (from the list, with stories on) needs an account.
+  await signUp(page);
   await page.goto("/");
   const choose = async (name: string) => {
     await page.getByRole("button", { name: /^Vista das notícias/ }).click();
