@@ -51,3 +51,26 @@ test("no «Há notícias novas» in an order other than newest first", async ({ 
   expect(looked).toBe(false);
   await expect(page.getByRole("button", { name: "Há notícias novas" })).toHaveCount(0);
 });
+
+test("a party's feed never offers news that isn't about that party", async ({ page }) => {
+  test.skip(FEATURES.stories, "The articles feed; the stories feed works the same way.");
+  await page.clock.install();
+  await gotoReady(page, "/partido/ps");
+  await expect(page.locator("main article").first()).toBeVisible();
+  // The next look finds a newer article about another party only (19 Nov: PPM's feed swapped for everyone's).
+  await page.route(/\/api\/v2\/articles\?/, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { items: Record<string, unknown>[] };
+    const other = {
+      ...body.items[0]!,
+      id: 990002,
+      title: "Notícia sem o PS",
+      parties: [{ slug: "chega", acronym: "CH", name: "Chega" }],
+      publishedAt: new Date(Date.now() + 3_600_000).toISOString(),
+    };
+    await route.fulfill({ response, json: { ...body, items: [other, ...body.items] } });
+  });
+  await page.clock.fastForward("05:01");
+  await page.waitForTimeout(1000);
+  await expect(page.getByRole("button", { name: "Há notícias novas" })).toHaveCount(0);
+});
