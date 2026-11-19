@@ -10,7 +10,7 @@ const day = (offset: number) => {
 /** An instant on that day at that Lisbon hour (winter or summer, the offset is close enough for a mock). */
 const at = (offset: number, time: string) => new Date(`${day(offset)}T${time}:00Z`).toISOString();
 
-/** Fictional events, always in the coming days, in the shape of the contract in docs/api-handoff.md. */
+/** Fictional events, always in the coming days, in the shape of the backend contract (docs/agenda-api.md in the backend repo). */
 const items = () => [
   {
     id: "plenario-1",

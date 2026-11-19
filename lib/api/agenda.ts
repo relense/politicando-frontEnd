@@ -3,7 +3,7 @@ import { AGENDA_KINDS, type AgendaItem, type AgendaKind } from "@/lib/agenda";
 import { ApiError, cached, request, searchOf } from "./client";
 import { safeHttpUrl } from "./mappers";
 
-/** The political calendar (contract in docs/api-handoff.md, "Agenda política"). */
+/** The political calendar (contract: docs/agenda-api.md in the backend repo). */
 
 const itemSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
