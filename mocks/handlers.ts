@@ -148,6 +148,37 @@ export const handlers = [
       spotifyUrl: "https://open.spotify.com/episode/0000000000TesteEpis03",
     }),
   ),
+  // The episodes as a list (backend docs/podcast-api.md: GET /podcast), newest first, the newest included; fictional.
+  http.get(`${API}/podcast`, ({ request }) => {
+    const limit = Number(new URL(request.url).searchParams.get("limit") ?? 10);
+    const titles = [
+      "18 nov. · O Orçamento na reta final, explicado",
+      "17 nov. · A semana no Parlamento começa com a saúde",
+      "14 nov. · O que o Governo aprovou em Conselho de Ministros",
+      "13 nov. · Autarquias: as contas das câmaras em debate",
+    ];
+    const episodes = titles.slice(0, limit).map((title, index) => {
+      const id = `0000000000TesteEpis${String(3 - index).padStart(2, "0")}`;
+      const day = Number(title.slice(0, 2));
+      return {
+        id,
+        title,
+        publishedAt: `2026-11-${String(day).padStart(2, "0")}T07:28:00.000Z`,
+        durationSeconds: index === 0 ? 1460 : 300 + index * 60,
+        imageUrl: null,
+        url: `https://open.spotify.com/episode/${id}`,
+        embedUrl: `https://open.spotify.com/embed/episode/${id}`,
+      };
+    });
+    return HttpResponse.json({
+      show: {
+        url: "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
+        embedUrl: "https://open.spotify.com/embed/show/6qMcWa60jvf3CqsSZtzPtT",
+      },
+      latest: episodes[0] ?? null,
+      episodes,
+    });
+  }),
   http.get(`${API}/editorial`, ({ request }) => {
     const params = new URL(request.url).searchParams;
     const featured = params.get("featured");

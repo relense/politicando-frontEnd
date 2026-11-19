@@ -1308,6 +1308,41 @@ test("the podcast box: the newest episode without Spotify, which loads and plays
   await expect(end.getByRole("link", { name: /Abrir no Spotify/ })).toBeVisible();
 });
 
+test("the blog's Podcasts filter lists the earlier episodes, each playing on ▶; only that filter", async ({ page }) => {
+  // Spotify is never contacted: its player is a stand-in page.
+  await page.route(/open\.spotify\.com/, (route) =>
+    route.request().url().includes("/embed/iframe-api/")
+      ? route.abort()
+      : route.fulfill({ status: 200, contentType: "text/html", body: "<p>leitor</p>" }),
+  );
+  await page.goto("/editorial?tipo=podcast");
+  const list = page.getByRole("region", { name: "Episódios anteriores" });
+  await list.scrollIntoViewIfNeeded();
+  // The newest is in the box above: the three before it, newest first, with the date below each title.
+  const rows = list.getByRole("listitem");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.first()).toContainText("A semana no Parlamento começa com a saúde");
+  await expect(rows.first()).toContainText("17 nov · 6 min");
+  await expect(rows.first()).not.toContainText("17 nov. ·");
+  await expect(list.locator("iframe")).toHaveCount(0);
+  await expect(list.getByRole("link", { name: /Ver todos no Spotify/ })).toHaveAttribute(
+    "href",
+    "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
+  );
+  await noSeriousA11yIssues(page);
+
+  // ▶ loads Spotify's player on that episode only.
+  await rows
+    .nth(1)
+    .getByRole("button", { name: /^Ouvir aqui: O que o Governo aprovou/ })
+    .click();
+  await expect(list.locator("iframe")).toHaveCount(1);
+  await expect(list.locator("iframe")).toHaveAttribute("src", /\/embed\/episode\/0000000000TesteEpis01/);
+
+  await page.goto("/editorial");
+  await expect(page.getByRole("region", { name: "Episódios anteriores" })).toHaveCount(0);
+});
+
 test("our profiles: X and the podcast in the footer and the menu, and in the site's structured data", async ({ page, isMobile }) => {
   await page.goto("/parlamento");
   const footer = page.locator("footer");
