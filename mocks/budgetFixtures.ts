@@ -98,6 +98,7 @@ const proposal = (fields: {
   submittedOn?: string;
   votes?: ReturnType<typeof vote>[];
   resultPhase?: string | null;
+  plain?: string;
 }) => ({
   id: fields.id,
   year: fields.year ?? 2027,
@@ -118,6 +119,7 @@ const proposal = (fields: {
   },
   submittedOn: fields.submittedOn ?? "2026-11-06",
   lastVotedOn: fields.votes?.length ? fields.votes[fields.votes.length - 1]!.votedOn : null,
+  plain: fields.plain ? { summary: fields.plain, automatic: true, updatedAt: "2026-11-19T12:00:00.000Z" } : null,
   documentUrl: `https://example.com/oe/${fields.id}.pdf`,
   sourceUrl: SOURCE,
   votes: fields.votes ?? [],
@@ -134,6 +136,7 @@ export const budgetProposals = () => [
     result: "approved",
     status: "Aprovado(a) em Comissão",
     authors: ["psd"],
+    plain: "Muda os escalões do IRS Jovem para quem tem até 35 anos.",
     votes: [vote(day(0), "approved", lines(RIGHT_FOR, { slug: "psd", deputy: "Rui Valadares", vote: "against" }))],
   }),
   proposal({

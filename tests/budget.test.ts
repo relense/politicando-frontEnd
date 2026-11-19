@@ -39,6 +39,15 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     expect(await getBudgetProposal(2027, 1)).toBeNull();
   });
 
+  it("«O que muda»: the plain summary when written, marked when a model wrote it; null until then", async () => {
+    expect((await getBudgetProposal(2027, 28301))?.plain).toEqual({
+      summary: "Muda os escalões do IRS Jovem para quem tem até 35 anos.",
+      automatic: true,
+      updatedAt: expect.any(String),
+    });
+    expect((await getBudgetProposal(2027, 28302))?.plain).toBeNull();
+  });
+
   it("filters: still to vote is pending and sent to the plenary, together", async () => {
     const page = await getBudgetProposals(2027, { result: ["pending", "sent_to_plenary"] });
     expect(page.items.map((item) => item.result).sort()).toEqual(["pending", "pending", "sent_to_plenary"]);

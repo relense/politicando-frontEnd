@@ -62,6 +62,8 @@ export type BudgetProposal = {
   authors: { parties: BudgetParty[]; deputies: string[]; label: string | null };
   submittedOn: string | null;
   lastVotedOn: string | null;
+  /** «O que muda», one or two sentences; `automatic` when a model wrote it from the PDF. Null until written. */
+  plain: { summary: string; automatic: boolean; updatedAt: string | null } | null;
   documentUrl: string | null;
   sourceUrl: string | null;
   votes: BudgetVote[];
@@ -150,6 +152,7 @@ export const budgetProposalSchema = z.object({
   authors: z.object({ parties: list(partySchema), deputies: list(z.string()), label: z.string().nullish() }).nullish(),
   submittedOn: z.string().nullish(),
   lastVotedOn: z.string().nullish(),
+  plain: z.object({ summary: z.string().nullish(), automatic: z.boolean().nullish(), updatedAt: z.string().nullish() }).nullish(),
   documentUrl: z.string().nullish(),
   sourceUrl: z.string().nullish(),
   votes: list(voteSchema),
@@ -259,6 +262,9 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
     },
     submittedOn: raw.submittedOn ?? null,
     lastVotedOn: raw.lastVotedOn ?? null,
+    plain: raw.plain?.summary?.trim()
+      ? { summary: raw.plain.summary.trim(), automatic: raw.plain.automatic ?? false, updatedAt: raw.plain.updatedAt ?? null }
+      : null,
     documentUrl: safeHttpUrl(raw.documentUrl ?? null),
     sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
     votes: raw.votes.map((vote) => ({
