@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { noSeriousA11yIssues, openNewsSearch, signUp } from "./helpers";
+import { gotoReady, noSeriousA11yIssues, openNewsSearch, signUp } from "./helpers";
 import { FEATURES } from "../lib/features";
 
 test("feed shows a page of news, then a button for more, until the end", async ({ page }) => {
@@ -992,7 +992,7 @@ test("news: opening an article counts one read, sent by the browser, and the car
 test("news: readers vote up or down, take the vote back, and sort by the most voted", async ({ page }) => {
   await signUp(page);
   test.skip(FEATURES.stories, "Articles feed: with stories, see the stories test.");
-  await page.goto("/?ordem=votadas&periodo=hoje");
+  await gotoReady(page, "/?ordem=votadas&periodo=hoje");
   const first = page.locator("main article").first();
   await expect(first).toContainText("Notícia de teste número 98");
   const score = first.getByLabel(/^Pontuação:/);
@@ -1102,7 +1102,7 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
 
 test("news menu: save, hide with undo, why, and report", async ({ page }) => {
   await signUp(page);
-  await page.goto("/");
+  await gotoReady(page, "/");
   const card = page.locator("main article").filter({ hasText: "Notícia de teste número 98" });
   const menu = () => card.getByRole("button", { name: /^Mais opções para/ });
 
@@ -1164,7 +1164,7 @@ test('blog: readers mark a post "Importa", in the list and on its page', async (
 test("blog: readers comment on a post as on the news", async ({ page }, testInfo) => {
   await signUp(page);
   const text = `Comentário de teste no blog (${testInfo.project.name})`;
-  await page.goto("/editorial/o-que-muda-no-orcamento");
+  await gotoReady(page, "/editorial/o-que-muda-no-orcamento");
   const section = page.getByRole("region", { name: /Comentários/ });
   await expect(section.getByText("Bem explicado, obrigado.")).toBeVisible();
   await section.getByRole("button", { name: "Junta-te à conversa…" }).click();
@@ -1206,7 +1206,7 @@ test("SEO: share images, structured data, icons and robots", async ({ page, requ
 test("feed view: cards or a compact list, remembered; the order tabs", async ({ page }) => {
   // Importa (from the list, with stories on) needs an account.
   await signUp(page);
-  await page.goto("/");
+  await gotoReady(page, "/");
   const choose = async (name: string) => {
     const group = page.getByRole("group", { name: "Vista das notícias" });
     // A click before the page is interactive does nothing: press again until the menu opens.

@@ -52,3 +52,12 @@ export async function lastEmailToken(page: Page, to: string): Promise<string> {
   expect(answer.ok(), await answer.text()).toBe(true);
   return ((await answer.json()) as { token: string }).token;
 }
+
+/**
+ * Opens a page and waits until it can be used: hydrated, the reader known and their account's lists applied
+ * (components/account/AccountRuntime). A click before that can be lost or redrawn on a slow machine (CI).
+ */
+export async function gotoReady(page: Page, url: string) {
+  await page.goto(url);
+  await page.locator('html[data-account="ready"]').waitFor({ state: "attached" });
+}

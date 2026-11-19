@@ -24,6 +24,12 @@ type Done = { text: string; href?: string; failed?: boolean };
  * needs one (a button asked, or the API answered `login_required`); and, back from logging in, finishes what the reader
  * had started on this page and says so. Renders nothing otherwise.
  */
+/**
+ * `<html data-account="ready">` once the reader is known and their account's lists are applied: before that, a vote or
+ * a menu opened can be redrawn by the account's state. The e2e tests wait for it (gotoReady in e2e/helpers.ts).
+ */
+const markReady = () => document.documentElement.setAttribute("data-account", "ready");
+
 export function AccountRuntime() {
   const reader = useReader();
   const pathname = usePathname();
@@ -35,13 +41,16 @@ export function AccountRuntime() {
 
   useEffect(() => {
     if (!reader) {
-      if (reader === null) markSignedOut();
+      if (reader === null) {
+        markSignedOut();
+        markReady();
+      }
       return;
     }
     let live = true;
     void (async () => {
       // The account's lists first, so the finished action isn't overwritten by them.
-      await pullAccountState(reader);
+      await pullAccountState(reader).finally(markReady);
       const action = takePending(pathname);
       if (!action || !live) return;
       const result = await finish(action, reader, client);
