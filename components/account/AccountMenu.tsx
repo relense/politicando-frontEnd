@@ -147,7 +147,7 @@ function SignedIn({ reader }: { reader: Reader }) {
                 As minhas previsões
               </MenuLink>
               <MenuLink href="/newsletter" onClick={close} icon="M3 6h18v12H3V6Zm0 0 9 7 9-7">
-                Resumo da manhã
+                Newsletter semanal
               </MenuLink>
             </ul>
             <div className="border-b border-line px-2 py-3">

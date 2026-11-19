@@ -519,7 +519,9 @@ function Newsletter({ id, className = "" }: { id: string; className?: string }) 
       <h2 id={id} className="mt-1 text-2xl font-bold leading-tight">
         Recebe os novos artigos no email
       </h2>
-      <p className="mb-3 mt-2 text-sm leading-relaxed">Um email quando sai algo novo. Sem spam, cancelas quando quiseres.</p>
+      <p className="mb-3 mt-2 text-sm leading-relaxed">
+        Os novos artigos chegam na newsletter semanal. Sem spam, cancelas quando quiseres.
+      </p>
       <NewsletterForm compact />
     </section>
   );
