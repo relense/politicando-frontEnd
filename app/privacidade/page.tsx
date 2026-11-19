@@ -25,8 +25,10 @@ export default function PrivacyPage() {
       <h2>Ler o site</h2>
       <p>
         Não precisas de conta nem de dar dados para ler. Não usamos cookies de publicidade nem de seguimento. Para saber quantas pessoas
-        visitam cada página usamos o <b>Plausible</b>, uma ferramenta de estatística que não usa cookies, não guarda o teu endereço IP e só
-        produz números agregados.
+        visitam cada página usamos a <b>Umami</b>, uma ferramenta de estatística alojada na União Europeia que não usa cookies, não guarda o
+        teu endereço IP e só produz totais: visitas por página e alguns momentos sem dados pessoais, como carregar em «Importa» ou enviar um
+        comentário. Os dados passam pelo nosso servidor, que envia à Umami o teu endereço IP apenas para saber o país; a Umami não o guarda.
+        Se o teu navegador pedir para não seres seguido (Do Not Track), não contamos nada.
       </p>
       <p>
         Como em qualquer site, o servidor que o aloja regista pedidos técnicos (endereço IP, página, hora) para segurança e para corrigir
@@ -113,8 +115,8 @@ export default function PrivacyPage() {
       <h2>Com quem partilhamos</h2>
       <p>
         Não vendemos nem cedemos dados. Usamos apenas os prestadores necessários para o site funcionar: o alojamento, o envio de emails da
-        newsletter, a Google (reCAPTCHA) e o Plausible (estatística sem dados pessoais). Podemos ter de entregar dados às autoridades quando
-        a lei o exigir.
+        newsletter, a Google (reCAPTCHA) e a Umami (estatística sem dados pessoais). Podemos ter de entregar dados às autoridades quando a
+        lei o exigir.
       </p>
 
       <h2>Os teus direitos</h2>
