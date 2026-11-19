@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { adoptAccount, useReader } from "@/lib/account";
-import { accountErrorMessage, logIn, register } from "@/lib/api/account";
+import { accountErrorMessage, emailProblem, logIn, register } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
-import { GOLD } from "./ui";
+import { GOLD, OUTLINE } from "./ui";
 
 type Mode = "login" | "register";
 
@@ -42,6 +42,8 @@ const STRENGTH = [
 export function AuthPage({ mode, back }: { mode: Mode; back: string }) {
   const reader = useReader();
   const query = back === "/" ? "" : `?depois=${encodeURIComponent(back)}`;
+  /** After signing up with an email: where the confirmation went, before going on (the reader is already logged in). */
+  const [created, setCreated] = useState<Created | null>(null);
 
   return (
     <div data-bare className="mx-auto max-w-5xl">
@@ -70,7 +72,9 @@ export function AuthPage({ mode, back }: { mode: Mode; back: string }) {
               </Link>
             ))}
           </nav>
-          {reader ? (
+          {created ? (
+            <CreatedNote created={created} back={back} />
+          ) : reader ? (
             <div className="mt-6 space-y-3">
               <h1 className="text-2xl font-bold">Já entraste</h1>
               <p className="text-sm text-muted">
@@ -89,7 +93,7 @@ export function AuthPage({ mode, back }: { mode: Mode; back: string }) {
               </div>
             </div>
           ) : (
-            <AuthForm key={mode} mode={mode} back={back} />
+            <AuthForm key={mode} mode={mode} back={back} onCreated={setCreated} />
           )}
         </div>
         <details className="border-t border-line pt-4 lg:hidden">
@@ -144,7 +148,8 @@ function Why({ className = "", compact = false }: { className?: string; compact?
         <span aria-hidden="true" className="font-bold text-brand">
           i
         </span>
-        Ler é sempre livre, sem conta. A conta é só um nome público e uma palavra-passe: não pedimos email nem o teu nome verdadeiro.
+        Ler é sempre livre, sem conta. A conta é um nome público e uma palavra-passe; o email é opcional e privado, e nunca pedimos o teu
+        nome verdadeiro.
       </p>
     </div>
   );
@@ -180,7 +185,31 @@ function Hemicycle() {
   );
 }
 
-function AuthForm({ mode, back }: { mode: Mode; back: string }) {
+type Created = { sent: boolean; newsletter: boolean };
+
+/** "Conta criada": where the confirmation email went, then on. */
+function CreatedNote({ created, back }: { created: Created; back: string }) {
+  return (
+    <div className="mt-6 space-y-3">
+      <h1 className="text-2xl font-bold">Conta criada</h1>
+      <p role="status" className="text-sm">
+        {created.sent
+          ? `Enviámos-te um email para confirmares o endereço${created.newsletter ? " e a newsletter" : ""}. Abre a ligação que lá está.`
+          : "Não conseguimos enviar o email de confirmação agora. Podes reenviá-lo nas definições da conta."}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link href={back} className={GOLD}>
+          Continuar
+        </Link>
+        <Link href="/conta#email" className={OUTLINE}>
+          Definições da conta
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function AuthForm({ mode, back, onCreated }: { mode: Mode; back: string; onCreated: (created: Created) => void }) {
   const id = useId();
   const router = useRouter();
   const client = useQueryClient();
@@ -189,17 +218,23 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
   const [password, setPassword] = useState("");
   const [shown, setShown] = useState(false);
   const [terms, setTerms] = useState(false);
+  const [email, setEmail] = useState("");
+  const [newsletter, setNewsletter] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const register_ = mode === "register";
   const captchaOff = isCaptchaOff();
 
   const submit = useMutation({
-    mutationFn: ({ name, captchaToken }: { name: string; captchaToken: string }) =>
-      (register_ ? register : logIn)({ username: name, password, captchaToken }),
-    onSuccess: async (reader) => {
-      await adoptAccount(client, reader);
-      router.push(back);
+    mutationFn: async ({ name, captchaToken }: { name: string; captchaToken: string }) => {
+      if (!register_) return { user: await logIn({ username: name, password, captchaToken }), emailSent: false, newsletter: null };
+      const given = email.trim();
+      return register({ username: name, password, captchaToken, ...(given ? { email: given, newsletter } : {}) });
+    },
+    onSuccess: async (answer) => {
+      if (register_ && answer.user.email) onCreated({ sent: answer.emailSent, newsletter: answer.newsletter === "pending" });
+      await adoptAccount(client, answer.user);
+      if (!(register_ && answer.user.email)) router.push(back);
     },
     // A token can only be used once, whether the request worked or not.
     onSettled: () => captcha.current?.reset(),
@@ -212,8 +247,14 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
       ? "Esse nome já está a ser usado. Escolhe outro."
       : null;
   const passwordProblem = password.length < 8 ? "Pelo menos 8 caracteres." : password.length > 200 ? "Até 200 caracteres." : null;
+  const emailError =
+    emailProblem(email) ??
+    (newsletter && !email.trim() ? "Para receberes a newsletter, junta o teu email." : null) ??
+    (submit.error instanceof ApiError && submit.error.code === "invalid_email" ? accountErrorMessage(submit.error) : null);
   const problems = register_
-    ? [nameProblem, passwordProblem, terms ? null : "terms"].filter(Boolean)
+    ? [nameProblem, passwordProblem, emailProblem(email), newsletter && !email.trim() ? "newsletter" : null, terms ? null : "terms"].filter(
+        Boolean,
+      )
     : [username.trim() && password ? null : "empty"].filter(Boolean);
 
   const [captchaError, setCaptchaError] = useState(false);
@@ -264,7 +305,7 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
       <Field
         id={`${id}-password`}
         label="Palavra-passe"
-        hint={register_ ? "Não pedimos email, por isso não há forma de a recuperar: guarda-a num sítio seguro." : undefined}
+        hint={register_ ? "Com um email confirmado, podes recuperá-la. Sem email, guarda-a num sítio seguro." : undefined}
         error={checked && register_ ? passwordProblem : null}
         after={
           register_ && password ? (
@@ -308,6 +349,41 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
           </div>
         )}
       </Field>
+
+      {register_ && (
+        <Field
+          id={`${id}-email`}
+          label="Email (opcional)"
+          hint="Para recuperares a conta se te esqueceres da palavra-passe. É privado: só tu o vês."
+          error={checked ? emailError : null}
+          after={
+            <label className="mt-2.5 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={newsletter}
+                onChange={(event) => setNewsletter(event.target.checked)}
+                className="size-4 shrink-0 accent-[#f2c94c]"
+              />
+              Quero receber a newsletter semanal
+            </label>
+          }
+        >
+          {(props) => (
+            <input
+              {...props}
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={254}
+              placeholder="o.teu@email.pt"
+              className={INPUT}
+            />
+          )}
+        </Field>
+      )}
 
       {register_ && (
         <label className="flex items-start gap-3 text-sm">
@@ -355,11 +431,10 @@ function AuthForm({ mode, back }: { mode: Mode; back: string }) {
       </button>
       {!register_ && (
         <p className="font-mono text-[11px] leading-relaxed text-muted">
-          Esqueceste a palavra-passe? Como não pedimos email, não a conseguimos recuperar. Podes{" "}
-          <Link href={`/criar-conta${back === "/" ? "" : `?depois=${encodeURIComponent(back)}`}`} className="underline hover:text-ink">
-            criar outra conta
+          <Link href="/conta/recuperar" className="font-bold text-ink underline">
+            Esqueci-me da palavra-passe
           </Link>
-          .
+          <span className="mt-1 block">Recuperamos a conta pelo email, se a conta tiver um confirmado.</span>
         </p>
       )}
     </form>

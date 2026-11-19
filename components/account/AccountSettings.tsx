@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
 import { excerpt, formatDateTime, formatLongDate } from "@/lib/format";
+import { AccountEmail } from "./AccountEmail";
 import { Avatar } from "./AccountMenu";
 
 const BUTTON =
@@ -98,14 +99,16 @@ function Signed({ reader }: { reader: Reader }) {
         </button>
       </header>
 
+      <AccountEmail reader={reader} />
+
       <Section id="palavra-passe" title="Mudar a palavra-passe">
         <PasswordForm />
       </Section>
 
       <Section id="dados" title="Os teus dados">
         <p className="text-sm text-muted">
-          Guardamos o teu nome público, a palavra-passe cifrada (nunca a vemos), as notícias que guardaste ou escondeste, as histórias que
-          leste, os teus votos e o que escreveste. Podes descarregar tudo num ficheiro.
+          Guardamos o teu nome público, a palavra-passe cifrada (nunca a vemos), o email se o juntaste (só tu o vês), as notícias que
+          guardaste ou escondeste, as histórias que leste, os teus votos e o que escreveste. Podes descarregar tudo num ficheiro.
         </p>
         <a href={EXPORT_URL} download="politicando-os-meus-dados.json" className={`${BUTTON} mt-3`}>
           Descarregar os meus dados (JSON)
