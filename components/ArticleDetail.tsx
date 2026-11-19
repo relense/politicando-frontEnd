@@ -6,6 +6,7 @@ import { ArticleImage } from "./ArticleImage";
 import { BackLink } from "./BackLink";
 import { PeopleInNews } from "./PeopleInNews";
 import { PartyChips } from "./PartyChips";
+import { outletClick } from "@/lib/analytics";
 
 /** The article page's main column. We only have a teaser, so the way to the original is the main action. */
 export function ArticleDetail({ article, versions }: { article: Article; /** The story's outlets, as tabs. */ versions?: ReactNode }) {
@@ -53,6 +54,7 @@ export function ArticleDetail({ article, versions }: { article: Article; /** The
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
+            {...outletClick(article.url, "article-page")}
             className="shrink-0 rounded-lg bg-[#f0c75e] px-5 py-3 text-center font-mono text-sm font-bold text-[#1a1a1a] hover:opacity-90"
           >
             Ler o artigo completo em {article.source}
