@@ -243,6 +243,14 @@ export const handlers = [
     if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return fail(400, "invalid_email");
     return HttpResponse.json({ status: "pending" }, { status: 202 });
   }),
+  // The buttons on the pages the emails link to (newsletter-api.md). Tokens containing "expirado" are no longer valid.
+  ...(["confirm", "unsubscribe"] as const).map((action) =>
+    http.post(`${API}/newsletter/${action}`, async ({ request }) => {
+      const body = (await request.json().catch(() => null)) as { token?: unknown } | null;
+      if (typeof body?.token !== "string" || !body.token || body.token.includes("expirado")) return fail(400, "invalid_token");
+      return HttpResponse.json({ status: action === "confirm" ? "confirmed" : "unsubscribed" });
+    }),
+  ),
   // Mainland Portugal's box: anywhere inside is Águeda, the fixtures' first municipality.
   http.get(`${API}/places/locate`, ({ request }) => {
     const search = new URL(request.url).searchParams;

@@ -266,6 +266,16 @@ export async function subscribeNewsletter(email: string, captchaToken: string): 
   });
 }
 
+/** The buttons on the pages the newsletter's emails link to: only on the press, never on load (mail scanners open links). */
+export async function answerNewsletterLink(action: "confirm" | "unsubscribe", token: string): Promise<void> {
+  await request(`/newsletter/${action}`, z.object({ status: z.string() }), {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
 /** The municipality containing a point. 404 (`not_found`) outside Portugal. The API doesn't keep the coordinates. */
 export async function locatePlace(lat: number, lon: number): Promise<{ key: string; name: string }> {
   const lat5 = Math.round(lat * 1e5) / 1e5;
