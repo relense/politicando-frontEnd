@@ -189,7 +189,11 @@ export const storyHandlers = [
     const list = stories()
       .sort((a, b) => b.sourceCount + Math.min(5, b.importa / 2) - (a.sourceCount + Math.min(5, a.importa / 2)))
       .slice(0, 5);
-    return HttpResponse.json({ items: list, since: "2026-10-29T12:00:00.000Z" });
+    // recentSourceCount: the outlets in the last 24 hours (all of them, in these fixtures).
+    return HttpResponse.json({
+      items: list.map((item) => ({ ...item, recentSourceCount: item.sourceCount })),
+      since: "2026-10-29T12:00:00.000Z",
+    });
   }),
   http.post(`${API}/stories/:id/vote`, async ({ params, request }) => {
     const id = Number(params.id);

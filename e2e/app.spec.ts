@@ -1016,6 +1016,8 @@ test("news: readers vote up or down, take the vote back, and sort by the most vo
 
 test("stories: one card per news told by several outlets, Importa, Hoje em 5, every version and one debate", async ({ page }) => {
   test.skip(!FEATURES.stories, "Stories are switched off in lib/features.ts.");
+  // Importa needs an account.
+  await signUp(page);
   await page.goto("/");
   const card = page
     .locator("main article")
@@ -1041,6 +1043,8 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // Hoje em 5: the story opened gets its tick.
   const today = page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true });
   await expect(today).toContainText("0 de 5");
+  // How fresh each one is: the outlets of the last 24 hours and the latest article's age.
+  await expect(today.getByRole("listitem").first()).toContainText(/\d+ jorna(l|is) · /);
   await noSeriousA11yIssues(page);
 
   await card.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }).click();
@@ -1055,7 +1059,7 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // The mark carries over, and the story's count follows it, even if the page was cached before the mark.
   const storyImporta = page.getByRole("button", { name: /^Importa/ });
   await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#importa")).toHaveText(String(marked));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked));
   // Contexto: our post that explains it, the party's votes, what's coming.
   const context = page.getByRole("region", { name: /^Contexto/ });
   await expect(context).toContainText("#OE2027");
@@ -1086,12 +1090,12 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();
   // The same Importa, and it can be taken back there.
   await expect(storyImporta).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#importa")).toHaveText(String(marked));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked));
   const takenBack = page.waitForResponse((response) => /\/stories\/100\/vote$/.test(response.url()));
   await storyImporta.click();
   await takenBack;
   await expect(storyImporta).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator("#importa")).toHaveText(String(marked - 1));
+  await expect(page.locator("#importa, #importa-topo").filter({ visible: true })).toHaveText(String(marked - 1));
   await page.goto("/");
   await expect(page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true })).toContainText(/[12] de 5/);
 });
