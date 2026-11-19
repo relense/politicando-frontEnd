@@ -109,6 +109,48 @@ export function PodcastBox({ podcast, episode, headingId = "podcast", className 
   );
 }
 
+/**
+ * The episodes before the newest one (blog, Podcasts filter), as rows like the box's play bar. As in the box, nothing
+ * comes from Spotify until the reader presses ▶, which loads Spotify's player on that episode only.
+ */
+export function EpisodeList({ podcast, episodes, className = "" }: { podcast: Podcast; episodes: PodcastEpisode[]; className?: string }) {
+  const remembered = useSyncExternalStore(subscribeEmbeds, embedsAllowed, () => false);
+  const [playing, setPlaying] = useState<number | null>(null);
+  if (episodes.length === 0) return null;
+  return (
+    <section aria-labelledby="episodios-anteriores" className={className}>
+      <h2 id="episodios-anteriores" className="font-mono text-xs font-bold uppercase tracking-widest text-muted">
+        Episódios anteriores
+      </h2>
+      <ul className="mt-3 grid gap-2">
+        {episodes.map((episode, index) => (
+          <li key={episode.url ?? index}>
+            {playing === index && episode.embedUrl ? (
+              <SpotifyPlayer embedUrl={episode.embedUrl} autoplay />
+            ) : (
+              <EpisodeBar episode={episode} onPlay={() => setPlaying(index)} />
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] leading-snug text-muted">
+        {!remembered && (
+          <>
+            O ▶ carrega o leitor do Spotify, que pode guardar cookies.{" "}
+            <Link href="/cookies" className="underline hover:text-ink">
+              Saber mais
+            </Link>{" "}
+            ·{" "}
+          </>
+        )}
+        <a href={podcast.url} target="_blank" rel="noopener noreferrer" className="font-bold text-ink underline">
+          Ver todos no Spotify ↗<span className="sr-only"> (abre a app ou um novo separador)</span>
+        </a>
+      </p>
+    </section>
+  );
+}
+
 const lisbonDay = (date: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 
