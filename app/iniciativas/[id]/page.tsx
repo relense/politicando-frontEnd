@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { cache } from "react";
 import { PartyChips } from "@/components/PartyChips";
 import { InitiativePredictionBox } from "@/components/Predictions";
-import { RelatedArticles } from "@/components/RelatedArticles";
+import { ProposalNews } from "@/components/RelatedArticles";
 import { StageProgress } from "@/components/StageProgress";
 import { ApiError, getInitiative, getParties } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
@@ -275,11 +275,12 @@ export default async function InitiativePage({ params }: Props) {
           </p>
         </section>
 
-        <RelatedArticles title="Notícias relacionadas" articles={initiative.articles} />
         <Footnote initiative={initiative} />
       </article>
-      <aside className="max-xl:mt-10 xl:sticky xl:top-20 xl:self-start">
+      {/* Its vote (when it has one) and the news about it: beside it on wide screens, after it on narrow ones. */}
+      <aside className="flex flex-col gap-4 max-xl:mt-10 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:self-start xl:overflow-y-auto no-scrollbar">
         <InitiativePredictionBox id={initiative.id} />
+        <ProposalNews articles={initiative.articles} />
       </aside>
     </div>
   );

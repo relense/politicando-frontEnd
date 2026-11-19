@@ -100,6 +100,16 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
               {author.label}
             </li>
           ))}
+          {related > 0 && (
+            <li>
+              <Link href={`${initiativePath(initiative.id)}#noticias`} className={`${chip} font-bold hover:bg-surface`}>
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="size-3.5 fill-none stroke-current stroke-2">
+                  <path d="M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5" />
+                </svg>
+                {related === 1 ? "1 notícia" : `${related} notícias`}
+              </Link>
+            </li>
+          )}
           {initiative.topics.map((topic) => (
             <li key={topic.slug}>
               <Link href={`/iniciativas?tema=${topic.slug}`} className={`${chip} hover:bg-surface`}>
@@ -111,10 +121,7 @@ export function InitiativeItem({ initiative, heading = "h3" }: { initiative: Ini
             </li>
           ))}
         </ul>
-        <p className="font-mono text-[11px] text-muted">
-          {related > 0 && <>{related === 1 ? "1 notícia" : `${related} notícias`} · </>}
-          {updated && <>Atualizada a {updated}</>}
-        </p>
+        <p className="font-mono text-[11px] text-muted">{updated && <>Atualizada a {updated}</>}</p>
       </div>
     </article>
   );

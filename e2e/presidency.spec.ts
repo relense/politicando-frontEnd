@@ -95,6 +95,19 @@ test("initiative detail: unknown id is a 404, and list cards link to the detail 
   await expect(page).toHaveURL(/\/iniciativas\/\d+$/);
 });
 
+test("initiatives show the news about them: a chip on the card, and a column on the page, newest first, vote or not", async ({ page }) => {
+  await page.goto("/iniciativas");
+  const chip = page.getByRole("link", { name: "3 notícias" }).first();
+  await expect(chip).toHaveAttribute("href", /^\/iniciativas\/\d+#noticias$/);
+  // 4990 has news and no Passa ou chumba.
+  await page.goto("/iniciativas/4990");
+  const news = page.getByRole("region", { name: /Notícias sobre esta proposta/ });
+  await expect(news.getByRole("listitem")).toHaveCount(3);
+  await expect(page.getByRole("region", { name: "Passa ou chumba?" })).toHaveCount(0);
+  const dates = await news.locator("time").evaluateAll((items) => items.map((item) => item.getAttribute("datetime") ?? ""));
+  expect(dates).toEqual([...dates].sort().reverse());
+});
+
 for (const colorScheme of ["light", "dark"] as const) {
   for (const path of ["/presidente", "/iniciativas", "/iniciativas?tema=saude", "/iniciativas/5000"]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {

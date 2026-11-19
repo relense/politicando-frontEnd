@@ -10,7 +10,7 @@ import { createPost, getThread, posterName, VOTES_BOARD, type ForumPost, type Th
 import { formatTime, lisbonDay } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
 import { FollowButton } from "./account/FollowButton";
-import { RelativeTime } from "./RelativeTime";
+import { ProposalNews } from "./RelatedArticles";
 
 /*
  * Around "Passa ou chumba?": the vote's conversation on the "Votações" board (backend docs/engagement-api.md), the
@@ -235,30 +235,7 @@ export function VoteNews({ initiativeId }: { initiativeId: number }) {
     queryFn: () => getInitiative(initiativeId),
     staleTime: 5 * 60_000,
   });
-  const articles = [...(initiative.data?.articles ?? [])]
-    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
-    .slice(0, 8);
-  if (articles.length === 0) return null;
   return (
-    <section aria-labelledby="noticias-votacao" className="rounded-2xl border border-line p-4">
-      <h2 id="noticias-votacao" className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-        Notícias sobre esta proposta
-      </h2>
-      <ol className="mt-2 flex flex-col gap-3 border-l-2 border-line pl-3">
-        {articles.map((article) => (
-          <li key={article.id}>
-            <Link href={`/article/${article.id}`} className="text-sm font-semibold leading-snug hover:underline">
-              {article.title}
-            </Link>
-            <p className="mt-0.5 font-mono text-[11px] text-muted">
-              {article.source} · <RelativeTime value={article.publishedAt} />
-            </p>
-          </li>
-        ))}
-      </ol>
-      <Link href={`/iniciativas/${initiativeId}`} className="mt-3 inline-block font-mono text-[11px] font-bold underline">
-        Toda a proposta →
-      </Link>
-    </section>
+    <ProposalNews articles={initiative.data?.articles ?? []} more={{ href: `/iniciativas/${initiativeId}`, label: "Toda a proposta →" }} />
   );
 }
