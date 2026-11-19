@@ -641,6 +641,9 @@ test("parties can be ordered by votes, and the choice survives a reload", async 
   await expect(first).toContainText("B.E.");
 });
 
+// The position badge reads "×Contra": its mark (hidden from screen readers) and the word.
+const CONTRA = /^×\s*Contra$/;
+
 test("party page: Parliament card and tabs for deputies, initiatives and votes", async ({ page }) => {
   await page.goto("/partido/ps");
   const card = page.getByRole("region", { name: "PS no Parlamento" });
@@ -662,10 +665,16 @@ test("party page: Parliament card and tabs for deputies, initiatives and votes",
   await expect(page).toHaveURL(/ver=votacoes$/);
   const votes = page.getByRole("region", { name: "Votações do PS" });
   await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(20);
+  // The button turns at once; the filtered list comes after its own request, so wait for it before reading the rows.
+  const filtered = page.waitForResponse(
+    (response) => response.url().includes("/parties/ps/votes?") && response.url().includes("position=against"),
+  );
   await votes.getByRole("button", { name: /^Contra/ }).click();
   await expect(votes.getByRole("button", { name: /^Contra/ })).toHaveAttribute("aria-pressed", "true");
+  await filtered;
+  await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem").first().getByText(CONTRA)).toBeVisible();
   for (const item of await votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem").all())
-    await expect(item.getByText("Contra", { exact: true })).toBeVisible();
+    await expect(item.getByText(CONTRA)).toBeVisible();
   await votes.getByRole("button", { name: /^Todas/ }).click();
   await votes.getByRole("button", { name: "Carregar mais 20" }).click();
   await expect(votes.getByRole("list", { name: "Votações do PS" }).getByRole("listitem")).toHaveCount(40);
