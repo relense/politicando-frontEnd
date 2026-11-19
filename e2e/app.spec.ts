@@ -1208,8 +1208,13 @@ test("feed view: cards or a compact list, remembered; the order tabs", async ({ 
   await signUp(page);
   await page.goto("/");
   const choose = async (name: string) => {
-    await page.getByRole("button", { name: /^Vista das notícias/ }).click();
-    await page.getByRole("group", { name: "Vista das notícias" }).getByRole("button", { name }).click();
+    const group = page.getByRole("group", { name: "Vista das notícias" });
+    // A click before the page is interactive does nothing: press again until the menu opens.
+    await expect(async () => {
+      if (!(await group.isVisible())) await page.getByRole("button", { name: /^Vista das notícias/ }).click();
+      await expect(group).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await group.getByRole("button", { name }).click();
   };
   await expect(page.getByRole("button", { name: /^Vista das notícias/ })).toContainText("Cartões");
   await choose("Lista compacta");
