@@ -18,8 +18,8 @@ describe("what each cached request is tagged with, for the backend's ping (POST 
     expect(tagsFor("/elections")).toEqual([]);
     expect(tagsFor("/me")).toEqual([]);
   });
-  it("names the five the backend sends", () => {
-    expect([...CACHE_TAGS].sort()).toEqual(["agenda", "blog", "news", "parliament", "podcast"]);
+  it("names the six the backend sends (docs/revalidate.md)", () => {
+    expect([...CACHE_TAGS].sort()).toEqual(["agenda", "blog", "budget", "news", "parliament", "podcast"]);
   });
 });
 
