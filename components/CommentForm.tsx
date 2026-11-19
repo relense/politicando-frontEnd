@@ -11,6 +11,7 @@ import { useReturnPath } from "./account/AccountMenu";
 import { GOLD, OUTLINE } from "./account/ui";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 import { markFollowed } from "@/lib/accountExtras";
+import { track } from "@/lib/analytics";
 
 const MAX_LENGTH = 500;
 const MAX_USERNAME = 20;
@@ -112,6 +113,7 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
       setText("");
       setStance(null);
       writeDraft(target, parentId, "");
+      track("comment-sent", { where: target.split("/")[1], reply: parentId !== null });
       // Commenting on a story follows it (backend docs/engagement-api.md).
       const story = reader && /^\/stories\/(\d+)$/.exec(target);
       if (story) markFollowed("story", Number(story[1]));

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PODCAST_COVER_HOSTS } from "./lib/podcastCovers";
+import { umamiHost } from "./lib/umami";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -7,6 +8,11 @@ const nextConfig: NextConfig = {
   // The query (?partido=, ?deputado=) is passed through, and the Parliament page reads both.
   async redirects() {
     return [{ source: "/deputados", destination: "/parlamento", permanent: true }];
+  },
+  // Umami's script from our own address, so ad blockers don't drop it (lib/umami.ts). Its events come back through
+  // app/stats/api/send/route.ts, which adds the reader's IP and browser: a plain rewrite might not pass them on.
+  async rewrites() {
+    return [{ source: "/stats/script.js", destination: `${umamiHost()}/script.js` }];
   },
   // Map outlines: each URL carries a version (?v=, lib/maps.ts), so the browser can keep it for good.
   async headers() {

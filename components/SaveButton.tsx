@@ -2,6 +2,7 @@
 
 import { useAccountGate } from "@/lib/account";
 import { toggleIn, updateReaderPrefs, useReaderPrefs } from "@/lib/readerPrefs";
+import { track } from "@/lib/analytics";
 
 /** "Guardar" as a pill on the card: the same list as the "…" menu's, kept in the account (see /guardadas). */
 export function SaveButton({
@@ -26,6 +27,7 @@ export function SaveButton({
       onClick={(event) => {
         if (gate("save", event.currentTarget)) return;
         updateReaderPrefs((current) => ({ ...current, saved: toggleIn(current.saved, articleId) }));
+        if (!on) track("save", { kind: "article", id: articleId });
       }}
       className={`${className} ${on ? "text-[var(--accent)]" : ""}`}
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { isServer, useInfiniteQuery } from "@tanstack/react-query";
+import { isServer, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, type ReactNode } from "react";
 import { FEED_PAGE_SIZE } from "@/lib/api/client";
 import { loadFeed } from "@/lib/api/feed";
@@ -14,6 +14,7 @@ import type { StoryPage } from "@/lib/api/stories";
 import { ArticleCard } from "./ArticleCard";
 import { leadOf, StoryCard } from "./StoryCard";
 import { ArticleRow, StoryRow } from "./FeedRow";
+import { NewNews } from "./NewNews";
 import { useFeedView, type FeedView } from "@/lib/feedView";
 
 /** `partySlug` and `source` take one value or several (any of them). */
@@ -36,9 +37,11 @@ export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWE
   const list = initialView !== undefined && chosenView === "lista";
   const ranked = order.sort !== "recentes";
   const asStories = "stories" in initialPage;
+  const client = useQueryClient();
+  // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
+  const queryKey = [asStories ? "stories" : "feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), orderKey(order)];
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
-    // Each feed has its own key, so moving between pages can never mix feeds or lose scrolling.
-    queryKey: [asStories ? "stories" : "feed", [partySlug ?? "home"].flat().join(","), q, [source].flat().join(","), orderKey(order)],
+    queryKey,
     queryFn: ({ pageParam }) => loadFeed({ party: partySlug, q, source, cursor: pageParam, limit: FEED_PAGE_SIZE }, order, asStories),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -108,6 +111,16 @@ export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWE
 
   return (
     <>
+      {/* Newest first only: in the other orders "new" means nothing. Pressing it starts the feed again from the top. */}
+      <NewNews
+        enabled={!ranked && !q}
+        pages={data?.pages ?? []}
+        loadFresh={() => loadFeed({ party: partySlug, q, source, limit: FEED_PAGE_SIZE }, order, asStories)}
+        onShow={(fresh) => {
+          client.setQueryData(queryKey, { pages: [fresh], pageParams: [undefined] });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
       {/* The list: rows split by thin lines, no gaps; the cards: boxes 14px apart. */}
       <div className={`flex flex-col ${list ? "" : "gap-3.5"}`}>
         {articles.map((entry, index) => {

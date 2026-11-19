@@ -7,6 +7,7 @@ import type { EditorialKind } from "@/lib/types";
 import { ImportaButton, ImportaCount } from "./ImportaButton";
 import { SourceLogo } from "./SourceLogo";
 import { FollowButton } from "./account/FollowButton";
+import { outletClick } from "@/lib/analytics";
 
 /** The parts of an article page when the article is one outlet's version of a story. */
 
@@ -85,6 +86,7 @@ export function HowEachToldList({ story, current }: { story: StoryDetail; curren
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  {...outletClick(item.url, "how-each-told")}
                   aria-label={`Ler em ${item.source} (abre num novo separador)`}
                   className="shrink-0 rounded-lg border border-line px-2.5 py-1 font-mono text-xs font-bold hover:bg-surface"
                 >

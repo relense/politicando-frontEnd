@@ -9,6 +9,7 @@ import { cardAction, cardActions, cardBox, cardExcerpt, cardImage, cardMeta, car
 import { CommentIcon } from "./icons";
 import { PartyChips } from "./PartyChips";
 import { SourceLogo } from "./SourceLogo";
+import { outletClick } from "@/lib/analytics";
 
 /**
  * A feed entry, as a card: who published it, when and how many read it; the title and excerpt; the photo, whole; the
@@ -34,6 +35,7 @@ export function ArticleCard({
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
+              {...outletClick(article.url, "card-source")}
               className="inline-flex items-center gap-2.5 font-semibold text-ink hover:underline"
             >
               <SourceLogo domain={article.sourceDomain} name={article.source} size={30} square />
@@ -95,7 +97,7 @@ export function ArticleCard({
         </Link>
         <CardShare path={articlePath} title={article.title} className={cardAction} compact />
         {article.url && (
-          <a href={article.url} target="_blank" rel="noopener noreferrer" className={cardReadOn}>
+          <a href={article.url} target="_blank" rel="noopener noreferrer" {...outletClick(article.url, "card")} className={cardReadOn}>
             Ler em {article.source}
             <span aria-hidden="true"> ↗</span>
             <span className="sr-only"> (abre num novo separador)</span>

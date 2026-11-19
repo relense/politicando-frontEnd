@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { AccountState } from "./api/account";
 import { setFollow, setSaved, type FollowKind, type SaveKind } from "./api/engagement";
+import { track } from "@/lib/analytics";
 
 /*
  * What only an account keeps, with no copy in the browser's own lists: the stories and threads it follows, and the
@@ -69,7 +70,9 @@ export const follow = (kind: FollowKind, id: number, on: boolean) =>
   change(
     (current) => ({ ...current, follows: { ...current.follows, [kind]: toggled(current.follows[kind], id, on) } }),
     () => setFollow(kind, id, on),
-  );
+  ).then(() => {
+    if (on) track("follow", { kind, id });
+  });
 
 /** After the reader replied in a thread or commented on a story: the API followed it for them. */
 export function markFollowed(kind: FollowKind, id: number) {
@@ -82,4 +85,6 @@ export const save = (kind: SaveKind, id: number, on: boolean) =>
   change(
     (current) => ({ ...current, saved: { ...current.saved, [kind]: toggled(current.saved[kind], id, on) } }),
     () => setSaved(kind, id, on),
-  );
+  ).then(() => {
+    if (on) track("save", { kind, id });
+  });

@@ -21,6 +21,7 @@ import { posterName, type ThreadSummary } from "@/lib/api/forums";
 import { formatLongDate, formatNumber, formatTime } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
 import { useVoteThread, VoteNews, VotesBoardBox, VoteThreadPreview } from "./VoteDiscussion";
+import { track } from "@/lib/analytics";
 
 /*
  * "Passa ou chumba?" (backend docs/engagement-api.md): before a vote in Parliament, each reader says whether they think
@@ -94,6 +95,7 @@ function useChoose(item: Prediction) {
   return useMutation({
     mutationFn: (pick: Pick) => pickPrediction(item.id, pick),
     onSuccess: (answer) => {
+      track("prediction-pick", { pick: answer.pick, prediction: item.id });
       const before = item.myPick;
       const update = (entry: Prediction) =>
         entry.id === item.id ? { ...entry, myPick: answer.pick, split: answer.split, count: (entry.count ?? 0) + (before ? 0 : 1) } : entry;

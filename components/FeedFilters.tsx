@@ -27,6 +27,7 @@ import type { Party } from "@/lib/types";
 import { PartyLogo } from "./PartyLogo";
 import { PartyOrderToggle, useOrderedParties } from "./PartyOrder";
 import { SourceLogo } from "./SourceLogo";
+import { track } from "@/lib/analytics";
 
 type Source = { domain: string; name: string; count: number };
 
@@ -365,6 +366,8 @@ export function FeedFilters({ parties, sources, filter, saved, q, order, view }:
           onSubmit={(event) => {
             event.preventDefault();
             const words = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+            // Where, never what: the words could say something about the reader.
+            if (words) track("search", { where: "news" });
             go(filter, { q: words });
           }}
         >

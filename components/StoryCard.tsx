@@ -13,6 +13,7 @@ import { SaveButton } from "./SaveButton";
 import { cardAction, cardActions, cardBox, cardExcerpt, cardImage, cardMeta, cardReadOn, cardTitle, cardTitleLink } from "./feedCard";
 import { SourceLogo } from "./SourceLogo";
 import { DebatePair } from "./StoryParts";
+import { outletClick } from "@/lib/analytics";
 
 export { leadOf };
 
@@ -105,7 +106,7 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
         <CardShare path={path} title={story.title} className={cardAction} compact />
         <SaveButton articleId={lead.articleId} title={story.title} className={`${cardAction} max-sm:ml-auto`} />
         {lead.url && (
-          <a href={lead.url} target="_blank" rel="noopener noreferrer" className={cardReadOn}>
+          <a href={lead.url} target="_blank" rel="noopener noreferrer" {...outletClick(lead.url, "card")} className={cardReadOn}>
             Ler {story.sourceCount > 1 ? "no" : "em"} {lead.source}
             <span aria-hidden="true"> ↗</span>
             <span className="sr-only"> (abre num novo separador)</span>

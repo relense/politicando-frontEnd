@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { ShareIcon } from "./icons";
+import { track } from "@/lib/analytics";
 
 const button = "inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 font-mono text-xs font-bold hover:bg-surface";
 
@@ -18,6 +19,7 @@ export function ArticleActions({ title }: { title: string }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(url());
+      track("share", { network: "copy-link", where: "page" });
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -29,6 +31,7 @@ export function ArticleActions({ title }: { title: string }) {
     if (!navigator.share) return copy();
     try {
       await navigator.share({ title, url: url() });
+      track("share", { network: "share-sheet", where: "page" });
     } catch {
       // Closing the share sheet is not an error worth showing.
     }

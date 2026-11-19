@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShareIcon } from "./icons";
+import { track } from "@/lib/analytics";
 
 /** A card's share pill: the phone's share sheet when there is one, otherwise the link is copied. */
 export function CardShare({
@@ -22,6 +23,7 @@ export function CardShare({
     if (typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches) {
       try {
         await navigator.share({ title, url });
+        track("share", { network: "share-sheet", where: "card" });
       } catch {
         // Closing the share sheet is not an error worth showing.
       }
@@ -29,6 +31,7 @@ export function CardShare({
     }
     try {
       await navigator.clipboard.writeText(url);
+      track("share", { network: "copy-link", where: "card" });
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
