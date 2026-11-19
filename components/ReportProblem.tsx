@@ -12,16 +12,16 @@ function sectionOf(path: string): string | null {
 }
 
 /** "Found an error on this page?": opens the feedback form with the page already filled in. */
-export function ReportProblem() {
+export function ReportProblem({ className = "mt-3 text-sm" }: { className?: string }) {
   const path = usePathname();
   if (path.startsWith("/feedback")) return null;
   const params = new URLSearchParams({ ligacao: path });
   const section = sectionOf(path);
   if (section) params.set("pagina", section);
   return (
-    <p className="mt-3 text-sm">
+    <p className={className}>
       Encontraste um erro nesta página?{" "}
-      <Link href={`/feedback?${params}`} className="font-bold text-link underline">
+      <Link href={`/feedback?${params}`} className="whitespace-nowrap font-bold text-link underline">
         Diz-nos →
       </Link>
     </p>

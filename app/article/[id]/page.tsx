@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FollowStrip } from "@/components/FollowUs";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
@@ -143,6 +144,7 @@ export default async function ArticlePage({ params }: Props) {
             versions={story && <StoryVersions story={story} current={article.id} />}
           />
           {story && <HowEachToldList story={story} current={article.id} />}
+          <FollowStrip className="mt-8" />
           <CommentSection
             target={target}
             initialComments={comments}

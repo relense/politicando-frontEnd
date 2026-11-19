@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The reader's own choices about the news, kept only in this browser (there are no accounts): saved and hidden
+ * The reader's own choices about the news, kept in this browser (and, with an account, in it too: lib/account.ts): saved and hidden
  * articles, and outlets and parties to see less of. Storage may be blocked: then the choices last until the page is
  * closed. Nothing here is ever sent with the cached feed; lists filtered by it are filtered in the browser.
  */
@@ -63,8 +63,21 @@ export function readerPrefs(): ReaderPrefs {
   return parse(readRaw());
 }
 
+type Listener = (before: ReaderPrefs, after: ReaderPrefs) => void;
+const listeners = new Set<Listener>();
+
+/** Told of every change, with the lists before and after (the account sends them on: lib/account.ts). */
+export function onReaderPrefsChange(listener: Listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** Puts these lists in place of the browser's (from the reader's account). Listeners are told as for any change. */
+export const replaceReaderPrefs = (prefs: ReaderPrefs) => updateReaderPrefs(() => prefs);
+
 export function updateReaderPrefs(change: (prefs: ReaderPrefs) => ReaderPrefs) {
-  const next = change(readerPrefs());
+  const before = readerPrefs();
+  const next = change(before);
   const trimmed: ReaderPrefs = {
     saved: next.saved.slice(-LIMIT),
     hidden: next.hidden.slice(-LIMIT),
@@ -79,6 +92,8 @@ export function updateReaderPrefs(change: (prefs: ReaderPrefs) => ReaderPrefs) {
     // Kept for this visit only.
   }
   window.dispatchEvent(new Event(EVENT));
+  const after = parse(raw);
+  for (const listener of listeners) listener(before, after);
 }
 
 export const toggleIn = <T>(list: T[], value: T) => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);

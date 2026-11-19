@@ -7,6 +7,7 @@ import { loadHighlights } from "@/components/Highlights";
 import { NextEvent } from "@/components/NextEvent";
 import { BlogRow, EventRow } from "@/components/FeedInserts";
 import { getNextEvent } from "@/lib/api/agenda";
+import { FollowCard, SidebarFooter } from "@/components/FollowUs";
 import { BlogSpotlight, loadNewsSidebar, MostCommented, PowerNow } from "@/components/NewsSidebar";
 import { FeedFilters } from "@/components/FeedFilters";
 import { FEED_PAGE_SIZE, getParties, getSources } from "@/lib/api/client";
@@ -163,8 +164,10 @@ export default async function HomePage({ searchParams }: Props) {
             inserts={[
               ...(today.length > 0 ? [{ after: 3, node: <TodayInFive stories={today} headingId="hoje-em-5-feed" /> }] : []),
               ...(spotlight ? [{ after: 5, node: <BlogRow post={spotlight} /> }] : []),
+              // Once per reader, on every screen: the main way to our profiles on phones.
+              { after: 8, node: <FollowCard />, everywhere: true },
               ...(podcast
-                ? [{ after: 8, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
+                ? [{ after: 10, node: <PodcastBox podcast={podcast} episode={episode} headingId="podcast-feed" className="my-2" /> }]
                 : []),
               ...(nextEvent ? [{ after: 12, node: <EventRow item={nextEvent} now={requestTime()} /> }] : []),
             ]}
@@ -178,6 +181,7 @@ export default async function HomePage({ searchParams }: Props) {
             {nextEvent && <NextEvent item={nextEvent} now={requestTime()} />}
             <PowerNow data={sidebar.power} />
             <MostCommented articles={sidebar.mostCommented} />
+            <SidebarFooter />
           </div>
         </aside>
       </div>

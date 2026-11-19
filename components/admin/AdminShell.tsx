@@ -22,9 +22,13 @@ const SECTIONS: { href: string; label: string; moderator?: boolean; admin?: bool
   { href: "/admin/comentarios", label: "Comentários", moderator: true },
   { href: "/admin/forum", label: "Fórum", moderator: true },
   { href: "/admin/feedback", label: "Feedback", moderator: true },
+  { href: "/admin/artigos", label: "Artigos" },
   { href: "/admin/equipa", label: "Equipa", admin: true },
   { href: "/admin/conta", label: "A minha conta" },
 ];
+
+/** A section's page, or one inside it (/admin/artigos/12). The reports queue is /admin itself, so only exactly. */
+const inSection = (href: string, pathname: string) => pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`));
 
 /** The moderation area: signs in when needed, then the sections the member's role allows. */
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -47,7 +51,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const member = me.data;
   const sections = SECTIONS.filter((section) => (section.admin ? member.role === "admin" : section.moderator ? canModerate(member) : true));
-  const allowed = sections.some((section) => section.href === pathname) || pathname === "/admin/conta";
+  const allowed = sections.some((section) => inSection(section.href, pathname));
 
   return (
     <MeContext.Provider value={member}>
@@ -69,7 +73,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <nav aria-label="Secções da moderação" className="mb-6">
         <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
           {sections.map((section) => {
-            const active = section.href === pathname;
+            const active = inSection(section.href, pathname);
             return (
               <li key={section.href} className="shrink-0">
                 <Link
@@ -90,7 +94,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         children
       ) : (
         <p className="rounded-2xl border border-dashed border-line p-6 text-muted">
-          A tua função ({ROLE_LABELS[member.role]}) não dá acesso a esta secção.
+          A tua função ({ROLE_LABELS[member.role]}) não dá acesso a esta secção.{" "}
+          <Link href={sections[0]!.href} className="font-bold text-ink underline">
+            Ir para {sections[0]!.label}
+          </Link>
         </p>
       )}
     </MeContext.Provider>

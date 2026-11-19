@@ -4,6 +4,9 @@ import { ogCard, OG_SIZE, OG_TYPE } from "@/lib/ogCard";
 export const alt = "Quem governa este sítio, no Politicando";
 export const size = OG_SIZE;
 export const contentType = OG_TYPE;
+/** Drawn once per page and kept for a day: crawlers (Threads, X, WhatsApp) give up after a few seconds. */
+export const revalidate = 86400;
+export const generateStaticParams = async () => [];
 
 const KICKERS: Record<string, string> = { district: "Distrito", municipality: "Concelho", parish: "Freguesia" };
 

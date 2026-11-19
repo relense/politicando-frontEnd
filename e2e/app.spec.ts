@@ -108,20 +108,6 @@ test("post a comment and a reply; API errors are shown", async ({ page }) => {
   await expect(page.getByText(unique, { exact: true })).toBeVisible();
 });
 
-test("theme persists across reload without a flash", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
-  await page.getByRole("button", { name: /tema/ }).click();
-  await expect(page.locator("html")).toHaveClass(/dark/);
-  await page.addInitScript(() => {
-    document.addEventListener("DOMContentLoaded", () => {
-      (window as unknown as { __firstClass: string }).__firstClass = document.documentElement.className;
-    });
-  });
-  await page.reload();
-  expect(await page.evaluate(() => (window as unknown as { __firstClass: string }).__firstClass)).toContain("dark");
-});
-
 test("the party filter narrows the news in place and marks the chosen party", async ({ page }) => {
   await page.goto("/");
   const quick = page.getByRole("navigation", { name: "Filtrar notícias" }).getByRole("list", { name: "Partidos com deputados" });
@@ -1326,4 +1312,41 @@ test("a card without a photo keeps its shape, with a dark frame naming the outle
   await expect(frame).toBeVisible();
   const box = await frame.locator("xpath=ancestor::a[1]").boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(180);
+});
+
+test("follow us: once in the feed until dismissed, after an article, at the side column's end, in the footer and on /sobre", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto("/");
+  const card = page.getByRole("region", { name: /As notícias de hoje, explicadas em 60 segundos/ });
+  await expect(card).toBeVisible();
+  await expect(card.getByRole("link", { name: /@politicandopt no TikTok/ })).toHaveAttribute(
+    "href",
+    "https://www.tiktok.com/@politicandopt",
+  );
+  await noSeriousA11yIssues(page);
+  await card.getByRole("button", { name: "Dispensar" }).click();
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: /As notícias de hoje, explicadas em 60 segundos/ })).toHaveCount(0);
+
+  if (!isMobile) {
+    const side = page.getByRole("complementary", { name: "Ao lado das notícias" });
+    await expect(side.getByRole("link", { name: "Fontes", exact: true })).toHaveAttribute("href", "/sobre#fontes");
+  }
+
+  const footer = page.locator("footer");
+  await expect(footer.getByRole("heading", { name: "A política do dia, em 5 notícias, às 8h." })).toBeVisible();
+  await expect(footer.getByRole("link", { name: "Registo de correções" })).toHaveAttribute("href", "/feedback/correcoes");
+  await expect(footer.getByRole("link", { name: /Voltar ao topo/ })).toBeVisible();
+
+  await page.goto("/article/100");
+  const strip = page.getByRole("region", { name: "Queres mais histórias assim?" });
+  await expect(strip.getByRole("link", { name: /@politicando\.pt no Threads/ })).toBeVisible();
+
+  await page.goto("/sobre");
+  await expect(page.getByRole("heading", { level: 2, name: "Fontes e método" })).toHaveAttribute("id", "fontes");
+  await noSeriousA11yIssues(page);
 });

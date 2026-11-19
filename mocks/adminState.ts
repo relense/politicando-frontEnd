@@ -35,6 +35,16 @@ export const team: MockAdmin[] = [
     createdAt: "2026-10-01T10:00:00.000Z",
     lastLoginAt: null,
   },
+  {
+    id: 3,
+    email: "autora@exemplo.pt",
+    name: "Inês Carvalho",
+    role: "author",
+    password: "palavra-passe-de-teste",
+    disabled: false,
+    createdAt: "2026-11-01T10:00:00.000Z",
+    lastLoginAt: null,
+  },
 ];
 
 /** Session token → admin id. */

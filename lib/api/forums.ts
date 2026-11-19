@@ -190,9 +190,10 @@ export type NewThread = {
   nickname: string;
   articleId: number | null;
   initiativeId: number | null;
-  captchaToken: string;
+  /** Null with an account. */
+  captchaToken: string | null;
 };
-export type NewPost = { body: string; nickname: string; replyTo: number | null; captchaToken: string };
+export type NewPost = { body: string; nickname: string; replyTo: number | null; captchaToken: string | null };
 
 const post = (body: unknown) => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
@@ -207,7 +208,7 @@ export async function createThread(board: string, input: NewThread): Promise<{ i
       ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(input.articleId ? { articleId: input.articleId } : {}),
       ...(input.initiativeId ? { initiativeId: input.initiativeId } : {}),
-      recaptchaToken: input.captchaToken,
+      ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   );
 }
@@ -220,7 +221,7 @@ export async function createPost(threadId: number, input: NewPost): Promise<{ id
       body: input.body,
       ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
-      recaptchaToken: input.captchaToken,
+      ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   );
 }
@@ -239,6 +240,7 @@ export async function createReport(input: { kind: ReportKind; id: number; reason
 }
 
 const FORUM_ERRORS: Record<string, string> = {
+  login_required: "Entra na tua conta para publicar. O teu texto foi mantido.",
   recaptcha_failed: "A verificação anti-robô falhou. O teu texto foi mantido; confirma novamente e publica.",
   recaptcha_unavailable: "O fórum está temporariamente indisponível. O teu texto foi mantido; tenta daqui a pouco.",
   rate_limited: "Estás a publicar depressa demais. O teu texto foi mantido; espera um minuto e tenta novamente.",

@@ -71,7 +71,7 @@ export default function TermsPage() {
       <h2>O que publicas</h2>
       <p>
         És responsável pelo que escreves. O texto continua a ser teu, mas ao publicá-lo autorizas o {SITE_NAME} a mostrá-lo no site, de
-        forma gratuita e enquanto estiver publicado. Os comentários são anónimos; vê a{" "}
+        forma gratuita e enquanto estiver publicado. Podes comentar com o nome público da tua conta; vê a{" "}
         <Link href="/privacidade">política de privacidade</Link> para saber que dados tratamos.
       </p>
 

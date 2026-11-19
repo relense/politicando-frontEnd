@@ -9,7 +9,7 @@ import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Fórum",
-  description: "Discussões anónimas sobre política portuguesa: um fórum geral e um por cada partido. Sem conta, sem registo.",
+  description: "Discussões sobre política portuguesa: um fórum geral e um por cada partido.",
   alternates: { canonical: "/forum" },
 };
 
@@ -37,8 +37,8 @@ export default async function ForumIndexPage() {
         <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">Discussão</p>
         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Fórum</h1>
         <p className="mt-2 max-w-2xl leading-relaxed text-muted">
-          Um fórum geral e um por cada partido. Ninguém precisa de conta: cada pessoa recebe um ID diferente em cada discussão, para se
-          perceber quem diz o quê sem ser seguida de discussão em discussão. O endereço IP não é guardado.
+          Um fórum geral e um por cada partido. Cada pessoa recebe um ID diferente em cada discussão, para se perceber quem diz o quê sem
+          ser seguida de discussão em discussão; com conta, escreves com o teu nome público. O endereço IP não é guardado.
         </p>
       </header>
 
