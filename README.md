@@ -24,4 +24,6 @@ npm run test:e2e
 ## Production settings
 Set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`. `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` is optional. Leave `NEXT_PUBLIC_CAPTCHA_MODE` empty. On a develop/testing deployment you can set it to `off` to hide the captcha, as long as that API uses Google's test `RECAPTCHA_SECRET`.
 
+Set `REVALIDATE_SECRET` (server only, `openssl rand -hex 32`) to the same value as the backend's: after each job the backend calls `POST /api/revalidate` (`lib/revalidate.ts`) and the site drops its copy of what changed at once.
+
 What the API serves, what is being deployed and what is still open is in [docs/api-handoff.md](docs/api-handoff.md).
