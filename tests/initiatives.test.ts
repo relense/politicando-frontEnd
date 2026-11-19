@@ -4,7 +4,7 @@ import { getInitiatives } from "@/lib/api/client";
 import { mapInitiative } from "@/lib/api/mappers";
 import { getInitiativeTopics, getPresidency, mapPresidency, presidencySchema } from "@/lib/api/presidency";
 import { initiativeSchema } from "@/lib/api/schemas";
-import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress, stageTone, updatedOn } from "@/lib/initiatives";
+import { hasPlainTitle, headlineOf, presidencyLabel, stageProgress, stageTone, stageDate } from "@/lib/initiatives";
 import { handlers } from "@/mocks/handlers";
 import { initiatives } from "@/mocks/parliamentFixtures";
 import { presidency } from "@/mocks/presidencyFixtures";
@@ -119,14 +119,16 @@ describe("presidency api", () => {
   });
 });
 
-describe("updatedOn: «Atualizada a» on the list", () => {
+describe("stageDate: the latest stage's date on the list", () => {
   const now = Date.parse("2026-11-19T12:00:00Z");
-  it("is the stage's date when it's today or before", () => {
-    expect(updatedOn("2026-11-18", now)).toBe("2026-11-18");
-    expect(updatedOn("2026-11-19", now)).toBe("2026-11-19");
+  it("is when it was updated when it's today or before", () => {
+    expect(stageDate("2026-11-18", now)).toEqual({ date: "2026-11-18", scheduled: false });
+    expect(stageDate("2026-11-19", now)).toEqual({ date: "2026-11-19", scheduled: false });
   });
-  it("is nothing for a date still to come (19 Nov: OE2027 «Atualizada a 23-11-2026») or none", () => {
-    expect(updatedOn("2026-11-23", now)).toBeNull();
-    expect(updatedOn(null, now)).toBeNull();
+  it("is the day the Parliament scheduled when it's still to come (OE2027: «Marcada para 23-11-2026»)", () => {
+    expect(stageDate("2026-11-23", now)).toEqual({ date: "2026-11-23", scheduled: true });
+  });
+  it("is nothing without a date", () => {
+    expect(stageDate(null, now)).toBeNull();
   });
 });

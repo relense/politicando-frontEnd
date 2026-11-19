@@ -9,7 +9,7 @@ import { ProposalNews } from "@/components/RelatedArticles";
 import { StageProgress } from "@/components/StageProgress";
 import { ApiError, getInitiative, getParties } from "@/lib/api/client";
 import { formatDate } from "@/lib/format";
-import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel } from "@/lib/initiatives";
+import { hasPlainTitle, headlineOf, initiativePath, presidencyLabel, stageDate } from "@/lib/initiatives";
 import { partyColor, STATUS_LABELS } from "@/lib/parliament";
 import type { InitiativeDetail, Vote, VotePosition } from "@/lib/types";
 import { breadcrumbs, jsonLd, legislationLd, pageTitle } from "@/lib/seo";
@@ -54,6 +54,7 @@ export default async function InitiativePage({ params }: Props) {
   const acronyms = new Map(parties.map((party) => [party.slug, party.acronym]));
   const acronym = (slug: string) => acronyms.get(slug) ?? slug.toUpperCase();
   const { plain, presidency, authors } = initiative;
+  const stage = stageDate(initiative.phaseDate);
 
   return (
     // A second column only when there's a "Passa ou chumba?" to show.
@@ -106,7 +107,8 @@ export default async function InitiativePage({ params }: Props) {
           {initiative.phase && (
             <p className="text-sm text-muted">
               {initiative.phase}
-              {initiative.phaseDate && `, ${formatDate(initiative.phaseDate)}`}
+              {/* A day still to come is the one the Parliament scheduled (lib/initiatives stageDate). */}
+              {stage && `, ${stage.scheduled ? "marcada para " : ""}${formatDate(stage.date)}`}
             </p>
           )}
           {plain?.status.stage && (

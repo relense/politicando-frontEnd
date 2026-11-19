@@ -123,13 +123,14 @@ export function presidencyLabel(presidency: InitiativePresidency): string {
 }
 
 /**
- * The date for «Atualizada a»: the latest stage's, unless it's still to come. The Parliament dates some stages ahead
- * (the OE's specialty debate carried the day it ends), and a future date can't be when it was updated.
+ * The latest stage's date, and whether it's still to come. The Parliament records some stages ahead with the day it
+ * scheduled them (the OE2027's specialty debate: 23 Nov, one of its days), and that day can move with the schedule.
+ * So: after today (Lisbon), «Marcada para»; from that day on, simply the stage's date («Atualizada a»).
  */
 // `now` defaults to the clock: it only decides whether a day has come, so a re-render can't change the answer except
 // across midnight, and server and browser agree.
-export function updatedOn(phaseDate: string | null | undefined, now: number = Date.now()): string | null {
+export function stageDate(phaseDate: string | null | undefined, now: number = Date.now()): { date: string; scheduled: boolean } | null {
   if (!phaseDate) return null;
   const today = lisbonDay(new Date(now).toISOString());
-  return today !== null && phaseDate.slice(0, 10) <= today ? phaseDate : null;
+  return { date: phaseDate, scheduled: today !== null && phaseDate.slice(0, 10) > today };
 }
