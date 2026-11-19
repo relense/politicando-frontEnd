@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type BudgetSummary, type BudgetYear } from "@/lib/api/budget";
-import { budgetBox, budgetStage, choiceShares, headlineVotes } from "@/lib/budget";
+import { budgetBox, budgetStage, choiceShares, headlineVotes, partyFull, partyShort, proposalHeading } from "@/lib/budget";
 import { budgetFilters, budgetPath, queryOf, RESULT_TABS, TAB_RESULTS, type BudgetFilters, type BudgetSearch } from "@/lib/budgetFilters";
 import { formatDate, formatDayHeading, formatNumber, formatRelative, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -98,7 +98,10 @@ export function BudgetYearView({
   const { general, final } = headlineVotes(year.bills);
   const headline = final ?? general;
   const bill = year.bills[year.bills.length - 1] ?? null;
-  const acronymOf = (slug: string) => summary?.parties.find((entry) => entry.party.slug === slug)?.party.acronym ?? slug.toUpperCase();
+  const acronymOf = (slug: string) => {
+    const party = summary?.parties.find((entry) => entry.party.slug === slug)?.party;
+    return party ? partyShort(party) : slug.toUpperCase();
+  };
   const approved = (summary?.results.approved ?? 0) + (summary?.results.partially_approved ?? 0);
   const rejected = summary?.results.rejected ?? 0;
   const box =
@@ -114,7 +117,7 @@ export function BudgetYearView({
   const todayVoted = todayPage?.items ?? [];
 
   return (
-    <div data-wide className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div data-wide className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0">
         <header className="mb-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -239,7 +242,12 @@ export function BudgetYearView({
                     </p>
                   )}
                   <p className={`${label} mt-2 text-muted`}>Última votação</p>
-                  <h3 className="mt-1 font-serif text-xl font-bold leading-snug">{todayVoted[0]!.title}</h3>
+                  <h3 className="mt-1 font-serif text-xl font-bold leading-snug [overflow-wrap:anywhere]">
+                    {proposalHeading(todayVoted[0]!).main}
+                  </h3>
+                  {todayVoted[0]!.plain && (
+                    <p className="font-mono text-[11px] text-muted [overflow-wrap:anywhere]">{todayVoted[0]!.title}</p>
+                  )}
                   <ProposalMeta proposal={todayVoted[0]!} today={today} />
                   {todayVoted[0]!.plain && <p className="mt-2 text-sm leading-snug">{todayVoted[0]!.plain.summary}</p>}
                   <p className="mt-3 flex flex-wrap gap-2">
@@ -268,7 +276,7 @@ export function BudgetYearView({
                       <li key={proposal.id} className="flex items-start gap-2">
                         <ResultBadge result={proposal.result} />
                         <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
-                          {proposal.title}
+                          {proposalHeading(proposal).main}
                         </Link>
                       </li>
                     ))}
@@ -289,10 +297,12 @@ export function BudgetYearView({
 
         {summary && summary.parties.length > 0 && (
           <section aria-labelledby="partidos" className="mb-8">
-            <h2 id="partidos" className={`${sectionHeading} flex flex-wrap justify-between gap-2`}>
-              <span>{current ? "Como está a votar cada partido" : "Resumo por partido"}</span>
-              <span className="font-normal normal-case tracking-normal text-muted">nas propostas dos outros</span>
+            <h2 id="partidos" className={sectionHeading}>
+              {current ? "Como está a votar cada partido" : "Resumo por partido"}
             </h2>
+            <p className="mt-1 text-sm text-muted">
+              Os votos de cada partido nas propostas apresentadas pelos outros partidos, sem contar ausências.
+            </p>
             <ul className="mt-2 flex flex-col">
               {summary.parties.map((entry) => {
                 const shares = choiceShares(entry.votesOnOthers);
@@ -307,17 +317,18 @@ export function BudgetYearView({
                       className="flex items-center gap-1.5 font-mono text-sm font-bold hover:underline"
                     >
                       <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: partyColor(entry.party.slug) }} />
-                      {entry.party.acronym}
+                      {partyShort(entry.party)}
                     </Link>
                     <div className="min-w-0">
                       {shares ? (
-                        <SharesBar shares={shares} label={entry.party.acronym} />
+                        <SharesBar shares={shares} label={partyFull(entry.party)} />
                       ) : (
                         <p className="font-mono text-xs text-muted">Sem votos ainda</p>
                       )}
                       {shares && (
                         <p className="mt-0.5 font-mono text-[11px] text-muted">
-                          {shares.favor}% a favor · {shares.abstention}% abst. · {shares.against}% contra
+                          {shares.favor}% a favor · {shares.abstention}% abst. · {shares.against}% contra · de{" "}
+                          {formatNumber(entry.votesOnOthers.favor + entry.votesOnOthers.abstention + entry.votesOnOthers.against)} votos
                         </p>
                       )}
                     </div>
@@ -372,12 +383,13 @@ export function BudgetYearView({
                 />
               </label>
               {summary.topics.length > 0 && (
-                <label>
+                <label className="min-w-0 max-w-full">
                   <span className="sr-only">Tema</span>
                   <select
                     name="tema"
                     defaultValue={filters.topic ?? ""}
-                    className="rounded-full border border-line bg-paper px-3 py-2 font-mono text-xs"
+                    // A select is as wide as its longest option («Orçamento, Finanças e Administração Pública»): kept in.
+                    className="w-full max-w-full truncate rounded-full border border-line bg-paper px-3 py-2 font-mono text-xs sm:w-auto sm:max-w-64"
                   >
                     <option value="">Tema</option>
                     {summary.topics.map((entry) => (
@@ -405,7 +417,7 @@ export function BudgetYearView({
                   aria-current={filters.party === entry.party.slug ? "true" : undefined}
                   className={`rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${filters.party === entry.party.slug ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`}
                 >
-                  {entry.party.acronym}
+                  {partyShort(entry.party)}
                 </Link>
               ))}
             </nav>

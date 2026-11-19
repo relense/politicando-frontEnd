@@ -7,6 +7,10 @@ test("State Budget: the current one, today's votes, each party, the filters and 
 }) => {
   await gotoReady(page, "/orcamento");
   await expect(page.getByRole("heading", { level: 1, name: "Orçamento do Estado 2027" })).toBeVisible();
+  // Nothing wider than the screen (20 Nov: a long topic in the menu pushed the page sideways on phones).
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  // A one-letter acronym says the name.
+  await expect(page.getByRole("navigation", { name: "Proposta por" }).getByRole("link", { name: "LIVRE", exact: true })).toBeVisible();
   await expect(page.getByText("Em especialidade", { exact: true })).toBeVisible();
   // The running tally first: 5 of the 8 fictional proposals voted.
   await expect(page.getByRole("region", { name: /propostas de alteração já votadas/ })).toContainText("de 8");
@@ -35,7 +39,11 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await expect(irs.getByRole("link", { name: /PDF oficial/ })).toHaveAttribute("href", "https://example.com/oe/28301.pdf");
   await irs.getByRole("link", { name: /Página da proposta/ }).click();
   await expect(page).toHaveURL(/\/orcamento\/2027\/proposta\/28301$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Artigo 9.º do Código do IRS" })).toBeVisible();
+  // «O que muda» leads; the official title, when and where it was voted, under it.
+  await expect(page.getByRole("heading", { level: 1, name: "Muda os escalões do IRS Jovem para quem tem até 35 anos." })).toBeVisible();
+  await expect(page.getByText("Título oficial: Artigo 9.º do Código do IRS")).toBeVisible();
+  await expect(page.getByText(/^Votada a \d\d-\d\d-\d{4}, em Comissão$/)).toBeVisible();
+  await expect(page.getByText("Partido Social Democrata", { exact: true })).toBeVisible();
   await expect(page.getByText("Aprovada", { exact: true }).first()).toBeVisible();
   await noSeriousA11yIssues(page);
 

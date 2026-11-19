@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { BudgetProposal, BudgetVote } from "@/lib/api/budget";
+import { authorsShort, proposalHeading } from "@/lib/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { AmbiguityNote, ChoiceColumns, ResultBadge, VoteChips } from "./BudgetParts";
@@ -17,26 +18,11 @@ export function ProposalMeta({ proposal, today }: { proposal: BudgetProposal; to
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-muted">
       {first && <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: partyColor(first.slug) }} />}
-      <span className="font-bold text-ink">
-        {proposal.authors.label || proposal.authors.parties.map((party) => party.acronym).join(", ") || "—"}
-      </span>
+      <span className="font-bold text-ink">{authorsShort(proposal.authors) || "—"}</span>
       <span>· n.º {proposal.number}</span>
       {proposal.topics[0] && <span>· {proposal.topics.join(", ")}</span>}
       <span>· {when}</span>
     </p>
-  );
-}
-
-/** «O que muda», when written (lib/api/budget `plain`). */
-export function WhatChanges({ proposal, className = "" }: { proposal: BudgetProposal; className?: string }) {
-  if (!proposal.plain) return null;
-  return (
-    <div className={className}>
-      <p className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--contra)" }}>
-        O que muda
-      </p>
-      <p className="mt-1 font-serif text-lg leading-snug">{proposal.plain.summary}</p>
-    </div>
   );
 }
 
@@ -90,7 +76,8 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ProposalMeta proposal={proposal} today={today} />
-            <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug">{proposal.title}</h3>
+            <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere]">{proposalHeading(proposal).main}</h3>
+            {proposal.plain && <p className="mt-0.5 font-mono text-[11px] text-muted [overflow-wrap:anywhere]">{proposal.title}</p>}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <ResultBadge result={proposal.result} />
@@ -103,7 +90,6 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
         {vote && vote.parties.length > 0 && <VoteChips vote={vote} label={`Como votou cada partido na proposta ${proposal.number}`} />}
       </summary>
       <div className="mt-3 rounded-xl border border-line p-3">
-        <WhatChanges proposal={proposal} className="mb-3" />
         <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-muted">Votação</p>
         <ProposalVotes proposal={proposal} />
         <p className="mt-3 flex flex-wrap gap-2">

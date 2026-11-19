@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
-import { AutomaticLabel, ProposalVotes, WhatChanges } from "@/components/budget/ProposalItem";
+import { AutomaticLabel, ProposalVotes } from "@/components/budget/ProposalItem";
+import { authorsShort, partyFull, proposalHeading, votedLine } from "@/lib/budget";
 import { getBudgetProposal } from "@/lib/api/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -20,9 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const proposal = await load(ano, id);
   if (!proposal) return { title: "Proposta de alteração ao Orçamento" };
   return {
-    title: `${proposal.title} · proposta ${proposal.number} ao OE ${proposal.year}`,
+    title: `${proposalHeading(proposal).main} · proposta ${proposal.number} ao OE ${proposal.year}`,
     description: `Proposta de alteração n.º ${proposal.number} ao Orçamento do Estado para ${proposal.year}${
-      proposal.authors.label ? `, de ${proposal.authors.label}` : ""
+      authorsShort(proposal.authors) ? `, de ${authorsShort(proposal.authors)}` : ""
     }: o resultado e como votou cada partido.`,
     alternates: { canonical: `/orcamento/${proposal.year}/proposta/${proposal.id}` },
   };
@@ -37,9 +38,7 @@ export default async function BudgetProposalPage({ params }: Props) {
   const facts: [string, string | null][] = [
     [
       "Proposta por",
-      proposal.authors.label ||
-        [...proposal.authors.parties.map((party) => party.acronym), ...proposal.authors.deputies].join(", ") ||
-        null,
+      [...proposal.authors.parties.map(partyFull), ...proposal.authors.deputies].join(", ") || proposal.authors.label || null,
     ],
     ["Temas", proposal.topics.join(", ") || null],
     ["Artigo", proposal.article],
@@ -63,8 +62,14 @@ export default async function BudgetProposalPage({ params }: Props) {
         Proposta de alteração n.º {proposal.number}
         <ResultBadge result={proposal.result} />
       </p>
-      <h1 className="mt-1 font-serif text-3xl font-bold leading-tight">{proposal.title}</h1>
-      <WhatChanges proposal={proposal} className="mt-4 rounded-xl border border-line p-4" />
+      {proposal.plain && (
+        <p className="mt-3 font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--contra)" }}>
+          O que muda
+        </p>
+      )}
+      <h1 className="mt-1 font-serif text-3xl font-bold leading-tight [overflow-wrap:anywhere]">{proposalHeading(proposal).main}</h1>
+      {proposal.plain && <p className="mt-2 font-mono text-xs text-muted [overflow-wrap:anywhere]">Título oficial: {proposal.title}</p>}
+      {votedLine(proposal) && <p className="mt-3 text-sm font-bold">{votedLine(proposal)}</p>}
       <dl className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {facts
           .filter((fact): fact is [string, string] => Boolean(fact[1]))

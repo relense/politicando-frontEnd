@@ -7,7 +7,7 @@ import {
   type BudgetSummary,
   type BudgetYear,
 } from "@/lib/api/budget";
-import { budgetBox, type BudgetBox as BoxState } from "@/lib/budget";
+import { authorsShort, budgetBox, partyShort, proposalHeading, type BudgetBox as BoxState } from "@/lib/budget";
 import { formatDate, formatLongDate, formatNumber, formatTime, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
@@ -65,7 +65,10 @@ export function BudgetBox({
   if (!box) return null;
   const approved = (summary.results.approved ?? 0) + (summary.results.partially_approved ?? 0);
   const rejected = summary.results.rejected ?? 0;
-  const acronymOf = (slug: string) => summary.parties.find((entry) => entry.party.slug === slug)?.party.acronym ?? slug.toUpperCase();
+  const acronymOf = (slug: string) => {
+    const party = summary.parties.find((entry) => entry.party.slug === slug)?.party;
+    return party ? partyShort(party) : slug.toUpperCase();
+  };
 
   return (
     <section aria-labelledby={headingId} className="rounded-2xl border border-line bg-[var(--card-hover)] p-4">
@@ -172,10 +175,10 @@ export function BudgetBox({
               <ResultBadge result={latest.result} />
             </p>
             <Link href={proposalPath(latest)} className="mt-1 block font-serif text-base font-bold leading-snug hover:underline">
-              {latest.title}
+              {proposalHeading(latest).main}
             </Link>
             <p className="mb-2 font-mono text-[11px] text-muted">
-              {latest.authors.label ? `${latest.authors.label} · ` : ""}n.º {latest.number}
+              {authorsShort(latest.authors) ? `${authorsShort(latest.authors)} · ` : ""}n.º {latest.number}
             </p>
             {latestVote(latest) && <VoteChips vote={latestVote(latest)!} label={`Como votou cada partido na proposta ${latest.number}`} />}
             <Link

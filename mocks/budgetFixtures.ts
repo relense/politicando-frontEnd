@@ -216,7 +216,8 @@ export const budgetProposals = () => [
     number: "1522C",
     title: "Artigo 140.º · Serviço Nacional de Saúde",
     article: "Artigo 140.º",
-    topics: ["Saúde"],
+    // A long topic, as the parliament names some: it once pushed the page past a phone's width.
+    topics: ["Saúde", "Orçamento, Finanças e Administração Pública"],
     result: "pending",
     status: "Por votar",
     authors: ["pcp"],
