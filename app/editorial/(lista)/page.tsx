@@ -13,7 +13,7 @@ import { CommentIcon } from "@/components/icons";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getEditorial, getParties } from "@/lib/api/client";
-import { comingSoon, EDITORIAL_KINDS, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
+import { comingSoon, EDITORIAL_KINDS, publicationCount, editorialPath, KIND_LABELS, KIND_PLURALS, readingLabel } from "@/lib/editorial";
 import { fold, formatDayHeading, formatTime, lisbonDay } from "@/lib/format";
 import { localPosts } from "@/lib/localPosts";
 import type { EditorialKind, EditorialPost, Party } from "@/lib/types";
@@ -154,6 +154,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
   /** Podcasts with no episode posts yet: the show itself, not an empty list or a "0". */
   const showOnly = (kind: EditorialKind) => kind === "podcast" && Boolean(podcast) && counts.podcast === 0;
   const podcastOnTop = view.kind === "podcast" && showOnly("podcast");
+  const count = publicationCount(shown.length, { showInstead: podcastOnTop });
   const partyOf = (tag: string) => parties.find((party) => party.slug === tag || party.acronym.toLowerCase() === tag) ?? null;
   const now = requestTime();
   const chip = (active: boolean) =>
@@ -325,9 +326,10 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           <p className="mb-4 font-mono text-xs text-muted" aria-live="polite">
             {filtered ? (
               <>
-                <b className="text-ink">{shown.length === 1 ? "1 publicação" : `${shown.length} publicações`}</b>
+                {/* Podcasts with no posts show the Spotify show: "0 publicações" above it would be wrong. */}
+                {count ? <b className="text-ink">{count}</b> : <b className="text-ink">{view.kind && KIND_PLURALS[view.kind]}</b>}
                 {view.q && ` com «${view.q}»`}
-                {view.kind && ` · ${KIND_PLURALS[view.kind]}`}
+                {count && view.kind && ` · ${KIND_PLURALS[view.kind]}`}
                 {view.tag && ` · ${capital(view.tag)}`}
                 {" · "}
                 <Link href="/editorial" className="underline hover:text-ink">
