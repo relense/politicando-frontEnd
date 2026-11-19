@@ -1,3 +1,4 @@
+import { tagsFor } from "@/lib/api/cacheTags";
 import { serverHeaders } from "#server-headers";
 import { z } from "zod";
 import type {
@@ -111,14 +112,22 @@ const isCachedRequest = (init?: RequestInit & { next?: { revalidate?: number | f
 const headersOf = (value: HeadersInit | undefined): Record<string, string> =>
   value ? Object.fromEntries(new Headers(value).entries()) : {};
 
+/** A cached request carries its data's tag (lib/api/cacheTags.ts), so the backend's ping can drop it at once. */
+function withTags(path: string, init: (RequestInit & { next?: { revalidate?: number | false; tags?: string[] } }) | undefined) {
+  const tags = tagsFor(path);
+  if (tags.length === 0) return init;
+  return { ...init, next: { ...init?.next, tags: [...(init?.next?.tags ?? []), ...tags] } };
+}
+
 export async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit & { next?: { revalidate?: number } }): Promise<T> {
   let response: Response;
   try {
     // On the site's server, the key (and, uncached, the reader's IP); in the browser, nothing is added.
     // "#server-headers" is the real module only in React's server layer (package.json "imports"), an empty one elsewhere.
-    const extra = await serverHeaders(isCachedRequest(init));
+    const shared = isCachedRequest(init);
+    const extra = await serverHeaders(shared);
     const withHeaders = Object.keys(extra).length > 0 ? { ...init, headers: { ...headersOf(init?.headers), ...extra } } : init;
-    response = await fetch(`${baseFor(path, init?.method)}${path}`, withHeaders);
+    response = await fetch(`${baseFor(path, init?.method)}${path}`, shared ? withTags(path, withHeaders) : withHeaders);
   } catch (cause) {
     throw new ApiError(`Network error on ${path}: ${String(cause)}`);
   }
