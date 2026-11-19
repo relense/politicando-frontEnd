@@ -295,14 +295,20 @@ export function isOutletPhoto(url: string, domain: string): boolean {
 }
 
 /**
- * The photo for a story's card: the lead outlet's own, so the card's outlet, headline and photo are those of the article
- * it opens. The story's photo can come from any outlet: with several, it's used only when it's recognisably the lead's.
- * Null: the card shows that this outlet has no photo.
+ * The photo for a story's card, and whose it is (the outlet's name as the API gives it, for "Imagem · …"). The lead
+ * outlet's own when there is one; otherwise another outlet's, credited to it, rather than an empty frame. Null credit:
+ * the outlet can't be told. Null: no outlet has a photo.
  */
-export function storyImage(story: Pick<Story, "title" | "versions" | "imageUrl">): string | null {
+export function storyPhoto(story: Pick<Story, "title" | "versions" | "imageUrl">): { url: string; credit: string | null } | null {
   const lead = leadOf(story);
-  if (lead.imageUrl !== undefined) return lead.imageUrl;
+  // With a photo per outlet (when the API sends them): the lead's, else the first outlet's that has one.
+  if (story.versions.some((version) => version.imageUrl !== undefined)) {
+    const own = [lead, ...story.versions].find((version) => version.imageUrl);
+    return own?.imageUrl ? { url: own.imageUrl, credit: own.source } : null;
+  }
   if (!story.imageUrl) return null;
-  if (story.versions.length <= 1) return story.imageUrl;
-  return isOutletPhoto(story.imageUrl, lead.sourceDomain) ? story.imageUrl : null;
+  if (story.versions.length <= 1) return { url: story.imageUrl, credit: lead.source };
+  const url = story.imageUrl;
+  const owner = [lead, ...story.versions].find((version) => isOutletPhoto(url, version.sourceDomain));
+  return { url, credit: owner?.source ?? null };
 }
