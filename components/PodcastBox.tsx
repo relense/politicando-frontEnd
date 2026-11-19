@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { PodcastEpisode } from "@/lib/api/podcast";
 import { embedsAllowed, setEmbedsAllowed, subscribeEmbeds } from "@/lib/consent";
 import { episodeTitle, type Podcast } from "@/lib/podcast";
+import { umamiEvent } from "@/lib/analytics";
 import { isAllowedCover } from "@/lib/podcastCovers";
 
 type Props = {
@@ -204,6 +205,8 @@ function EpisodeBar({ episode, onPlay }: { episode: PodcastEpisode | null; onPla
       <button
         type="button"
         onClick={onPlay}
+        // Which episode, by its day: the newest or an earlier one.
+        {...umamiEvent("podcast-play", { episode: episode?.publishedAt?.slice(0, 10) })}
         aria-label={`Ouvir aqui: ${title}`}
         className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >

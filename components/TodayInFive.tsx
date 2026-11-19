@@ -5,6 +5,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { accountMarkRead } from "@/lib/account";
 import { freshnessLine, storyPath, type Story } from "@/lib/api/stories";
 import { useNow } from "@/lib/useNow";
+import { umamiEvent } from "@/lib/analytics";
 
 // The stories this reader opened, kept on the device (the last 200 ids), for the ticks in "Hoje em 5". Storage may be
 // blocked: then nothing is ticked, and the box still works as a list.
@@ -85,7 +86,11 @@ export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Sto
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1">
-                <Link href={storyPath(story)} className={`font-bold leading-snug hover:underline ${seen ? "text-muted" : ""}`}>
+                <Link
+                  href={storyPath(story)}
+                  {...umamiEvent("hoje-em-5-open", { position: index + 1 })}
+                  className={`font-bold leading-snug hover:underline ${seen ? "text-muted" : ""}`}
+                >
                   {story.title}
                 </Link>
                 <span className="mt-0.5 block font-mono text-[11px] text-muted" suppressHydrationWarning>

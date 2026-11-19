@@ -48,7 +48,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   // Standings never throw: without them only the order by name is offered.
   const standings = await getPartyStandings();
-  const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
 
   return (
     <html lang="pt-PT" className={`${domine.variable} ${spaceMono.variable} ${redditSans.variable}`} suppressHydrationWarning>
@@ -74,7 +74,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <AccountRuntime />
           </PartyOrderProvider>
         </Providers>
-        {plausibleDomain && <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" />}
+        {/* Statistics without cookies (lib/umami.ts), through our own /stats; readers asking not to be tracked aren't. */}
+        {umamiWebsiteId && (
+          <Script defer src="/stats/script.js" data-website-id={umamiWebsiteId} data-host-url="/stats" data-do-not-track="true" />
+        )}
       </body>
     </html>
   );

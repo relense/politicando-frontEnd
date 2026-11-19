@@ -94,8 +94,9 @@ export default function CookiesPage() {
 
       <h2>Estatística sem cookies</h2>
       <p>
-        Contamos as visitas com o Plausible, que não usa cookies nem guarda o teu endereço IP. Vemos apenas totais, como o número de visitas
-        de uma página, sem saber quem as fez.
+        Contamos as visitas com a Umami, alojada na União Europeia, que não usa cookies nem guarda o teu endereço IP. Vemos apenas totais,
+        como o número de visitas de uma página ou quantas vezes se carregou em «Importa», sem saber quem o fez. Se o teu navegador pedir
+        para não seres seguido (Do Not Track), não contamos nada.
       </p>
 
       <h2>Proteção contra robôs</h2>

@@ -17,6 +17,7 @@ import { comingSoon, EDITORIAL_KINDS, publicationCount, editorialPath, KIND_LABE
 import { fold, formatDayHeading, formatTime, lisbonDay } from "@/lib/format";
 import { localPosts } from "@/lib/localPosts";
 import type { EditorialKind, EditorialPost, Party } from "@/lib/types";
+import { umamiEvent } from "@/lib/analytics";
 
 const PAGE_SIZE = 20;
 /** The blog is small: it is read whole (up to this many pages of 50), then searched and counted here. */
@@ -197,6 +198,8 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
               </label>
               <button
                 type="submit"
+                // Enter in the field presses this button too, so Umami counts both. Where, never the words.
+                {...umamiEvent("search", { where: "blog" })}
                 aria-label="Procurar"
                 className="absolute left-1 top-1 flex size-8 items-center justify-center rounded-full text-muted hover:text-ink"
               >

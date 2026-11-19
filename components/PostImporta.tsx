@@ -7,6 +7,7 @@ import { formatNumber } from "@/lib/format";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
 import { voteStore } from "./ArticleVote";
 import { ImportanceDots } from "./ImportaButton";
+import { track } from "@/lib/analytics";
 
 const keyOf = (slug: string) => `post:${slug}`;
 type Answer = { importa: number; mine: number };
@@ -43,6 +44,7 @@ export function PostImporta({ slug, title, importa }: { slug: string; title: str
       const answer = await markPost(slug, next ? 1 : 0);
       voteStore.remember(keyOf(slug), answer.mine);
       setState({ importa: answer.importa, mine: answer.mine === 1 });
+      if (next) track("importa", { where: "blog", post: slug });
     } catch (error) {
       // Needs an account: the login note opens instead (components/account/AccountRuntime).
       if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);

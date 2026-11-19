@@ -6,6 +6,7 @@ import { READER_KEY, useReader } from "@/lib/account";
 import { ApiError } from "@/lib/api/client";
 import { accountErrorMessage, emailProblem, remindLater, removeEmail, setEmail, setNewsletter, type Reader } from "@/lib/api/account";
 import { GOLD } from "./ui";
+import { track } from "@/lib/analytics";
 
 /*
  * The account's optional email (backend docs/accounts-api.md): it recovers a forgotten password once confirmed, and can
@@ -52,8 +53,9 @@ function AddEmailForm({
   const [problem, setProblem] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: (input: { email: string; newsletter: boolean }) => setEmail(input.email, input.newsletter || undefined),
-    onSuccess: ({ user }) => {
+    onSuccess: ({ user }, input) => {
       update(user);
+      if (input.newsletter) track("newsletter-subscribe", { where: "add-email" });
       onSent?.();
     },
   });
@@ -309,7 +311,10 @@ function NewsletterSwitch({ reader, onNeedEmail }: { reader: Reader; onNeedEmail
   const update = useUpdateReader();
   const toggle = useMutation({
     mutationFn: (on: boolean) => setNewsletter(on),
-    onSuccess: (newsletter) => update({ newsletter }),
+    onSuccess: (newsletter, on) => {
+      update({ newsletter });
+      if (on) track("newsletter-subscribe", { where: "profile" });
+    },
     onError: (error) => {
       if (error instanceof ApiError && error.code === "no_email") onNeedEmail();
     },
