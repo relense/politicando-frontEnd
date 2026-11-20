@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { forgetAccount, markSignedOut, pullAccountState, READER_KEY, useReader, type LoginAsk } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
-import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, voteArticle } from "@/lib/api/client";
+import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, SESSION_ENDED_EVENT, voteArticle } from "@/lib/api/client";
 import { votePost, voteThread } from "@/lib/api/forums";
 import { markImporta } from "@/lib/api/stories";
 import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
@@ -71,8 +71,16 @@ export function AccountRuntime() {
       if (!detail && client.getQueryData(READER_KEY)) forgetAccount(client);
       setAsk(detail ?? { kind: "any", anchor: null, pending: null });
     };
+    // Found by a read (the inbox, /me/state): forgotten quietly, the header turns logged out; no note opens.
+    const ended = () => {
+      if (client.getQueryData(READER_KEY)) forgetAccount(client);
+    };
     window.addEventListener(LOGIN_REQUIRED_EVENT, listen);
-    return () => window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
+    window.addEventListener(SESSION_ENDED_EVENT, ended);
+    return () => {
+      window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
+      window.removeEventListener(SESSION_ENDED_EVENT, ended);
+    };
   }, [client]);
 
   useEffect(() => {
