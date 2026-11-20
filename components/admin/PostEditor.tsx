@@ -192,7 +192,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [checked, setChecked] = useState(false);
   const [done, setDone] = useState<string | null>(null);
-  const draftMade = useRef(false);
+  const savedThisRun = useRef(false);
   // A copy left from an earlier visit that differs from what the API has: offered back, never applied unasked.
   // Read on the first render: the editor only renders in the browser, once the session is known.
   const [backup, setBackup] = useState<Backup | null>(() => {
@@ -214,7 +214,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
 
   const run = useMutation({
     mutationFn: async ({ step, submitted }: { step: Step; submitted: Fields }) => {
-      draftMade.current = false;
+      savedThisRun.current = false;
       let latest = current;
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
@@ -222,13 +222,13 @@ function EditorForm({ post }: { post: AdminPost | null }) {
         const kept = latest;
         setCurrent(kept);
         setSaved(fieldsOf(kept));
-        setFields(fieldsOf(kept));
+        // The API's tidied version, unless the author kept typing meanwhile.
+        setFields((typed) => (same(typed, submitted) ? fieldsOf(kept) : typed));
         client.setQueryData(["admin-post", kept.id], kept);
-        if (!post) {
-          // A draft now: the new-post copy goes, and a failed publish next says the draft exists.
-          writeBackup(null, null);
-          draftMade.current = true;
-        }
+        // Saved now: if publishing fails next, the message says so.
+        savedThisRun.current = true;
+        // A new post is a draft now: its new-post copy goes.
+        if (!post) writeBackup(null, null);
       }
       if (step !== "save") latest = await changePost(latest.id, step);
       return latest;
@@ -249,7 +249,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
       }
     },
     onError: (error) => {
-      setDone(draftMade.current ? "Guardado como rascunho, mas não foi publicado. Tenta publicar outra vez." : null);
+      setDone(savedThisRun.current ? "Guardado, mas não foi publicado. Tenta publicar outra vez." : null);
       expiry(error);
     },
   });
