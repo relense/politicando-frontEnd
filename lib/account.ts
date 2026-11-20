@@ -162,8 +162,12 @@ export async function signOut(client: ReturnType<typeof useQueryClient>) {
 
 /** The session is gone (logged out, deleted, expired): empty the lists and show the logged-out header. */
 export function forgetAccount(client: ReturnType<typeof useQueryClient>) {
+  // Already forgotten (the session-ended event, then the caller's own error handler): once is enough.
+  if (client.getQueryData(READER_KEY) === null && !signedIn) return;
   signedIn = false;
+  pulled = null;
   clearLocalState();
+  markAccountDevice(false);
   client.setQueryData(READER_KEY, null);
   // Nothing of theirs stays in memory for the next person on this computer (the inbox, picks, saved, activity):
   // every other query goes back to where the page started, and the reader's own ones ask again, now logged out.
@@ -179,7 +183,10 @@ export function pullAccountState(reader: Reader): Promise<void> {
   const done: Promise<void> = getAccountState()
     .then((state) => {
       // Logged out (or someone else in) while it loaded: their lists don't come back.
-      if (pulled?.done === done && signedIn) applyAccountState(state);
+      if (pulled?.done === done && signedIn) {
+        applyAccountState(state);
+        markAccountDevice(true);
+      }
     })
     .catch(() => {
       if (pulled?.done === done) pulled = null;
@@ -188,9 +195,35 @@ export function pullAccountState(reader: Reader): Promise<void> {
   return done;
 }
 
+/**
+ * Logged out on load. If this browser held an account's lists (its session ended between visits), they go, as on a
+ * logout: the next person on this computer starts clean. A reader who never logged in keeps theirs.
+ */
 export function markSignedOut() {
   signedIn = false;
   pulled = null;
+  if (hadAccount()) {
+    clearLocalState();
+    markAccountDevice(false);
+  }
+}
+
+// Whether the lists on this device are an account's (set once they're pulled), so an ended session can clear them.
+const ACCOUNT_MARK = "politicando:listas-da-conta";
+function hadAccount(): boolean {
+  try {
+    return window.localStorage.getItem(ACCOUNT_MARK) === "1";
+  } catch {
+    return false;
+  }
+}
+function markAccountDevice(on: boolean) {
+  try {
+    if (on) window.localStorage.setItem(ACCOUNT_MARK, "1");
+    else window.localStorage.removeItem(ACCOUNT_MARK);
+  } catch {
+    // Blocked storage: nothing was kept either.
+  }
 }
 
 const send = (change: ListChange, on: boolean) => {
