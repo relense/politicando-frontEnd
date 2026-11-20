@@ -22,7 +22,7 @@ import { KIND_LABELS } from "@/lib/editorial";
 import { formatDateTime, formatTime } from "@/lib/format";
 import { renderMarkdown } from "@/lib/markdown";
 import { useMe } from "./AdminShell";
-import { buttonClass, ConfirmButton, ErrorNote, inputClass, useExpiry } from "./ui";
+import { buttonClass, ConfirmButton, ErrorNote, inputClass, useExpiry, useExpiryOf } from "./ui";
 
 /** The form's fields, as typed: tags as one comma-separated line. */
 type Fields = {
@@ -145,9 +145,8 @@ function writeBackup(id: number | null, fields: Fields | null) {
 
 /** Writes a new post (`id` null) or edits one. */
 export function PostEditor({ id }: { id: number | null }) {
-  const expiry = useExpiry();
   const post = useQuery({ queryKey: ["admin-post", id], queryFn: () => getPost(id!), enabled: id !== null });
-  if (post.isError) expiry(post.error);
+  useExpiryOf(post.error);
 
   if (id !== null && post.isPending) return <p className="text-muted">A carregar o artigo…</p>;
   if (id !== null && post.isError)
@@ -217,6 +216,11 @@ function EditorForm({ post }: { post: AdminPost | null }) {
       let latest = current;
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
+        // Kept at once: if publishing fails next, a retry publishes this post instead of creating another.
+        const kept = latest;
+        setCurrent(kept);
+        setSaved(fieldsOf(kept));
+        client.setQueryData(["admin-post", kept.id], kept);
       }
       if (step !== "save") latest = await changePost(latest.id, step);
       return latest;
