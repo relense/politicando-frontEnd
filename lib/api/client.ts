@@ -143,7 +143,7 @@ export async function request<T>(path: string, schema: z.ZodType<T>, init?: Requ
     if (
       typeof window !== "undefined" &&
       response.status === 401 &&
-      path.startsWith("/me") &&
+      /^\/me(?:[/?]|$)/.test(path) &&
       failure.success &&
       failure.data.error.code === "unauthenticated"
     )
