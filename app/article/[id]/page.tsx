@@ -112,7 +112,12 @@ export default async function ArticlePage({ params }: Props) {
   // One outlet's version of a story: the others, the story's debate and its Importa (FEATURES.stories).
   const story = FEATURES.stories && article.storyId ? await getStory(article.storyId).catch(() => null) : null;
   const target = story ? `/stories/${story.id}` : articleComments(article.id);
-  const [comments, more, context] = await Promise.all([getComments(target), loadMore(article), loadContext(article)]);
+  const [comments, more, context] = await Promise.all([
+    // Comments are live: if they fail, the article still shows, without its comments (as on the blog).
+    getComments(target).catch(() => null),
+    loadMore(article),
+    loadContext(article),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -150,24 +155,26 @@ export default async function ArticlePage({ params }: Props) {
               <FollowStoryBox story={story} headingId="seguir-historia-topo" />
             </div>
           )}
-          <CommentSection
-            target={target}
-            initialComments={comments}
-            title={story ? "Debate" : "Comentários"}
-            stances={Boolean(story && story.initiatives.length > 0)}
-            intro={
-              story && (
-                <>
-                  {story.sourceCount > 1 && (
-                    <p className="mb-4 rounded-xl bg-surface px-4 py-3 text-sm text-muted">
-                      Há uma só conversa por história, seja qual for o jornal por onde chegaste.
-                    </p>
-                  )}
-                  {story.debate && <DebatePair debate={story.debate} />}
-                </>
-              )
-            }
-          />
+          {comments && (
+            <CommentSection
+              target={target}
+              initialComments={comments}
+              title={story ? "Debate" : "Comentários"}
+              stances={Boolean(story && story.initiatives.length > 0)}
+              intro={
+                story && (
+                  <>
+                    {story.sourceCount > 1 && (
+                      <p className="mb-4 rounded-xl bg-surface px-4 py-3 text-sm text-muted">
+                        Há uma só conversa por história, seja qual for o jornal por onde chegaste.
+                      </p>
+                    )}
+                    {story.debate && <DebatePair debate={story.debate} />}
+                  </>
+                )
+              }
+            />
+          )}
         </div>
         <ArticleSidebar
           articleId={article.id}

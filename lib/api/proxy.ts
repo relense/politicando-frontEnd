@@ -21,7 +21,11 @@ export const ownCookie = (cookie: string) =>
     .filter((part) => !/^\s*domain=/i.test(part))
     .join(";");
 
+/** "." or ".." (or empty) would let the URL climb out of the API's path, past the routes' checks on the first part. */
+export const unsafePath = (path: string[]) => path.some((part) => part === "" || part === "." || part === "..");
+
 export async function forwardToApi(request: NextRequest, path: string[]): Promise<Response> {
+  if (unsafePath(path)) return Response.json({ error: { code: "not_found", message: "Not found" } }, { status: 404 });
   const target = `${API_BASE_URL}/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
   const headers = new Headers();
   for (const name of PASSED_IN) {
