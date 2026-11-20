@@ -393,7 +393,11 @@ function TermBar({ start, now }: { start: string; now: number }) {
   );
 }
 
-/** One bar for every decree that reached Belém, split by what the President did, and the three figures beside it. */
+/**
+ * One bar for the President's decisions on Parliament's decrees, and those waiting, with the three figures beside it.
+ * Each veto counts (a law vetoed twice, or vetoed and then promulgated, is more than one decision), so the sentence
+ * counts decisions, never decrees.
+ */
 function LawsSummary({ legislation, termStart }: { legislation: Presidency["legislation"]; termStart: string }) {
   const parts: { key: string; value: number; label: string; tone: StageTone }[] = [
     {
@@ -406,6 +410,7 @@ function LawsSummary({ legislation, termStart }: { legislation: Presidency["legi
     { key: "pending", value: legislation.pending, label: "à espera", tone: "president" },
   ];
   const total = parts.reduce((sum, part) => sum + part.value, 0);
+  const decided = legislation.promulgated + legislation.vetoed;
 
   return (
     <>
@@ -423,8 +428,9 @@ function LawsSummary({ legislation, termStart }: { legislation: Presidency["legi
             )}
           </div>
           <p className="mt-2 text-sm">
-            <span className="font-bold">{formatNumber(total)}</span>{" "}
-            {total === 1 ? "decreto da Assembleia da República chegou" : "decretos da Assembleia da República chegaram"} a Belém.
+            <span className="font-bold">{formatNumber(decided)}</span> {decided === 1 ? "decisão" : "decisões"} sobre decretos da Assembleia
+            da República
+            {legislation.pending > 0 ? `, e ${formatNumber(legislation.pending)} à espera` : ""}.
           </p>
         </div>
         <dl className="grid grid-cols-3 gap-2 md:w-[24rem]">
@@ -623,8 +629,8 @@ function DecisionGroup({
               </li>
             ))}
           </ul>
-          {/* Only when there are more than these: a veto Parliament overrode is no longer in the "Vetada" phase. */}
-          {count > items.length && (
+          {/* Only when there may be more than these. Vetoes count each veto (a law vetoed twice is 2), not laws: always offer the list. */}
+          {(more.status === "vetoed" || count > items.length) && (
             <Link
               href={`/iniciativas?fase=${more.status === "vetoed" ? "vetoed" : "published"}`}
               className="mt-2 inline-block rounded-full border border-ink px-4 py-1.5 font-mono text-sm font-bold hover:bg-surface"
@@ -695,8 +701,7 @@ function AllTime({ allTime, termStart }: { allTime: NonNullable<Presidency["legi
       <span className="font-bold">{from}</span>
       {allTime.since && allTime.since < termStart ? ", contando com o Presidente anterior" : ""}: {formatNumber(allTime.promulgated)}{" "}
       promulgadas e {formatNumber(allTime.vetoed)} {allTime.vetoed === 1 ? "veto" : "vetos"}
-      {unconstitutional ? `, ${formatNumber(unconstitutional)} ${unconstitutional === 1 ? "dele" : "deles"} por inconstitucionalidade` : ""}
-      .
+      {unconstitutional ? `, ${formatNumber(unconstitutional)} ${allTime.vetoed === 1 ? "por" : "deles por"} inconstitucionalidade` : ""}.
     </p>
   );
 }
