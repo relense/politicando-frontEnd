@@ -12,7 +12,7 @@ import { Providers } from "@/components/Providers";
 import { SiteNav } from "@/components/SiteNav";
 import { getPartyStandings } from "@/lib/api/client";
 import { jsonLd, OG_BASE, siteLd } from "@/lib/seo";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, X_HANDLE } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL, X_HANDLE } from "@/lib/site";
 import "./globals.css";
 
 const domine = Domine({ subsets: ["latin"], variable: "--font-domine" });
@@ -22,7 +22,7 @@ const redditSans = Reddit_Sans({ subsets: ["latin"], variable: "--font-reddit-sa
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} | Política em Portugal: notícias, Parlamento e eleições`, template: `%s | ${SITE_NAME}` },
+  title: { default: SITE_TITLE, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   category: "politics",

@@ -1,7 +1,9 @@
 export const SITE_NAME = "Politicando";
-/** What the site is, for search results and shares: Portugal's politics, said plainly (about 150 characters at most). */
+/** The home page's title, at most 60 characters: Google and share cards cut it there. */
+export const SITE_TITLE = `${SITE_NAME} | Notícias, Parlamento e eleições em Portugal`;
+/** What the site is, for search results and shares: Portugal's politics, said plainly. At most 125 characters: share previews cut there. */
 export const SITE_DESCRIPTION =
-  "Política portuguesa num só lugar: as notícias de todos os partidos, o Parlamento, o Governo, as eleições e as leis, explicados com clareza.";
+  "Política portuguesa num só lugar: notícias dos partidos, Parlamento, Governo, eleições e leis, explicados com clareza.";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 /** Where readers write: corrections, contact; people named in the record have a right of reply. An empty variable counts as unset. */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@politicando.pt";
