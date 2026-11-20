@@ -74,6 +74,16 @@ export const follow = (kind: FollowKind, id: number, on: boolean) =>
     if (on) track("follow", { kind, id });
   });
 
+/**
+ * A merged story's old ids, dropped from this device's list only: the backend moved their follows to the new id, and
+ * unfollowing that clears them all (backend docs/stories-api.md).
+ */
+export function forgetFollowed(kind: FollowKind, ids: readonly number[]) {
+  if (!ids.some((id) => extras.follows[kind].includes(id))) return;
+  extras = { ...extras, follows: { ...extras.follows, [kind]: extras.follows[kind].filter((id) => !ids.includes(id)) } };
+  emit();
+}
+
 /** After the reader replied in a thread or commented on a story: the API followed it for them. */
 export function markFollowed(kind: FollowKind, id: number) {
   if (extras.follows[kind].includes(id)) return;

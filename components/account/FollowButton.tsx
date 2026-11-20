@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAccountGate, useReader } from "@/lib/account";
-import { follow, useExtras } from "@/lib/accountExtras";
+import { follow, forgetFollowed, useExtras } from "@/lib/accountExtras";
 import type { FollowKind } from "@/lib/api/engagement";
 
 /**
@@ -40,9 +40,12 @@ export function FollowButton({
         onClick={(event) => {
           if (gate("follow", event.currentTarget)) return;
           setFailed(false);
-          // Stopping stops every id it was followed under.
-          const done = following ? Promise.all(followedIds.map((each) => follow(kind, each, false))) : follow(kind, id, true);
-          done.catch(() => setFailed(true));
+          // One request on the current id: stopping there clears the old ids too on the backend; here they're just dropped.
+          follow(kind, id, !following)
+            .then(() => {
+              if (following) forgetFollowed(kind, mergedFrom);
+            })
+            .catch(() => setFailed(true));
         }}
         className={`inline-flex items-center gap-1.5 font-mono text-xs font-bold ${large ? "h-10 rounded-xl px-4" : "h-[34px] rounded-full px-3"} ${
           following
