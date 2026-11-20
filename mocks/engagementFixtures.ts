@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { readerOf, type MockReader } from "./accountFixtures";
+import { registerFeedbackNotifier } from "./adminFixtures";
 import { publicPosts } from "./editorialAdmin";
 import { addVoteThread, forumItem, registerPickLookup } from "./forumFixtures";
 import { initiatives } from "./parliamentFixtures";
@@ -83,6 +84,24 @@ const inboxOf = (reader: MockReader) => {
   if (!inboxes.has(reader.id)) inboxes.set(reader.id, seedInbox());
   return inboxes.get(reader.id)!;
 };
+
+// The team answered a message this reader sent signed in (feedback-api.md): a line in their inbox, with the answer.
+let nextFeedbackNotice = 9000;
+registerFeedbackNotifier((readerId, feedback) => {
+  if (!inboxes.has(readerId)) inboxes.set(readerId, seedInbox());
+  inboxes.get(readerId)!.unshift({
+    id: nextFeedbackNotice++,
+    kind: "feedback_reply",
+    actorName: null,
+    count: 1,
+    createdAt: new Date().toISOString(),
+    read: false,
+    snippet: null,
+    link: { ...LINK, feedbackId: feedback.id },
+    ...EXTRA,
+    feedback,
+  } as never);
+});
 
 /** Open predictions: the first few initiatives; the crowd's picks, and each reader's. */
 const TOPICS = [
