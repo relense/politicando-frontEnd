@@ -27,3 +27,26 @@ describe("Hoje em 5: how fresh each story is", () => {
     expect(freshnessLine(story(null, "2026-03-29T10:00:00Z", "2026-03-29T22:00:00Z"), afterChange)).toBe("há 1 h · desde ontem");
   });
 });
+
+describe("story lists", () => {
+  it("leave out a story with no version left, which has nothing to show or open", async () => {
+    const { storyListSchema } = await import("@/lib/api/stories");
+    const story = (id: number, sources: unknown[]) => ({
+      id,
+      title: "T",
+      imageUrl: null,
+      firstPublishedAt: "2026-11-19T05:00:00Z",
+      lastPublishedAt: "2026-11-19T06:00:00Z",
+      articleCount: sources.length,
+      sourceCount: sources.length,
+      sources,
+      parties: [],
+      importa: 0,
+      importance: 0,
+      commentCount: 0,
+    });
+    const source = { name: "Público", articleId: 9, title: "T", url: "https://publico.pt/x", publishedAt: "2026-11-19T06:00:00Z" };
+    const parsed = storyListSchema.safeParse([story(1, [source]), story(2, [])]);
+    expect(parsed.success && parsed.data.map((item) => item.id)).toEqual([1]);
+  });
+});

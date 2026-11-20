@@ -92,7 +92,9 @@ const storyDetailSchema = storySchema.extend({
     .nullish(),
 });
 
-const storyPageSchema = z.object({ items: z.array(storySchema), nextCursor: z.string().nullable(), total: z.number().nullish() });
+/** A story with no version left (its articles hidden or removed) has nothing to show or open: left out. */
+export const storyListSchema = z.array(storySchema).transform((items) => items.filter((item) => item.sources.length > 0));
+const storyPageSchema = z.object({ items: storyListSchema, nextCursor: z.string().nullable(), total: z.number().nullish() });
 
 export type StoryTag = { slug: string; label: string; name: string; kind: string };
 export type StoryVersion = {
@@ -239,6 +241,7 @@ export async function getStories({ party, source, q, tag, sort, period, cursor, 
 export async function getStory(id: number): Promise<StoryDetail | null> {
   try {
     const api = await request(`/stories/${id}`, storyDetailSchema, cached);
+    if (api.sources.length === 0) return null;
     return {
       ...mapStory(api),
       articles: api.articles.map(mapArticle),
@@ -276,7 +279,7 @@ export function freshnessLine(story: Pick<Story, "recentSourceCount" | "firstPub
 /** "Hoje em 5": the stories of the last 24 hours that matter most. Empty when the API can't say. */
 export async function getToday(): Promise<Story[]> {
   try {
-    const { items } = await request("/today", z.object({ items: z.array(storySchema) }), cached);
+    const { items } = await request("/today", z.object({ items: storyListSchema }), cached);
     return items.map(mapStory);
   } catch {
     return [];
