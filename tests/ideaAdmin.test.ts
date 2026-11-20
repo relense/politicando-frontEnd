@@ -35,6 +35,9 @@ describe("ideaStatusBody", () => {
     });
     expect(ideaStatusBody(idea, { ...form, duplicateOf: "" })).toEqual({ ok: false, error: "Escreve o número da ideia original." });
     expect(ideaStatusBody(idea, { ...form, duplicateOf: "abc" })).toEqual({ ok: false, error: "Escreve o número da ideia original." });
-    expect(ideaStatusBody(idea, { ...form, duplicateOf: "501" })).toEqual({ ok: false, error: "Uma ideia não pode ser duplicada de si própria." });
+    expect(ideaStatusBody(idea, { ...form, duplicateOf: "501" })).toEqual({
+      ok: false,
+      error: "Uma ideia não pode ser duplicada de si própria.",
+    });
   });
 });
