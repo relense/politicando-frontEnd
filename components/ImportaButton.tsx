@@ -73,11 +73,15 @@ export function applyImportaAnswer(id: number, answer: ImportaAnswer) {
   setLive(id, { importa: answer.importa, importance: answer.importance, mine: answer.mine === 1 });
 }
 
-/** What to show for a story: this visit's latest answer, or the page's numbers with the reader's own mark counted. */
-function useImporta(id: number, importa: number, importance: number) {
+/**
+ * What to show for a story: this visit's latest answer, or the page's numbers with the reader's own mark counted. A mark on
+ * an older story joined into this one (`mergedFrom`) counts as a mark on it.
+ */
+function useImporta(id: number, importa: number, importance: number, mergedFrom: readonly number[] = []) {
   const stored = useSyncExternalStore(subscribe, read, () => "{}");
   const current = useLive(id);
-  const mine = current?.mine ?? parse(stored)[id] === 1;
+  const marks = parse(stored);
+  const mine = current?.mine ?? [id, ...mergedFrom].some((each) => marks[each] === 1);
   // A cached page may not count the reader's own mark yet.
   return { importa: current?.importa ?? Math.max(importa, mine ? 1 : 0), importance: current?.importance ?? importance, mine };
 }
@@ -87,15 +91,18 @@ export function ImportaCount({
   id,
   importa,
   importance,
+  mergedFrom,
   headingId = "importa",
 }: {
   id: number;
   importa: number;
   importance: number;
+  /** Older stories joined into this one. */
+  mergedFrom?: readonly number[];
   /** Unique on the page: the article page shows the box twice (before the comments on phones, in the column on wide screens). */
   headingId?: string;
 }) {
-  const shown = useImporta(id, importa, importance);
+  const shown = useImporta(id, importa, importance, mergedFrom);
   return (
     <>
       <ImportanceDots importance={shown.importance} className="w-12 shrink-0" />
@@ -141,16 +148,19 @@ export function ImportaButton({
   title,
   importa,
   importance,
+  mergedFrom = [],
   compact = false,
 }: {
   id: number;
   title: string;
   importa: number;
   importance: number;
+  /** Older stories joined into this one: a mark on one of them is a mark on this. */
+  mergedFrom?: readonly number[];
   /** The compact list: the dots and the count, no pill. */
   compact?: boolean;
 }) {
-  const state = useImporta(id, importa, importance);
+  const state = useImporta(id, importa, importance, mergedFrom);
   const [pending, setPending] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
   const mine = pending ?? state.mine;
@@ -164,7 +174,10 @@ export function ImportaButton({
     setPending(next);
     setFailed(false);
     try {
-      applyImportaAnswer(id, await markImporta(id, next ? 1 : 0));
+      const answer = await markImporta(id, next ? 1 : 0);
+      // Taken back: the marks kept under the old ids go too, or the button would still show it.
+      if (answer.mine !== 1) for (const old of mergedFrom) remember(old, false);
+      applyImportaAnswer(id, answer);
       if (next) track("importa", { where: "story", story: id });
     } catch (error) {
       // Needs an account: the login prompt opens instead (components/account/AccountRuntime).

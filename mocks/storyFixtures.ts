@@ -119,6 +119,8 @@ function storyOf(group: number[]) {
     importance: marks / busiest,
     tags: group[0] === 100 ? [OE2027, HABITACAO] : [],
     debate: debateOf(group[0]!),
+    // The ids of older stories joined into this one (docs/stories-api.md): none here.
+    mergedFrom: [] as number[],
     commentCount: (storyComments.get(group[0]!) ?? []).length + versions.reduce((sum, item) => sum + item.commentCount, 0),
   };
 }

@@ -67,6 +67,8 @@ const storySchema = z.object({
   tags: z.array(tagSchema).default([]),
   /** The most liked comment on each side; either may be null. */
   debate: z.object({ agree: debateComment.nullable(), disagree: debateComment.nullable() }).nullish(),
+  /** The ids of older stories joined into this one ([] usually, and from an older API). */
+  mergedFrom: z.array(z.number()).catch([]),
 });
 
 const storyDetailSchema = storySchema.extend({
@@ -131,7 +133,18 @@ export type Story = {
   tags: StoryTag[];
   /** The most liked comment on each side; null unless both exist (one side alone isn't a debate). */
   debate: { agree: DebateComment; disagree: DebateComment } | null;
+  /** Older stories joined into this one: a reader's mark (read, Importa, followed) on one of them is on this story. */
+  mergedFrom: number[];
 };
+
+/** Every id this story answers to: its own, then the older ones joined into it. */
+export const storyIds = (story: Pick<Story, "id" | "mergedFrom">): number[] => [story.id, ...story.mergedFrom];
+
+/** Whether a list the reader keeps (read, followed…) has this story, under its id or an old one. */
+export function knowsStory(ids: readonly number[] | ReadonlySet<number>, story: Pick<Story, "id" | "mergedFrom">): boolean {
+  const has = (id: number) => ("has" in ids ? ids.has(id) : ids.includes(id));
+  return storyIds(story).some(has);
+}
 
 export type StoryDetail = Story & {
   articles: Article[];
@@ -146,6 +159,7 @@ export type StoryPage = { stories: Story[]; nextCursor: string | null; total: nu
 function mapStory(api: z.infer<typeof storySchema>): Story {
   return {
     id: api.id,
+    mergedFrom: api.mergedFrom.filter((id) => id !== api.id),
     title: decode(api.title),
     excerpt: api.excerpt ? decode(api.excerpt) : null,
     imageUrl: safeHttpUrl(api.imageUrl),
