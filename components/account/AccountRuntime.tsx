@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { markSignedOut, pullAccountState, useReader, type LoginAsk } from "@/lib/account";
+import { forgetAccount, markSignedOut, pullAccountState, READER_KEY, useReader, type LoginAsk } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
 import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, voteArticle } from "@/lib/api/client";
 import { votePost, voteThread } from "@/lib/api/forums";
@@ -66,11 +66,14 @@ export function AccountRuntime() {
   useEffect(() => {
     const listen = (event: Event) => {
       const detail = event instanceof CustomEvent ? (event.detail as LoginAsk | undefined) : undefined;
+      // The API said login_required while the header still shows a reader: the session ended (expired, or logged out
+      // elsewhere). Forget it, so the note shows instead of the action silently doing nothing.
+      if (!detail && client.getQueryData(READER_KEY)) forgetAccount(client);
       setAsk(detail ?? { kind: "any", anchor: null, pending: null });
     };
     window.addEventListener(LOGIN_REQUIRED_EVENT, listen);
     return () => window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
-  }, []);
+  }, [client]);
 
   useEffect(() => {
     if (!done) return;
