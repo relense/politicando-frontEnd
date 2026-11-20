@@ -66,6 +66,12 @@ describe("logging in", () => {
     expect(safeReturn("/\\evil.example")).toBe("/");
     expect(safeReturn("https://evil.example")).toBe("/");
     expect(safeReturn(undefined)).toBe("/");
+    // Browsers drop tabs and newlines in a URL and read a backslash as a slash: "/\t/evil" is "//evil".
+    expect(safeReturn("/\t/evil.example")).toBe("/");
+    expect(safeReturn("/\n/evil.example")).toBe("/");
+    expect(safeReturn(" //evil.example")).toBe("/");
+    expect(safeReturn("/x\\..\\/evil")).toBe("/");
+    expect(safeReturn("/feedback?ordem=novas#topo")).toBe("/feedback?ordem=novas#topo");
   });
 
   it("rates passwords by length and mix, the obvious ones low", () => {
