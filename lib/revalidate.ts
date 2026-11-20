@@ -2,9 +2,10 @@ import { timingSafeEqual } from "node:crypto";
 import { type CacheTag, isCacheTag } from "@/lib/api/cacheTags";
 
 /**
- * The backend's ping after each job (POST /api/revalidate): `Authorization: Bearer <REVALIDATE_SECRET>` and
- * `{ "changed": ["news", …] }`. Each name's cached requests (lib/api/cacheTags.ts) are dropped by `drop`, which the
- * route makes an immediate expiry: the next visit fetches fresh instead of being served the old copy.
+ * The backend's ping after each job (POST /api/revalidate, backend docs/revalidate.md): `Authorization: Bearer
+ * <REVALIDATE_SECRET>` and `{ "tags": ["news", …] }` (`changed`, the older name, is read too). Each known tag's cached
+ * requests (lib/api/cacheTags.ts) are dropped by `drop`, which the route makes an immediate expiry: the next visit fetches
+ * fresh instead of being served the old copy. Unknown tags are ignored, so the backend can add more without breaking this.
  */
 type Options = { secret: string | undefined; drop: (tag: CacheTag) => void };
 
@@ -23,11 +24,11 @@ export async function answerRevalidate(request: Request, { secret, drop }: Optio
   if (!sameSecret(given, secret)) return fail(401, "unauthorized", "Missing or wrong secret");
 
   const body: unknown = await request.json().catch(() => null);
-  const changed = body && typeof body === "object" ? (body as { changed?: unknown }).changed : undefined;
-  if (!Array.isArray(changed) || changed.length === 0 || !changed.every(isCacheTag))
-    return fail(400, "invalid_request", 'Expected { "changed": [...] } with news, podcast, agenda, blog or parliament');
+  const fields = body && typeof body === "object" ? (body as { tags?: unknown; changed?: unknown }) : {};
+  const sent = fields.tags ?? fields.changed;
+  if (!Array.isArray(sent) || sent.length === 0) return fail(400, "invalid_request", 'Expected { "tags": [...] }');
 
-  const tags = [...new Set(changed)];
+  const tags = [...new Set(sent.filter(isCacheTag))];
   for (const tag of tags) drop(tag);
   return Response.json({ revalidated: tags });
 }
