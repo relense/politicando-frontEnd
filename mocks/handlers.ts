@@ -11,6 +11,7 @@ import { contractHandlers } from "./contractFixtures";
 import { placeHandlers } from "./placeFixtures";
 import { legislatureHandlers } from "./legislatureFixtures";
 import { agendaHandlers } from "./agendaFixtures";
+import { budgetHandlers } from "./budgetFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
@@ -636,6 +637,7 @@ export const handlers = [
   ...placeHandlers,
   ...legislatureHandlers,
   ...agendaHandlers,
+  ...budgetHandlers,
   ...feedbackHandlers,
   ...forumHandlers,
   ...storyHandlers,

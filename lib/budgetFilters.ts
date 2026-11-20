@@ -1,0 +1,58 @@
+import type { BudgetQuery, BudgetResult } from "@/lib/api/budget";
+
+/** The State Budget list's filters in the address: ?partido=ps&resultado=por-votar&tema=IRS&q=…&dia=2026-11-19. */
+
+export const RESULT_TABS = [
+  { key: null, label: "Todas" },
+  { key: "por-votar", label: "Por votar" },
+  { key: "aprovadas", label: "Aprovadas" },
+  { key: "rejeitadas", label: "Rejeitadas" },
+] as const;
+export type ResultTab = Exclude<(typeof RESULT_TABS)[number]["key"], null>;
+export const TAB_RESULTS: Record<ResultTab, BudgetResult[]> = {
+  "por-votar": ["pending", "sent_to_plenary"],
+  aprovadas: ["approved", "partially_approved"],
+  rejeitadas: ["rejected"],
+};
+
+export type BudgetFilters = { party: string | null; result: ResultTab | null; topic: string | null; q: string | null; day: string | null };
+export type BudgetSearch = Record<string, string | string[] | undefined>;
+
+export function budgetFilters(search: BudgetSearch, known: { parties: readonly string[]; topics: readonly string[] }): BudgetFilters {
+  const one = (value: string | string[] | undefined) => (typeof value === "string" ? value : null);
+  const party = one(search.partido);
+  const result = one(search.resultado);
+  const topic = one(search.tema);
+  const q = one(search.q)?.trim().slice(0, 100) || null;
+  const day = one(search.dia);
+  return {
+    party: party && known.parties.includes(party) ? party : null,
+    result: result && result in TAB_RESULTS ? (result as ResultTab) : null,
+    topic: topic && known.topics.includes(topic) ? topic : null,
+    q,
+    day: day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null,
+  };
+}
+
+export function queryOf(filters: BudgetFilters): Omit<BudgetQuery, "cursor"> {
+  return {
+    party: filters.party ?? undefined,
+    result: filters.result ? TAB_RESULTS[filters.result] : undefined,
+    topic: filters.topic ?? undefined,
+    q: filters.q ?? undefined,
+    votedFrom: filters.day ?? undefined,
+    votedTo: filters.day ?? undefined,
+    limit: 20,
+  };
+}
+
+export function budgetPath(year: number, current: boolean, filters: BudgetFilters, hash = ""): string {
+  const query = new URLSearchParams();
+  if (filters.party) query.set("partido", filters.party);
+  if (filters.result) query.set("resultado", filters.result);
+  if (filters.topic) query.set("tema", filters.topic);
+  if (filters.q) query.set("q", filters.q);
+  if (filters.day) query.set("dia", filters.day);
+  const base = current ? "/orcamento" : `/orcamento/${year}`;
+  return `${base}${query.size > 0 ? `?${query}` : ""}${hash}`;
+}

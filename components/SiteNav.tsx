@@ -116,6 +116,13 @@ export const SITE_GROUPS: { title: string; items: Item[] }[] = [
         active: (path) => path.startsWith("/sitios"),
       },
       {
+        href: "/orcamento",
+        label: "Orçamento",
+        hint: "Como vota cada partido",
+        icon: icon("M3 17h14M5 14V8m4 6V5m4 9v-4m4 4V7"),
+        active: (path) => path.startsWith("/orcamento"),
+      },
+      {
         href: "/contratos",
         label: "Contratos",
         hint: "Dinheiro público",
