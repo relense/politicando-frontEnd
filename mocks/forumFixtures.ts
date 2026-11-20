@@ -348,6 +348,13 @@ const newPostSchema = z.strictObject({
   recaptchaToken: z.string().min(1).nullish(),
 });
 // News articles take their own reasons; mixing the two lists is 400, as in the API.
+const ideaDecisionSchema = z.strictObject({
+  status: z.enum(["reviewing", "planned", "in_progress", "done", "declined", "duplicate"]).nullable(),
+  answer: z.string().max(2000).nullable(),
+  expectedOn: z.iso.date().nullable().optional(),
+  duplicateOf: z.number().int().positive().optional(),
+});
+
 const reportSchema = z.union([
   z.strictObject({
     kind: z.enum(["thread", "post", "comment"]),
@@ -581,6 +588,71 @@ export const forumHandlers = [
     if (!parsed.success) return fail(400, "invalid_request");
     addReport(parsed.data.kind, parsed.data.id, parsed.data.reason, parsed.data.details);
     return new HttpResponse(null, { status: 202 });
+  }),
+
+  // Ideas: the team's decision, and replies signed «Politicando» (before the route below, which would take «posts» as an action).
+  http.put(`${API}/admin/forum/threads/:id/status`, async ({ params, request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const thread = threads.find((item) => item.id === Number(params.id));
+    if (!thread) return fail(404, "not_found");
+    if (thread.board !== "ideias") return fail(400, "not_an_idea");
+    const parsed = ideaDecisionSchema.safeParse(await request.json());
+    if (!parsed.success) return fail(400, "invalid_request");
+    const { status, answer, expectedOn, duplicateOf } = parsed.data;
+    let original: MockThread | undefined;
+    if (status === "duplicate") {
+      if (!duplicateOf) return fail(400, "duplicate_of_required");
+      original = threads.find((item) => item.id === duplicateOf && item.board === "ideias" && !item.hidden && item.id !== thread.id);
+      if (!original || original.status === "duplicate") return fail(400, "invalid_duplicate");
+    }
+    const now = new Date().toISOString();
+    if (status !== thread.status) thread.statusHistory = [...(thread.statusHistory ?? []), { status, at: now }];
+    if (answer !== thread.answer) thread.answeredAt = answer ? now : null;
+    Object.assign(thread, {
+      status,
+      answer,
+      duplicateOf: original ? { id: original.id, title: original.title } : null,
+      ...(expectedOn !== undefined ? { expectedOn } : {}),
+    });
+    audit(admin, "thread.status", "thread", thread.id);
+    return HttpResponse.json({
+      status: thread.status,
+      answer: thread.answer,
+      answeredAt: thread.answeredAt,
+      expectedOn: thread.expectedOn,
+      duplicateOf: thread.duplicateOf,
+    });
+  }),
+  http.post(`${API}/admin/forum/threads/:id/posts`, async ({ params, request }) => {
+    const admin = requireAdmin(request, "moderator");
+    if (admin instanceof Response) return admin;
+    const thread = threads.find((item) => item.id === Number(params.id));
+    if (!thread) return fail(404, "not_found");
+    const parsed = z
+      .strictObject({ body: z.string().trim().min(1).max(5000), replyTo: z.number().int().optional() })
+      .safeParse(await request.json());
+    if (!parsed.success) return fail(400, "invalid_request");
+    const { body, replyTo } = parsed.data;
+    if (replyTo && !posts.some((post) => post.id === replyTo && post.threadId === thread.id)) return fail(400, "invalid_reply");
+    const id = nextPostId++;
+    const now = new Date().toISOString();
+    // Works in locked threads too.
+    posts.push({
+      id,
+      threadId: thread.id,
+      body,
+      nickname: "Politicando",
+      posterId: "equipa",
+      replyTo: replyTo ?? null,
+      createdAt: now,
+      hidden: false,
+      team: true,
+      score: 0,
+    });
+    thread.bumpedAt = now;
+    audit(admin, "post.team", "post", id);
+    return HttpResponse.json({ id }, { status: 201 });
   }),
 
   // Moderation (docs/forums-api.md "Moderation").
