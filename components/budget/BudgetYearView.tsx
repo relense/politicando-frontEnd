@@ -3,6 +3,7 @@ import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type Bud
 import {
   budgetBox,
   budgetStage,
+  budgetTally,
   choiceShares,
   finalVoteSession,
   headlineVotes,
@@ -114,8 +115,9 @@ export function BudgetYearView({
     const party = summary?.parties.find((entry) => entry.party.slug === slug)?.party;
     return party ? partyShort(party) : slug.toUpperCase();
   };
-  const approved = (summary?.results.approved ?? 0) + (summary?.results.partially_approved ?? 0);
-  const rejected = summary?.results.rejected ?? 0;
+  // From the results, so voted + still to vote + the rest make the total.
+  const tally = budgetTally(summary?.results ?? {});
+  const { approved, rejected } = tally;
   const box =
     summary && current ? budgetBox({ bills: year.bills, schedule: summary.schedule, pending: year.pending }, now, { keep: true }) : null;
   const filtered = Boolean(filters.party || filters.topic || filters.q || filters.day);
@@ -210,15 +212,15 @@ export function BudgetYearView({
           <section aria-labelledby="contagem" className="mb-8 rounded-2xl border border-line p-4">
             <h2 id="contagem" className="flex flex-wrap items-baseline justify-between gap-2">
               <span>
-                <span className="font-serif text-4xl font-bold">{formatNumber(year.voted)}</span>{" "}
+                <span className="font-serif text-4xl font-bold">{formatNumber(tally.voted)}</span>{" "}
                 <span className="text-sm">
-                  propostas de alteração já votadas, de <strong>{formatNumber(year.proposals)}</strong>
+                  propostas de alteração já votadas, de <strong>{formatNumber(tally.total)}</strong>
                 </span>
               </span>
-              <span className="font-mono text-xs text-muted">{formatNumber(year.pending)} por votar</span>
+              <span className="font-mono text-xs text-muted">{formatNumber(tally.pending)} por votar</span>
             </h2>
             <div className="mt-3">
-              <ProgressBar approved={approved} rejected={rejected} total={year.proposals} label="Propostas de alteração" />
+              <ProgressBar approved={approved} rejected={rejected} total={tally.total} label="Propostas de alteração" />
             </div>
             <p className="mt-2 flex flex-wrap justify-between gap-2 font-mono text-[11px] text-muted">
               <span className="flex flex-wrap gap-3">
@@ -234,6 +236,11 @@ export function BudgetYearView({
                   </span>
                   {formatNumber(rejected)} rejeitadas
                 </span>
+                {tally.other > 0 && (
+                  <span>
+                    {formatNumber(tally.other)} {tally.otherLabel}
+                  </span>
+                )}
               </span>
               {sessionDays(summary, now) && <span>Próximos dias de votação: {sessionDays(summary, now)}</span>}
             </p>
