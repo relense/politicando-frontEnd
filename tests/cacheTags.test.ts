@@ -14,12 +14,17 @@ describe("what each cached request is tagged with, for the backend's ping (POST 
     for (const path of ["/parliament", "/deputies/1", "/initiatives?party=ps", "/parties/ps/votes?limit=20", "/legislatures"])
       expect(tagsFor(path)).toEqual(["parliament"]);
   });
+  it("the Government and the President, «Passa ou chumba?» and the Budget", () => {
+    for (const path of ["/government/members/abc", "/president", "/people/deputy/12/path"]) expect(tagsFor(path)).toEqual(["government"]);
+    expect(tagsFor("/predictions/open?limit=6")).toEqual(["predictions"]);
+    expect(tagsFor("/budget/2027/proposals?limit=20")).toEqual(["budget"]);
+  });
   it("nothing for the rest", () => {
     expect(tagsFor("/elections")).toEqual([]);
     expect(tagsFor("/me")).toEqual([]);
   });
-  it("names the six the backend sends (docs/revalidate.md)", () => {
-    expect([...CACHE_TAGS].sort()).toEqual(["agenda", "blog", "budget", "news", "parliament", "podcast"]);
+  it("names the eight the backend sends (docs/revalidate.md)", () => {
+    expect([...CACHE_TAGS].sort()).toEqual(["agenda", "blog", "budget", "government", "news", "parliament", "podcast", "predictions"]);
   });
 });
 

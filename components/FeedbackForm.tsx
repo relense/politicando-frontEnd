@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/lib/api/client";
 import { sendFeedback, type FeedbackKind } from "@/lib/api/feedback";
-import { CONTACT_EMAIL } from "@/lib/site";
+import { useReader } from "@/lib/account";
+import { followPath, rememberSent } from "@/lib/feedbackFollow";
+
+import { CONTACT_EMAIL, SITE_URL } from "@/lib/site";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 import { track } from "@/lib/analytics";
 
@@ -63,10 +66,15 @@ export function FeedbackForm({
   const [dragging, setDragging] = useState(false);
   const captchaOff = isCaptchaOff();
   const withPage = kind === "error" || kind === "broken";
+  const reader = useReader();
 
   const mutation = useMutation({
     mutationFn: sendFeedback,
-    onSuccess: (_answer, input) => track("feedback-sent", { kind: input.kind }),
+    onSuccess: (sent, input) => {
+      track("feedback-sent", { kind: input.kind });
+      if (sent.followUpToken)
+        rememberSent({ token: sent.followUpToken, kind: input.kind, page: input.page, sentAt: new Date().toISOString() });
+    },
     onError: (failure) =>
       setError(
         (failure instanceof ApiError && failure.code && ERRORS[failure.code]) ||
@@ -111,6 +119,7 @@ export function FeedbackForm({
           {answer ? "Avisamos-te por email quando houver novidades. " : ""}
           {kind === "error" ? "Quando a correção for confirmada, aparece no registo público, com a data." : "Lemos tudo o que chega."}
         </p>
+        {mutation.data.followUpToken && <FollowUpLink token={mutation.data.followUpToken} signedIn={Boolean(reader)} />}
         <p className="mt-4 flex flex-wrap gap-4 font-mono text-xs font-bold">
           <button type="button" onClick={() => window.location.reload()} className="underline">
             Enviar outra mensagem
@@ -313,5 +322,36 @@ export function FeedbackForm({
         <span className="font-mono text-[11px] text-muted">Correções confirmadas aparecem no registo público.</span>
       </div>
     </form>
+  );
+}
+
+/** The private link to the team's answer: shown once, kept on this device too. */
+function FollowUpLink({ token, signedIn }: { token: string; signedIn: boolean }) {
+  const path = followPath(token);
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(`${SITE_URL}${path}`);
+      setCopied(true);
+    } catch {
+      // The link is on the screen to copy by hand.
+    }
+  }
+  return (
+    <div className="mt-4 rounded-xl bg-surface p-4">
+      <p className="font-bold">Acompanha a resposta</p>
+      <p className="mt-1 text-sm text-muted">
+        {signedIn ? "Como tens sessão iniciada, a resposta da equipa também chega aos teus avisos. " : ""}
+        Este link é privado: quem o tiver lê a resposta. Fica guardado neste aparelho; guarda-o se quiseres abri-lo noutro.
+      </p>
+      <p className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs font-bold">
+        <Link href={path} className="text-link underline">
+          Ver o estado da mensagem →
+        </Link>
+        <button type="button" onClick={() => void copy()} className="underline">
+          {copied ? "Link copiado" : "Copiar link"}
+        </button>
+      </p>
+    </div>
   );
 }

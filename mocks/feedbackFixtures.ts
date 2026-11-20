@@ -1,4 +1,6 @@
 import { http, HttpResponse } from "msw";
+import { readerOf } from "./accountFixtures";
+import { addMessage } from "./adminFixtures";
 
 const API = "*/api/v2";
 
@@ -46,6 +48,23 @@ export const feedbackHandlers = [
     if (file instanceof File && file.size > 5 * 1024 * 1024) {
       return HttpResponse.json({ error: { code: "file_too_large", message: "Too large" } }, { status: 413 });
     }
-    return HttpResponse.json({ id: 99 }, { status: 201 });
+    const text = (name: string) => {
+      const value = form.get(name);
+      return typeof value === "string" && value.trim() ? value.trim() : null;
+    };
+    const kind = text("kind");
+    const sent = addMessage(
+      {
+        kind: kind === "error" || kind === "idea" || kind === "broken" ? kind : "other",
+        message: text("message")!,
+        page: text("page"),
+        url: text("url"),
+        correction: text("correction"),
+        source: text("source"),
+        email: text("email"),
+      },
+      readerOf(request)?.id ?? null,
+    );
+    return HttpResponse.json(sent, { status: 201 });
   }),
 ];

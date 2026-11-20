@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import {
   answerMessage,
+  type AnswerChannel,
   closeMessage,
   correctMessage,
   CORRECTION_STATUS_LABELS,
@@ -201,42 +202,66 @@ function MessageDetail({ id }: { id: number }) {
   );
 }
 
+const SENT: Record<AnswerChannel, string> = {
+  site: "Resposta publicada no site.",
+  email: "Resposta enviada por email.",
+  none: "Marcada como respondida.",
+};
+
+/** Where an answer on the site reaches the reader, in words. */
+function siteReach(item: FeedbackMessage) {
+  if (!item.followable) return "Já ninguém a pode ler no site: foi fechada e não veio de uma conta.";
+  return item.account
+    ? "Enviada com sessão iniciada: a resposta no site chega aos avisos da pessoa e ao link privado dela."
+    : "Enviada sem conta: a resposta no site aparece no link privado que a pessoa recebeu ao enviar.";
+}
+
 function AnswerForm({ item, onDone }: { item: FeedbackMessage; onDone: (updated: FeedbackMessage) => void }) {
   const expiry = useExpiry();
   const [reply, setReply] = useState(item.reply ?? "");
   const answer = useMutation({
-    mutationFn: (send: boolean) => answerMessage(item.id, reply.trim() || null, send),
+    mutationFn: (channel: AnswerChannel) => answerMessage(item.id, reply.trim() || null, channel),
     onSuccess: onDone,
     onError: expiry,
   });
+  const empty = !reply.trim();
   return (
     <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-2 border-t border-line pt-4">
       <label className="flex flex-col gap-1">
         <span className="font-mono text-xs font-bold">Resposta</span>
         <textarea rows={4} value={reply} maxLength={5000} onChange={(event) => setReply(event.target.value)} className={inputClass} />
       </label>
+      <p className="text-xs text-muted">{siteReach(item)}</p>
       {item.answeredAt && <p className="text-xs text-muted">Respondida em {formatDateTime(item.answeredAt)}.</p>}
       <ErrorNote error={answer.error} />
-      {answer.isSuccess && (
+      {answer.isSuccess && answer.variables && (
         <p role="status" className="text-sm text-[var(--stage-approved)]">
-          {answer.variables ? "Resposta enviada por email." : "Marcada como respondida."}
+          {SENT[answer.variables]}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={answer.isPending || !item.email || !reply.trim()}
-          onClick={() => answer.mutate(true)}
-          className={buttonClass("ink")}
-        >
-          Enviar por email
-        </button>
-        <button type="button" disabled={answer.isPending} onClick={() => answer.mutate(false)} className={buttonClass()}>
+        {item.followable && (
+          <button type="button" disabled={answer.isPending || empty} onClick={() => answer.mutate("site")} className={buttonClass("ink")}>
+            Responder no site
+          </button>
+        )}
+        {item.email && (
+          <button
+            type="button"
+            disabled={answer.isPending || empty}
+            onClick={() => answer.mutate("email")}
+            className={buttonClass(item.followable ? "plain" : "ink")}
+          >
+            Responder por email
+          </button>
+        )}
+        <button type="button" disabled={answer.isPending} onClick={() => answer.mutate("none")} className={buttonClass()}>
           Marcar como respondida
         </button>
       </div>
       <p className="text-xs text-muted">
-        «Marcar como respondida» serve para quando respondeste do teu email, ou quando não há nada a responder.
+        «Marcar como respondida» serve para quando respondeste do teu email, ou quando não há nada a responder. O texto, se houver, também
+        aparece no link privado da pessoa.
       </p>
     </form>
   );

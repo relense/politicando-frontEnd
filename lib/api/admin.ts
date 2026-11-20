@@ -233,6 +233,10 @@ const messageSchema = z.object({
   createdAt: z.string(),
   answeredAt: z.string().nullable(),
   closedAt: z.string().nullable(),
+  /** Sent while signed in: an answer on the site reaches their inbox. */
+  account: z.boolean().catch(false),
+  /** An answer on the site can reach the reader (their follow-up link, or their account). */
+  followable: z.boolean().catch(false),
   corrections: z.array(correctionSchema).optional(),
 });
 export type FeedbackMessage = z.infer<typeof messageSchema>;
@@ -242,8 +246,10 @@ export const getMessages = async (status: FeedbackStatus | null) =>
 export const getMessage = (id: number) => call(`/feedback/${id}`, messageSchema);
 /** The screenshot, through this site's server like everything else here. */
 export const screenshotUrl = (id: number) => `${BASE}/feedback/${id}/screenshot`;
-export const answerMessage = (id: number, reply: string | null, send: boolean) =>
-  call(`/feedback/${id}/answer`, messageSchema, { method: "POST", body: { reply, send } });
+/** site: on the reader's follow-up link and inbox; email: emailed; none: only noted as answered (e.g. from your own email). */
+export type AnswerChannel = "site" | "email" | "none";
+export const answerMessage = (id: number, reply: string | null, channel: AnswerChannel) =>
+  call(`/feedback/${id}/answer`, messageSchema, { method: "POST", body: { reply, channel } });
 export const noteMessage = (id: number, note: string | null) =>
   call(`/feedback/${id}/note`, messageSchema, { method: "PUT", body: { note } });
 export const closeMessage = (id: number) => call(`/feedback/${id}/close`, null, { method: "POST" });
@@ -332,6 +338,8 @@ export function adminErrorMessage(error: unknown): string {
       return "Escreve o número da ideia original.";
     case "invalid_duplicate":
       return "Esse número não é de outra ideia visível, ou essa ideia também é duplicada.";
+    case "not_followable":
+      return "Esta mensagem foi fechada e não veio de uma conta: já ninguém a pode ler no site.";
     case "empty_reply":
       return "Escreve a resposta antes de a enviar.";
     case "mail_unavailable":

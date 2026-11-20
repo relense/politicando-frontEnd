@@ -87,8 +87,11 @@ export async function getCorrections(cursor?: string): Promise<{ items: Correcti
   }
 }
 
-/** Sent as a form, so a screenshot can go with it. */
-export async function sendFeedback(input: NewFeedback): Promise<void> {
+/**
+ * Sent as a form, so a screenshot can go with it, from the browser with the reader's session (a signed-in reader's message is
+ * tied to their account). Answers with the private follow-up token, shown once; null from an older API.
+ */
+export async function sendFeedback(input: NewFeedback): Promise<{ followUpToken: string | null }> {
   const form = new FormData();
   form.set("kind", input.kind);
   for (const [key, value] of Object.entries({
@@ -103,5 +106,38 @@ export async function sendFeedback(input: NewFeedback): Promise<void> {
   }
   if (input.screenshot) form.set("screenshot", input.screenshot);
   form.set("recaptchaToken", input.captchaToken);
-  await request("/feedback", z.object({ id: z.union([z.string(), z.number()]) }), { method: "POST", body: form });
+  const sent = await request(
+    "/feedback",
+    z.object({ id: z.union([z.string(), z.number()]), followUpToken: z.string().min(1).nullish().catch(null) }),
+    { method: "POST", body: form },
+  );
+  return { followUpToken: sent.followUpToken ?? null };
+}
+
+const followSchema = z.object({
+  kind: z.string(),
+  page: z.string().nullish().catch(null),
+  createdAt: z.string(),
+  status: z.enum(["open", "answered"]).catch("open"),
+  reply: z.string().nullish().catch(null),
+  answeredAt: z.string().nullish().catch(null),
+});
+export type FollowUp = {
+  kind: string;
+  page: string | null;
+  createdAt: string;
+  status: "open" | "answered";
+  reply: string | null;
+  answeredAt: string | null;
+};
+
+/** A message's status and the team's answer, from its private link. "closed": closed (its token is gone then) or never was. */
+export async function getFollowUp(token: string): Promise<FollowUp | "closed"> {
+  try {
+    const data = await request(`/feedback/follow/${encodeURIComponent(token)}`, followSchema, { cache: "no-store" });
+    return { ...data, page: data.page ?? null, reply: data.reply ?? null, answeredAt: data.answeredAt ?? null };
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return "closed";
+    throw error;
+  }
 }
