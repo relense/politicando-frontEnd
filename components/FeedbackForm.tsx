@@ -5,28 +5,13 @@ import Link from "next/link";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/lib/api/client";
 import { sendFeedback, type FeedbackKind } from "@/lib/api/feedback";
-import { IDEAS_BOARD } from "@/lib/api/forums";
 import { CONTACT_EMAIL } from "@/lib/site";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
-import { NewThreadForm } from "./forum/NewThreadForm";
 import { track } from "@/lib/analytics";
 
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
 const MAX_LENGTH = 1000;
 const MAX_FILE = 5 * 1024 * 1024;
-
-const KINDS: { key: FeedbackKind; icon: string; title: string; text: string; color: string }[] = [
-  { key: "error", icon: "!", title: "Encontrei um erro", text: "Um número, uma data ou um nome errado", color: "var(--stage-stopped)" },
-  { key: "idea", icon: "✦", title: "Tenho uma ideia", text: "Algo que gostavas de ver no site", color: "var(--stage-debate)" },
-  {
-    key: "broken",
-    icon: "⚙",
-    title: "Algo não funciona",
-    text: "Uma página que não abre ou um botão parado",
-    color: "var(--stage-submitted)",
-  },
-  { key: "other", icon: "…", title: "Outra coisa", text: "Elogios, críticas, parcerias", color: "var(--muted)" },
-];
 
 const MESSAGE: Record<FeedbackKind, { label: string; placeholder: string }> = {
   error: {
@@ -51,22 +36,20 @@ const field =
 const small = "font-mono text-[11px] font-bold";
 const step = "mb-3 border-b-2 border-ink pb-2 font-mono text-xs font-bold uppercase tracking-widest";
 
-/** The feedback form: what about, the details, and whether the reader wants an answer. */
+/** The private form for an error in the data or something that doesn't work: the details, and whether the reader wants an answer. Ideas go on the public board instead. */
 export function FeedbackForm({
+  kind,
   pages,
-  ideasOpen = false,
   initialPage,
   initialUrl,
 }: {
+  kind: Extract<FeedbackKind, "error" | "broken">;
   pages: string[];
-  /** When the ideas board is open, an idea is posted there, in public, instead of sent to us. */
-  ideasOpen?: boolean;
   initialPage: string | null;
   initialUrl: string | null;
 }) {
   const id = useId();
   const captcha = useRef<CaptchaHandle>(null);
-  const [kind, setKind] = useState<FeedbackKind>("error");
   const [page, setPage] = useState(initialPage ?? pages[0]!);
   const [url, setUrl] = useState(initialUrl ?? "");
   const [message, setMessage] = useState("");
@@ -140,73 +123,10 @@ export function FeedbackForm({
     );
   }
 
-  const kindChoice = (
-    <fieldset className="mb-8">
-      <legend className={`${step} w-full`}>1 · Sobre o quê?</legend>
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {KINDS.map((item) => {
-          const chosen = kind === item.key;
-          return (
-            <label
-              key={item.key}
-              className={`flex cursor-pointer flex-col rounded-xl border p-3 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 ${
-                chosen ? "" : "border-line hover:bg-surface"
-              }`}
-              style={
-                chosen ? { borderColor: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 12%, transparent)` } : undefined
-              }
-            >
-              <input type="radio" name="kind" value={item.key} checked={chosen} onChange={() => setKind(item.key)} className="sr-only" />
-              <span
-                aria-hidden="true"
-                className="mb-2 flex size-7 items-center sm:mb-3 justify-center rounded-lg text-sm font-bold"
-                style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 18%, transparent)` }}
-              >
-                {item.icon}
-              </span>
-              <span className="text-[15px] font-bold leading-snug sm:text-base">{item.title}</span>
-              <span className="mt-1 text-xs leading-snug text-muted">{item.text}</span>
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-
-  // An idea goes on the public board, where others vote on it and discuss it.
-  if (kind === "idea" && ideasOpen) {
-    return (
-      <div>
-        {kindChoice}
-        <p className={`${step} w-full`}>2 · A tua ideia</p>
-        <p className="mb-4 leading-relaxed text-muted">
-          As ideias são públicas: aparecem no{" "}
-          <Link href="/feedback/ideias" className="text-link underline">
-            quadro de ideias
-          </Link>
-          , onde qualquer pessoa as pode votar e comentar. As mais votadas vão à frente, e respondemos lá a cada uma.
-        </p>
-        <NewThreadForm
-          board={IDEAS_BOARD}
-          boardName="Ideias"
-          link={null}
-          heading="Nova ideia"
-          bodyLabel="Explica a ideia"
-          titlePlaceholder="ex.: Alertas quando o meu deputado vota"
-          bodyPlaceholder="O que gostavas de ver, e para quê?"
-          submitLabel="Publicar ideia"
-          threadBase="/feedback/ideias"
-        />
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={submit} noValidate>
-      {kindChoice}
-
       <fieldset className="mb-8">
-        <legend className={`${step} w-full`}>2 · Os detalhes</legend>
+        <legend className={`${step} w-full`}>1 · Os detalhes</legend>
         <div className="space-y-4 rounded-2xl border border-line p-4">
           {withPage && (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -327,7 +247,7 @@ export function FeedbackForm({
       </fieldset>
 
       <fieldset className="mb-6">
-        <legend className={`${step} w-full`}>3 · Queres resposta?</legend>
+        <legend className={`${step} w-full`}>2 · Queres resposta?</legend>
         <div className="rounded-2xl border border-line p-4">
           <div
             role="radiogroup"

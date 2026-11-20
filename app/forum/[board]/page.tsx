@@ -47,7 +47,7 @@ function pathOf(board: string, sort: string, page = 1) {
 async function loadBoard(slug: string): Promise<Board> {
   if (!/^[a-z0-9-]{1,50}$/.test(slug)) notFound();
   // Ideas have their own page, with votes.
-  if (slug === IDEAS_BOARD) redirect("/feedback/ideias");
+  if (slug === IDEAS_BOARD) redirect("/feedback");
   const board = (await getBoards().catch(() => [])).find((item) => item.board === slug);
   if (!board) notFound();
   return board;
