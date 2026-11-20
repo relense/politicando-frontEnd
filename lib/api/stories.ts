@@ -295,7 +295,7 @@ export async function markImporta(id: number, value: 1 | 0): Promise<{ importa: 
   });
 }
 
-/** The saved stories, by id, from the browser and never cached. */
+/** The saved stories, by id (newest first: the first 100 are asked for), from the browser and never cached. */
 export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
   if (ids.length === 0) return [];
   const pages = await Promise.all(
