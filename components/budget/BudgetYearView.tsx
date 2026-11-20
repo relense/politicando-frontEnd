@@ -275,7 +275,6 @@ export function BudgetYearView({
                     <p className="font-mono text-[11px] text-muted [overflow-wrap:anywhere]">{todayVoted[0]!.title}</p>
                   )}
                   <ProposalMeta proposal={todayVoted[0]!} today={today} />
-                  {todayVoted[0]!.plain && <p className="mt-2 text-sm leading-snug">{todayVoted[0]!.plain.summary}</p>}
                   <p className="mt-3 flex flex-wrap gap-2">
                     <Link
                       href={proposalPath(todayVoted[0]!)}
