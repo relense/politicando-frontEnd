@@ -54,7 +54,7 @@ export default async function ForumIndexPage() {
           {hasIdeas && (
             <p className="mt-4 text-sm text-muted">
               Tens uma ideia para o site?{" "}
-              <Link href="/feedback/ideias" className="font-bold text-link underline">
+              <Link href="/feedback" className="font-bold text-link underline">
                 Propõe-a e vota nas outras →
               </Link>
             </p>

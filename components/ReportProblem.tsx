@@ -15,13 +15,13 @@ function sectionOf(path: string): string | null {
 export function ReportProblem({ className = "mt-3 text-sm" }: { className?: string }) {
   const path = usePathname();
   if (path.startsWith("/feedback")) return null;
-  const params = new URLSearchParams({ ligacao: path });
+  const params = new URLSearchParams({ tipo: "erro", ligacao: path });
   const section = sectionOf(path);
   if (section) params.set("pagina", section);
   return (
     <p className={className}>
       Encontraste um erro nesta página?{" "}
-      <Link href={`/feedback?${params}`} className="whitespace-nowrap font-bold text-link underline">
+      <Link href={`/feedback/nova?${params}`} className="whitespace-nowrap font-bold text-link underline">
         Diz-nos →
       </Link>
     </p>

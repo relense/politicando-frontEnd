@@ -1,0 +1,23 @@
+/** The site's sections, for "Em que página?" on the error form and "Em que parte do site?" on a new idea (the API's `page` / `area`). */
+export const SITE_AREAS = [
+  "Notícias",
+  "Blog",
+  "Agenda",
+  "Presidente",
+  "Governo",
+  "Parlamento",
+  "Página de um deputado",
+  "Partidos",
+  "Iniciativas",
+  "Orçamento",
+  "Eleições",
+  "Autarquias",
+  "Contratos",
+  "História",
+  "Legislaturas",
+  "Percursos",
+  "Fórum",
+  "Newsletter",
+  "Podcast",
+  "Outra",
+] as const;

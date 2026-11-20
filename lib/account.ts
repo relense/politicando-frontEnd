@@ -60,7 +60,15 @@ export function useLockedOut(what: Participation): boolean {
 }
 
 /** The browser's lists the account replaces (backend: "It replaces reader-prefs, article-votes…"). */
-const STORES = ["reader-prefs", "article-votes", "story-importa", "comment-likes", "ideas-voted", "stories-read"] as const;
+const STORES = [
+  "reader-prefs",
+  "article-votes",
+  "story-importa",
+  "comment-likes",
+  "ideas-voted",
+  "idea-replies-voted",
+  "stories-read",
+] as const;
 
 let signedIn = false;
 let applying = false;
@@ -96,6 +104,7 @@ export function applyAccountState(state: AccountState) {
   write("story-importa", JSON.stringify(Object.fromEntries(state.votes.stories.map((id) => [id, 1]))));
   write("comment-likes", JSON.stringify(state.votes.comments));
   write("ideas-voted", state.votes.forum.join(","));
+  write("idea-replies-voted", state.votes.forumPosts.join(","));
   write("stories-read", JSON.stringify(oldestFirst(state.read)));
   setExtrasFrom(state);
 }
