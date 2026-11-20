@@ -95,7 +95,13 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
       {story.debate && <DebatePair debate={story.debate} compact className="relative z-10 mt-3" />}
 
       <div className={cardActions}>
-        <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
+        <ImportaButton
+          id={story.id}
+          title={story.title}
+          importa={story.importa}
+          importance={story.importance}
+          mergedFrom={story.mergedFrom}
+        />
         <Link href={`${path}#comentarios`} className={cardAction}>
           <CommentIcon />
           <span>

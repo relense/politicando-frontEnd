@@ -137,7 +137,16 @@ export function StoryRow({ story, why }: { story: Story; why: string }) {
       others={story.sourceCount - 1}
       parties={story.parties}
       commentCount={story.commentCount}
-      lead={<ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} compact />}
+      lead={
+        <ImportaButton
+          id={story.id}
+          title={story.title}
+          importa={story.importa}
+          importance={story.importance}
+          mergedFrom={story.mergedFrom}
+          compact
+        />
+      }
       extra={
         chip && (
           <Link href={chip.href} className="inline-flex min-w-0 max-w-full items-center gap-1.5 hover:text-ink max-sm:hidden">

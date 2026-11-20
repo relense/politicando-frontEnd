@@ -146,8 +146,20 @@ function Side({ comment, label, color, compact }: { comment: DebateComment; labe
 export function ImportaBox({ story, headingId = "importa" }: { story: StoryDetail; headingId?: string }) {
   return (
     <section aria-labelledby={headingId} className="flex items-center gap-3 rounded-2xl border border-line p-4">
-      <ImportaCount id={story.id} importa={story.importa} importance={story.importance} headingId={headingId} />
-      <ImportaButton id={story.id} title={story.title} importa={story.importa} importance={story.importance} />
+      <ImportaCount
+        id={story.id}
+        importa={story.importa}
+        importance={story.importance}
+        mergedFrom={story.mergedFrom}
+        headingId={headingId}
+      />
+      <ImportaButton
+        id={story.id}
+        title={story.title}
+        importa={story.importa}
+        importance={story.importance}
+        mergedFrom={story.mergedFrom}
+      />
     </section>
   );
 }
@@ -159,7 +171,7 @@ export function FollowStoryBox({ story, headingId = "seguir-historia" }: { story
       <h2 id={headingId} className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
         Seguir esta história
       </h2>
-      <FollowButton kind="story" id={story.id} large className="mt-3" />
+      <FollowButton kind="story" id={story.id} mergedFrom={story.mergedFrom} large className="mt-3" />
       <p className="mt-2 font-mono text-[11px] leading-relaxed text-muted">Avisamos-te quando outro jornal pegar nela.</p>
       <ul className="mt-3 list-disc space-y-1 pl-4 text-xs leading-relaxed text-muted">
         <li>
