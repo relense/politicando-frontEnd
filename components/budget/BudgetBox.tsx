@@ -7,7 +7,7 @@ import {
   type BudgetSummary,
   type BudgetYear,
 } from "@/lib/api/budget";
-import { authorsShort, budgetBox, partyShort, proposalHeading, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
+import { authorsShort, budgetBox, budgetTally, partyShort, proposalHeading, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
 import { formatDate, formatLongDate, formatNumber, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
@@ -65,8 +65,8 @@ export function BudgetBox({
   const { year, summary, latest } = data;
   const box: BoxState | null = budgetBox({ bills: year.bills, schedule: summary.schedule, pending: year.pending }, now, { keep });
   if (!box) return null;
-  const approved = (summary.results.approved ?? 0) + (summary.results.partially_approved ?? 0);
-  const rejected = summary.results.rejected ?? 0;
+  // From the results, so the counts add up to the total.
+  const { voted, pending, approved, rejected, total } = budgetTally(summary.results);
   const acronymOf = (slug: string) => {
     const party = summary.parties.find((entry) => entry.party.slug === slug)?.party;
     return party ? partyShort(party) : slug.toUpperCase();
@@ -88,17 +88,17 @@ export function BudgetBox({
             <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
               <span className="font-serif text-3xl font-bold">{/^aprovad/i.test(box.final.result) ? "Aprovado" : "Chumbado"}</span>
               <span className="font-mono text-xs text-muted">
-                a {formatDate(box.final.date)} · {formatNumber(year.voted)} propostas votadas
+                a {formatDate(box.final.date)} · {formatNumber(voted)} propostas votadas
               </span>
             </p>
           ) : (
             <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
-              <span className="font-serif text-3xl font-bold">{formatNumber(year.voted)}</span>
-              <span className="font-mono text-xs text-muted">votadas · {formatNumber(year.pending)} por votar</span>
+              <span className="font-serif text-3xl font-bold">{formatNumber(voted)}</span>
+              <span className="font-mono text-xs text-muted">votadas · {formatNumber(pending)} por votar</span>
             </p>
           )}
           <div className="mt-2">
-            <ProgressBar approved={approved} rejected={rejected} total={year.proposals} label="Propostas de alteração" />
+            <ProgressBar approved={approved} rejected={rejected} total={total} label="Propostas de alteração" />
             <p className="mt-1 flex gap-3 font-mono text-[11px] text-muted">
               <span>
                 <span aria-hidden="true" style={{ color: "var(--favor)" }}>
