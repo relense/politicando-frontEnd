@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Article, PersonMention } from "@/lib/types";
 import { formatRelative, lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
-import { cached, idBatches, request, searchOf, settledPages } from "./client";
+import { cached, idBatches, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
 import { articleSchema, peopleSchema } from "./schemas";
 
@@ -298,7 +298,7 @@ export async function markImporta(id: number, value: 1 | 0): Promise<{ importa: 
 /** The saved stories, by id, from the browser and never cached. */
 export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
   if (ids.length === 0) return [];
-  const pages = await settledPages(
+  const pages = await Promise.all(
     idBatches(ids).map((batch) =>
       request(`/stories${searchOf({ ids: batch.join(","), limit: batch.length })}`, storyPageSchema, { cache: "no-store" }),
     ),
