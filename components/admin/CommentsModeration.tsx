@@ -13,7 +13,7 @@ import {
   type CommentStatus,
 } from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
-import { buttonClass, Empty, ErrorNote, inputClass, Tabs, useExpiry } from "./ui";
+import { buttonClass, Empty, ErrorNote, inputClass, Tabs, useExpiry, useExpiryOf } from "./ui";
 
 /** Every comment on the site, newest first: hide (with a reason, for the log) or show again. */
 export function CommentsModeration() {
@@ -32,7 +32,7 @@ export function CommentsModeration() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-comments"] }),
     onError: expiry,
   });
-  if (comments.isError) expiry(comments.error);
+  useExpiryOf(comments.error);
   const items = comments.data?.pages.flat() ?? [];
 
   return (

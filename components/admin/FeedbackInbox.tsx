@@ -1,5 +1,6 @@
 "use client";
 
+import { isSitePath, safeHttpUrl } from "@/lib/api/mappers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import {
@@ -19,7 +20,7 @@ import {
   type FeedbackStatus,
 } from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
-import { buttonClass, ConfirmButton, Empty, ErrorNote, inputClass, Tabs, useExpiry } from "./ui";
+import { buttonClass, ConfirmButton, Empty, ErrorNote, inputClass, Tabs, useExpiry, useExpiryOf } from "./ui";
 
 type Filter = FeedbackStatus | "all";
 
@@ -27,9 +28,8 @@ type Filter = FeedbackStatus | "all";
 export function FeedbackInbox() {
   const [filter, setFilter] = useState<Filter>("open");
   const [selected, setSelected] = useState<number | null>(null);
-  const expiry = useExpiry();
   const messages = useQuery({ queryKey: ["admin-feedback", filter], queryFn: () => getMessages(filter === "all" ? null : filter) });
-  if (messages.isError) expiry(messages.error);
+  useExpiryOf(messages.error);
 
   return (
     <section aria-labelledby="feedback-admin">
@@ -118,11 +118,15 @@ function MessageDetail({ id }: { id: number }) {
           <p className="mt-1 text-sm">
             {item.page && <b>{item.page}</b>}
             {item.page && item.url && " · "}
-            {item.url && (
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="break-all text-link underline">
-                {item.url}
-              </a>
-            )}
+            {/* Typed by the reader: a link only when it's on this site or http(s); otherwise just the text. */}
+            {item.url &&
+              (isSitePath(item.url) || safeHttpUrl(item.url) ? (
+                <a href={item.url} target="_blank" rel="noopener noreferrer" className="break-all text-link underline">
+                  {item.url}
+                </a>
+              ) : (
+                <span className="break-all">{item.url}</span>
+              ))}
           </p>
         )}
       </header>

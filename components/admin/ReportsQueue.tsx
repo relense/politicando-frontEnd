@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { getReports, REPORT_REASON_LABELS, resolveReport, type Report } from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
-import { buttonClass, Empty, ErrorNote, Tabs, useExpiry } from "./ui";
+import { buttonClass, Empty, ErrorNote, Tabs, useExpiry, useExpiryOf } from "./ui";
 
 const KIND_LABELS: Record<Report["kind"], string> = {
   thread: "Discussão",
@@ -38,7 +38,7 @@ export function ReportsQueue() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-reports"] }),
     onError: expiry,
   });
-  if (reports.isError) expiry(reports.error);
+  useExpiryOf(reports.error);
 
   return (
     <section aria-labelledby="denuncias">
