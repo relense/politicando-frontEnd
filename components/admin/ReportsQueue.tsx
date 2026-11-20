@@ -20,6 +20,8 @@ function hrefOf(report: Report): string | null {
   if (!target) return null;
   if (report.kind === "article") return `/article/${report.targetId}`;
   if (report.kind === "comment" && target.articleId) return `/article/${target.articleId}#comentarios`;
+  if (report.kind === "comment" && target.storyId) return `/historias/${target.storyId}#comentarios`;
+  // A comment on a blog post: the API sends the post's id, but its page is by slug.
   // The thread page moves to the right board on its own.
   if (target.threadId) return `/forum/geral/${target.threadId}${report.kind === "post" ? `#post-${report.targetId}` : ""}`;
   return null;
