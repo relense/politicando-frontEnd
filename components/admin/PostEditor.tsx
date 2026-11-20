@@ -237,6 +237,13 @@ function EditorForm({ post }: { post: AdminPost | null }) {
     mutationFn: async ({ step, submitted }: { step: Step; submitted: Fields }) => {
       savedThisRun.current = false;
       let latest = current;
+      // Taking a post down goes first: if it fails, unsaved edits never reach the live post.
+      if (latest && (step === "unpublish" || step === "unfeature")) {
+        latest = await changePost(latest.id, step);
+        if (same(submitted, saved)) return latest;
+        latest = await savePost(latest.id, inputOf(submitted));
+        return latest;
+      }
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
         // Kept at once: if publishing fails next, a retry publishes this post instead of creating another.
@@ -248,7 +255,8 @@ function EditorForm({ post }: { post: AdminPost | null }) {
       return latest;
     },
     onSuccess: (latest, { step, submitted }) => {
-      keep(latest, submitted);
+      // A plain save was kept already, as soon as it answered.
+      if (step !== "save") keep(latest, submitted);
       client.invalidateQueries({ queryKey: ["admin-posts"] });
       setDone(STEP_DONE[step]);
       if (!post) router.replace(`/admin/artigos/${latest.id}`);
