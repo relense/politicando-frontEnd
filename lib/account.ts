@@ -162,6 +162,8 @@ export async function signOut(client: ReturnType<typeof useQueryClient>) {
 
 /** The session is gone (logged out, deleted, expired): empty the lists and show the logged-out header. */
 export function forgetAccount(client: ReturnType<typeof useQueryClient>) {
+  // Already forgotten (the session-ended event, then the caller's own error handler): once is enough.
+  if (client.getQueryData(READER_KEY) === null && !signedIn) return;
   signedIn = false;
   pulled = null;
   clearLocalState();
