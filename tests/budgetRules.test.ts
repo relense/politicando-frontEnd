@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
 import {
   authorsShort,
+  authorsPhrase,
   budgetBox,
+  budgetTally,
+  tidyStatus,
   finalVoteSession,
   sessionTime,
   budgetStage,
@@ -196,5 +199,57 @@ describe("the final overall vote's session, shown ahead of time", () => {
   it("«10h00»: hours as written in Portugal, in Lisbon's time", () => {
     expect(sessionTime("2026-11-24T10:00:00Z")).toBe("10h00");
     expect(sessionTime("2026-07-24T14:30:00Z")).toBe("15h30");
+  });
+});
+
+describe("the numbers at the top add up", () => {
+  // OE2027 on 20 Nov: 2 919 proposals.
+  const results = {
+    pending: 1584,
+    sent_to_plenary: 40,
+    approved: 151,
+    partially_approved: 19,
+    rejected: 1052,
+    withdrawn: 49,
+    not_admitted: 19,
+    superseded: 4,
+    unclear: 1,
+  };
+  it("voted = approved + rejected, still to vote, and the rest named, so they make the total", () => {
+    const tally = budgetTally(results);
+    expect(tally).toMatchObject({ total: 2919, voted: 1222, approved: 170, rejected: 1052, pending: 1624, other: 73 });
+    expect(tally.voted + tally.pending + tally.other).toBe(tally.total);
+    expect(tally.otherLabel).toBe("retiradas, não admitidas, prejudicadas ou por esclarecer");
+  });
+  it("names only what there is, and nothing when there's none", () => {
+    expect(budgetTally({ approved: 2, withdrawn: 3, not_admitted: 1 }).otherLabel).toBe("retiradas ou não admitidas");
+    expect(budgetTally({ approved: 2, pending: 1 })).toMatchObject({ other: 0, otherLabel: null });
+  });
+  it("one is singular: «1 retirada»", () => {
+    expect(budgetTally({ approved: 2, withdrawn: 1 }).otherLabel).toBe("retirada");
+    expect(budgetTally({ approved: 2, unclear: 1 }).otherLabel).toBe("por esclarecer");
+  });
+});
+
+describe("who proposed it, in a sentence", () => {
+  const party = (slug: string, acronym: string, name = acronym) => ({ slug, acronym, name });
+  it("«do PCP», «da IL», «do PSD e do CDS-PP», «de» a deputy", () => {
+    expect(authorsPhrase({ parties: [party("pcp", "PCP")], deputies: [], label: "PCP" })).toBe("do PCP");
+    expect(authorsPhrase({ parties: [party("il", "IL")], deputies: [], label: null })).toBe("da IL");
+    expect(authorsPhrase({ parties: [party("psd", "PSD"), party("cds-pp", "CDS-PP")], deputies: [], label: null })).toBe(
+      "do PSD e do CDS-PP",
+    );
+    expect(authorsPhrase({ parties: [], deputies: ["Ana Lopes"], label: null })).toBe("de Ana Lopes");
+    expect(authorsPhrase({ parties: [party("livre", "L", "Livre")], deputies: [], label: null })).toBe("do LIVRE");
+    expect(authorsPhrase({ parties: [], deputies: [], label: null })).toBeNull();
+  });
+});
+
+describe("the official status, without the source's «(a)»", () => {
+  it("a proposal is feminine: «Rejeitada em Comissão»", () => {
+    expect(tidyStatus("Rejeitado(a) em Comissão")).toBe("Rejeitada em Comissão");
+    expect(tidyStatus("Aprovado(a) em Plenário")).toBe("Aprovada em Plenário");
+    expect(tidyStatus("Retirada")).toBe("Retirada");
+    expect(tidyStatus(null)).toBeNull();
   });
 });

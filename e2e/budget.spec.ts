@@ -14,8 +14,15 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await expect(page.getByText("Em especialidade", { exact: true })).toBeVisible();
   // The final overall vote's day, ahead of time, once the agenda shows its session.
   await expect(page.getByText(/^Votação final global marcada para \d\d-\d\d-\d{4}, às \d\dh\d\d$/)).toBeVisible();
-  // The running tally first: 5 of the 8 fictional proposals voted.
-  await expect(page.getByRole("region", { name: /propostas de alteração já votadas/ })).toContainText("de 8");
+  // The running tally first: 5 of the 9 fictional proposals voted, 3 still to vote, and the withdrawn one named so it adds up.
+  const tally = page.getByRole("region", { name: /propostas de alteração já votadas/ });
+  await expect(tally).toContainText("de 9");
+  await expect(tally).toContainText("1 retirada");
+  // Its own share image, not the site's.
+  const ogImage = await page.locator('meta[property="og:image"]').first().getAttribute("content");
+  expect(ogImage).toContain("/orcamento/opengraph-image");
+  const image = await page.request.get(ogImage!);
+  expect(image.headers()["content-type"]).toContain("image/png");
   // The Budget's own vote on the general principles.
   const general = page.getByRole("region", { name: "Votação na generalidade" });
   await expect(general).toContainText("PSD");
@@ -46,6 +53,10 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await expect(page.getByText("Título oficial: Artigo 9.º do Código do IRS")).toBeVisible();
   await expect(page.getByText(/^Votada a \d\d-\d\d-\d{4}, em Comissão$/)).toBeVisible();
   await expect(page.getByText("Partido Social Democrata", { exact: true })).toBeVisible();
+  // The source's «Aprovado(a)» reads as a sentence; the share text says «do PSD».
+  await expect(page.getByText("Aprovada em Comissão", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\(a\)/)).toHaveCount(0);
+  expect(await page.locator('meta[name="description"]').getAttribute("content")).toContain("para 2027, do PSD:");
   await expect(page.getByText("Aprovada", { exact: true }).first()).toBeVisible();
   await noSeriousA11yIssues(page);
 

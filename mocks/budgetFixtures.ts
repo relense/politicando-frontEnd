@@ -222,6 +222,17 @@ export const budgetProposals = () => [
     status: "Por votar",
     authors: ["pcp"],
   }),
+  // Withdrawn before any vote: neither voted nor still to vote, so the top counts name it to add up.
+  proposal({
+    id: 28309,
+    number: "1530C",
+    title: "Artigo 12.º · Taxas moderadoras",
+    article: "Artigo 12.º",
+    topics: ["Saúde"],
+    result: "withdrawn",
+    status: "Retirada",
+    authors: ["ps"],
+  }),
 ];
 
 const bill = (year: number, initiativeId: number, status: string, votes: object[], number = "110") => ({

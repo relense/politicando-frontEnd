@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
 import { AutomaticLabel, ProposalVotes } from "@/components/budget/ProposalItem";
-import { authorsShort, partyFull, proposalHeading, votedLine } from "@/lib/budget";
+import { authorsPhrase, partyFull, proposalHeading, tidyStatus, votedLine } from "@/lib/budget";
 import { getBudgetProposal } from "@/lib/api/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${proposalHeading(proposal).main} · proposta ${proposal.number} ao OE ${proposal.year}`,
     description: `Proposta de alteração n.º ${proposal.number} ao Orçamento do Estado para ${proposal.year}${
-      authorsShort(proposal.authors) ? `, de ${authorsShort(proposal.authors)}` : ""
+      authorsPhrase(proposal.authors) ? `, ${authorsPhrase(proposal.authors)}` : ""
     }: o resultado e como votou cada partido.`,
     alternates: { canonical: `/orcamento/${proposal.year}/proposta/${proposal.id}` },
   };
@@ -44,7 +44,7 @@ export default async function BudgetProposalPage({ params }: Props) {
     ["Artigo", proposal.article],
     ["Tipo", proposal.kind],
     ["Entregue a", formatDate(proposal.submittedOn)],
-    ["Estado na fonte oficial", proposal.status],
+    ["Estado na fonte oficial", tidyStatus(proposal.status)],
   ];
   return (
     <article data-wide className="max-w-3xl">
