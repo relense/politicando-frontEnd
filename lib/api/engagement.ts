@@ -27,6 +27,7 @@ export const NOTIFICATION_KINDS = [
   "story_update",
   "prediction_result",
   "idea_status",
+  "feedback_reply",
 ] as const;
 
 export const notificationSchema = z.object({
@@ -46,8 +47,18 @@ export const notificationSchema = z.object({
       threadId: nullableId,
       postId: nullableId,
       initiativeId: nullableId,
+      feedbackId: nullableId,
     })
-    .catch({ commentId: null, articleId: null, storyId: null, postSlug: null, threadId: null, postId: null, initiativeId: null }),
+    .catch({
+      commentId: null,
+      articleId: null,
+      storyId: null,
+      postSlug: null,
+      threadId: null,
+      postId: null,
+      initiativeId: null,
+      feedbackId: null,
+    }),
   threadTitle: nullableText,
   board: nullableText,
   headline: nullableText,
@@ -62,6 +73,8 @@ export const notificationSchema = z.object({
     })
     .nullable()
     .catch(null),
+  /** `feedback_reply`: the team's answer to a message the reader sent, shown in the inbox itself. */
+  feedback: z.object({ id: z.number(), reply: z.string().nullable() }).nullish().catch(null),
 });
 export type Notification = z.infer<typeof notificationSchema>;
 

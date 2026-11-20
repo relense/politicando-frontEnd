@@ -75,6 +75,11 @@ export default function PrivacyPage() {
         ecrã. O email só é pedido se quiseres resposta: usamo-lo só para te responder sobre essa mensagem e apagamo-lo quando o assunto
         fecha. As capturas de ecrã são apagadas ao fim de 90 dias. As correções publicadas no registo não dizem quem as pediu.
       </p>
+      <p>
+        Ao enviar, recebes um link privado para ver a resposta da equipa no site. Fica guardado no teu aparelho e quem o tiver pode ler a
+        resposta, por isso não o partilhes. O link deixa de funcionar quando a mensagem é fechada. Se enviares a mensagem com sessão
+        iniciada, ela fica ligada à tua conta, para a resposta chegar aos teus avisos, até ser apagada.
+      </p>
 
       <h2>Proteção contra robôs</h2>
       <p>

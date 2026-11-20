@@ -33,11 +33,16 @@ type MockMessage = {
   answeredAt: string | null;
   closedAt: string | null;
   corrections: { id: number; status: string; date: string; area: string | null; title: string; url: string | null }[];
+  /** Sent signed in: the reader's id (never sent to the page). */
+  readerId?: number | null;
+  /** The private follow-up token; gone once closed. */
+  token?: string | null;
 };
 
 const messages: MockMessage[] = [
   {
     id: 41,
+    token: "segue-41",
     kind: "error",
     message: "O deputado Duarte Mesquita aparece no partido errado na página dos deputados.",
     page: "Deputados",
@@ -56,6 +61,7 @@ const messages: MockMessage[] = [
   },
   {
     id: 40,
+    token: "segue-40",
     kind: "broken",
     message: "O mapa das eleições não abre no meu telemóvel.",
     page: "Eleições",
@@ -74,6 +80,7 @@ const messages: MockMessage[] = [
   },
   {
     id: 39,
+    token: "segue-39",
     kind: "other",
     message: "Parabéns pelo site!",
     page: null,
@@ -93,10 +100,43 @@ const messages: MockMessage[] = [
 ];
 let nextCorrectionId = 100;
 
-const present = (message: MockMessage) => ({
+const present = ({ readerId, token, ...message }: MockMessage) => ({
   ...message,
   screenshot: message.screenshot ? `/api/v2/admin/feedback/${message.id}/screenshot` : null,
+  account: Boolean(readerId),
+  followable: Boolean(token) || Boolean(readerId),
 });
+
+/** The inbox lives in engagementFixtures; it hands over how to tell a reader. */
+let notifyReader: (readerId: number, feedback: { id: number; reply: string | null }) => void = () => {};
+export const registerFeedbackNotifier = (notify: typeof notifyReader) => {
+  notifyReader = notify;
+};
+
+let nextMessageId = 200;
+/** A message from the public form (feedbackFixtures), signed in or not; its private follow-up token. */
+export function addMessage(
+  fields: Pick<MockMessage, "kind" | "message" | "page" | "url" | "correction" | "source" | "email">,
+  readerId: number | null,
+) {
+  const id = nextMessageId++;
+  const token = `segue-${id}-${Math.random().toString(36).slice(2, 10)}`;
+  messages.unshift({
+    id,
+    ...fields,
+    screenshot: false,
+    status: "open",
+    reply: null,
+    note: null,
+    createdAt: new Date().toISOString(),
+    answeredAt: null,
+    closedAt: null,
+    corrections: [],
+    readerId,
+    token,
+  });
+  return { id, followUpToken: token };
+}
 
 // A 1×1 grey PNG: enough for the page to show "a screenshot".
 const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNoAAAAggCBd81ytgAAAABJRU5ErkJggg=="), (char) =>
@@ -105,6 +145,24 @@ const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAA
 
 /** The admin's routes, guarded by the session cookie like the real API. */
 export const adminHandlers = [
+  // Public: a message's status and answer, from its private link (never the email or the message itself).
+  http.get(`${API}/feedback/follow/:token`, ({ params }) => {
+    const token = String(params.token);
+    if (!/^[\w-]{4,100}$/.test(token)) return adminFail(400, "invalid_request");
+    const message = messages.find((item) => item.token === token && item.status !== "closed");
+    if (!message) return adminFail(404, "not_found");
+    return HttpResponse.json(
+      {
+        kind: message.kind,
+        page: message.page,
+        createdAt: message.createdAt,
+        status: message.reply || message.answeredAt ? "answered" : "open",
+        reply: message.reply,
+        answeredAt: message.answeredAt,
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  }),
   http.post(`${API}/admin/login`, async ({ request }) => {
     const { email, password } = (await request.json()) as { email?: string; password?: string };
     const admin = team.find((item) => item.email === email?.toLowerCase() && !item.disabled);
@@ -214,15 +272,20 @@ export const adminHandlers = [
     if (admin instanceof Response) return admin;
     const message = messages.find((item) => item.id === Number(params.id));
     if (!message) return adminFail(404, "not_found");
-    const { reply, send } = (await request.json()) as { reply: string | null; send?: boolean };
-    if (send && !message.email) return adminFail(400, "no_email");
-    if (send && !reply) return adminFail(400, "empty_reply");
+    const body = (await request.json()) as { reply: string | null; send?: boolean; channel?: "site" | "email" | "none" };
+    const channel = body.channel ?? (body.send ? "email" : "none");
+    const reply = body.reply?.trim() || null;
+    if (channel !== "none" && !reply) return adminFail(400, "empty_reply");
+    if (channel === "email" && !message.email) return adminFail(400, "no_email");
+    if (channel === "site" && !message.token && !message.readerId) return adminFail(400, "not_followable");
     Object.assign(message, {
       reply: reply ?? message.reply,
       status: message.status === "closed" ? "closed" : "answered",
       answeredAt: message.answeredAt ?? new Date().toISOString(),
     });
-    audit(admin, send ? "feedback.reply" : "feedback.answered", "feedback", message.id);
+    // Email or site answers reach a signed-in reader's inbox.
+    if (channel !== "none" && message.readerId) notifyReader(message.readerId, { id: message.id, reply: message.reply });
+    audit(admin, channel === "none" ? "feedback.answered" : `feedback.reply.${channel}`, "feedback", message.id);
     return HttpResponse.json(present(message));
   }),
   http.put(`${API}/admin/feedback/:id/note`, async ({ params, request }) => {
@@ -238,7 +301,7 @@ export const adminHandlers = [
     if (admin instanceof Response) return admin;
     const message = messages.find((item) => item.id === Number(params.id));
     if (!message) return adminFail(404, "not_found");
-    Object.assign(message, { status: "closed", closedAt: message.closedAt ?? new Date().toISOString(), email: null });
+    Object.assign(message, { status: "closed", closedAt: message.closedAt ?? new Date().toISOString(), email: null, token: null });
     audit(admin, "feedback.close", "feedback", message.id);
     return noContent();
   }),
