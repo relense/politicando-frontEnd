@@ -70,6 +70,12 @@ const threadDetailSchema = z.object({
   }),
   posts: z.array(postSchema),
   hasMore: z.boolean(),
+  /** The next page in the same sort (`?cursor=`), null at the end. Opaque: pass it back as given. */
+  nextCursor: z
+    .string()
+    .nullish()
+    .catch(null)
+    .transform((value) => value ?? null),
 });
 
 const createdSchema = z.object({ id: z.number(), posterId: z.string() });
@@ -116,7 +122,7 @@ export type ForumPost = {
   team: boolean;
   score: number;
 };
-export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean };
+export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean; nextCursor: string | null };
 export type ThreadSort = "active" | "new" | "top";
 /** A thread's replies: oldest first (the API's default), newest first, or most voted (ideas board). */
 export type ReplySort = "old" | "new" | "top";
@@ -193,7 +199,8 @@ export function mapThreadSummary(thread: z.infer<typeof threadSummarySchema>): T
   return { ...thread, ...ideaFields(thread), link: mapThreadLink(thread.link) };
 }
 
-export function mapThreadDetail(detail: z.infer<typeof threadDetailSchema>): ThreadDetail {
+type ThreadDetailApi = z.infer<typeof threadDetailSchema>;
+export function mapThreadDetail(detail: Omit<ThreadDetailApi, "nextCursor"> & { nextCursor?: string | null }): ThreadDetail {
   const { statusHistory, ...thread } = detail.thread;
   return {
     ...detail,
@@ -207,6 +214,7 @@ export function mapThreadDetail(detail: z.infer<typeof threadDetailSchema>): Thr
         .map((step) => ({ status: ideaStatusOf(step.status), at: step.at })),
     },
     posts: detail.posts.map((post) => ({ ...post, team: post.team ?? false, score: post.score ?? 0 })),
+    nextCursor: detail.nextCursor ?? null,
   };
 }
 
@@ -229,9 +237,13 @@ export async function getThreads(
   return { items: result.items.map(mapThreadSummary), total: result.total };
 }
 
-export async function getThread(id: number, { after, sort }: { after?: number; sort?: ReplySort } = {}): Promise<ThreadDetail> {
+/** A thread and a page of its replies: `after` for newer ones (oldest first, polling), `cursor` for the next page in any sort. */
+export async function getThread(
+  id: number,
+  { after, sort, cursor }: { after?: number; sort?: ReplySort; cursor?: string } = {},
+): Promise<ThreadDetail> {
   return mapThreadDetail(
-    await request(`/forums/threads/${id}${searchOf({ after, sort: sort === "old" ? undefined : sort })}`, threadDetailSchema, {
+    await request(`/forums/threads/${id}${searchOf({ after, sort: sort === "old" ? undefined : sort, cursor })}`, threadDetailSchema, {
       cache: "no-store",
     }),
   );

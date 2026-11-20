@@ -68,6 +68,12 @@ describe("forum mappers", () => {
     expect(mapThreadDetail({ thread: { ...base, body: "x", link: null }, posts: [], hasMore: false }).thread.link).toBeNull();
   });
 
+  it("the next page's cursor, passed on as given; an older API without one reads as the end", () => {
+    const detail = { thread: { ...base, body: "x", link: null }, posts: [], hasMore: true };
+    expect(mapThreadDetail(detail).nextCursor).toBeNull();
+    expect(mapThreadDetail({ ...detail, nextCursor: "dG9wOjIwMA==" }).nextCursor).toBe("dG9wOjIwMA==");
+  });
+
   it("an idea's new fields: followers, expected date, duplicate, area, the status timeline; an older API reads as empty", () => {
     const idea = {
       ...base,

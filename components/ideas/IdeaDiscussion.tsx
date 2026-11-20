@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { NameAvatar } from "@/components/Avatar";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -50,17 +50,25 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
   const queryClient = useQueryClient();
   const [sort, setSort] = useState<Exclude<ReplySort, "old">>("top");
   const queryKey = ["idea-replies", threadId, sort];
-  const { data } = useQuery({
+  // A page at a time (200), «Ver mais comentários» for the next one in the same order.
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey,
-    queryFn: () => getThread(threadId, { sort }),
-    initialData: sort === "top" ? initial : undefined,
+    queryFn: ({ pageParam }) => getThread(threadId, { sort, cursor: pageParam ?? undefined }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.nextCursor,
+    initialData: sort === "top" ? { pages: [initial], pageParams: [null] } : undefined,
     staleTime: POLL_MS,
     refetchInterval: POLL_MS,
   });
-  const posts = useMemo(() => data?.posts ?? [], [data]);
+  const posts = useMemo(() => {
+    // In «Melhores», a vote between pages can move a comment across the boundary: shown once.
+    const seen = new Set<number>();
+    return (data?.pages ?? []).flatMap((page) => page.posts).filter((post) => !seen.has(post.id) && seen.add(post.id));
+  }, [data]);
   const groups = useMemo(() => nest(posts), [posts]);
   const anchors = useMemo(() => new Map(posts.map((post) => [post.id, `post-${post.id}`])), [posts]);
-  const visible = posts.filter((post) => !post.hidden).length;
+  // Until every page is in, the thread's own count.
+  const visible = hasNextPage ? (data?.pages[0]?.thread.replyCount ?? 0) : posts.filter((post) => !post.hidden).length;
   const form = useRef<ReplyFormHandle>(null);
   const gate = useAccountGate();
 
@@ -167,6 +175,16 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
             </li>
           ))}
         </ol>
+      )}
+      {hasNextPage && (
+        <button
+          type="button"
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+          className="mt-4 rounded-full border border-line px-4 py-2 font-mono text-sm font-bold hover:bg-surface disabled:opacity-50"
+        >
+          {isFetchingNextPage ? "A carregar…" : "Ver mais comentários"}
+        </button>
       )}
     </section>
   );
