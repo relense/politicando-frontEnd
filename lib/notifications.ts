@@ -1,3 +1,4 @@
+import { IDEA_STATUS_LABELS, IDEA_STATUSES, IDEAS_BOARD } from "@/lib/api/forums";
 import type { Notification } from "./api/engagement";
 import { editorialPath } from "./editorial";
 
@@ -26,6 +27,14 @@ export function notificationText(item: Notification): NotificationText {
       return { actor, lead: "respondeu ao teu comentário", quote: item.snippet };
     case "forum_reply":
       return { actor, lead: `respondeu-te em “${item.threadTitle ?? "uma conversa do fórum"}”`, quote: item.snippet };
+    case "idea_status": {
+      const status = IDEA_STATUSES.find((value) => value === item.status);
+      return {
+        actor: null,
+        lead: `A ideia que segues, “${item.threadTitle ?? "no quadro de ideias"}”, está agora: ${status ? IDEA_STATUS_LABELS[status].label : "com um novo estado"}`,
+        quote: null,
+      };
+    }
     case "thread_update":
       return {
         actor: null,
@@ -65,6 +74,7 @@ export function notificationHref(item: Notification): string | null {
     if (link.postSlug) return `${editorialPath(link.postSlug)}${comment}`;
     if (link.storyId) return `/historias/${link.storyId}`;
   }
+  if (link.threadId && item.board === IDEAS_BOARD) return `/feedback/ideias/${link.threadId}${link.postId ? `#post-${link.postId}` : ""}`;
   if (link.threadId) {
     const thread = `/forum/${encodeURIComponent(item.board ?? "geral")}/${link.threadId}`;
     return link.postId ? `${thread}#post-${link.postId}` : thread;

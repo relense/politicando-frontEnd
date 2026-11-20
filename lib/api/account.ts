@@ -58,8 +58,10 @@ export const accountStateSchema = z.object({
       stories: ids,
       comments: ids,
       forum: ids,
+      /** Replies the reader voted for (ideas board). */
+      forumPosts: ids,
     })
-    .catch({ articles: {}, editorial: {}, stories: [], comments: [], forum: [] }),
+    .catch({ articles: {}, editorial: {}, stories: [], comments: [], forum: [], forumPosts: [] }),
 });
 export type AccountState = z.infer<typeof accountStateSchema>;
 /** What the browser had before logging in (lists newest first). Votes aren't merged: they were already counted. */

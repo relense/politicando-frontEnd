@@ -23,6 +23,7 @@ const STATUS_PARAMS: Record<IdeaStatus, string> = {
   in_progress: "em-desenvolvimento",
   done: "feitas",
   declined: "recusadas",
+  duplicate: "duplicadas",
 };
 
 const sortOf = (value: unknown) => SORTS.find((sort) => sort.param === value) ?? SORTS[0]!;
