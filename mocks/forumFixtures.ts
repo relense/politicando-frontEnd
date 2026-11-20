@@ -161,6 +161,11 @@ const threads: MockThread[] = [
     duplicateOf: { id: 501, title: "Votações na especialidade do Orçamento do Estado, à lupa" },
   }),
   idea(510, "Exportar votações em CSV", "Para quem quer fazer as próprias contas.", 3, null, 5),
+  // More comments than one page (200): «Ver mais comentários».
+  idea(511, "Modo offline para ler no metro", "Guardar as notícias do dia para ler sem rede.", 1, "declined", 1200, {
+    answer: "Por agora não: o site já funciona bem com pouca rede.",
+    answeredAt: hoursAgo(1100),
+  }),
   {
     id: 7,
     board: "geral",
@@ -299,6 +304,15 @@ const posts: MockPost[] = [
 ];
 
 let nextThreadId = 600;
+// Idea 511's 205 comments, oldest first, from fictional readers.
+for (let n = 1; n <= 205; n++)
+  posts.push(
+    ideaPost(5000 + n, `Comentário n.º ${n} sobre o modo offline.`, `leitor${n}`, n % 7, 300_000 - n * 60, {
+      threadId: 511,
+      posterId: `Of${n}`,
+    }),
+  );
+
 let nextPostId = 900;
 
 const fail = (status: number, code: string) => HttpResponse.json({ error: { code, message: code } }, { status });
@@ -395,7 +409,16 @@ export const forumHandlers = [
     const query = new URL(request.url).searchParams;
     const after = Number(query.get("after") ?? 0);
     const sort = query.get("sort") ?? "old";
-    const own = posts
+    const limit = Math.min(500, Math.max(1, Number(query.get("limit") ?? 200)));
+    // The cursor is opaque to the site; here it's the sort and how many came before.
+    const cursor = query.get("cursor");
+    let offset = 0;
+    if (cursor !== null) {
+      const [cursorSort, count] = atob(cursor).split(":");
+      if (cursorSort !== sort || !/^\d+$/.test(count ?? "")) return fail(400, "invalid_cursor");
+      offset = Number(count);
+    }
+    const all = posts
       .filter((post) => post.threadId === thread.id && post.id > after)
       .sort((a, b) =>
         sort === "top"
@@ -404,6 +427,8 @@ export const forumHandlers = [
             ? b.createdAt.localeCompare(a.createdAt)
             : a.id - b.id,
       );
+    const own = all.slice(offset, offset + limit);
+    const hasMore = offset + limit < all.length;
     return HttpResponse.json({
       thread: {
         ...thread,
@@ -423,7 +448,8 @@ export const forumHandlers = [
         team: post.team ?? false,
         score: thread.board === "ideias" ? (post.score ?? 0) : 0,
       })),
-      hasMore: false,
+      hasMore,
+      nextCursor: hasMore ? btoa(`${sort}:${offset + limit}`) : null,
     });
   }),
 

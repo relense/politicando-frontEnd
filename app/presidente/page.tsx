@@ -402,7 +402,7 @@ function LawsSummary({ legislation, termStart }: { legislation: Presidency["legi
       label: legislation.promulgated === 1 ? "promulgada" : "promulgadas",
       tone: "law",
     },
-    { key: "vetoed", value: legislation.vetoed, label: legislation.vetoed === 1 ? "vetada" : "vetadas", tone: "stopped" },
+    { key: "vetoed", value: legislation.vetoed, label: legislation.vetoed === 1 ? "veto" : "vetos", tone: "stopped" },
     { key: "pending", value: legislation.pending, label: "à espera", tone: "president" },
   ];
   const total = parts.reduce((sum, part) => sum + part.value, 0);
@@ -694,8 +694,9 @@ function AllTime({ allTime, termStart }: { allTime: NonNullable<Presidency["legi
     <p className="mt-3 font-mono text-xs">
       <span className="font-bold">{from}</span>
       {allTime.since && allTime.since < termStart ? ", contando com o Presidente anterior" : ""}: {formatNumber(allTime.promulgated)}{" "}
-      promulgadas e {formatNumber(allTime.vetoed)} vetadas
-      {unconstitutional ? `, ${formatNumber(unconstitutional)} delas por inconstitucionalidade` : ""}.
+      promulgadas e {formatNumber(allTime.vetoed)} {allTime.vetoed === 1 ? "veto" : "vetos"}
+      {unconstitutional ? `, ${formatNumber(unconstitutional)} ${unconstitutional === 1 ? "dele" : "deles"} por inconstitucionalidade` : ""}
+      .
     </p>
   );
 }

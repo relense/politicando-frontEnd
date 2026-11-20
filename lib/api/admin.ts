@@ -354,6 +354,8 @@ export function adminErrorMessage(error: unknown): string {
       return "Publica o artigo antes de o pôr em destaque.";
     case "published":
       return "Despublica o artigo antes de o apagar.";
+    case "payload_too_large":
+      return "O texto é demasiado longo: o máximo são 100 000 caracteres.";
     case "validation_failed":
       return error instanceof ApiError ? `Falta ou está mal um campo: ${error.message}` : "Falta ou está mal um campo.";
     default:

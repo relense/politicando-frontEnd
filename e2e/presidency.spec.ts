@@ -7,6 +7,9 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByRole("heading", { level: 2, name: "Teresa Albuquerque" })).toBeVisible();
   await expect(page).toHaveTitle(/Teresa Albuquerque, Presidente da República/);
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
+  // Each veto counts (a law vetoed twice is 2): vetoes, not laws.
+  await expect(page.getByText("vetos", { exact: true })).toBeVisible();
+  await expect(page.getByText(/71 promulgadas e 5 vetos, 2 deles por inconstitucionalidade\./)).toBeVisible();
   await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();
   const desk = page.getByRole("region", { name: /Na secretária do Presidente/ });
   await expect(desk.getByText(/dia \d+ de 20|À espera de decisão/).first()).toBeVisible();
