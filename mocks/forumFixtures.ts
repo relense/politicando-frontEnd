@@ -157,17 +157,9 @@ const threads: MockThread[] = [
   }),
   idea(507, "Filtro por partido nas notícias", "Ver só as notícias de um partido.", 22, "done", 900),
   idea(508, "Tema claro", "Uma versão clara do site, para ler de dia.", 15, "done", 1000),
-  idea(
-    509,
-    "Ver os votos de cada partido nas propostas do Orçamento",
-    "Quem votou o quê em cada alteração ao Orçamento.",
-    6,
-    "duplicate",
-    60,
-    {
-      duplicateOf: { id: 501, title: "Votações na especialidade do Orçamento do Estado, à lupa" },
-    },
-  ),
+  idea(509, "Votações de cada partido no Orçamento", "Quem votou o quê em cada alteração ao Orçamento.", 6, "duplicate", 60, {
+    duplicateOf: { id: 501, title: "Votações na especialidade do Orçamento do Estado, à lupa" },
+  }),
   idea(510, "Exportar votações em CSV", "Para quem quer fazer as próprias contas.", 3, null, 5),
   {
     id: 7,
