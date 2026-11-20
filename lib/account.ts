@@ -176,8 +176,11 @@ export function pullAccountState(reader: Reader): Promise<void> {
   signedIn = true;
   // A second caller waits for the same pull, so nothing it does afterwards is overwritten by an older answer.
   if (pulled?.id === reader.id) return pulled.done;
-  const done = getAccountState()
-    .then(applyAccountState)
+  const done: Promise<void> = getAccountState()
+    .then((state) => {
+      // Logged out (or someone else in) while it loaded: their lists don't come back.
+      if (pulled?.done === done && signedIn) applyAccountState(state);
+    })
     .catch(() => {
       if (pulled?.done === done) pulled = null;
     });
