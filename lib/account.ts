@@ -165,19 +165,24 @@ export function forgetAccount(client: ReturnType<typeof useQueryClient>) {
   signedIn = false;
   clearLocalState();
   client.setQueryData(READER_KEY, null);
+  // Nothing of theirs stays in memory for the next person on this computer (the inbox, picks, saved, activity):
+  // every other query goes back to where the page started, and the reader's own ones ask again, now logged out.
+  void client.resetQueries({ predicate: (query) => query.queryKey[0] !== READER_KEY[0] });
 }
 
 /** Once per page load with a session: the account's lists replace this browser's, so every device shows the same. */
-let pulled: number | null = null;
-export async function pullAccountState(reader: Reader) {
+let pulled: { id: number; done: Promise<void> } | null = null;
+export function pullAccountState(reader: Reader): Promise<void> {
   signedIn = true;
-  if (pulled === reader.id) return;
-  pulled = reader.id;
-  try {
-    applyAccountState(await getAccountState());
-  } catch {
-    pulled = null;
-  }
+  // A second caller waits for the same pull, so nothing it does afterwards is overwritten by an older answer.
+  if (pulled?.id === reader.id) return pulled.done;
+  const done = getAccountState()
+    .then(applyAccountState)
+    .catch(() => {
+      if (pulled?.done === done) pulled = null;
+    });
+  pulled = { id: reader.id, done };
+  return done;
 }
 
 export function markSignedOut() {
