@@ -93,6 +93,73 @@ test("forum: pin and lock a thread, hide a reply, then undo", async ({ page }) =
   await expect(reply).toContainText("Concordo, as contas são confusas.");
 });
 
+test("ideas: a status with the team's answer and expected date, a reply as Politicando, a duplicate, then undo", async ({ page }) => {
+  await signIn(page, MODERATOR, "/admin/ideias");
+  await expect(page.getByRole("heading", { level: 1, name: "Ideias" })).toBeVisible();
+  // First the ideas nobody from the team has looked at.
+  const fresh = page.getByRole("article", { name: "Exportar votações em CSV" });
+  await expect(fresh).toBeVisible();
+  await noSeriousA11yIssues(page);
+
+  // Planned, with an answer and a date: on the idea, pinned, and on its timeline.
+  await page.getByRole("group", { name: "Estado" }).getByRole("button", { name: "Em análise" }).click();
+  const idea = page.getByRole("article", { name: "Comparar o programa eleitoral com o que cada partido votou" });
+  await idea.getByLabel("Estado").selectOption("planned");
+  await idea.getByLabel(/Previsto para/).fill("2026-12-15");
+  await idea.getByLabel(/Resposta da equipa/).fill("Está nos planos, depois do Orçamento.");
+  await idea.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Guardado: «Comparar o programa eleitoral com o que cada partido votou» está «Planeada».",
+  );
+  await page.goto("/feedback/ideias/503");
+  await expect(page.getByRole("region", { name: /Resposta da equipa · fixada/ })).toContainText("Está nos planos, depois do Orçamento.");
+  await expect(page.getByRole("list", { name: "Estado da ideia" })).toContainText("previsto 15-12");
+
+  // Back as it was.
+  await page.goto("/admin/ideias");
+  await page.getByRole("group", { name: "Estado" }).getByRole("button", { name: "Planeada" }).click();
+  await idea.getByLabel("Estado").selectOption("reviewing");
+  await idea.getByLabel(/Previsto para/).fill("");
+  await idea.getByLabel(/Resposta da equipa/).fill("");
+  await idea.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("status")).toContainText("está «Em análise»");
+
+  // A reply signed Politicando, with the EQUIPA mark on the site.
+  await page.getByRole("group", { name: "Estado" }).getByRole("button", { name: "Sem estado" }).click();
+  await fresh.getByRole("button", { name: "Responder como Politicando" }).click();
+  await fresh.getByRole("button", { name: "Publicar como Politicando" }).click();
+  await expect(fresh.getByRole("alert")).toContainText("Escreve o comentário antes de o publicar.");
+  const text = `Boa ideia: vamos ver se dá para juntar ao Orçamento (${Date.now()}).`;
+  await fresh.getByRole("textbox", { name: "Comentário da equipa" }).fill(text);
+  await fresh.getByRole("button", { name: "Publicar como Politicando" }).click();
+  await expect(page.getByRole("status")).toContainText("Comentário publicado em «Exportar votações em CSV».");
+  await page.goto("/feedback/ideias/510");
+  const team = page.getByRole("article", { name: "Comentário de Politicando" }).filter({ hasText: text });
+  await expect(team).toContainText("EQUIPA");
+
+  // A duplicate needs another idea's number; then it points to the original.
+  await page.goto("/admin/ideias");
+  await fresh.getByLabel("Estado").selectOption("duplicate");
+  await fresh.getByLabel("Duplicada da ideia n.º").fill("510");
+  await fresh.getByRole("button", { name: "Guardar" }).click();
+  await expect(fresh.getByRole("alert")).toContainText("Uma ideia não pode ser duplicada de si própria.");
+  await fresh.getByLabel("Duplicada da ideia n.º").fill("999999");
+  await fresh.getByRole("button", { name: "Guardar" }).click();
+  await expect(fresh.getByRole("alert")).toContainText("Esse número não é de outra ideia visível");
+  await fresh.getByLabel("Duplicada da ideia n.º").fill("501");
+  await fresh.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("status")).toContainText("está «Duplicada»");
+  await page.goto("/feedback/ideias/510");
+  await expect(page.getByText("Já foi sugerida:")).toBeVisible();
+
+  // Back as it was.
+  await page.goto("/admin/ideias");
+  await page.getByRole("group", { name: "Estado" }).getByRole("button", { name: "Duplicada" }).click();
+  await fresh.getByLabel("Estado").selectOption("");
+  await fresh.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("status")).toContainText("está sem estado");
+});
+
 test("comments: hide one with a reason, find it among the hidden, show it again", async ({ page }) => {
   await signIn(page, MODERATOR, "/admin/comentarios");
   const comment = page.getByRole("list", { name: "Comentários" }).getByRole("article").filter({ hasText: "Outro comentário principal." });

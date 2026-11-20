@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { IdeaStatusBody } from "@/lib/ideaAdmin";
 import { ApiError } from "./client";
 
 /*
@@ -160,6 +161,25 @@ export type ThreadAction = "hide" | "unhide" | "lock" | "unlock" | "pin" | "unpi
 export const moderateThread = (id: number, action: ThreadAction) => call(`/forum/threads/${id}/${action}`, null, { method: "POST" });
 export const moderatePost = (id: number, action: "hide" | "unhide") => call(`/forum/posts/${id}/${action}`, null, { method: "POST" });
 
+/* Ideas board: the team's decision and replies signed «Politicando» (forums-api.md "The ideas board", admin-api.md). */
+
+const ideaDecisionSchema = z.object({
+  status: z.string().nullable(),
+  answer: z.string().nullable(),
+  answeredAt: z.string().nullable(),
+  expectedOn: z.string().nullable(),
+  duplicateOf: z.object({ id: z.number(), title: z.string() }).nullable().catch(null),
+});
+export type IdeaDecision = z.infer<typeof ideaDecisionSchema>;
+
+export const setIdeaStatus = (id: number, body: IdeaStatusBody) =>
+  call(`/forum/threads/${id}/status`, ideaDecisionSchema, { method: "PUT", body });
+export const replyAsTeam = (threadId: number, body: string, replyTo: number | null) =>
+  call(`/forum/threads/${threadId}/posts`, z.object({ id: z.number() }), {
+    method: "POST",
+    body: replyTo ? { body, replyTo } : { body },
+  });
+
 /* Audit log: here, for the threads hidden lately (a hidden thread leaves the public board, so this is how to find it again). */
 
 const auditSchema = z.object({
@@ -306,6 +326,12 @@ export function adminErrorMessage(error: unknown): string {
       return "Não podes desativar-te nem tirar-te a função de administrador.";
     case "no_email":
       return "Esta pessoa não deixou email (ou foi apagado ao fechar).";
+    case "not_an_idea":
+      return "Esta discussão não é do quadro de ideias.";
+    case "duplicate_of_required":
+      return "Escreve o número da ideia original.";
+    case "invalid_duplicate":
+      return "Esse número não é de outra ideia visível, ou essa ideia também é duplicada.";
     case "empty_reply":
       return "Escreve a resposta antes de a enviar.";
     case "mail_unavailable":
