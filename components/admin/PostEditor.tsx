@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api/client";
 import {
   canModerate,
@@ -192,6 +192,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [checked, setChecked] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const draftMade = useRef(false);
   // A copy left from an earlier visit that differs from what the API has: offered back, never applied unasked.
   // Read on the first render: the editor only renders in the browser, once the session is known.
   const [backup, setBackup] = useState<Backup | null>(() => {
@@ -213,6 +214,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
 
   const run = useMutation({
     mutationFn: async ({ step, submitted }: { step: Step; submitted: Fields }) => {
+      draftMade.current = false;
       let latest = current;
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
@@ -220,7 +222,13 @@ function EditorForm({ post }: { post: AdminPost | null }) {
         const kept = latest;
         setCurrent(kept);
         setSaved(fieldsOf(kept));
+        setFields(fieldsOf(kept));
         client.setQueryData(["admin-post", kept.id], kept);
+        if (!post) {
+          // A draft now: the new-post copy goes, and a failed publish next says the draft exists.
+          writeBackup(null, null);
+          draftMade.current = true;
+        }
       }
       if (step !== "save") latest = await changePost(latest.id, step);
       return latest;
@@ -241,7 +249,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
       }
     },
     onError: (error) => {
-      setDone(null);
+      setDone(draftMade.current ? "Guardado como rascunho, mas não foi publicado. Tenta publicar outra vez." : null);
       expiry(error);
     },
   });

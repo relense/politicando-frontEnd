@@ -94,7 +94,7 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
               )}
               <RelativeTime value={post.createdAt} />
             </p>
-            {post.replyTo !== null && !anchors.has(post.replyTo) && (
+            {hasNextPage && post.replyTo !== null && !anchors.has(post.replyTo) && (
               // Answering a comment on a page not loaded yet: it moves under it once that page is in.
               <p className="mt-1 font-mono text-[11px] text-muted">Em resposta a um comentário mais abaixo</p>
             )}
