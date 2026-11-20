@@ -20,6 +20,7 @@ const BY_FIRST_PART: Record<string, CacheTag> = {
   parties: "parliament",
   legislatures: "parliament",
   government: "government",
+  governments: "government",
   president: "government",
   people: "government",
   predictions: "predictions",

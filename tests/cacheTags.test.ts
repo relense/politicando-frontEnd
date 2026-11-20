@@ -15,7 +15,8 @@ describe("what each cached request is tagged with, for the backend's ping (POST 
       expect(tagsFor(path)).toEqual(["parliament"]);
   });
   it("the Government and the President, «Passa ou chumba?» and the Budget", () => {
-    for (const path of ["/government/members/abc", "/president", "/people/deputy/12/path"]) expect(tagsFor(path)).toEqual(["government"]);
+    for (const path of ["/government/members/abc", "/president", "/people/deputy/12/path", "/governments/history"])
+      expect(tagsFor(path)).toEqual(["government"]);
     expect(tagsFor("/predictions/open?limit=6")).toEqual(["predictions"]);
     expect(tagsFor("/budget/2027/proposals?limit=20")).toEqual(["budget"]);
   });

@@ -1,7 +1,7 @@
 import { decode } from "he";
 import { z } from "zod";
 import type { Article, PersonMention } from "@/lib/types";
-import { formatRelative, lisbonDay } from "@/lib/format";
+import { formatRelative, lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
 import { cached, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
@@ -263,9 +263,9 @@ export function freshnessLine(story: Pick<Story, "recentSourceCount" | "firstPub
   const count = story.recentSourceCount;
   const began = lisbonDay(story.firstPublishedAt);
   const since =
-    began === lisbonDay(new Date(now).toISOString())
+    began === lisbonDayFrom(now, 0)
       ? null
-      : began === lisbonDay(new Date(now - 86_400_000).toISOString())
+      : began === lisbonDayFrom(now, -1)
         ? "desde ontem"
         : `desde ${weekday.format(new Date(story.firstPublishedAt)).replace("-feira", "")}`;
   return [count === null ? null : `${count} ${count === 1 ? "jornal" : "jornais"}`, formatRelative(story.lastPublishedAt, now), since]

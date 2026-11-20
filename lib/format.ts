@@ -112,14 +112,23 @@ export function lisbonDay(value: string | null | undefined): string | null {
   return `${p.year}-${p.month}-${p.day}`;
 }
 
+/**
+ * The Lisbon calendar day `offset` days from now's ("YYYY-MM-DD"). By the calendar, not by 24-hour steps: the days the
+ * clocks change have 23 or 25 hours.
+ */
+export function lisbonDayFrom(now: number, offset: number): string {
+  const [year, month, day] = lisbonDay(new Date(now).toISOString())!.split("-").map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + offset)).toISOString().slice(0, 10);
+}
+
 /** "Hoje · sábado, 14 de novembro", "Ontem · …", "Amanhã · …", or just the date; the year only when it isn't this year. */
 export function formatDayHeading(value: string | null | undefined, now: number): string | null {
   const date = parse(value);
   if (!date) return null;
   const p = dayParts(date);
-  const today = lisbonDay(new Date(now).toISOString());
-  const yesterday = lisbonDay(new Date(now - 86_400_000).toISOString());
-  const tomorrow = lisbonDay(new Date(now + 86_400_000).toISOString());
+  const today = lisbonDayFrom(now, 0);
+  const yesterday = lisbonDayFrom(now, -1);
+  const tomorrow = lisbonDayFrom(now, 1);
   const day = lisbonDay(value);
   const label = `${p.weekday}, ${p.day} de ${p.month}${p.year !== dayParts(new Date(now)).year ? ` de ${p.year}` : ""}`;
   if (day === today) return `Hoje · ${label}`;
