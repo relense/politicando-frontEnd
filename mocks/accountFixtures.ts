@@ -220,10 +220,12 @@ export const accountHandlers = [
       const body = (await request.json().catch(() => ({}))) as { email?: unknown; newsletter?: unknown };
       const email = typeof body.email === "string" ? body.email.trim() : "";
       if (!EMAIL.test(email)) return fail(400, "invalid_email", "That is not a valid email address");
-      const newsletter = body.newsletter === true;
+      // true: subscribe once confirmed; false: don't; left out ("Reenviar"): the earlier choice for the same address, off for a new one.
+      const same = reader.email?.toLowerCase() === email.toLowerCase();
+      const newsletter = body.newsletter === true || (body.newsletter === undefined && same && reader.newsletter !== "none");
       reader.email = email;
       reader.emailConfirmed = false;
-      if (newsletter) reader.newsletter = "pending";
+      reader.newsletter = newsletter ? "pending" : "none";
       send({ to: email, kind: "confirm", readerId: reader.id, email, newsletter });
       return HttpResponse.json({ user: publicReader(reader), emailSent: true });
     }),
@@ -233,6 +235,7 @@ export const accountHandlers = [
     withReader((reader) => {
       reader.email = null;
       reader.emailConfirmed = false;
+      reader.newsletter = "none";
       return noContent();
     }),
   ),

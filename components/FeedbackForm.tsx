@@ -32,6 +32,7 @@ const ERRORS: Record<string, string> = {
   captcha_unavailable: "A verificação anti-robô não está a responder. Tenta daqui a pouco.",
   file_too_large: "A captura de ecrã tem mais de 5 MB.",
   unsupported_file: "A captura de ecrã tem de ser PNG ou JPG.",
+  payload_too_large: "A mensagem é demasiado grande para enviar. Experimenta uma captura de ecrã mais pequena.",
 };
 
 const field =

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAccountGate, useReader } from "@/lib/account";
-import { follow, useExtras } from "@/lib/accountExtras";
+import { follow, forgetFollowed, useExtras } from "@/lib/accountExtras";
 import type { FollowKind } from "@/lib/api/engagement";
 
 /**
@@ -13,16 +13,21 @@ import type { FollowKind } from "@/lib/api/engagement";
 export function FollowButton({
   kind,
   id,
+  mergedFrom = [],
   large = false,
   className = "",
 }: {
   kind: FollowKind;
   id: number;
+  /** A story's older ids, joined into it: following one of them is following this. */
+  mergedFrom?: readonly number[];
   large?: boolean;
   className?: string;
 }) {
   const reader = useReader();
-  const following = useExtras().follows[kind].includes(id) && Boolean(reader);
+  const followed = useExtras().follows[kind];
+  const followedIds = [id, ...mergedFrom].filter((each) => followed.includes(each));
+  const following = followedIds.length > 0 && Boolean(reader);
   const gate = useAccountGate();
   const [failed, setFailed] = useState(false);
   const what = kind === "story" ? "esta história" : "esta discussão";
@@ -35,7 +40,12 @@ export function FollowButton({
         onClick={(event) => {
           if (gate("follow", event.currentTarget)) return;
           setFailed(false);
-          follow(kind, id, !following).catch(() => setFailed(true));
+          // One request on the current id: stopping there clears the old ids too on the backend; here they're just dropped.
+          follow(kind, id, !following)
+            .then(() => {
+              if (following) forgetFollowed(kind, mergedFrom);
+            })
+            .catch(() => setFailed(true));
         }}
         className={`inline-flex items-center gap-1.5 font-mono text-xs font-bold ${large ? "h-10 rounded-xl px-4" : "h-[34px] rounded-full px-3"} ${
           following
@@ -46,7 +56,11 @@ export function FollowButton({
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-2">
           {following ? <path d="m5 12 4.5 4.5L19 7" /> : <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0" />}
         </svg>
-        {large ? (following ? `A seguir ${what}` : `Seguir ${what}`) : `${following ? "A seguir" : "Seguir"}${kind === "thread" ? " conversa" : ""}`}
+        {large
+          ? following
+            ? `A seguir ${what}`
+            : `Seguir ${what}`
+          : `${following ? "A seguir" : "Seguir"}${kind === "thread" ? " conversa" : ""}`}
         {!large && <span className="sr-only"> {what}</span>}
       </button>
       {failed && (

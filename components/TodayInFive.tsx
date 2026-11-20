@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { accountMarkRead } from "@/lib/account";
-import { freshnessLine, storyPath, type Story } from "@/lib/api/stories";
+import { freshnessLine, knowsStory, storyPath, type Story } from "@/lib/api/stories";
 import { useNow } from "@/lib/useNow";
 import { umamiEvent } from "@/lib/analytics";
 
@@ -54,7 +54,8 @@ export function MarkStoryRead({ id }: { id: number }) {
  */
 export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Story[]; headingId?: string }) {
   const opened = parse(useSyncExternalStore(subscribe, read, () => "[]"));
-  const done = stories.filter((story) => opened.includes(story.id)).length;
+  // A story joined from older ones counts as read when one of those was opened.
+  const done = stories.filter((story) => knowsStory(opened, story)).length;
   const all = done === stories.length;
   const now = useNow();
   return (
@@ -79,7 +80,7 @@ export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Sto
       </div>
       <ol className="mt-2 divide-y divide-line">
         {stories.map((story, index) => {
-          const seen = opened.includes(story.id);
+          const seen = knowsStory(opened, story);
           return (
             <li key={story.id} className="flex items-start gap-3 py-2.5">
               <span className={`w-4 shrink-0 text-lg font-bold leading-tight ${seen ? "text-muted" : "text-[var(--vote-up)]"}`}>

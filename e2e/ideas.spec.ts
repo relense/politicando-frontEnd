@@ -108,6 +108,19 @@ test("an idea: the team's pinned answer, the timeline, similar ideas, the best c
   );
 });
 
+test("an idea with more comments than one page: «Ver mais comentários» brings the rest, in either order", async ({ page }) => {
+  await gotoReady(page, "/feedback/ideias/511");
+  const comments = page.getByRole("region", { name: "Comentários" });
+  await expect(comments.getByText("205 comentários")).toBeVisible();
+  await page.getByRole("button", { name: "Recentes" }).click();
+  await expect(comments.getByText("Comentário n.º 205 sobre o modo offline.")).toBeVisible();
+  await expect(comments.getByText("Comentário n.º 5 sobre o modo offline.")).toHaveCount(0);
+  await comments.getByRole("button", { name: "Ver mais comentários" }).click();
+  await expect(comments.getByText("Comentário n.º 5 sobre o modo offline.")).toBeVisible();
+  await expect(comments.getByRole("button", { name: "Ver mais comentários" })).toHaveCount(0);
+  await expect(comments.getByRole("article")).toHaveCount(205);
+});
+
 test("propose an idea: similar ones first, the text kept while logging in, then on the board", async ({ page, isMobile }) => {
   await gotoReady(page, "/feedback/nova?titulo=Newsletter%20di%C3%A1ria");
   await expect(page.getByRole("heading", { level: 1, name: "Propor uma ideia" })).toBeVisible();

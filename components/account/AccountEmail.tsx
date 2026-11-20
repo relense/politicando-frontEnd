@@ -52,7 +52,7 @@ function AddEmailForm({
   }, [forNewsletter]);
   const [problem, setProblem] = useState<string | null>(null);
   const save = useMutation({
-    mutationFn: (input: { email: string; newsletter: boolean }) => setEmail(input.email, input.newsletter || undefined),
+    mutationFn: (input: { email: string; newsletter: boolean }) => setEmail(input.email, input.newsletter),
     onSuccess: ({ user }, input) => {
       update(user);
       if (input.newsletter) track("newsletter-subscribe", { where: "add-email" });
@@ -218,11 +218,12 @@ function EmailDetails({ reader, onRemoved, onNeedEmail }: { reader: Reader; onRe
   const remove = useMutation({
     mutationFn: removeEmail,
     onSuccess: () => {
-      update({ email: null, emailConfirmed: false });
+      update({ email: null, emailConfirmed: false, newsletter: "none" });
       setRemoving(false);
       onRemoved();
     },
   });
+  // No newsletter field: the API keeps the earlier choice for the same address.
   const resend = useMutation({ mutationFn: () => setEmail(reader.email ?? "") });
 
   return (

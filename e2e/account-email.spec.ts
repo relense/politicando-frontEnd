@@ -98,6 +98,30 @@ test("the profile asks for an email on every visit, adds, confirms and removes i
   await section.getByRole("button", { name: "Remover o email" }).click();
   await section.getByRole("button", { name: "Sim, remover" }).click();
   await expect(card).toBeVisible();
+  // No email, no newsletter on the account.
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+});
+
+test("changing the email with the newsletter box unticked turns the newsletter off", async ({ page }) => {
+  await signUp(page);
+  const email = `m${unique()}@exemplo.pt`;
+  await page.goto("/conta");
+  const card = page.getByRole("region", { name: "Protege a tua conta" });
+  const section = page.getByRole("region", { name: "Email e newsletter" });
+  const toggle = section.getByRole("switch", { name: "Newsletter semanal" });
+  await card.getByLabel("Email", { exact: true }).fill(email);
+  await card.getByRole("checkbox", { name: "Quero receber a newsletter semanal" }).check();
+  await card.getByRole("button", { name: "Adicionar" }).click();
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+
+  // The same address again, the box left unticked: a real "no", not "keep what it was".
+  await section.getByRole("button", { name: "Mudar o email" }).click();
+  await section.getByLabel("Email", { exact: true }).fill(email);
+  await expect(section.getByRole("checkbox", { name: "Quero receber a newsletter semanal" })).not.toBeChecked();
+  await section.getByRole("button", { name: "Mudar", exact: true }).click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await page.reload();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
 });
 
 test("the feed asks once in a while for an email, and «Agora não» puts it off", async ({ page }) => {
