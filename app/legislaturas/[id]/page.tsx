@@ -11,10 +11,9 @@ import { getCaseGlossary } from "@/lib/api/cases";
 import { getLegislature, getLegislatures, isLegislatureId, legislaturePath, type Legislature } from "@/lib/api/legislatures";
 import { electionPath } from "@/lib/elections";
 import { FEATURES } from "@/lib/features";
-import { formatDate, formatLongDate, formatNumber } from "@/lib/format";
+import { decodeParam, formatDate, formatLongDate, formatNumber } from "@/lib/format";
 import { durationLabel } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
-import { decodeParam } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };
 

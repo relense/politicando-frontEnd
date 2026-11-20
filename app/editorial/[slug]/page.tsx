@@ -11,14 +11,13 @@ import { PostImporta } from "@/components/PostImporta";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
-import { commentLinkLabel, excerpt, formatLongDate, readsLabel } from "@/lib/format";
+import { commentLinkLabel, decodeParam, excerpt, formatLongDate, readsLabel } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
 import { clip, OG_BASE, pageTitle } from "@/lib/seo";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { postComments, type Comment, type EditorialDetail } from "@/lib/types";
 import { SaveButton } from "@/components/account/SaveButton";
-import { decodeParam } from "@/lib/format";
 
 type Props = { params: Promise<{ slug: string }> };
 

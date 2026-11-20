@@ -14,7 +14,7 @@ type Props = { params: Promise<{ ano: string; id: string }> };
 
 /** One proposal, read once per request for the page and its metadata. */
 const load = cache(async (ano: string, id: string) =>
-  /^\d{4}$/.test(ano) && /^\d+$/.test(id)
+  /^\d{4}$/.test(ano) && /^\d{1,9}$/.test(id)
     ? getBudgetProposal(Number(ano), Number(id)).catch((error: unknown) => {
         // Only a missing proposal is «não encontrada»; the API down is an error page.
         if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return null;
