@@ -98,3 +98,5 @@ export function boardPath({ sort, status, page = 1 }: { sort: ThreadSort; status
   if (page > 1) query.set("pagina", String(page));
   return query.size > 0 ? `/feedback?${query}` : "/feedback";
 }
+
+export const commentsLabel = (count: number) => (count === 1 ? "1 comentário" : `${count} comentários`);
