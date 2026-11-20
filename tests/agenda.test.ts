@@ -38,6 +38,17 @@ describe("agenda", () => {
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
   });
 
+  it("turns any line break into \\n and folds lines past 75 octets (RFC 5545)", () => {
+    const long = "Ponto 1\r\nPonto 2\rPonto 3 " + "á".repeat(80);
+    const ics = toIcs({ ...base, summary: long }, "https://politicando.pt/agenda");
+    expect(ics).not.toMatch(/\r(?!\n)/);
+    const lines = ics.split("\r\n");
+    for (const line of lines) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
+    // Unfolded, the text is whole.
+    const unfolded = ics.replace(/\r\n /g, "");
+    expect(unfolded).toContain("DESCRIPTION:Ponto 1\\nPonto 2\\nPonto 3 " + "á".repeat(80));
+  });
+
   it("gives an all-day event over several days its end as the day after", () => {
     const ics = toIcs({ ...base, allDay: true, start: "2026-11-21", end: "2026-11-23" }, "https://politicando.pt/agenda");
     expect(ics).toContain("DTSTART;VALUE=DATE:20261121");
