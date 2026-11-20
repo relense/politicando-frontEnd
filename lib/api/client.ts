@@ -82,6 +82,8 @@ const REVALIDATE_SECONDS = 60;
  */
 export const SITE_API_PATH = "/api/v2";
 export const LOGIN_REQUIRED_EVENT = "politicando:login-required";
+/** The account's routes (/me…) answered 401 unauthenticated: if a reader is still shown, their session ended. */
+export const SESSION_ENDED_EVENT = "politicando:session-ended";
 // /predictions too: the open list carries the reader's own picks (backend docs/engagement-api.md).
 const ACCOUNT_PATH = /^\/(auth|me|predictions)(\/|\?|$)/;
 const baseFor = (path: string, method = "GET") =>
@@ -138,6 +140,8 @@ export async function request<T>(path: string, schema: z.ZodType<T>, init?: Requ
     // Taking part needs an account (when the API asks for it): the page offers to log in (components/account/AccountRuntime).
     if (typeof window !== "undefined" && response.status === 401 && failure.success && failure.data.error.code === "login_required")
       window.dispatchEvent(new Event(LOGIN_REQUIRED_EVENT));
+    if (typeof window !== "undefined" && response.status === 401 && failure.success && failure.data.error.code === "unauthenticated")
+      window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
     throw new ApiError(
       failure.success ? failure.data.error.message : `${response.status} on ${path}`,
       response.status,
@@ -228,12 +232,20 @@ export async function getMostCommented(limit = 3, hours = 24): Promise<Article[]
 /** The articles with these ids (the reader's saved ones), newest first. From the browser and never cached: each reader's list is their own. */
 export async function getArticlesByIds(ids: number[]): Promise<Article[]> {
   // The newest 100 (what `ids` takes), 50 a request (`limit` stops at 50).
-  const pages = await Promise.all(
+  const pages = await settledPages(
     idBatches(ids).map((batch) =>
       request(`/articles${searchOf({ ids: batch.join(","), limit: batch.length })}`, articlePageSchema, { cache: "no-store" }),
     ),
   );
   return pages.flatMap((page) => page.items.map(mapArticle)).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+/** The batches that answered, so one failing doesn't lose the others; only when all fail, the first error. */
+export async function settledPages<T>(requests: Promise<T>[]): Promise<T[]> {
+  const results = await Promise.allSettled(requests);
+  const pages = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+  if (pages.length === 0 && results.length > 0) throw (results[0] as PromiseRejectedResult).reason;
+  return pages;
 }
 
 /** The last 100 ids, in requests of at most 50: the API's caps for `ids` and `limit`. */

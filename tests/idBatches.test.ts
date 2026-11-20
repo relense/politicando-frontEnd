@@ -14,3 +14,12 @@ describe("idBatches: saved ids within the API's caps (100 ids, 50 a page)", () =
     expect(batches[1]!.at(-1)).toBe(130);
   });
 });
+
+describe("settledPages", () => {
+  it("keeps the batches that answered, and fails only when all do", async () => {
+    const { settledPages } = await import("@/lib/api/client");
+    expect(await settledPages([Promise.resolve(1), Promise.reject(new Error("x")), Promise.resolve(3)])).toEqual([1, 3]);
+    await expect(settledPages([Promise.reject(new Error("down"))])).rejects.toThrow("down");
+    expect(await settledPages([])).toEqual([]);
+  });
+});
