@@ -364,7 +364,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     "/agenda",
     "/feedback",
     "/feedback/correcoes",
-    "/feedback/ideias",
+    "/feedback/nova",
+    "/feedback/nova?tipo=erro",
+    "/feedback/ideias/501",
     "/legislaturas/XVII",
   ]) {
     test(`no accessibility violations: ${path} (${colorScheme})`, async ({ page }) => {
@@ -925,12 +927,14 @@ test("agenda: what is coming by day, filters, how to attend, add to calendar, an
   );
 });
 
-test("feedback: report an error with the right fact, a source and a screenshot, ask for an answer, see the top ideas and the log", async ({
-  page,
-}) => {
+test("feedback: report an error with the right fact, a source and a screenshot, ask for an answer, and see the log", async ({ page }) => {
+  // Old links with the page filled in land on the private error form.
   await page.goto("/feedback?pagina=Percursos&ligacao=/percursos");
-  await expect(page.getByRole("heading", { level: 1, name: /Diz-nos o que pensas/ })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /Encontrei um erro/ })).toBeChecked();
+  await expect(page).toHaveURL(/\/feedback\/nova\?tipo=erro/);
+  await expect(page.getByRole("heading", { level: 1, name: "Reportar um erro" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "O que queres enviar?" }).getByRole("link", { name: /Erro nos dados/ }),
+  ).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveValue("Percursos");
   await expect(page.getByRole("textbox", { name: /Ligação/ })).toHaveValue("/percursos");
   // Without the message, it asks for it.
@@ -953,15 +957,11 @@ test("feedback: report an error with the right fact, a source and a screenshot, 
   await page.getByRole("button", { name: "Enviar feedback →" }).click();
   await expect(page.getByRole("status")).toContainText("Obrigado. Recebemos a tua mensagem.");
 
-  // An idea goes on the public board instead (with an account), and the side shows the most voted ones.
-  await signUp(page);
-  await page.goto("/feedback");
-  await page.getByRole("radio", { name: /Tenho uma ideia/ }).check({ force: true });
-  await expect(page.getByRole("heading", { name: "Nova ideia" })).toBeVisible();
-  await expect(page.getByText(/As ideias são públicas/)).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveCount(0);
-  const top = page.getByRole("region", { name: "Ideias mais votadas" });
-  await expect(top.getByRole("listitem").first()).toContainText("Alertas quando um deputado do meu distrito vota");
+  // «Algo não funciona» is the same private form, without the right fact and source.
+  await page.goto("/feedback/nova?tipo=falha");
+  await expect(page.getByRole("heading", { level: 1, name: "Algo não funciona" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "O que acontece?" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Qual é a informação certa?" })).toHaveCount(0);
   await expect(page.getByText("38", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Ver tudo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Registo de correções" })).toBeVisible();
@@ -971,7 +971,7 @@ test("feedback: report an error with the right fact, a source and a screenshot, 
 test("feedback: every page's footer opens the form with that page filled in, and the menu lists it", async ({ page, isMobile }) => {
   await page.goto("/partidos");
   await page.getByRole("contentinfo").getByRole("link", { name: "Diz-nos →" }).click();
-  await expect(page).toHaveURL(/\/feedback\?/);
+  await expect(page).toHaveURL(/\/feedback\/nova\?tipo=erro/);
   await expect(page.getByRole("combobox", { name: "Em que página?" })).toHaveValue("Partidos");
   await expect(page.getByRole("textbox", { name: /Ligação/ })).toHaveValue("/partidos");
   if (!isMobile) {

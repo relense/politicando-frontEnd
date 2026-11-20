@@ -435,19 +435,30 @@ function ReplyButton({ onClick }: { onClick: (button: HTMLElement) => void }) {
   );
 }
 
-type ReplyFormHandle = { replyTo: (id: number | null) => void };
+export type ReplyFormHandle = { replyTo: (id: number | null) => void };
 
-function ReplyForm({
+/** The reply box (with an account or the captcha). Exported for an idea's page, which words it as comments. */
+export function ReplyForm({
   threadId,
   onPosted,
   pick,
   ref,
+  placeholder,
+  submitLabel = "Publicar",
+  signedAs = "A publicar como",
+  label = "Resposta",
+  rows = 4,
 }: {
   threadId: number;
   onPosted: (posterId: string) => void;
   /** On a vote's thread: the reader's pick (shown beside the reply), null without one. */
   pick?: Pick | null;
   ref: Ref<ReplyFormHandle>;
+  placeholder?: string;
+  submitLabel?: string;
+  signedAs?: string;
+  label?: string;
+  rows?: number;
 }) {
   const id = useId();
   const captcha = useRef<CaptchaHandle>(null);
@@ -530,7 +541,7 @@ function ReplyForm({
         </p>
       )}
       <label htmlFor={`${id}-body`} className="sr-only">
-        Resposta
+        {label}
       </label>
       {pick !== undefined && (
         <p className="flex items-center gap-2 font-mono text-[11px] text-muted">
@@ -556,9 +567,11 @@ function ReplyForm({
         id={`${id}-body`}
         ref={textarea}
         value={body}
-        rows={4}
+        rows={rows}
         maxLength={THREAD_LIMITS.body}
-        placeholder={pick !== undefined ? "Defende a tua escolha…" : "Escreve a tua resposta. Usa >>número para citar outra mensagem."}
+        placeholder={
+          placeholder ?? (pick !== undefined ? "Defende a tua escolha…" : "Escreve a tua resposta. Usa >>número para citar outra mensagem.")
+        }
         onChange={(event) => {
           setBody(event.target.value);
           if (event.target.value.trim()) setCaptchaShown(true);
@@ -577,7 +590,7 @@ function ReplyForm({
       <div className="flex flex-wrap items-center gap-2">
         {reader ? (
           <p className="min-w-0 flex-1 basis-40 px-1 font-mono text-xs text-muted">
-            A publicar como <b className="text-ink">{reader.username}</b>
+            {signedAs} <b className="text-ink">{reader.username}</b>
           </p>
         ) : (
           <>
@@ -603,7 +616,7 @@ function ReplyForm({
           disabled={sending}
           className="ml-auto rounded-full bg-ink px-4 py-1.5 font-mono text-sm font-bold text-paper hover:opacity-90 disabled:opacity-60"
         >
-          {sending ? "A publicar…" : "Publicar"}
+          {sending ? "A publicar…" : submitLabel}
         </button>
       </div>
     </form>

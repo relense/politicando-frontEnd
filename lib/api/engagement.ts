@@ -20,7 +20,14 @@ const nullableText = z.string().nullable().catch(null);
 
 // ── Inbox ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export const NOTIFICATION_KINDS = ["comment_reply", "forum_reply", "thread_update", "story_update", "prediction_result"] as const;
+export const NOTIFICATION_KINDS = [
+  "comment_reply",
+  "forum_reply",
+  "thread_update",
+  "story_update",
+  "prediction_result",
+  "idea_status",
+] as const;
 
 export const notificationSchema = z.object({
   id: z.number(),
@@ -44,6 +51,8 @@ export const notificationSchema = z.object({
   threadTitle: nullableText,
   board: nullableText,
   headline: nullableText,
+  /** `idea_status`: the idea's status now. */
+  status: nullableText,
   prediction: z
     .object({
       initiativeTitle: z.string(),

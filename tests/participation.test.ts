@@ -12,6 +12,7 @@ describe("taking part", () => {
       "like",
       "post",
       "predict",
+      "propose",
       "report",
       "save",
       "vote",

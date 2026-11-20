@@ -16,7 +16,8 @@ const OPTIONS = [
 const noop = () => () => {};
 
 /**
- * Sistema · Escuro · Claro. "Sistema" follows the phone or computer (the default). In the account menu, and for
+ * Sistema · Escuro · Claro. "Sistema" follows the phone or computer (the default). Each option is as wide as its word;
+ * in a narrow column (the desktop menu) the icons go, so the three words still fit. In the account menu, and for
  * readers without an account at the bottom of the sections menu.
  */
 export function ThemeChoice({ className = "" }: { className?: string }) {
@@ -29,18 +30,18 @@ export function ThemeChoice({ className = "" }: { className?: string }) {
   );
   const current = mounted ? (theme ?? "system") : null;
   return (
-    <div role="group" aria-label="Tema" className={`grid grid-cols-3 gap-1 rounded-xl border border-line p-1 ${className}`}>
+    <div role="group" aria-label="Tema" className={`@container flex gap-1 rounded-xl border border-line p-1 ${className}`}>
       {OPTIONS.map((option) => (
         <button
           key={option.value}
           type="button"
           aria-pressed={current === option.value}
           onClick={() => setTheme(option.value)}
-          className={`flex min-h-8 items-center justify-center gap-1.5 rounded-lg px-2 font-mono text-[11px] font-bold ${
+          className={`flex min-h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 font-mono @3xs:px-3 text-[11px] font-bold ${
             current === option.value ? "bg-ink text-paper" : "text-muted hover:bg-surface hover:text-ink"
           }`}
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-3.5 shrink-0 fill-none stroke-current stroke-2">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="hidden size-3.5 shrink-0 fill-none stroke-current stroke-2 @3xs:block">
             <path d={option.icon} />
           </svg>
           {option.label}

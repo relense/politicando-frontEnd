@@ -167,8 +167,8 @@ export default function AboutPage() {
           ))}
         </ul>
         <p>
-          Tens uma ideia ou falta-te alguma coisa? <Link href="/feedback/ideias">Propõe e vota nas ideias</Link>: é por aí que decidimos o
-          que fazer primeiro.
+          Tens uma ideia ou falta-te alguma coisa? <Link href="/feedback">Propõe e vota nas ideias</Link>: é por aí que decidimos o que
+          fazer primeiro.
         </p>
 
         <h2 id="fontes">Fontes e método</h2>

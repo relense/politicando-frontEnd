@@ -13,7 +13,14 @@ const state: AccountState = {
   hidden: [777],
   muted: { sources: ["publico.pt"], parties: ["chega"] },
   read: [41, 39],
-  votes: { articles: { "812": 1, "640": -1 }, editorial: { "metodo-de-hondt": 1 }, stories: [41], comments: [1203], forum: [17] },
+  votes: {
+    articles: { "812": 1, "640": -1 },
+    editorial: { "metodo-de-hondt": 1 },
+    stories: [41],
+    comments: [1203],
+    forum: [17],
+    forumPosts: [880],
+  },
 };
 
 describe("the account in the browser", () => {
@@ -26,6 +33,7 @@ describe("the account in the browser", () => {
     expect(JSON.parse(window.localStorage.getItem("story-importa")!)).toEqual({ "41": 1 });
     expect(JSON.parse(window.localStorage.getItem("comment-likes")!)).toEqual([1203]);
     expect(window.localStorage.getItem("ideas-voted")).toBe("17");
+    expect(window.localStorage.getItem("idea-replies-voted")).toBe("880");
     expect(JSON.parse(window.localStorage.getItem("stories-read")!)).toEqual([39, 41]);
     // What only the account keeps: follows and the other saved things.
     expect(currentExtras()).toEqual({
@@ -45,7 +53,7 @@ describe("the account in the browser", () => {
     applyAccountState(state);
     clearLocalState();
     expect(readerPrefs()).toEqual({ saved: [], hidden: [], mutedSources: [], mutedParties: [] });
-    for (const key of ["article-votes", "story-importa", "comment-likes", "ideas-voted", "stories-read"])
+    for (const key of ["article-votes", "story-importa", "comment-likes", "ideas-voted", "idea-replies-voted", "stories-read"])
       expect(window.localStorage.getItem(key)).toBeNull();
     expect(currentExtras().follows.thread).toEqual([]);
   });

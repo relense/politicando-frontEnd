@@ -112,7 +112,7 @@ const stateOf = (reader: MockReader) => ({
   hidden: reader.hidden,
   muted: reader.muted,
   read: reader.read,
-  votes: { articles: {}, editorial: {}, ...readerVotes.get(reader.id), stories: [], comments: [], forum: [] },
+  votes: { articles: {}, editorial: {}, ...readerVotes.get(reader.id), stories: [], comments: [], forum: [], forumPosts: [] },
 });
 
 const signIn = (reader: MockReader, status = 200) => {

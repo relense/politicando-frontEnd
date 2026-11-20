@@ -13,7 +13,8 @@ export type Participation = (typeof PARTICIPATIONS)[number];
 export const needsAccount = (what: Participation) => PARTICIPATIONS.includes(what);
 
 /** The buttons that ask for an account, and what each one needs. */
-export type AskKind = "importa" | "post" | "vote" | "like" | "idea" | "report" | "forum" | "follow" | "save" | "predict" | "any";
+export type AskKind =
+  "importa" | "post" | "vote" | "like" | "idea" | "propose" | "report" | "forum" | "follow" | "save" | "predict" | "any";
 
 /** What each button is, for the API's words; all of them need an account. */
 export const ASK_NEEDS: Record<Exclude<AskKind, "any">, Participation | "account"> = {
@@ -22,6 +23,7 @@ export const ASK_NEEDS: Record<Exclude<AskKind, "any">, Participation | "account
   vote: "votes",
   like: "votes",
   idea: "votes",
+  propose: "account",
   report: "reports",
   forum: "forum",
   follow: "account",
@@ -60,6 +62,12 @@ export const ASK_COPY: Record<AskKind, { label: string; title: string; text: str
     title: "Apoia esta ideia",
     text: "Cada pessoa apoia uma ideia uma vez. É assim que sabemos o que fazer primeiro.",
     after: "Depois de entrares, contamos o teu voto.",
+  },
+  propose: {
+    label: "Propor",
+    title: "Propõe a tua ideia",
+    text: "Propor uma ideia pede uma conta: assim sabemos de quem é, avisamos-te quando o estado muda e travamos o spam.",
+    after: "Depois de entrares, o teu texto continua aqui para publicares.",
   },
   report: {
     label: "Denunciar",

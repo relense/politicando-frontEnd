@@ -35,6 +35,10 @@ const threadFields = {
   status: z.string().nullish(),
   answer: z.string().nullish(),
   answeredAt: z.string().nullish(),
+  followers: z.number().nullish(),
+  expectedOn: z.string().nullish(),
+  duplicateOf: z.object({ id: z.number(), title: z.string() }).nullish().catch(null),
+  area: z.string().nullish(),
 };
 
 const threadSummarySchema = z.object({ ...threadFields, excerpt: z.string() });
@@ -50,10 +54,20 @@ const postSchema = z.object({
   hidden: z.boolean(),
   // Only on the "Votações" board: what the poster predicted for that vote.
   pick: z.enum(["pass", "fail"]).nullable().optional().catch(null),
+  // Written by the team (signed "Politicando"), and votes for the reply: ideas board only.
+  team: z.boolean().nullish(),
+  score: z.number().nullish(),
 });
 
 const threadDetailSchema = z.object({
-  thread: z.object({ ...threadFields, body: z.string() }),
+  thread: z.object({
+    ...threadFields,
+    body: z.string(),
+    statusHistory: z
+      .array(z.object({ status: z.string().nullable(), at: z.string() }))
+      .nullish()
+      .catch(null),
+  }),
   posts: z.array(postSchema),
   hasMore: z.boolean(),
 });
@@ -80,8 +94,15 @@ export type ThreadSummary = {
   status: IdeaStatus | null;
   answer: string | null;
   answeredAt: string | null;
+  /** Ideas board only: how many follow it, when the team expects it done, the original of a duplicate, the site area. */
+  followers: number | null;
+  expectedOn: string | null;
+  duplicateOf: { id: number; title: string } | null;
+  area: string | null;
 };
-export type Thread = Omit<ThreadSummary, "excerpt"> & { body: string };
+export type IdeaStep = { status: IdeaStatus | null; at: string };
+/** `statusHistory`: an idea's statuses, oldest first, from when it was opened; empty elsewhere. */
+export type Thread = Omit<ThreadSummary, "excerpt"> & { body: string; statusHistory: IdeaStep[] };
 export type ForumPost = {
   id: number;
   body: string | null;
@@ -92,15 +113,19 @@ export type ForumPost = {
   createdAt: string;
   hidden: boolean;
   pick?: "pass" | "fail" | null;
+  team: boolean;
+  score: number;
 };
 export type ThreadDetail = { thread: Thread; posts: ForumPost[]; hasMore: boolean };
 export type ThreadSort = "active" | "new" | "top";
+/** A thread's replies: oldest first (the API's default), newest first, or most voted (ideas board). */
+export type ReplySort = "old" | "new" | "top";
 
 /** The board where readers propose ideas for the site and vote on them. */
 export const IDEAS_BOARD = "ideias";
 /** One thread per vote on the plenary agenda, opened by the site ("Passa ou chumba?"); readers reply, never open one. */
 export const VOTES_BOARD = "votacoes";
-export const IDEA_STATUSES = ["reviewing", "planned", "in_progress", "done", "declined"] as const;
+export const IDEA_STATUSES = ["reviewing", "planned", "in_progress", "done", "declined", "duplicate"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: string }> = {
   reviewing: { label: "Em análise", color: "var(--muted)" },
@@ -108,6 +133,7 @@ export const IDEA_STATUS_LABELS: Record<IdeaStatus, { label: string; color: stri
   in_progress: { label: "Em desenvolvimento", color: "var(--link)" },
   done: { label: "Feita", color: "var(--stage-approved)" },
   declined: { label: "Não vamos fazer", color: "var(--danger)" },
+  duplicate: { label: "Duplicada", color: "var(--muted)" },
 };
 const ideaStatusOf = (value: string | null | undefined): IdeaStatus | null => IDEA_STATUSES.find((status) => status === value) ?? null;
 export type ReportReason =
@@ -157,6 +183,10 @@ const ideaFields = (thread: z.infer<typeof threadSummarySchema> | z.infer<typeof
   status: ideaStatusOf(thread.status),
   answer: thread.answer?.trim() || null,
   answeredAt: thread.answeredAt ?? null,
+  followers: thread.followers ?? null,
+  expectedOn: thread.expectedOn ?? null,
+  duplicateOf: thread.duplicateOf ?? null,
+  area: thread.area?.trim() || null,
 });
 
 export function mapThreadSummary(thread: z.infer<typeof threadSummarySchema>): ThreadSummary {
@@ -164,7 +194,20 @@ export function mapThreadSummary(thread: z.infer<typeof threadSummarySchema>): T
 }
 
 export function mapThreadDetail(detail: z.infer<typeof threadDetailSchema>): ThreadDetail {
-  return { ...detail, thread: { ...detail.thread, ...ideaFields(detail.thread), link: mapThreadLink(detail.thread.link) } };
+  const { statusHistory, ...thread } = detail.thread;
+  return {
+    ...detail,
+    thread: {
+      ...thread,
+      ...ideaFields(detail.thread),
+      link: mapThreadLink(thread.link),
+      // A step with a status we don't know is left out rather than guessed.
+      statusHistory: (statusHistory ?? [])
+        .filter((step) => step.status === null || ideaStatusOf(step.status) !== null)
+        .map((step) => ({ status: ideaStatusOf(step.status), at: step.at })),
+    },
+    posts: detail.posts.map((post) => ({ ...post, team: post.team ?? false, score: post.score ?? 0 })),
+  };
 }
 
 /** "Zé (ID: Xk3_a9Qz)" or "Anónimo (ID: …)": nicknames are not unique, so the ID always goes with them. */
@@ -176,18 +219,37 @@ export async function getBoards(): Promise<Board[]> {
 
 export async function getThreads(
   board: string,
-  { sort, page, limit, status }: { sort?: ThreadSort; page?: number; limit?: number; status?: IdeaStatus } = {},
+  { sort, page, limit, status, q }: { sort?: ThreadSort; page?: number; limit?: number; status?: IdeaStatus; q?: string } = {},
 ): Promise<{ items: ThreadSummary[]; total: number }> {
   const result = await request(
-    `/forums/${encodeURIComponent(board)}/threads${searchOf({ sort, page, limit, status })}`,
+    `/forums/${encodeURIComponent(board)}/threads${searchOf({ sort, page, limit, status, q })}`,
     z.object({ items: z.array(threadSummarySchema), total: z.number() }),
     { cache: "no-store" },
   );
   return { items: result.items.map(mapThreadSummary), total: result.total };
 }
 
-export async function getThread(id: number, { after }: { after?: number } = {}): Promise<ThreadDetail> {
-  return mapThreadDetail(await request(`/forums/threads/${id}${searchOf({ after })}`, threadDetailSchema, { cache: "no-store" }));
+export async function getThread(id: number, { after, sort }: { after?: number; sort?: ReplySort } = {}): Promise<ThreadDetail> {
+  return mapThreadDetail(
+    await request(`/forums/threads/${id}${searchOf({ after, sort: sort === "old" ? undefined : sort })}`, threadDetailSchema, {
+      cache: "no-store",
+    }),
+  );
+}
+
+/** The search for ideas already proposed: at least 3 characters (the API answers 400 below that). */
+export const IDEA_SEARCH_MIN = 3;
+export async function searchIdeas(q: string, limit = 3): Promise<ThreadSummary[]> {
+  if (q.trim().length < IDEA_SEARCH_MIN) return [];
+  return (await getThreads(IDEAS_BOARD, { q: q.trim(), limit })).items;
+}
+
+/** Ideas that share words with this one's title, never itself; empty when nothing is alike enough. */
+export async function getSimilarIdeas(id: number, limit = 3): Promise<ThreadSummary[]> {
+  const result = await request(`/forums/threads/${id}/similar${searchOf({ limit })}`, z.object({ items: z.array(threadSummarySchema) }), {
+    cache: "no-store",
+  });
+  return result.items.map(mapThreadSummary);
 }
 
 export type NewThread = {
@@ -198,6 +260,8 @@ export type NewThread = {
   initiativeId: number | null;
   /** Null with an account. */
   captchaToken: string | null;
+  /** Ideas board: the part of the site the idea is about. */
+  area?: string | null;
 };
 export type NewPost = { body: string; nickname: string; replyTo: number | null; captchaToken: string | null };
 
@@ -214,6 +278,7 @@ export async function createThread(board: string, input: NewThread): Promise<{ i
       ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(input.articleId ? { articleId: input.articleId } : {}),
       ...(input.initiativeId ? { initiativeId: input.initiativeId } : {}),
+      ...(input.area ? { area: input.area } : {}),
       ...(input.captchaToken ? { recaptchaToken: input.captchaToken } : {}),
     }),
   );
@@ -235,6 +300,11 @@ export async function createPost(threadId: number, input: NewPost): Promise<{ id
 /** An upvote on an idea; the API counts one per reader and answers with the new score. */
 export async function voteThread(id: number): Promise<number> {
   return (await request(`/forums/threads/${id}/vote`, z.object({ score: z.number() }), { method: "POST" })).score;
+}
+
+/** A vote for a reply on the ideas board: an account, once per reader, no undo; answers with the new score. */
+export async function votePost(id: number): Promise<number> {
+  return (await request(`/forums/posts/${id}/vote`, z.object({ score: z.number() }), { method: "POST" })).score;
 }
 
 export async function createReport(input: { kind: ReportKind; id: number; reason: ReportReason; details?: string }): Promise<void> {
