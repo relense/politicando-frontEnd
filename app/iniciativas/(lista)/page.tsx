@@ -100,7 +100,8 @@ async function loadPage(query: InitiativeQuery): Promise<InitiativePage | null> 
   try {
     return await getInitiatives(query);
   } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return null;
+    // Not served yet, a query it refuses, or the API down: the page's calm state, never the error page.
+    if (error instanceof ApiError) return null;
     throw error;
   }
 }

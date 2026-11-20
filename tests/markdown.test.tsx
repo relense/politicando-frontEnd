@@ -78,7 +78,8 @@ describe("tables and our own addresses", () => {
   });
 
   it("never takes a path that browsers read as another site for one of ours", async () => {
-    const out = await html("[a](/\\evil.example/login) [b](/partido/ps)");
+    const out = await html("[a](/\\evil.example/login) [b](/partido/ps) [c](https://politicando.pt//evil.example/x)");
+    expect(out).not.toContain('href="//evil');
     expect(out).not.toMatch(/href="\/\\/);
     expect(out).toContain('<a href="/partido/ps">b</a>');
   });

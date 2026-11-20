@@ -92,7 +92,8 @@ async function loadAll(): Promise<EditorialPost[]> {
       if (posts.length >= result.total || result.items.length === 0) break;
     }
   } catch (error) {
-    if (!(error instanceof ApiError && (error.status === 404 || error.status === 400))) throw error;
+    // None served, or the API down: what came before, plus our own posts, instead of the error page.
+    if (!(error instanceof ApiError)) throw error;
   }
   const own = localPosts().filter((post) => !posts.some((item) => item.slug === post.slug));
   return [...posts, ...own].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));

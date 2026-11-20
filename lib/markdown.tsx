@@ -187,7 +187,9 @@ function ownPath(href: string): string | null {
   if (href.startsWith("/")) return isSitePath(href) ? href : null;
   try {
     const url = new URL(href);
-    return /^https?:$/.test(url.protocol) && OWN_HOSTS.has(url.host) ? `${url.pathname}${url.search}${url.hash}` : null;
+    const path = `${url.pathname}${url.search}${url.hash}`;
+    // "https://politicando.pt//evil.pt" keeps "//evil.pt" as its path: another site again.
+    return /^https?:$/.test(url.protocol) && OWN_HOSTS.has(url.host) && isSitePath(path) ? path : null;
   } catch {
     return null;
   }
