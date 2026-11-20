@@ -207,6 +207,72 @@ test("feedback: read a message with its screenshot, keep a note, mark it answere
   await expect(other.getByRole("button", { name: "Fechar mensagem" })).toBeVisible();
 });
 
+test("feedback answered on the site: the private link shows the answer, and stops when the message is closed", async ({
+  page,
+}, testInfo) => {
+  const text = `O botão de partilhar não faz nada (${testInfo.project.name} ${Date.now()}).`;
+  await page.goto("/feedback/nova?tipo=falha");
+  await page.getByRole("textbox", { name: "O que acontece?" }).fill(text);
+  await page.getByLabel("Não sou um robô (teste)").check();
+  await page.getByRole("button", { name: "Enviar feedback →" }).click();
+  await expect(page.getByRole("status")).toContainText("Acompanha a resposta");
+  await page.getByRole("link", { name: "Ver o estado da mensagem →" }).click();
+  await expect(page).toHaveURL(/\/feedback\/acompanhar\/[\w-]+$/);
+  const follow = page.url();
+  await expect(page.getByRole("heading", { level: 1, name: "A tua mensagem" })).toBeVisible();
+  await expect(page.getByText("Por responder.")).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await noSeriousA11yIssues(page);
+  // Kept on this device, for later.
+  await page.goto("/feedback/nova?tipo=erro");
+  await expect(page.getByRole("region", { name: "As tuas mensagens" })).toContainText("Algo não funciona");
+
+  // The team answers on the site: no email needed.
+  await signIn(page, MODERATOR, "/admin/feedback");
+  await page.getByRole("button").filter({ hasText: text }).click();
+  const message = page.getByRole("article").filter({ hasText: text });
+  await expect(message).toContainText("Enviada sem conta");
+  await expect(message.getByRole("button", { name: "Responder por email" })).toHaveCount(0);
+  await message.getByLabel("Resposta").fill("Obrigado! Já está corrigido.");
+  await message.getByRole("button", { name: "Responder no site" }).click();
+  await expect(message.getByRole("status").filter({ hasText: "Resposta publicada no site." })).toBeVisible();
+  await page.goto(follow);
+  await expect(page.getByRole("region", { name: /Resposta da equipa/ })).toContainText("Obrigado! Já está corrigido.");
+
+  // Closed: the link stops working.
+  await page.goto("/admin/feedback");
+  await page.getByRole("group", { name: "Estado das mensagens" }).getByRole("button", { name: "Todas" }).click();
+  await page.getByRole("button").filter({ hasText: text }).click();
+  await message.getByRole("button", { name: "Fechar mensagem" }).click();
+  await message.getByRole("button", { name: "Fechar e apagar o email" }).click();
+  await expect(message).toContainText("Fechadas");
+  await page.goto(follow);
+  await expect(page.getByRole("heading", { level: 1, name: "Esta mensagem foi encerrada" })).toBeVisible();
+});
+
+test("feedback sent signed in: the team's answer on the site reaches the reader's inbox", async ({ page }, testInfo) => {
+  await signUp(page);
+  const text = `A página do Governo não carrega (${testInfo.project.name} ${Date.now()}).`;
+  await page.goto("/feedback/nova?tipo=falha");
+  await page.getByRole("textbox", { name: "O que acontece?" }).fill(text);
+  await page.getByLabel("Não sou um robô (teste)").check();
+  await page.getByRole("button", { name: "Enviar feedback →" }).click();
+  await expect(page.getByRole("status")).toContainText("a resposta da equipa também chega aos teus avisos");
+
+  await signIn(page, MODERATOR, "/admin/feedback");
+  await page.getByRole("button").filter({ hasText: text }).click();
+  const message = page.getByRole("article").filter({ hasText: text });
+  await expect(message).toContainText("Enviada com sessão iniciada");
+  await message.getByLabel("Resposta").fill("Já está a funcionar outra vez. Obrigado!");
+  await message.getByRole("button", { name: "Responder no site" }).click();
+  await expect(message.getByRole("status").filter({ hasText: "Resposta publicada no site." })).toBeVisible();
+
+  await page.goto("/conta/notificacoes");
+  const line = page.getByText("A equipa respondeu à tua mensagem").first();
+  await expect(line).toBeVisible();
+  await expect(page.getByText("Já está a funcionar outra vez. Obrigado!").first()).toBeVisible();
+});
+
 test("team: only an admin sees it, and can invite someone", async ({ page }, testInfo) => {
   await signIn(page, MODERATOR);
   await expect(page.getByRole("navigation", { name: "Secções da moderação" }).getByRole("link", { name: "Equipa" })).toHaveCount(0);

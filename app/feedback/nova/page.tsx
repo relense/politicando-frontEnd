@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { CorrectionList } from "@/components/CorrectionList";
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { NewIdeaForm } from "@/components/ideas/NewIdeaForm";
+import { SentMessages } from "@/components/SentMessages";
 import { getFeedbackSummary } from "@/lib/api/feedback";
 import { SITE_AREAS } from "@/lib/feedbackAreas";
 
@@ -144,6 +145,7 @@ export default async function NewFeedbackPage({ searchParams }: Props) {
       </div>
 
       <aside aria-label="Depois de enviares" className="flex flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
+        {!idea && <SentMessages />}
         <section aria-labelledby="a-seguir" className="rounded-2xl border border-line p-4">
           <h2 id="a-seguir" className={`${heading} text-muted`}>
             O que acontece a seguir
