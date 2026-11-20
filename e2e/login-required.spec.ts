@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { noSeriousA11yIssues } from "./helpers";
+import { gotoReady, noSeriousA11yIssues } from "./helpers";
 
 // Taking part needs an account: asked before, finished after logging in.
 
@@ -81,4 +81,22 @@ test("without an account, the forum shows the way in instead of its forms; with 
   await page.goto("/entrar?depois=%2Fforum%2Fgeral%2F8");
   await fillLogin(page);
   await expect(page.getByRole("textbox", { name: "Resposta" })).toBeVisible();
+});
+
+test("without an account, ▲ on an idea's comment asks first, and counts after logging in", async ({ page }) => {
+  await gotoReady(page, "/feedback/ideias/501");
+  const vote = page.getByRole("button", { name: /^Votar no comentário de joao_p, \d+ votos$/ });
+  const before = Number((await vote.getAttribute("aria-label"))!.match(/(\d+) votos/)![1]);
+  await vote.click();
+  const note = page.getByRole("dialog", { name: "Gostas deste comentário?" });
+  await expect(note).toContainText("Depois de entrares, contamos o teu gosto.");
+  await note.getByRole("link", { name: /Entrar$/ }).click();
+  await fillLogin(page);
+  await expect(page).toHaveURL(/\/feedback\/ideias\/501$/);
+  await expect(page.getByRole("status").filter({ hasText: "O teu voto no comentário contou." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Votaste no comentário de joao_p, \d+ votos$/ })).toBeDisabled();
+  const after = Number(
+    (await page.getByRole("button", { name: /^Votaste no comentário de joao_p/ }).getAttribute("aria-label"))!.match(/(\d+) votos/)![1],
+  );
+  expect(after).toBeGreaterThan(before);
 });

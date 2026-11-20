@@ -6,12 +6,13 @@ import { useCallback, useEffect, useState } from "react";
 import { markSignedOut, pullAccountState, useReader, type LoginAsk } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
 import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, voteArticle } from "@/lib/api/client";
-import { voteThread } from "@/lib/api/forums";
+import { votePost, voteThread } from "@/lib/api/forums";
 import { markImporta } from "@/lib/api/stories";
 import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
 import { applyVoteAnswer } from "../ArticleVote";
 import { applyLikeAnswer } from "../CommentLike";
 import { applyIdeaAnswer } from "../forum/IdeaVote";
+import { applyReplyAnswer } from "../ideas/ReplyVote";
 import { applyImportaAnswer } from "../ImportaButton";
 import { applyPostAnswer } from "../PostImporta";
 import { useReturnPath } from "./AccountMenu";
@@ -140,6 +141,9 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
       case "idea":
         applyIdeaAnswer(action.id, await voteThread(action.id));
         return { text: "Sessão iniciada. O teu voto na ideia contou." };
+      case "reply":
+        applyReplyAnswer(action.id, await votePost(action.id));
+        return { text: "Sessão iniciada. O teu voto no comentário contou." };
     }
   } catch {
     // The comment stays in its box (its draft), to publish by hand.
