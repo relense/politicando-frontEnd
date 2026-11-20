@@ -12,7 +12,7 @@ export const INBOX_TABS: { key: InboxTab; label: string }[] = [
 ];
 
 export function tabOf(item: Notification): Exclude<InboxTab, "tudo"> {
-  if (item.kind === "comment_reply" || item.kind === "forum_reply") return "respostas";
+  if (item.kind === "comment_reply" || item.kind === "forum_reply" || item.kind === "feedback_reply") return "respostas";
   if (item.kind === "prediction_result") return "previsoes";
   return "seguir";
 }
@@ -35,6 +35,9 @@ export function notificationText(item: Notification): NotificationText {
         quote: null,
       };
     }
+    case "feedback_reply":
+      // The answer is the point: shown whole, here, with nowhere to go.
+      return { actor: null, lead: "A equipa respondeu à tua mensagem", quote: item.feedback?.reply ?? null };
     case "thread_update":
       return {
         actor: null,
@@ -68,6 +71,7 @@ export function notificationText(item: Notification): NotificationText {
 /** Where a line leads: the comment, the post in the thread, the story or the initiative. */
 export function notificationHref(item: Notification): string | null {
   const { link } = item;
+  if (item.kind === "feedback_reply") return null;
   const comment = link.commentId ? `#comentario-${link.commentId}` : "";
   if (item.kind === "comment_reply") {
     if (link.articleId) return `/article/${link.articleId}${comment}`;

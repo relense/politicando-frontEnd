@@ -20,7 +20,16 @@ const withReader =
     return reader ? handle(reader, request, params) : fail(401, "unauthenticated", "Log in first");
   };
 
-const LINK = { commentId: null, articleId: null, storyId: null, postSlug: null, threadId: null, postId: null, initiativeId: null };
+const LINK = {
+  commentId: null,
+  articleId: null,
+  storyId: null,
+  postSlug: null,
+  threadId: null,
+  postId: null,
+  initiativeId: null,
+  feedbackId: null,
+};
 const EXTRA = { threadTitle: null, board: null, headline: null, prediction: null };
 
 /** Each reader's inbox, seeded on first look: a reply, a followed thread and a settled prediction. */
