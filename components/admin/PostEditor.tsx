@@ -179,6 +179,13 @@ const STEP_DONE: Record<Step, string> = {
   feature: "Em destaque na página inicial.",
   unfeature: "Saiu dos destaques.",
 };
+/** The text was saved, but the step after it failed. */
+const STEP_FAILED: Record<PostAction, string> = {
+  publish: "Guardado, mas não foi publicado. Tenta publicar outra vez.",
+  unpublish: "Guardado, mas não voltou a rascunho. Tenta outra vez.",
+  feature: "Guardado, mas não ficou em destaque. Tenta outra vez.",
+  unfeature: "Guardado, mas não saiu dos destaques. Tenta outra vez.",
+};
 
 function EditorForm({ post }: { post: AdminPost | null }) {
   const id = useId();
@@ -212,6 +219,20 @@ function EditorForm({ post }: { post: AdminPost | null }) {
     writeBackup(postId, dirty ? fields : null);
   }, [fields, dirty, postId, backup]);
 
+  /**
+   * The API's version of the post, kept as soon as it answers: a retry acts on this post instead of creating another. The
+   * API tidies some fields (tags in lower case, the address made from the title): the form shows its version, unless the
+   * author kept typing meanwhile. A new post is a draft now, so its new-post copy goes.
+   */
+  function keep(latest: AdminPost, submitted: Fields) {
+    const now = fieldsOf(latest);
+    client.setQueryData(["admin-post", latest.id], latest);
+    setCurrent(latest);
+    setSaved(now);
+    setFields((typed) => (same(typed, submitted) ? now : typed));
+    if (!post) writeBackup(null, null);
+  }
+
   const run = useMutation({
     mutationFn: async ({ step, submitted }: { step: Step; submitted: Fields }) => {
       savedThisRun.current = false;
@@ -219,37 +240,21 @@ function EditorForm({ post }: { post: AdminPost | null }) {
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
         // Kept at once: if publishing fails next, a retry publishes this post instead of creating another.
-        const kept = latest;
-        setCurrent(kept);
-        setSaved(fieldsOf(kept));
-        // The API's tidied version, unless the author kept typing meanwhile.
-        setFields((typed) => (same(typed, submitted) ? fieldsOf(kept) : typed));
-        client.setQueryData(["admin-post", kept.id], kept);
-        // Saved now: if publishing fails next, the message says so.
+        keep(latest, submitted);
+        // Saved now: if the next step fails, the message says so.
         savedThisRun.current = true;
-        // A new post is a draft now: its new-post copy goes.
-        if (!post) writeBackup(null, null);
       }
       if (step !== "save") latest = await changePost(latest.id, step);
       return latest;
     },
     onSuccess: (latest, { step, submitted }) => {
-      const now = fieldsOf(latest);
-      client.setQueryData(["admin-post", latest.id], latest);
+      keep(latest, submitted);
       client.invalidateQueries({ queryKey: ["admin-posts"] });
-      setCurrent(latest);
-      setSaved(now);
-      // The API tidies some fields (tags in lower case, the address made from the title): show its version, unless
-      // the author kept typing meanwhile.
-      setFields((typed) => (same(typed, submitted) ? now : typed));
       setDone(STEP_DONE[step]);
-      if (!post) {
-        writeBackup(null, null);
-        router.replace(`/admin/artigos/${latest.id}`);
-      }
+      if (!post) router.replace(`/admin/artigos/${latest.id}`);
     },
-    onError: (error) => {
-      setDone(savedThisRun.current ? "Guardado, mas não foi publicado. Tenta publicar outra vez." : null);
+    onError: (error, { step }) => {
+      setDone(savedThisRun.current && step !== "save" ? STEP_FAILED[step] : null);
       expiry(error);
     },
   });
