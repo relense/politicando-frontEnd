@@ -227,15 +227,21 @@ export async function getMostCommented(limit = 3, hours = 24): Promise<Article[]
 
 /** The articles with these ids (the reader's saved ones), newest first. From the browser and never cached: each reader's list is their own. */
 export async function getArticlesByIds(ids: number[]): Promise<Article[]> {
-  if (ids.length === 0) return [];
-  const page = await request(
-    `/articles${searchOf({ ids: ids.slice(-100).join(","), limit: Math.min(ids.length, 100) })}`,
-    articlePageSchema,
-    {
-      cache: "no-store",
-    },
+  // The newest 100 (what `ids` takes), 50 a request (`limit` stops at 50).
+  const pages = await Promise.all(
+    idBatches(ids).map((batch) =>
+      request(`/articles${searchOf({ ids: batch.join(","), limit: batch.length })}`, articlePageSchema, { cache: "no-store" }),
+    ),
   );
-  return page.items.map(mapArticle);
+  return pages.flatMap((page) => page.items.map(mapArticle)).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+/** The last 100 ids, in requests of at most 50: the API's caps for `ids` and `limit`. */
+export function idBatches(ids: number[]): number[][] {
+  const newest = ids.slice(-100);
+  const batches: number[][] = [];
+  for (let start = 0; start < newest.length; start += 50) batches.push(newest.slice(start, start + 50));
+  return batches;
 }
 
 /** A reader's vote on an article: 1 up, -1 down, 0 to take it back. Sent from the browser; answers the new totals. */

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Article, PersonMention } from "@/lib/types";
 import { formatRelative, lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
-import { cached, request, searchOf } from "./client";
+import { cached, idBatches, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
 import { articleSchema, peopleSchema } from "./schemas";
 
@@ -295,10 +295,12 @@ export async function markImporta(id: number, value: 1 | 0): Promise<{ importa: 
 /** The saved stories, by id, from the browser and never cached. */
 export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
   if (ids.length === 0) return [];
-  const page = await request(`/stories${searchOf({ ids: ids.slice(-100).join(","), limit: Math.min(ids.length, 50) })}`, storyPageSchema, {
-    cache: "no-store",
-  });
-  return page.items.map(mapStory);
+  const pages = await Promise.all(
+    idBatches(ids).map((batch) =>
+      request(`/stories${searchOf({ ids: batch.join(","), limit: batch.length })}`, storyPageSchema, { cache: "no-store" }),
+    ),
+  );
+  return pages.flatMap((page) => page.items.map(mapStory)).sort((a, b) => b.lastPublishedAt.localeCompare(a.lastPublishedAt));
 }
 
 /** The version whose headline is the story's, or the first one: whose name heads the card and whose page it opens. */
