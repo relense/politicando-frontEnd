@@ -111,6 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     at("/eleicoes", { changeFrequency: "monthly" }),
     at("/sitios", { changeFrequency: "monthly" }),
     at("/contratos", { changeFrequency: "weekly" }),
+    at("/orcamento", { changeFrequency: "daily" }),
     at("/historia", { changeFrequency: "monthly" }),
     at("/percursos", { changeFrequency: "monthly" }),
     at("/editorial", { changeFrequency: "daily" }),

@@ -3,7 +3,7 @@
  * requests each name covers, by the path's first part. request() tags every cached request with these, so one ping
  * drops every page's copy of that data. No imports: the route and the API client both use it.
  */
-export const CACHE_TAGS = ["news", "podcast", "agenda", "blog", "parliament"] as const;
+export const CACHE_TAGS = ["news", "podcast", "agenda", "blog", "parliament", "budget"] as const;
 export type CacheTag = (typeof CACHE_TAGS)[number];
 
 const BY_FIRST_PART: Record<string, CacheTag> = {
@@ -19,6 +19,7 @@ const BY_FIRST_PART: Record<string, CacheTag> = {
   initiatives: "parliament",
   parties: "parliament",
   legislatures: "parliament",
+  budget: "budget",
 };
 
 export function tagsFor(path: string): CacheTag[] {

@@ -115,6 +115,7 @@ export function Feed({ initialPage, partySlug, q = "", source = "", order = NEWE
       <NewNews
         enabled={!ranked && !q}
         pages={data?.pages ?? []}
+        feed={{ parties: [partySlug ?? []].flat(), sources: [source].flat().filter(Boolean) }}
         loadFresh={() => loadFeed({ party: partySlug, q, source, limit: FEED_PAGE_SIZE }, order, asStories)}
         onShow={(fresh) => {
           client.setQueryData(queryKey, { pages: [fresh], pageParams: [undefined] });

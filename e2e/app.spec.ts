@@ -886,6 +886,8 @@ test("agenda: what is coming by day, filters, how to attend, add to calendar, an
   const box = page.getByRole("region", { name: "Debate quinzenal com o Primeiro-Ministro" }).filter({ visible: true });
   await expect(box).toContainText("Próximo evento");
   await expect(box).toContainText("Amanhã");
+  // In the feed on every screen; the side column leaves it out.
+  if (!isMobile) await expect(page.getByRole("complementary", { name: "Ao lado das notícias" })).not.toContainText("Próximo evento");
   await box.getByRole("link", { name: /^(Ver a agenda|Agenda)/ }).click();
   await expect(page).toHaveURL(/\/agenda$/);
   await expect(page.getByRole("heading", { level: 1, name: "Agenda política" })).toBeVisible();

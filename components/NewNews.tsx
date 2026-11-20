@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { hasNewer } from "@/lib/feedFreshness";
+import { fitsFeed, hasNewer } from "@/lib/feedFreshness";
 import type { ArticlePage } from "@/lib/types";
 import type { StoryPage } from "@/lib/api/stories";
 
@@ -19,19 +19,22 @@ const AGAIN_AFTER_MS = 60_000;
 export function NewNews({
   enabled,
   pages,
+  feed,
   loadFresh,
   onShow,
 }: {
   enabled: boolean;
   pages: Page[];
+  /** The feed's parties and outlets: a fresh page with anything else is never offered (lib/feedFreshness fitsFeed). */
+  feed: { parties: string[]; sources: string[] };
   loadFresh: () => Promise<Page>;
   onShow: (fresh: Page) => void;
 }) {
   const [fresh, setFresh] = useState<Page | null>(null);
   // The latest values, read by the timer without restarting it.
-  const latest = useRef({ pages, loadFresh });
+  const latest = useRef({ pages, feed, loadFresh });
   useEffect(() => {
-    latest.current = { pages, loadFresh };
+    latest.current = { pages, feed, loadFresh };
   });
 
   useEffect(() => {
@@ -44,7 +47,8 @@ export function NewNews({
       latest.current
         .loadFresh()
         .then((page) => {
-          if (live && hasNewer(latest.current.pages, page)) setFresh(page);
+          const { pages: have, feed: on } = latest.current;
+          if (live && hasNewer(have, page) && fitsFeed(page, on)) setFresh(page);
         })
         .catch(() => {
           // The API is down or slow: the reader keeps what they have; the next look tries again.
@@ -68,7 +72,8 @@ export function NewNews({
         <button
           type="button"
           onClick={() => {
-            onShow(fresh);
+            // Checked again on the press: only ever this feed's own news.
+            if (fitsFeed(fresh, latest.current.feed)) onShow(fresh);
             setFresh(null);
           }}
           className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 font-mono text-sm font-bold text-paper shadow-lg hover:opacity-90"
