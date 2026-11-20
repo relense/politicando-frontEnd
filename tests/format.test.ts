@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCardWhen, formatDayHeading } from "@/lib/format";
+import { decodeParam, formatCardWhen, formatDayHeading } from "@/lib/format";
 
 describe("formatCardWhen", () => {
   it("gives the short weekday, day and month with the Lisbon time", () => {
@@ -18,5 +18,13 @@ describe("formatDayHeading", () => {
     // 23:30 on 25 October (25 hours): tomorrow is the 26th, not the 27th.
     const late = Date.parse("2026-10-25T23:30:00Z");
     expect(formatDayHeading("2026-10-26T10:00:00Z", late)).toMatch(/^Amanhã · /);
+  });
+});
+
+describe("decodeParam", () => {
+  it("decodes once more, and gives null instead of throwing on a lone %", () => {
+    expect(decodeParam("or%C3%A7amento")).toBe("orçamento");
+    expect(decodeParam("%")).toBeNull();
+    expect(decodeParam("a%E0%A4%A")).toBeNull();
   });
 });

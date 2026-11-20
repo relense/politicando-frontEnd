@@ -121,6 +121,15 @@ export function lisbonDayFrom(now: number, offset: number): string {
   return new Date(Date.UTC(year!, month! - 1, day! + offset)).toISOString().slice(0, 10);
 }
 
+/** A route param decoded once more ("%" alone, or a broken escape, would throw a URIError): null when it can't be. */
+export function decodeParam(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 /** "Hoje · sábado, 14 de novembro", "Ontem · …", "Amanhã · …", or just the date; the year only when it isn't this year. */
 export function formatDayHeading(value: string | null | undefined, now: number): string | null {
   const date = parse(value);

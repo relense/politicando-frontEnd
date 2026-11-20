@@ -2,6 +2,7 @@ import { getEditorialPost } from "@/lib/api/client";
 import { KIND_LABELS } from "@/lib/editorial";
 import { localPost } from "@/lib/localPosts";
 import { ogCard, OG_SIZE, OG_TYPE } from "@/lib/ogCard";
+import { decodeParam } from "@/lib/format";
 
 export const alt = "Publicação do blog do Politicando";
 export const size = OG_SIZE;
@@ -24,8 +25,8 @@ async function coverOf(url: string | null): Promise<string | null> {
 }
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const slug = decodeURIComponent((await params).slug);
-  const post = localPost(slug) ?? (await getEditorialPost(slug).catch(() => null));
+  const slug = decodeParam((await params).slug);
+  const post = slug === null ? null : (localPost(slug) ?? (await getEditorialPost(slug).catch(() => null)));
   if (!post) return ogCard({ kicker: "Blog", title: "Artigos, opinião e podcasts sobre política portuguesa" });
   return ogCard({
     kicker: `Blog · ${KIND_LABELS[post.kind]}`,

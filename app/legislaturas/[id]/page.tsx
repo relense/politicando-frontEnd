@@ -14,14 +14,15 @@ import { FEATURES } from "@/lib/features";
 import { formatDate, formatLongDate, formatNumber } from "@/lib/format";
 import { durationLabel } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
+import { decodeParam } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }> };
 
 const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
 
 const load = cache(async (raw: string) => {
-  const id = decodeURIComponent(raw);
-  return isLegislatureId(id) ? getLegislature(id) : null;
+  const id = decodeParam(raw);
+  return id !== null && isLegislatureId(id) ? getLegislature(id) : null;
 });
 
 const yearsOf = (legislature: Pick<Legislature, "start" | "end">) => {
