@@ -188,3 +188,50 @@ export const finalVoteSession = (schedule: BudgetSession[]): BudgetSession | nul
 
 /** «10h00», in Lisbon's time. */
 export const sessionTime = (value: string): string | null => formatTime(value)?.replace(":", "h") ?? null;
+
+const OTHER_RESULTS: [BudgetResult, string, string][] = [
+  ["withdrawn", "retiradas", "retirada"],
+  ["not_admitted", "não admitidas", "não admitida"],
+  ["superseded", "prejudicadas", "prejudicada"],
+  ["unclear", "por esclarecer", "por esclarecer"],
+];
+const listPt = (items: string[]) =>
+  items.length > 1 ? `${items.slice(0, -1).join(", ")} ou ${items[items.length - 1]}` : (items[0] ?? "");
+
+/**
+ * The counts at the top, all from the results so they add up to the total: voted (approved, in part or whole, plus
+ * rejected), still to vote (pending and sent to the plenary), and the rest (withdrawn, not admitted…), named.
+ */
+export function budgetTally(results: Partial<Record<BudgetResult, number>>) {
+  const n = (key: BudgetResult) => results[key] ?? 0;
+  const approved = n("approved") + n("partially_approved");
+  const rejected = n("rejected");
+  const pending = n("pending") + n("sent_to_plenary");
+  const other = OTHER_RESULTS.reduce((sum, [key]) => sum + n(key), 0);
+  const named = OTHER_RESULTS.filter(([key]) => n(key) > 0).map(([, many, one]) => (other === 1 ? one : many));
+  return {
+    total: approved + rejected + pending + other,
+    voted: approved + rejected,
+    approved,
+    rejected,
+    pending,
+    other,
+    otherLabel: named.length > 0 ? listPt(named) : null,
+  };
+}
+
+/** Feminine party names, for «da IL»; the rest read «do». */
+const FEMININE = new Set(["il"]);
+
+/** «do PCP», «da IL», «do PSD e do CDS-PP», «de Ana Lopes»: who proposed it, inside a sentence. Null when unknown. */
+export function authorsPhrase(authors: BudgetProposal["authors"]): string | null {
+  const parts = [
+    ...authors.parties.map((party) => `${FEMININE.has(party.slug) ? "da" : "do"} ${partyShort(party)}`),
+    ...authors.deputies.map((deputy) => `de ${deputy}`),
+  ];
+  if (parts.length === 0) return null;
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}` : parts[0]!;
+}
+
+/** The parliament writes «Rejeitado(a) em Comissão»; a proposal is feminine. */
+export const tidyStatus = (status: string | null): string | null => status?.replace(/o\(a\)/g, "a") ?? null;
