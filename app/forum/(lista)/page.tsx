@@ -18,7 +18,8 @@ async function loadBoards(): Promise<Board[]> {
   try {
     return await getBoards();
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return [];
+    // Not served yet (404) or the API down: the page's calm state, never the error page.
+    if (error instanceof ApiError) return [];
     throw error;
   }
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ApiError } from "@/lib/api/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -13,7 +14,13 @@ type Props = { params: Promise<{ ano: string; id: string }> };
 
 /** One proposal, read once per request for the page and its metadata. */
 const load = cache(async (ano: string, id: string) =>
-  /^\d{4}$/.test(ano) && /^\d+$/.test(id) ? getBudgetProposal(Number(ano), Number(id)).catch(() => null) : null,
+  /^\d{4}$/.test(ano) && /^\d+$/.test(id)
+    ? getBudgetProposal(Number(ano), Number(id)).catch((error: unknown) => {
+        // Only a missing proposal is «não encontrada»; the API down is an error page.
+        if (error instanceof ApiError && (error.status === 404 || error.status === 400)) return null;
+        throw error;
+      })
+    : null,
 );
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
