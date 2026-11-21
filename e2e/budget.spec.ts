@@ -60,9 +60,10 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await expect(page.getByText("Aprovada", { exact: true }).first()).toBeVisible();
   // «O que disseram»: from the news, grouped by party, each linking to its article; a voice without a party is left out.
   const said = page.getByRole("region", { name: "O que disseram" });
-  await expect(said).toContainText("das notícias, não do Parlamento");
+  await expect(said).toContainText("das notícias, não do registo do Parlamento");
   await expect(said.getByRole("heading", { level: 3 })).toHaveText(["Partido Social Democrata", "Partido Socialista"]);
-  await expect(said).toContainText("Os mais novos ficam com mais rendimento disponível.");
+  // Shown as the article has it (a quote in «» or a paraphrase): never wrapped in quotes of our own.
+  await expect(said.getByText("Diz que os mais novos ficam com «mais rendimento disponível».", { exact: true })).toBeVisible();
   await expect(said).toContainText("Rui Valadares");
   await expect(said).not.toContainText("Teresa Amaral");
   await expect(said.getByRole("link", { name: /^segundo / }).first()).toHaveAttribute("href", "/article/100");
