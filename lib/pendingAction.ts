@@ -11,7 +11,9 @@ export type PendingAction =
   | { kind: "vote"; id: number; value: 1 | -1 }
   | { kind: "post"; slug: string }
   | { kind: "like"; id: number }
-  | { kind: "idea"; id: number };
+  | { kind: "idea"; id: number }
+  /** ▲ on a comment on an idea (a forum post). */
+  | { kind: "reply"; id: number };
 
 const KEY = "politicando:depois-de-entrar";
 /** Long enough to create an account, short enough not to surprise anyone the next day. */

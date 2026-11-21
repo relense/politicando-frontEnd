@@ -76,6 +76,13 @@ describe("tables and our own addresses", () => {
     expect(out).toContain('<a href="/partido/ps">PS</a>');
     expect(out).toContain('<a href="https://www.cne.pt" target="_blank" rel="noopener noreferrer">CNE</a>');
   });
+
+  it("never takes a path that browsers read as another site for one of ours", async () => {
+    const out = await html("[a](/\\evil.example/login) [b](/partido/ps) [c](https://politicando.pt//evil.example/x)");
+    expect(out).not.toContain('href="//evil');
+    expect(out).not.toMatch(/href="\/\\/);
+    expect(out).toContain('<a href="/partido/ps">b</a>');
+  });
 });
 
 describe("escapes", () => {

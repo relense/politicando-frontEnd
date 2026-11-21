@@ -11,7 +11,7 @@ import { getCaseGlossary } from "@/lib/api/cases";
 import { getLegislature, getLegislatures, isLegislatureId, legislaturePath, type Legislature } from "@/lib/api/legislatures";
 import { electionPath } from "@/lib/elections";
 import { FEATURES } from "@/lib/features";
-import { formatDate, formatLongDate, formatNumber } from "@/lib/format";
+import { decodeParam, formatDate, formatLongDate, formatNumber } from "@/lib/format";
 import { durationLabel } from "@/lib/history";
 import { partyColor } from "@/lib/parliament";
 
@@ -20,8 +20,8 @@ type Props = { params: Promise<{ id: string }> };
 const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
 
 const load = cache(async (raw: string) => {
-  const id = decodeURIComponent(raw);
-  return isLegislatureId(id) ? getLegislature(id) : null;
+  const id = decodeParam(raw);
+  return id !== null && isLegislatureId(id) ? getLegislature(id) : null;
 });
 
 const yearsOf = (legislature: Pick<Legislature, "start" | "end">) => {

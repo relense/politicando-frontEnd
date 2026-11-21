@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useReader } from "@/lib/account";
 import { getNotifications, getUnreadCount, markNotificationsRead, type Notification } from "@/lib/api/engagement";
-import { lisbonDay } from "@/lib/format";
+import { lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { INBOX_TABS, notificationHref, notificationText, tabOf, type InboxTab } from "@/lib/notifications";
 import { useNow } from "@/lib/useNow";
 import { RelativeTime } from "../RelativeTime";
@@ -227,8 +227,8 @@ function InboxBody({ compact = false }: { compact?: boolean }) {
   const count = (key: InboxTab) => (key === "tudo" ? all.length : all.filter((item) => tabOf(item) === key).length);
   const unread = all.some((item) => !item.read);
 
-  const today = lisbonDay(new Date(now).toISOString());
-  const yesterday = lisbonDay(new Date(now - 86_400_000).toISOString());
+  const today = lisbonDayFrom(now, 0);
+  const yesterday = lisbonDayFrom(now, -1);
   const dayLabel = (value: string) => {
     const day = lisbonDay(value);
     return day === today ? "Hoje" : day === yesterday ? "Ontem" : "Mais antigas";

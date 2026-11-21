@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ApiError, request, searchOf } from "./client";
-import { safeHttpUrl } from "./mappers";
+import { isSitePath, safeHttpUrl } from "./mappers";
 
 /** Readers' feedback and the public log of corrections (contract: docs/feedback-api.md in the backend repo). Ideas live on the forum's ideas board. */
 
@@ -54,7 +54,7 @@ const mapCorrection = (raw: z.infer<typeof correctionSchema>): Correction => ({
   area: raw.area ?? null,
   title: raw.title,
   // Only links on this site or elsewhere over http(s).
-  url: raw.url?.startsWith("/") && !raw.url.startsWith("//") ? raw.url : safeHttpUrl(raw.url ?? null),
+  url: isSitePath(raw.url) ? raw.url : safeHttpUrl(raw.url ?? null),
 });
 
 /** The side of the feedback page; null while the API has none. */

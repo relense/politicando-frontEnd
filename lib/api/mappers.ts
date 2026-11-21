@@ -61,6 +61,14 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
   }
 }
 
+/**
+ * A path on this site, for a same-tab link. Browsers read a backslash as a slash and drop tabs and newlines, so
+ * "/\\evil.pt" or "/\t/evil.pt" would become "//evil.pt", another site: anything with those is refused.
+ */
+export function isSitePath(value: string | null | undefined): value is string {
+  return !!value && /^\/(?![/\\])/.test(value) && !/[\s\\\u0000-\u001f\u007f]/.test(value);
+}
+
 /** Some sources put markup in their summaries. Decoding first also catches encoded tags. */
 function plainText(value: string): string {
   return decode(value)

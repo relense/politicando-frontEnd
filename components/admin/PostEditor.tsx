@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api/client";
 import {
   canModerate,
@@ -22,7 +22,7 @@ import { KIND_LABELS } from "@/lib/editorial";
 import { formatDateTime, formatTime } from "@/lib/format";
 import { renderMarkdown } from "@/lib/markdown";
 import { useMe } from "./AdminShell";
-import { buttonClass, ConfirmButton, ErrorNote, inputClass, useExpiry } from "./ui";
+import { buttonClass, ConfirmButton, ErrorNote, inputClass, useExpiry, useExpiryOf } from "./ui";
 
 /** The form's fields, as typed: tags as one comma-separated line. */
 type Fields = {
@@ -145,9 +145,8 @@ function writeBackup(id: number | null, fields: Fields | null) {
 
 /** Writes a new post (`id` null) or edits one. */
 export function PostEditor({ id }: { id: number | null }) {
-  const expiry = useExpiry();
   const post = useQuery({ queryKey: ["admin-post", id], queryFn: () => getPost(id!), enabled: id !== null });
-  if (post.isError) expiry(post.error);
+  useExpiryOf(post.error);
 
   if (id !== null && post.isPending) return <p className="text-muted">A carregar o artigo…</p>;
   if (id !== null && post.isError)
@@ -180,6 +179,13 @@ const STEP_DONE: Record<Step, string> = {
   feature: "Em destaque na página inicial.",
   unfeature: "Saiu dos destaques.",
 };
+/** The text was saved, but the step after it failed. */
+const STEP_FAILED: Record<PostAction, string> = {
+  publish: "Guardado, mas não foi publicado. Tenta publicar outra vez.",
+  unpublish: "Guardado, mas não voltou a rascunho. Tenta outra vez.",
+  feature: "Guardado, mas não ficou em destaque. Tenta outra vez.",
+  unfeature: "Guardado, mas não saiu dos destaques. Tenta outra vez.",
+};
 
 function EditorForm({ post }: { post: AdminPost | null }) {
   const id = useId();
@@ -193,6 +199,7 @@ function EditorForm({ post }: { post: AdminPost | null }) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [checked, setChecked] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const savedThisRun = useRef(false);
   // A copy left from an earlier visit that differs from what the API has: offered back, never applied unasked.
   // Read on the first render: the editor only renders in the browser, once the session is known.
   const [backup, setBackup] = useState<Backup | null>(() => {
@@ -212,32 +219,50 @@ function EditorForm({ post }: { post: AdminPost | null }) {
     writeBackup(postId, dirty ? fields : null);
   }, [fields, dirty, postId, backup]);
 
+  /**
+   * The API's version of the post, kept as soon as it answers: a retry acts on this post instead of creating another. The
+   * API tidies some fields (tags in lower case, the address made from the title): the form shows its version, unless the
+   * author kept typing meanwhile. A new post is a draft now, so its new-post copy goes.
+   */
+  function keep(latest: AdminPost, submitted: Fields) {
+    const now = fieldsOf(latest);
+    client.setQueryData(["admin-post", latest.id], latest);
+    setCurrent(latest);
+    setSaved(now);
+    setFields((typed) => (same(typed, submitted) ? now : typed));
+    if (!post) writeBackup(null, null);
+  }
+
   const run = useMutation({
     mutationFn: async ({ step, submitted }: { step: Step; submitted: Fields }) => {
+      savedThisRun.current = false;
       let latest = current;
+      // Taking a post down goes first: if it fails, unsaved edits never reach the live post.
+      if (latest && (step === "unpublish" || step === "unfeature")) {
+        latest = await changePost(latest.id, step);
+        if (same(submitted, saved)) return latest;
+        latest = await savePost(latest.id, inputOf(submitted));
+        return latest;
+      }
       if (step === "save" || !latest || !same(submitted, saved)) {
         latest = latest ? await savePost(latest.id, inputOf(submitted)) : await createPost(inputOf(submitted));
+        // Kept at once: if publishing fails next, a retry publishes this post instead of creating another.
+        keep(latest, submitted);
+        // Saved now: if the next step fails, the message says so.
+        savedThisRun.current = true;
       }
       if (step !== "save") latest = await changePost(latest.id, step);
       return latest;
     },
     onSuccess: (latest, { step, submitted }) => {
-      const now = fieldsOf(latest);
-      client.setQueryData(["admin-post", latest.id], latest);
+      // A plain save was kept already, as soon as it answered.
+      if (step !== "save") keep(latest, submitted);
       client.invalidateQueries({ queryKey: ["admin-posts"] });
-      setCurrent(latest);
-      setSaved(now);
-      // The API tidies some fields (tags in lower case, the address made from the title): show its version, unless
-      // the author kept typing meanwhile.
-      setFields((typed) => (same(typed, submitted) ? now : typed));
       setDone(STEP_DONE[step]);
-      if (!post) {
-        writeBackup(null, null);
-        router.replace(`/admin/artigos/${latest.id}`);
-      }
+      if (!post) router.replace(`/admin/artigos/${latest.id}`);
     },
-    onError: (error) => {
-      setDone(null);
+    onError: (error, { step }) => {
+      setDone(savedThisRun.current && step !== "save" ? STEP_FAILED[step] : null);
       expiry(error);
     },
   });

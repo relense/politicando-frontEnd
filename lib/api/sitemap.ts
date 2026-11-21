@@ -36,7 +36,10 @@ export async function getSitemapItems(): Promise<Partial<Record<SitemapKind, Sit
   const lists = await Promise.all(
     known.map(async ({ kind, pages }) => {
       const results = await Promise.all(
-        Array.from({ length: pages }, (_, index) => request(`/sitemap/${kind}?page=${index + 1}`, pageSchema, hourly)),
+        // One page failing loses only that page, not every other kind's.
+        Array.from({ length: pages }, (_, index) =>
+          request(`/sitemap/${kind}?page=${index + 1}`, pageSchema, hourly).catch(() => ({ items: [] })),
+        ),
       );
       const items = results.flatMap((result) =>
         result.items.map((item) => ({ id: String(item.id), lastmod: item.lastmod ?? null, level: item.level ?? null })),

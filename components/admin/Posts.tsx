@@ -7,17 +7,16 @@ import { canModerate, getPosts, type AdminPostSummary } from "@/lib/api/admin";
 import { KIND_LABELS } from "@/lib/editorial";
 import { formatDateTime } from "@/lib/format";
 import { useMe } from "./AdminShell";
-import { buttonClass, Empty, ErrorNote, Tabs, useExpiry } from "./ui";
+import { buttonClass, Empty, ErrorNote, Tabs, useExpiryOf } from "./ui";
 
 type Filter = "all" | "draft" | "published";
 
 /** The blog's posts: authors see their own, moderators every one. Last edited first, as the API sends them. */
 export function Posts() {
   const me = useMe();
-  const expiry = useExpiry();
   const [filter, setFilter] = useState<Filter>("all");
   const posts = useQuery({ queryKey: ["admin-posts"], queryFn: getPosts });
-  if (posts.isError) expiry(posts.error);
+  useExpiryOf(posts.error);
   const items = (posts.data ?? []).filter((post) => filter === "all" || post.status === filter);
   const count = (status: Filter) => (posts.data ?? []).filter((post) => status === "all" || post.status === status).length;
 

@@ -162,22 +162,33 @@ export async function signOut(client: ReturnType<typeof useQueryClient>) {
 
 /** The session is gone (logged out, deleted, expired): empty the lists and show the logged-out header. */
 export function forgetAccount(client: ReturnType<typeof useQueryClient>) {
+  // Already forgotten (the session-ended event, then the caller's own error handler): once is enough.
+  if (client.getQueryData(READER_KEY) === null && !signedIn) return;
   signedIn = false;
+  pulled = null;
   clearLocalState();
   client.setQueryData(READER_KEY, null);
+  // Nothing of theirs stays in memory for the next person on this computer (the inbox, picks, saved, activity):
+  // every other query goes back to where the page started, and the reader's own ones ask again, now logged out.
+  void client.resetQueries({ predicate: (query) => query.queryKey[0] !== READER_KEY[0] });
 }
 
 /** Once per page load with a session: the account's lists replace this browser's, so every device shows the same. */
-let pulled: number | null = null;
-export async function pullAccountState(reader: Reader) {
+let pulled: { id: number; done: Promise<void> } | null = null;
+export function pullAccountState(reader: Reader): Promise<void> {
   signedIn = true;
-  if (pulled === reader.id) return;
-  pulled = reader.id;
-  try {
-    applyAccountState(await getAccountState());
-  } catch {
-    pulled = null;
-  }
+  // A second caller waits for the same pull, so nothing it does afterwards is overwritten by an older answer.
+  if (pulled?.id === reader.id) return pulled.done;
+  const done: Promise<void> = getAccountState()
+    .then((state) => {
+      // Logged out (or someone else in) while it loaded: their lists don't come back.
+      if (pulled?.done === done && signedIn) applyAccountState(state);
+    })
+    .catch(() => {
+      if (pulled?.done === done) pulled = null;
+    });
+  pulled = { id: reader.id, done };
+  return done;
 }
 
 export function markSignedOut() {

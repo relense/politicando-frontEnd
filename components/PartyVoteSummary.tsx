@@ -17,7 +17,8 @@ export function PartyVoteSummary({ acronym, summary, href }: { acronym: string; 
   ];
   const counted = positions.reduce((sum, item) => sum + item.value, 0);
   const most = summary.agreement.slice(0, 3);
-  const least = summary.agreement.length > 3 ? summary.agreement.slice(-2).reverse() : [];
+  // The two at the bottom, never one already among the top three.
+  const least = summary.agreement.slice(Math.max(3, summary.agreement.length - 2)).reverse();
 
   return (
     <section aria-labelledby="como-vota" className="mt-8 rounded-2xl border border-line p-5">

@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api/client";
 import { votePost } from "@/lib/api/forums";
 import { useAccountGate } from "@/lib/account";
+import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
 
 // The replies this reader voted for, kept on the device (and filled from the account: /me/state › votes.forumPosts).
 const KEY = "idea-replies-voted";
@@ -30,17 +31,36 @@ const remember = (id: number) => {
   }
   window.dispatchEvent(new Event(KEY));
 };
+/** The vote didn't count: not remembered, so the button works again after a reload. */
+const forget = (id: number) => {
+  try {
+    const ids = read()
+      .split(",")
+      .filter((value) => value && value !== String(id));
+    window.localStorage.setItem(KEY, ids.join(","));
+  } catch {
+    // Nothing remembered to take back.
+  }
+  window.dispatchEvent(new Event(KEY));
+};
+
+/** An answer from outside the button (the vote finished after logging in). */
+export function applyReplyAnswer(id: number, score: number) {
+  remember(id);
+  publishAnswer("reply", id, score);
+}
 
 /** «▲ 14»: a vote for a reply on an idea. An account, once, no undo. */
 export function ReplyVote({ id, score, author }: { id: number; score: number; author: string }) {
   const stored = useSyncExternalStore(subscribe, read, () => "");
   const [count, setCount] = useState(score);
+  useAnswer<number>("reply", id, setCount);
   const [failed, setFailed] = useState(false);
   const voted = stored.split(",").includes(String(id)) && !failed;
   const gate = useAccountGate();
 
   async function vote(button: HTMLElement) {
-    if (gate("like", button)) return;
+    if (gate("like", button, { kind: "reply", id })) return;
     setFailed(false);
     setCount((current) => current + 1);
     remember(id);
@@ -48,6 +68,7 @@ export function ReplyVote({ id, score, author }: { id: number; score: number; au
       setCount(await votePost(id));
     } catch (error) {
       setCount(score);
+      forget(id);
       setFailed(true);
       if (!(error instanceof ApiError)) throw error;
     }

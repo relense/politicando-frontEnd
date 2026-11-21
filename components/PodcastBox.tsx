@@ -8,6 +8,7 @@ import { embedsAllowed, setEmbedsAllowed, subscribeEmbeds } from "@/lib/consent"
 import { episodeTitle, type Podcast } from "@/lib/podcast";
 import { umamiEvent } from "@/lib/analytics";
 import { isAllowedCover } from "@/lib/podcastCovers";
+import { lisbonDay, lisbonDayFrom } from "@/lib/format";
 
 type Props = {
   podcast: Podcast;
@@ -152,9 +153,6 @@ export function EpisodeList({ podcast, episodes, className = "" }: { podcast: Po
   );
 }
 
-const lisbonDay = (date: Date) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-
 /** "Novo · hoje" on the morning it comes out; "De ontem" the day after; otherwise just the date. */
 function Freshness({ publishedAt }: { publishedAt: string | null }) {
   // Says the day in the browser only: a cached page from yesterday mustn't say "hoje".
@@ -166,9 +164,9 @@ function Freshness({ publishedAt }: { publishedAt: string | null }) {
   const published = publishedAt ? new Date(publishedAt) : null;
   if (!published || Number.isNaN(published.getTime()) || now === null)
     return <span className="font-mono text-[11px] text-muted">Episódio mais recente</span>;
-  const today = lisbonDay(new Date(now * 60_000));
-  const yesterday = lisbonDay(new Date(now * 60_000 - 86_400_000));
-  const day = lisbonDay(published);
+  const today = lisbonDayFrom(now * 60_000, 0);
+  const yesterday = lisbonDayFrom(now * 60_000, -1);
+  const day = lisbonDay(published.toISOString());
   if (day === today)
     return (
       <span className="shrink-0 whitespace-nowrap rounded-full bg-[#1db954] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-black">

@@ -3,9 +3,17 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
-import { COMMENTS_PAGE, getComments, hideComment, unhideComment, type AdminComment, type CommentStatus } from "@/lib/api/admin";
+import {
+  commentPlace,
+  COMMENTS_PAGE,
+  getComments,
+  hideComment,
+  unhideComment,
+  type AdminComment,
+  type CommentStatus,
+} from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
-import { buttonClass, Empty, ErrorNote, inputClass, Tabs, useExpiry } from "./ui";
+import { buttonClass, Empty, ErrorNote, inputClass, Tabs, useExpiry, useExpiryOf } from "./ui";
 
 /** Every comment on the site, newest first: hide (with a reason, for the log) or show again. */
 export function CommentsModeration() {
@@ -24,7 +32,7 @@ export function CommentsModeration() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-comments"] }),
     onError: expiry,
   });
-  if (comments.isError) expiry(comments.error);
+  useExpiryOf(comments.error);
   const items = comments.data?.pages.flat() ?? [];
 
   return (
@@ -81,6 +89,7 @@ export function CommentsModeration() {
 function CommentRow({ comment, busy, onToggle }: { comment: AdminComment; busy: boolean; onToggle: (reason: string | null) => void }) {
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState("");
+  const place = commentPlace(comment);
   return (
     <article className={`rounded-2xl border p-4 ${comment.hiddenAt ? "border-dashed border-line opacity-80" : "border-line"}`}>
       <p className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-muted">
@@ -91,9 +100,11 @@ function CommentRow({ comment, busy, onToggle }: { comment: AdminComment; busy: 
         <span>{formatDateTime(comment.createdAt)}</span>
         {comment.hiddenAt && <span className="rounded-full border border-line px-2 py-0.5 text-ink">Escondido</span>}
       </p>
-      <Link href={`/article/${comment.articleId}#comentarios`} target="_blank" className="mb-2 block text-sm text-link underline">
-        {comment.articleTitle ?? `Notícia #${comment.articleId}`} ↗
-      </Link>
+      {place && (
+        <Link href={place.href} target="_blank" className="mb-2 block text-sm text-link underline">
+          {place.label} ↗
+        </Link>
+      )}
       <p className="whitespace-pre-line break-words leading-relaxed">{comment.body}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {comment.hiddenAt ? (

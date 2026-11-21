@@ -51,14 +51,15 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
   const [sort, setSort] = useState<Exclude<ReplySort, "old">>("top");
   const queryKey = ["idea-replies", threadId, sort];
   // A page at a time (200), «Ver mais comentários» for the next one in the same order.
-  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isFetchNextPageError } = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam }) => getThread(threadId, { sort, cursor: pageParam ?? undefined }),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.nextCursor,
     initialData: sort === "top" ? { pages: [initial], pageParams: [null] } : undefined,
     staleTime: POLL_MS,
-    refetchInterval: POLL_MS,
+    // A refetch asks again for every page loaded: only poll while there's one.
+    refetchInterval: (query) => ((query.state.data?.pages.length ?? 1) > 1 ? false : POLL_MS),
   });
   const posts = useMemo(() => {
     // In «Melhores», a vote between pages can move a comment across the boundary: shown once.
@@ -67,8 +68,8 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
   }, [data]);
   const groups = useMemo(() => nest(posts), [posts]);
   const anchors = useMemo(() => new Map(posts.map((post) => [post.id, `post-${post.id}`])), [posts]);
-  // Until every page is in, the thread's own count.
-  const visible = hasNextPage ? (data?.pages[0]?.thread.replyCount ?? 0) : posts.filter((post) => !post.hidden).length;
+  // The comments shown (hidden ones aren't); «Mais de» until every page is in.
+  const visible = posts.filter((post) => !post.hidden).length;
   const form = useRef<ReplyFormHandle>(null);
   const gate = useAccountGate();
 
@@ -93,6 +94,10 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
               )}
               <RelativeTime value={post.createdAt} />
             </p>
+            {hasNextPage && post.replyTo !== null && !anchors.has(post.replyTo) && (
+              // Answering a comment on a page not loaded yet: it moves under it once that page is in.
+              <p className="mt-1 font-mono text-[11px] text-muted">Em resposta a um comentário mais abaixo</p>
+            )}
             <div className="mt-1">
               <ForumText body={post.body} anchors={anchors} />
             </div>
@@ -155,7 +160,9 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
             </button>
           ))}
         </div>
-        <p className="pb-2 font-mono text-[11px] text-muted">{commentsLabel(visible)}</p>
+        <p className="pb-2 font-mono text-[11px] text-muted">
+          {hasNextPage ? `Mais de ${commentsLabel(visible)}` : commentsLabel(visible)}
+        </p>
       </div>
 
       {groups.length === 0 ? (
@@ -185,6 +192,11 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
         >
           {isFetchingNextPage ? "A carregar…" : "Ver mais comentários"}
         </button>
+      )}
+      {isFetchNextPageError && !isFetchingNextPage && (
+        <p role="alert" className="mt-2 text-sm text-danger">
+          Não foi possível carregar mais comentários. Tenta outra vez.
+        </p>
       )}
     </section>
   );

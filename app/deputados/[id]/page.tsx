@@ -25,7 +25,7 @@ type Props = { params: Promise<{ id: string }> };
 
 /** One request per page, shared by the metadata and the page. Null when there is no such deputy. */
 const loadDeputy = cache(async (id: string) => {
-  if (!/^\d+$/.test(id)) return null;
+  if (!/^\d{1,9}$/.test(id)) return null;
   try {
     return await getDeputy(Number(id));
   } catch (error) {
@@ -35,10 +35,10 @@ const loadDeputy = cache(async (id: string) => {
 });
 
 /** Their career path and the first page of their votes, shared by the metadata and the page; null when unavailable. */
-const loadPath = cache(async (id: string) => (/^\d+$/.test(id) ? tryPersonPath("deputy", id) : null));
+const loadPath = cache(async (id: string) => (/^\d{1,9}$/.test(id) ? tryPersonPath("deputy", id) : null));
 const VOTES_SHOWN = 20;
 const loadVotes = cache(async (id: string) =>
-  /^\d+$/.test(id) ? getDeputyVotes(Number(id), { limit: VOTES_SHOWN }).catch(() => null) : null,
+  /^\d{1,9}$/.test(id) ? getDeputyVotes(Number(id), { limit: VOTES_SHOWN }).catch(() => null) : null,
 );
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

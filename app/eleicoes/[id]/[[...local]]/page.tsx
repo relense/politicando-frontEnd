@@ -59,10 +59,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const result = await resolve(props);
   if (!result) return { title: "Eleição não encontrada" };
   const where = result.place.level === "global" ? "" : ` em ${result.place.name}`;
+  // A body other than the main one (the Assembleia Municipal in autárquicas) is its own page, with its own results.
+  const organ = result.organ === result.election.organs[0] ? null : result.organ;
+  const body = organ ? ` · ${ORGAN_LABELS[organ] ?? organ}` : "";
   return {
-    title: `${result.election.name}${where}`,
-    description: `Resultados das ${result.election.name}${where}: votos, percentagens e mandatos de cada lista, e a participação.`,
-    alternates: { canonical: electionPath(result.election.id, result.place.level === "global" ? null : result.place.key) },
+    title: `${result.election.name}${where}${body}`,
+    description: `Resultados das ${result.election.name}${where}${body}: votos, percentagens e mandatos de cada lista, e a participação.`,
+    alternates: { canonical: electionPath(result.election.id, result.place.level === "global" ? null : result.place.key, organ) },
   };
 }
 

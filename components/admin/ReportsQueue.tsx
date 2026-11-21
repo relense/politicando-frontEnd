@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { getReports, REPORT_REASON_LABELS, resolveReport, type Report } from "@/lib/api/admin";
 import { formatDateTime } from "@/lib/format";
-import { buttonClass, Empty, ErrorNote, Tabs, useExpiry } from "./ui";
+import { buttonClass, Empty, ErrorNote, Tabs, useExpiry, useExpiryOf } from "./ui";
 
 const KIND_LABELS: Record<Report["kind"], string> = {
   thread: "Discussão",
@@ -20,6 +20,8 @@ function hrefOf(report: Report): string | null {
   if (!target) return null;
   if (report.kind === "article") return `/article/${report.targetId}`;
   if (report.kind === "comment" && target.articleId) return `/article/${target.articleId}#comentarios`;
+  if (report.kind === "comment" && target.storyId) return `/historias/${target.storyId}#comentarios`;
+  // A comment on a blog post: the API sends the post's id, but its page is by slug.
   // The thread page moves to the right board on its own.
   if (target.threadId) return `/forum/geral/${target.threadId}${report.kind === "post" ? `#post-${report.targetId}` : ""}`;
   return null;
@@ -36,7 +38,7 @@ export function ReportsQueue() {
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-reports"] }),
     onError: expiry,
   });
-  if (reports.isError) expiry(reports.error);
+  useExpiryOf(reports.error);
 
   return (
     <section aria-labelledby="denuncias">

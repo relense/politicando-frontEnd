@@ -64,7 +64,7 @@ export default async function PartyPage({ params, searchParams }: Props) {
   const { party } = await resolveParty(name);
   if (!party) notFound();
   // Old links such as /partido/l keep working and move to the current address.
-  if (name !== party.slug) permanentRedirect(partyPath(party.slug));
+  if (name !== party.slug) permanentRedirect(`${partyPath(party.slug)}${typeof ver === "string" ? `?ver=${encodeURIComponent(ver)}` : ""}`);
 
   // The news tab (the usual one) doesn't depend on the seats, so its news start loading now too.
   const news = !ver || ver === "noticias" ? getFeedPage({ party: party.slug, limit: FEED_PAGE_SIZE }) : null;

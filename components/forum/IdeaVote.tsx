@@ -35,6 +35,18 @@ const remember = (id: number) => {
   }
   window.dispatchEvent(new Event(EVENT));
 };
+/** The vote didn't count: not remembered, so the button works again after a reload. */
+const forget = (id: number) => {
+  try {
+    const ids = readVoted()
+      .split(",")
+      .filter((value) => value && value !== String(id));
+    window.localStorage.setItem(KEY, ids.join(","));
+  } catch {
+    // Nothing remembered to take back.
+  }
+  window.dispatchEvent(new Event(EVENT));
+};
 
 /** An answer from outside the button (the vote finished after logging in). */
 export function applyIdeaAnswer(id: number, score: number) {
@@ -79,6 +91,7 @@ export function IdeaVote({
       if (reader) markFollowed("thread", id);
     } catch (error) {
       setCount(score);
+      forget(id);
       setFailed(error instanceof ApiError && error.code === "login_required" ? "account" : "error");
     }
   }

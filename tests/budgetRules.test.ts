@@ -81,6 +81,9 @@ describe("the State Budget's rules (lib/budget)", () => {
   it("shares of a party's votes on others' proposals, absences left out", () => {
     expect(choiceShares({ favor: 1, against: 2, abstention: 1, absent: 6 })).toEqual({ favor: 25, abstention: 25, against: 50 });
     expect(choiceShares({ favor: 0, against: 0, abstention: 0, absent: 0 })).toBeNull();
+    // Rounded so they add up to 100, never below 0.
+    expect(choiceShares({ favor: 1, against: 0, abstention: 7, absent: 0 })).toEqual({ favor: 13, abstention: 87, against: 0 });
+    expect(choiceShares({ favor: 1, against: 1, abstention: 1, absent: 0 })).toEqual({ favor: 34, abstention: 33, against: 33 });
   });
 
   it("the Budget's headline votes and its stage", () => {
