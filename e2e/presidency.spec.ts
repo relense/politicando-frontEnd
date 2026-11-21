@@ -9,6 +9,8 @@ test("president page: profile, the laws in this term, the explainer and former P
   await expect(page.getByText("promulgadas", { exact: true })).toBeVisible();
   // Each veto counts (a law vetoed twice is 2): vetoes, not laws.
   await expect(page.getByText("vetos", { exact: true })).toBeVisible();
+  // Decisions, not decrees: a law vetoed and then promulgated is two.
+  await expect(page.getByText(/^45 decisões sobre decretos da Assembleia da República, e \d+ à espera\.$/)).toBeVisible();
   await expect(page.getByText(/71 promulgadas e 5 vetos, 2 deles por inconstitucionalidade\./)).toBeVisible();
   await expect(page.getByRole("heading", { name: /Na secretária do Presidente/ })).toBeVisible();
   const desk = page.getByRole("region", { name: /Na secretária do Presidente/ });

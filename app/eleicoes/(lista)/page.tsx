@@ -28,7 +28,8 @@ async function loadElections(): Promise<{ elections: Election[]; upcoming: Upcom
   try {
     return await getElectionsMenu();
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
+    // Not served yet (404) or the API down: the page's calm state, never the error page.
+    if (error instanceof ApiError) return null;
     throw error;
   }
 }

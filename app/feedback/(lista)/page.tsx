@@ -51,7 +51,8 @@ export default async function FeedbackPage({ searchParams }: Props) {
   const { sort, status, page } = boardQuery(params);
   const notThere = (error: unknown) => {
     // The board isn't there yet: the page says so, calmly, instead of failing.
-    if (error instanceof ApiError && error.status === 404) return null;
+    // Not served yet (404) or the API down: the page's calm state, never the error page.
+    if (error instanceof ApiError) return null;
     throw error;
   };
   const [ideas, done, summary] = await Promise.all([

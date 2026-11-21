@@ -101,8 +101,29 @@ const icsInstant = (value: string) =>
 const icsText = (text: string) =>
   text
     .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
+    .replace(/\r\n?|\n/g, "\\n")
     .replace(/([,;])/g, "\\$1");
+
+/** RFC 5545: lines of at most 75 octets, the rest on lines that start with a space; never inside a character. */
+function foldLine(line: string): string {
+  const encoder = new TextEncoder();
+  const parts: string[] = [];
+  let current = "";
+  let size = 0;
+  for (const char of line) {
+    const bytes = encoder.encode(char).length;
+    // The first line takes 75 octets; the next ones 74 after their space.
+    if (size + bytes > (parts.length === 0 ? 75 : 74)) {
+      parts.push(current);
+      current = "";
+      size = 0;
+    }
+    current += char;
+    size += bytes;
+  }
+  parts.push(current);
+  return parts.join("\r\n ");
+}
 
 /** One event as an iCalendar file, for "Adicionar ao calendário". */
 export function toIcs(item: AgendaItem, pageUrl: string, now = new Date()): string {
@@ -132,7 +153,7 @@ export function toIcs(item: AgendaItem, pageUrl: string, now = new Date()): stri
     "END:VEVENT",
     "END:VCALENDAR",
   ];
-  return lines.join("\r\n") + "\r\n";
+  return lines.map(foldLine).join("\r\n") + "\r\n";
 }
 
 /** A map link for a place: its coordinates when known, else its address. */

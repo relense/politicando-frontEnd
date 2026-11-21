@@ -113,9 +113,13 @@ export function byChoice(vote: BudgetVote): Record<BudgetChoice, string[]> {
 export function choiceShares(votes: Record<BudgetChoice, number>): { favor: number; abstention: number; against: number } | null {
   const total = votes.favor + votes.abstention + votes.against;
   if (total === 0) return null;
-  const favor = Math.round((votes.favor / total) * 100);
-  const abstention = Math.round((votes.abstention / total) * 100);
-  return { favor, abstention, against: 100 - favor - abstention };
+  // Largest remainders: whole numbers that add up to 100 (rounding each could give 101, and a negative «contra»).
+  const keys = ["favor", "abstention", "against"] as const;
+  const exact = keys.map((key) => (votes[key] / total) * 100);
+  const shares = exact.map(Math.floor);
+  const order = keys.map((_, index) => index).sort((a, b) => exact[b]! - shares[b]! - (exact[a]! - shares[a]!) || a - b);
+  for (let left = 100 - shares.reduce((sum, value) => sum + value, 0), at = 0; left > 0; left--, at++) shares[order[at]!]! += 1;
+  return { favor: shares[0]!, abstention: shares[1]!, against: shares[2]! };
 }
 
 const GENERAL = /generalidade/i;

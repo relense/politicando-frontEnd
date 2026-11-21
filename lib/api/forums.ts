@@ -71,11 +71,7 @@ const threadDetailSchema = z.object({
   posts: z.array(postSchema),
   hasMore: z.boolean(),
   /** The next page in the same sort (`?cursor=`), null at the end. Opaque: pass it back as given. */
-  nextCursor: z
-    .string()
-    .nullish()
-    .catch(null)
-    .transform((value) => value ?? null),
+  nextCursor: z.string().nullable().catch(null),
 });
 
 const createdSchema = z.object({ id: z.number(), posterId: z.string() });
@@ -199,8 +195,7 @@ export function mapThreadSummary(thread: z.infer<typeof threadSummarySchema>): T
   return { ...thread, ...ideaFields(thread), link: mapThreadLink(thread.link) };
 }
 
-type ThreadDetailApi = z.infer<typeof threadDetailSchema>;
-export function mapThreadDetail(detail: Omit<ThreadDetailApi, "nextCursor"> & { nextCursor?: string | null }): ThreadDetail {
+export function mapThreadDetail(detail: z.infer<typeof threadDetailSchema>): ThreadDetail {
   const { statusHistory, ...thread } = detail.thread;
   return {
     ...detail,
@@ -214,7 +209,6 @@ export function mapThreadDetail(detail: Omit<ThreadDetailApi, "nextCursor"> & { 
         .map((step) => ({ status: ideaStatusOf(step.status), at: step.at })),
     },
     posts: detail.posts.map((post) => ({ ...post, team: post.team ?? false, score: post.score ?? 0 })),
-    nextCursor: detail.nextCursor ?? null,
   };
 }
 
@@ -335,6 +329,7 @@ const FORUM_ERRORS: Record<string, string> = {
   thread_locked: "Esta discussão foi fechada pela moderação e já não aceita respostas.",
   invalid_reply: "A mensagem a que estás a responder já não está nesta discussão.",
   not_found: "Esta discussão já não existe.",
+  payload_too_large: "O texto é demasiado grande para enviar. Encurta-o; o teu texto foi mantido.",
 };
 
 /** A friendly message for a failed post, in Portuguese. */

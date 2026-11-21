@@ -65,13 +65,14 @@ describe("forum mappers", () => {
     expect(mapThreadLink({ article: { id: 12, title: "A" }, initiative: null })).toEqual({ kind: "article", id: 12, title: "A" });
     expect(mapThreadLink({ article: null, initiative: { id: 3, title: "I" } })).toEqual({ kind: "initiative", id: 3, title: "I" });
     expect(mapThreadSummary({ ...base, excerpt: "x", link: undefined }).link).toBeNull();
-    expect(mapThreadDetail({ thread: { ...base, body: "x", link: null }, posts: [], hasMore: false }).thread.link).toBeNull();
+    expect(
+      mapThreadDetail({ thread: { ...base, body: "x", link: null }, posts: [], hasMore: false, nextCursor: null }).thread.link,
+    ).toBeNull();
   });
 
-  it("the next page's cursor, passed on as given; an older API without one reads as the end", () => {
-    const detail = { thread: { ...base, body: "x", link: null }, posts: [], hasMore: true };
-    expect(mapThreadDetail(detail).nextCursor).toBeNull();
-    expect(mapThreadDetail({ ...detail, nextCursor: "dG9wOjIwMA==" }).nextCursor).toBe("dG9wOjIwMA==");
+  it("the next page's cursor, passed on as given", () => {
+    const detail = { thread: { ...base, body: "x", link: null }, posts: [], hasMore: true, nextCursor: "dG9wOjIwMA==" };
+    expect(mapThreadDetail(detail).nextCursor).toBe("dG9wOjIwMA==");
   });
 
   it("an idea's new fields: followers, expected date, duplicate, area, the status timeline; an older API reads as empty", () => {
@@ -123,6 +124,7 @@ describe("forum mappers", () => {
         { id: 32, body: "Ok", nickname: null, posterId: "a", isOp: false, replyTo: null, createdAt: base.createdAt, hidden: false },
       ],
       hasMore: false,
+      nextCursor: null,
     });
     // An unknown status in the history is left out, not guessed.
     expect(detail.thread.statusHistory).toEqual([

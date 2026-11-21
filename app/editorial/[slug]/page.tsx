@@ -11,7 +11,7 @@ import { PostImporta } from "@/components/PostImporta";
 import { CommentSection } from "@/components/CommentSection";
 import { ApiError, getComments, getEditorialPost } from "@/lib/api/client";
 import { editorialPath, isAudio, KIND_LABELS, readingLabel } from "@/lib/editorial";
-import { commentLinkLabel, excerpt, formatLongDate, readsLabel } from "@/lib/format";
+import { commentLinkLabel, decodeParam, excerpt, formatLongDate, readsLabel } from "@/lib/format";
 import { localPost } from "@/lib/localPosts";
 import { plainText, renderMarkdown, sectionsOf } from "@/lib/markdown";
 import { clip, OG_BASE, pageTitle } from "@/lib/seo";
@@ -21,11 +21,13 @@ import { SaveButton } from "@/components/account/SaveButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
-async function loadPost(slug: string): Promise<EditorialDetail> {
-  const own = localPost(decodeURIComponent(slug));
+async function loadPost(raw: string): Promise<EditorialDetail> {
+  const slug = decodeParam(raw);
+  if (slug === null) notFound();
+  const own = localPost(slug);
   if (own) return own;
   try {
-    return await getEditorialPost(decodeURIComponent(slug));
+    return await getEditorialPost(slug);
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.status === 400)) notFound();
     throw error;

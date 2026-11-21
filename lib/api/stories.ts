@@ -1,9 +1,9 @@
 import { decode } from "he";
 import { z } from "zod";
 import type { Article, PersonMention } from "@/lib/types";
-import { formatRelative, lisbonDay } from "@/lib/format";
+import { formatRelative, lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
-import { cached, request, searchOf } from "./client";
+import { cached, idBatches, request, searchOf } from "./client";
 import { mapArticle, safeHttpUrl } from "./mappers";
 import { articleSchema, peopleSchema } from "./schemas";
 
@@ -92,7 +92,9 @@ const storyDetailSchema = storySchema.extend({
     .nullish(),
 });
 
-const storyPageSchema = z.object({ items: z.array(storySchema), nextCursor: z.string().nullable(), total: z.number().nullish() });
+/** A story with no version left (its articles hidden or removed) has nothing to show or open: left out. */
+export const storyListSchema = z.array(storySchema).transform((items) => items.filter((item) => item.sources.length > 0));
+const storyPageSchema = z.object({ items: storyListSchema, nextCursor: z.string().nullable(), total: z.number().nullish() });
 
 export type StoryTag = { slug: string; label: string; name: string; kind: string };
 export type StoryVersion = {
@@ -239,6 +241,7 @@ export async function getStories({ party, source, q, tag, sort, period, cursor, 
 export async function getStory(id: number): Promise<StoryDetail | null> {
   try {
     const api = await request(`/stories/${id}`, storyDetailSchema, cached);
+    if (api.sources.length === 0) return null;
     return {
       ...mapStory(api),
       articles: api.articles.map(mapArticle),
@@ -263,9 +266,9 @@ export function freshnessLine(story: Pick<Story, "recentSourceCount" | "firstPub
   const count = story.recentSourceCount;
   const began = lisbonDay(story.firstPublishedAt);
   const since =
-    began === lisbonDay(new Date(now).toISOString())
+    began === lisbonDayFrom(now, 0)
       ? null
-      : began === lisbonDay(new Date(now - 86_400_000).toISOString())
+      : began === lisbonDayFrom(now, -1)
         ? "desde ontem"
         : `desde ${weekday.format(new Date(story.firstPublishedAt)).replace("-feira", "")}`;
   return [count === null ? null : `${count} ${count === 1 ? "jornal" : "jornais"}`, formatRelative(story.lastPublishedAt, now), since]
@@ -276,7 +279,7 @@ export function freshnessLine(story: Pick<Story, "recentSourceCount" | "firstPub
 /** "Hoje em 5": the stories of the last 24 hours that matter most. Empty when the API can't say. */
 export async function getToday(): Promise<Story[]> {
   try {
-    const { items } = await request("/today", z.object({ items: z.array(storySchema) }), cached);
+    const { items } = await request("/today", z.object({ items: storyListSchema }), cached);
     return items.map(mapStory);
   } catch {
     return [];
@@ -292,13 +295,15 @@ export async function markImporta(id: number, value: 1 | 0): Promise<{ importa: 
   });
 }
 
-/** The saved stories, by id, from the browser and never cached. */
+/** The saved stories, by id (newest first: the first 100 are asked for), from the browser and never cached. */
 export async function getStoriesByIds(ids: number[]): Promise<Story[]> {
   if (ids.length === 0) return [];
-  const page = await request(`/stories${searchOf({ ids: ids.slice(-100).join(","), limit: Math.min(ids.length, 50) })}`, storyPageSchema, {
-    cache: "no-store",
-  });
-  return page.items.map(mapStory);
+  const pages = await Promise.all(
+    idBatches(ids).map((batch) =>
+      request(`/stories${searchOf({ ids: batch.join(","), limit: batch.length })}`, storyPageSchema, { cache: "no-store" }),
+    ),
+  );
+  return pages.flatMap((page) => page.items.map(mapStory)).sort((a, b) => b.lastPublishedAt.localeCompare(a.lastPublishedAt));
 }
 
 /** The version whose headline is the story's, or the first one: whose name heads the card and whose page it opens. */

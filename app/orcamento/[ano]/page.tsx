@@ -9,8 +9,16 @@ type Props = { params: Promise<{ ano: string }>; searchParams: Promise<BudgetSea
 
 const requestTime = () => Date.now();
 
+/** The reader's filters, kept across the redirect. */
+function withQuery(path: string, search: Record<string, string | string[] | undefined>): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) for (const item of [value ?? []].flat()) query.append(key, item);
+  return query.size > 0 ? `${path}?${query}` : path;
+}
+
 async function find(ano: string) {
-  const budgets = await loadBudgets();
+  // The API down is an error page (try again), not «não encontrada».
+  const budgets = await loadBudgets({ strict: true });
   const year = /^\d{4}$/.test(ano) ? budgets?.years.find((item) => item.year === Number(ano)) : undefined;
   return budgets && year ? { budgets, year } : null;
 }
@@ -32,7 +40,7 @@ export default async function BudgetYearPage({ params, searchParams }: Props) {
   if (!found) notFound();
   const { budgets, year } = found;
   // The current Budget lives at /orcamento.
-  if (year.year === budgets.current.year) redirect("/orcamento");
+  if (year.year === budgets.current.year) redirect(withQuery("/orcamento", search));
   const now = requestTime();
   const loaded = await loadBudgetYear(year, false, search, now);
   return <BudgetYearView year={year} years={budgets.years} current={false} currentYear={budgets.current.year} loaded={loaded} now={now} />;

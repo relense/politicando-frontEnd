@@ -3,15 +3,16 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { markSignedOut, pullAccountState, useReader, type LoginAsk } from "@/lib/account";
+import { forgetAccount, markSignedOut, pullAccountState, READER_KEY, useReader, type LoginAsk } from "@/lib/account";
 import type { Reader } from "@/lib/api/account";
-import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, voteArticle } from "@/lib/api/client";
-import { voteThread } from "@/lib/api/forums";
+import { createComment, likeComment, LOGIN_REQUIRED_EVENT, markPost, SESSION_ENDED_EVENT, voteArticle } from "@/lib/api/client";
+import { votePost, voteThread } from "@/lib/api/forums";
 import { markImporta } from "@/lib/api/stories";
 import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
 import { applyVoteAnswer } from "../ArticleVote";
 import { applyLikeAnswer } from "../CommentLike";
 import { applyIdeaAnswer } from "../forum/IdeaVote";
+import { applyReplyAnswer } from "../ideas/ReplyVote";
 import { applyImportaAnswer } from "../ImportaButton";
 import { applyPostAnswer } from "../PostImporta";
 import { useReturnPath } from "./AccountMenu";
@@ -65,11 +66,22 @@ export function AccountRuntime() {
   useEffect(() => {
     const listen = (event: Event) => {
       const detail = event instanceof CustomEvent ? (event.detail as LoginAsk | undefined) : undefined;
+      // The API said login_required while the header still shows a reader: the session ended (expired, or logged out
+      // elsewhere). Forget it, so the note shows instead of the action silently doing nothing.
+      if (!detail && client.getQueryData(READER_KEY)) forgetAccount(client);
       setAsk(detail ?? { kind: "any", anchor: null, pending: null });
     };
+    // Found by a read (the inbox, /me/state): forgotten quietly, the header turns logged out; no note opens.
+    const ended = () => {
+      if (client.getQueryData(READER_KEY)) forgetAccount(client);
+    };
     window.addEventListener(LOGIN_REQUIRED_EVENT, listen);
-    return () => window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
-  }, []);
+    window.addEventListener(SESSION_ENDED_EVENT, ended);
+    return () => {
+      window.removeEventListener(LOGIN_REQUIRED_EVENT, listen);
+      window.removeEventListener(SESSION_ENDED_EVENT, ended);
+    };
+  }, [client]);
 
   useEffect(() => {
     if (!done) return;
@@ -140,6 +152,9 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
       case "idea":
         applyIdeaAnswer(action.id, await voteThread(action.id));
         return { text: "Sessão iniciada. O teu voto na ideia contou." };
+      case "reply":
+        applyReplyAnswer(action.id, await votePost(action.id));
+        return { text: "Sessão iniciada. O teu voto no comentário contou." };
     }
   } catch {
     // The comment stays in its box (its draft), to publish by hand.

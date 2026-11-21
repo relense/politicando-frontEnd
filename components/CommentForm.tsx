@@ -24,6 +24,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   rate_limited: "Estás a comentar depressa demais. O teu texto foi mantido; espera um minuto e tenta novamente.",
   invalid_parent: "O comentário a que estás a responder já não está disponível.",
   login_required: "Entra na tua conta para comentar. O teu texto foi mantido.",
+  payload_too_large: "O comentário é demasiado grande para enviar. Encurta-o; o teu texto foi mantido.",
 };
 const DEFAULT_ERROR = "Não foi possível publicar o comentário. O teu texto foi mantido; tenta novamente.";
 

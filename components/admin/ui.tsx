@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api/client";
 import { adminErrorMessage } from "@/lib/api/admin";
 import { ME_KEY } from "./AdminShell";
@@ -14,6 +14,14 @@ export function signOutOnExpiry(client: QueryClient, error: unknown) {
 export function useExpiry() {
   const client = useQueryClient();
   return (error: unknown) => signOutOnExpiry(client, error);
+}
+
+/** A query's error that says the session ended signs out, after rendering (never while rendering another component). */
+export function useExpiryOf(error: unknown) {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (error) signOutOnExpiry(client, error);
+  }, [client, error]);
 }
 
 export const buttonClass = (tone: "plain" | "danger" | "ink" = "plain") =>

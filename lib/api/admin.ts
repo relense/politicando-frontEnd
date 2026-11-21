@@ -1,3 +1,4 @@
+import { editorialPath } from "@/lib/editorial";
 import { z } from "zod";
 import type { IdeaStatusBody } from "@/lib/ideaAdmin";
 import { ApiError } from "./client";
@@ -123,6 +124,7 @@ const reportSchema = z.object({
       threadId: z.number().nullable().optional(),
       articleId: z.number().nullable().optional(),
       postId: z.number().nullable().optional(),
+      storyId: z.number().nullish().catch(null),
     })
     .nullable(),
 });
@@ -135,10 +137,17 @@ export const resolveReport = (kind: ReportKind, targetId: number, action: "hide"
 
 /* Comments */
 
+const optionalId = z.number().nullish().catch(null);
+const optionalTitle = z.string().nullish().catch(null);
+/** On a news article, a story or an editorial post (admin-api.md): the other ids are null. */
 const commentSchema = z.object({
   id: z.number(),
-  articleId: z.number(),
-  articleTitle: z.string().nullable().optional(),
+  articleId: optionalId,
+  articleTitle: optionalTitle,
+  storyId: optionalId,
+  storyTitle: optionalTitle,
+  postSlug: optionalTitle,
+  postTitle: optionalTitle,
   parentId: z.number().nullable(),
   username: z.string().nullable(),
   body: z.string(),
@@ -146,6 +155,16 @@ const commentSchema = z.object({
   hiddenAt: z.string().nullable(),
 });
 export type AdminComment = z.infer<typeof commentSchema>;
+
+/** Where a comment is on the site, and its name there; null when the API doesn't say. */
+export function commentPlace(comment: AdminComment): { href: string; label: string } | null {
+  if (comment.articleId)
+    return { href: `/article/${comment.articleId}#comentarios`, label: comment.articleTitle ?? `Notícia #${comment.articleId}` };
+  if (comment.storyId)
+    return { href: `/historias/${comment.storyId}#comentarios`, label: comment.storyTitle ?? `História #${comment.storyId}` };
+  if (comment.postSlug) return { href: `${editorialPath(comment.postSlug)}#comentarios`, label: comment.postTitle ?? "Artigo do blog" };
+  return null;
+}
 export type CommentStatus = "visible" | "hidden" | "all";
 export const COMMENTS_PAGE = 50;
 
@@ -355,7 +374,7 @@ export function adminErrorMessage(error: unknown): string {
     case "published":
       return "Despublica o artigo antes de o apagar.";
     case "payload_too_large":
-      return "O texto é demasiado longo: o máximo são 100 000 caracteres.";
+      return "É demasiado grande para enviar (um artigo pode ter até 100 000 caracteres). Encurta-o e tenta outra vez.";
     case "validation_failed":
       return error instanceof ApiError ? `Falta ou está mal um campo: ${error.message}` : "Falta ou está mal um campo.";
     default:

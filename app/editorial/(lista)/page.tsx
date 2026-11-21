@@ -92,7 +92,10 @@ async function loadAll(): Promise<EditorialPost[]> {
       if (posts.length >= result.total || result.items.length === 0) break;
     }
   } catch (error) {
-    if (!(error instanceof ApiError && (error.status === 404 || error.status === 400))) throw error;
+    // None served, or the API down from the start: our own posts, instead of the error page. A later page that isn't
+    // there (404/400: posts unpublished since the cached first page) ends the list; down half-way is the error page,
+    // never a cut list shown as whole.
+    if (!(error instanceof ApiError) || (posts.length > 0 && error.status !== 404 && error.status !== 400)) throw error;
   }
   const own = localPosts().filter((post) => !posts.some((item) => item.slug === post.slug));
   return [...posts, ...own].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));

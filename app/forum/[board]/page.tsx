@@ -48,7 +48,12 @@ async function loadBoard(slug: string): Promise<Board> {
   if (!/^[a-z0-9-]{1,50}$/.test(slug)) notFound();
   // Ideas have their own page, with votes.
   if (slug === IDEAS_BOARD) redirect("/feedback");
-  const board = (await getBoards().catch(() => [])).find((item) => item.board === slug);
+  // No forum served (404): not found. The API down is an error page (try again), never «não encontrado» for a board that exists.
+  const boards = await getBoards().catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) return [];
+    throw error;
+  });
+  const board = boards.find((item) => item.board === slug);
   if (!board) notFound();
   return board;
 }

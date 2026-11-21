@@ -1,3 +1,4 @@
+import { isSitePath } from "./mappers";
 import { z } from "zod";
 import { ApiError, request } from "./client";
 
@@ -240,5 +241,4 @@ export function accountErrorMessage(error: unknown): string {
 }
 
 /** Only paths on this site, so a link can't send someone elsewhere after logging in. */
-export const safeReturn = (value: string | undefined) =>
-  value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/";
+export const safeReturn = (value: string | undefined) => (isSitePath(value) ? value : "/");
