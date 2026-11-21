@@ -76,7 +76,9 @@ export type BudgetProposal = {
 export type BudgetNews = { id: number; title: string; source: string; url: string | null; publishedAt: string | null };
 export type BudgetStatement = {
   party: BudgetParty | null;
-  deputy: string | null;
+  /** Who said it; null when it was the party itself. */
+  speaker: string | null;
+  /** A short quote (in «» or quotes, as the article has it) or a faithful paraphrase: shown as is. */
   text: string;
   articleId: number;
   articleTitle: string;
@@ -169,7 +171,7 @@ const newsSchema = z.object({
 });
 const statementSchema = z.object({
   party: partySchema.nullish(),
-  deputy: z.string().nullish(),
+  speaker: z.string().nullish(),
   text: z.string().min(1),
   articleId: z.number(),
   articleTitle: z.string().nullish(),
@@ -343,7 +345,7 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
       .sort((a, b) => moment(b.publishedAt) - moment(a.publishedAt)),
     statements: raw.statements.map((item) => ({
       party: item.party ? mapParty(item.party) : null,
-      deputy: item.deputy?.trim() || null,
+      speaker: item.speaker?.trim() || null,
       text: decode(item.text),
       articleId: item.articleId,
       articleTitle: decode(item.articleTitle ?? ""),
