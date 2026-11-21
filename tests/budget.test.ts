@@ -52,6 +52,9 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     const proposal = await getBudgetProposal(2027, 28301);
     expect(proposal!.news.map((item) => item.id)).toEqual([100, 98]);
     expect(proposal!.news[0]).toMatchObject({ source: expect.any(String), url: "https://example.com/noticia/100" });
+    // Outlets' titles come HTML-encoded, as on the feed: decoded, shown as text.
+    expect(proposal!.news[0]!.title).toContain("o orçamento & a saúde");
+    expect(proposal!.statements[0]!.articleTitle).toContain("& a saúde");
     expect(proposal!.statements[0]).toMatchObject({ party: { slug: "psd", acronym: "PSD" }, deputy: "Rui Valadares", articleId: 100 });
     expect(await getBudgetProposal(2027, 28302)).toMatchObject({ news: [], statements: [] });
     // The list sends only «O que muda».
