@@ -1,5 +1,5 @@
 import { getBudgetProposal } from "@/lib/api/budget";
-import { authorsPhrase, proposalHeading, RESULT_LABELS } from "@/lib/budget";
+import { authorsPhrase, RESULT_LABELS } from "@/lib/budget";
 import { budgetOgCard } from "@/lib/budgetOg";
 import { ogCard, OG_SIZE, OG_TYPE } from "@/lib/ogCard";
 import { partyColor } from "@/lib/parliament";
@@ -18,7 +18,7 @@ export default async function Image({ params }: { params: Promise<{ ano: string;
   const by = authorsPhrase(proposal.authors);
   return ogCard({
     kicker: `Orçamento ${proposal.year} · proposta n.º ${proposal.number}`,
-    title: proposalHeading(proposal).main,
+    title: proposal.title,
     subtitle: `${RESULT_LABELS[proposal.result]}${by ? ` · proposta ${by}` : ""}`,
     color: proposal.authors.parties[0] ? partyColor(proposal.authors.parties[0].slug) : undefined,
   });

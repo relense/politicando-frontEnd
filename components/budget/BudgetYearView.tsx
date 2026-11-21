@@ -9,7 +9,6 @@ import {
   headlineVotes,
   partyFull,
   partyShort,
-  proposalHeading,
   sessionTime,
 } from "@/lib/budget";
 import { budgetFilters, budgetPath, queryOf, RESULT_TABS, TAB_RESULTS, type BudgetFilters, type BudgetSearch } from "@/lib/budgetFilters";
@@ -268,11 +267,12 @@ export function BudgetYearView({
                     </p>
                   )}
                   <p className={`${label} mt-2 text-muted`}>Última votação</p>
-                  <h3 className="mt-1 font-serif text-xl font-bold leading-snug [overflow-wrap:anywhere]">
-                    {proposalHeading(todayVoted[0]!).main}
-                  </h3>
+                  <h3 className="mt-1 font-serif text-xl font-bold leading-snug [overflow-wrap:anywhere]">{todayVoted[0]!.title}</h3>
                   {todayVoted[0]!.plain && (
-                    <p className="font-mono text-[11px] text-muted [overflow-wrap:anywhere]">{todayVoted[0]!.title}</p>
+                    <p className="mt-1 text-sm leading-snug [overflow-wrap:anywhere]">
+                      <span className="mr-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-muted">Resumo</span>
+                      {todayVoted[0]!.plain.summary}
+                    </p>
                   )}
                   <ProposalMeta proposal={todayVoted[0]!} today={today} />
                   <p className="mt-3 flex flex-wrap gap-2">
@@ -301,7 +301,7 @@ export function BudgetYearView({
                       <li key={proposal.id} className="flex items-start gap-2">
                         <ResultBadge result={proposal.result} />
                         <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
-                          {proposalHeading(proposal).main}
+                          {proposal.title}
                         </Link>
                       </li>
                     ))}

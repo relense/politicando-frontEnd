@@ -63,11 +63,6 @@ export function authorsShort(authors: BudgetProposal["authors"]): string {
   return names.length > 0 ? names.join(", ") : (authors.label ?? "");
 }
 
-/** The heading: «O que muda» when written, with the official title (often just which paragraphs change) under it. */
-export function proposalHeading(proposal: Pick<BudgetProposal, "title" | "plain">): { main: string; official: string | null } {
-  return proposal.plain ? { main: proposal.plain.summary, official: proposal.title } : { main: proposal.title, official: null };
-}
-
 /** «Votada a 19-11-2026, em Comissão»: the last vote, which decided it. */
 export function votedLine(proposal: { votes: { votedOn: string | null; phase: "committee" | "plenary" | null }[] }): string | null {
   const last = proposal.votes.findLast((vote) => vote.votedOn);
