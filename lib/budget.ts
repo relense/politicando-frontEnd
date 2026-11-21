@@ -249,12 +249,15 @@ export function authorsPhrase(authors: BudgetProposal["authors"]): string | null
 /** The parliament writes «Rejeitado(a) em Comissão»; a proposal is feminine. */
 export const tidyStatus = (status: string | null): string | null => status?.replace(/o\(a\)/g, "a") ?? null;
 
+/** When it was published, as a number to sort by (any UTC offset); undated last. */
+const momentOf = (value: string | null) => (value && Date.parse(value)) || 0;
+
 /**
  * «O que disseram», by party: statements without a party are left out (owner's call); the party whose latest
  * statement is newest comes first, and each party's statements newest first.
  */
 export function statementGroups(statements: BudgetStatement[]): { party: BudgetParty; statements: BudgetStatement[] }[] {
-  const newest = (a: BudgetStatement, b: BudgetStatement) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+  const newest = (a: BudgetStatement, b: BudgetStatement) => momentOf(b.publishedAt) - momentOf(a.publishedAt);
   const groups = new Map<string, { party: BudgetParty; statements: BudgetStatement[] }>();
   for (const statement of [...statements].sort(newest)) {
     if (!statement.party) continue;

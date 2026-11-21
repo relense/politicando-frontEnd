@@ -145,6 +145,8 @@ const list = <T extends z.ZodTypeAny>(item: T) =>
     .nullish()
     .transform((items) => items ?? []);
 const partySchema = z.object({ slug: z.string(), acronym: z.string().nullish(), name: z.string().nullish() });
+/** When it was published, to sort by (any UTC offset); undated last. */
+const moment = (value: string | null) => (value && Date.parse(value)) || 0;
 /** A newer field: a bad item is left out and a bad list reads as none, never a broken page. */
 const looseList = <T extends z.ZodTypeAny>(item: T) =>
   z
@@ -336,7 +338,7 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
         url: safeHttpUrl(item.url ?? null),
         publishedAt: item.publishedAt ?? null,
       }))
-      .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")),
+      .sort((a, b) => moment(b.publishedAt) - moment(a.publishedAt)),
     statements: raw.statements.map((item) => ({
       party: item.party ? mapParty(item.party) : null,
       deputy: item.deputy?.trim() || null,

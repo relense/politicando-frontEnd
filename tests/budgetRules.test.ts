@@ -280,5 +280,8 @@ describe("«O que disseram», grouped by party", () => {
     expect(groups.map((group) => group.party.slug)).toEqual(["ps", "psd", "chega"]);
     expect(groups[0]!.statements.map((item) => item.text)).toEqual(["ps nova", "ps antiga"]);
     expect(statementGroups([said(null, null)])).toEqual([]);
+    // By the moment, not the text: 10:30 in Lisbon summer time (+01:00) is before 10:00 UTC.
+    const mixed = statementGroups([said("ps", "2026-07-01T10:30:00+01:00", "antes"), said("ps", "2026-07-01T10:00:00Z", "depois")]);
+    expect(mixed[0]!.statements.map((item) => item.text)).toEqual(["depois", "antes"]);
   });
 });
