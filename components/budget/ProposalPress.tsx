@@ -15,7 +15,7 @@ export function ProposalStatements({ statements }: { statements: BudgetStatement
       <h2 id="disseram" className={heading}>
         O que disseram
       </h2>
-      <p className="mt-2 font-mono text-[11px] text-muted">Declarações recolhidas das notícias, não do Parlamento.</p>
+      <p className="mt-2 font-mono text-[11px] text-muted">Declarações recolhidas das notícias, não do registo do Parlamento.</p>
       <div className="mt-3 flex flex-col gap-5">
         {groups.map(({ party, statements: said }) => (
           <div key={party.slug}>
@@ -26,9 +26,11 @@ export function ProposalStatements({ statements }: { statements: BudgetStatement
             <ul className="mt-2 flex flex-col gap-3 border-l-2 border-line pl-3">
               {said.map((statement, index) => (
                 <li key={`${statement.articleId}-${index}`}>
-                  <blockquote className="text-sm leading-snug [overflow-wrap:anywhere]">«{statement.text}»</blockquote>
+                  {/* As the article has it: a quote in «» or a paraphrase, never quotes of our own. */}
+                  <p className="text-sm leading-snug [overflow-wrap:anywhere]">{statement.text}</p>
                   <p className="mt-1 font-mono text-[11px] text-muted">
-                    {statement.deputy && <>{statement.deputy}, </>}
+                    {/* No speaker: the party itself, already named above. */}
+                    {statement.speaker && <>{statement.speaker}, </>}
                     <Link href={`/article/${statement.articleId}`} className="underline underline-offset-2 hover:text-ink">
                       segundo {statement.source || "a notícia"}
                     </Link>
