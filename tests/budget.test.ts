@@ -52,7 +52,12 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     const proposal = await getBudgetProposal(2027, 28301);
     expect(proposal!.news.map((item) => item.id)).toEqual([100, 98]);
     expect(proposal!.news[0]).toMatchObject({ source: expect.any(String), url: "https://example.com/noticia/100" });
-    expect(proposal!.statements[0]).toMatchObject({ party: { slug: "psd", acronym: "PSD" }, deputy: "Rui Valadares", articleId: 100 });
+    // Outlets' titles come HTML-encoded, as on the feed: decoded, shown as text.
+    expect(proposal!.news[0]!.title).toContain("o orçamento & a saúde");
+    expect(proposal!.statements[0]!.articleTitle).toContain("& a saúde");
+    expect(proposal!.statements[0]).toMatchObject({ party: { slug: "psd", acronym: "PSD" }, speaker: "Rui Valadares", articleId: 100 });
+    // No speaker: the party itself said it.
+    expect(proposal!.statements[1]).toMatchObject({ party: { slug: "ps" }, speaker: null });
     expect(await getBudgetProposal(2027, 28302)).toMatchObject({ news: [], statements: [] });
     // The list sends only «O que muda».
     const page = await getBudgetProposals(2027, { q: "irs" });
@@ -67,7 +72,7 @@ describe("the State Budget API (docs/budget-api.md)", () => {
       ...raw,
       news: [good, { title: "sem id" }],
       statements: [
-        { party: null, deputy: null, text: "Disse.", articleId: 7, articleTitle: "T", source: "Jornal", publishedAt: null },
+        { party: null, speaker: null, text: "Disse.", articleId: 7, articleTitle: "T", source: "Jornal", publishedAt: null },
         { text: 3 },
       ],
     });

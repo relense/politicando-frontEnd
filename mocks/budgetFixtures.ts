@@ -103,7 +103,7 @@ const proposal = (fields: {
   news?: { id: number; title: string; source: string; url: string; publishedAt: string }[];
   statements?: {
     party: { slug: string; acronym: string; name: string } | null;
-    deputy: string | null;
+    speaker: string | null;
     text: string;
     articleId: number;
     articleTitle: string;
@@ -160,8 +160,8 @@ export const budgetProposals = () => [
     statements: [
       {
         party: PARTIES.psd,
-        deputy: "Rui Valadares",
-        text: "Os mais novos ficam com mais rendimento disponível.",
+        speaker: "Rui Valadares",
+        text: "Diz que os mais novos ficam com «mais rendimento disponível».",
         articleId: 100,
         articleTitle: newsOf(100).title,
         source: newsOf(100).source,
@@ -169,8 +169,8 @@ export const budgetProposals = () => [
       },
       {
         party: PARTIES.ps,
-        deputy: null,
-        text: "A medida chega a poucos jovens.",
+        speaker: null,
+        text: "«A medida chega a poucos jovens.»",
         articleId: 98,
         articleTitle: newsOf(98).title,
         source: newsOf(98).source,
@@ -178,7 +178,7 @@ export const budgetProposals = () => [
       },
       {
         party: null,
-        deputy: "Teresa Amaral",
+        speaker: "Teresa Amaral",
         text: "Uma voz sem partido indicado: fica de fora.",
         articleId: 98,
         articleTitle: newsOf(98).title,

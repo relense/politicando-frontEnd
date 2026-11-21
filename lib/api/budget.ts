@@ -1,3 +1,4 @@
+import { decode } from "he";
 import { z } from "zod";
 import type { Vote } from "@/lib/types";
 import { ApiError, cached, request, searchOf } from "./client";
@@ -75,7 +76,9 @@ export type BudgetProposal = {
 export type BudgetNews = { id: number; title: string; source: string; url: string | null; publishedAt: string | null };
 export type BudgetStatement = {
   party: BudgetParty | null;
-  deputy: string | null;
+  /** Who said it; null when it was the party itself. */
+  speaker: string | null;
+  /** A short quote (in «» or quotes, as the article has it) or a faithful paraphrase: shown as is. */
   text: string;
   articleId: number;
   articleTitle: string;
@@ -168,7 +171,7 @@ const newsSchema = z.object({
 });
 const statementSchema = z.object({
   party: partySchema.nullish(),
-  deputy: z.string().nullish(),
+  speaker: z.string().nullish(),
   text: z.string().min(1),
   articleId: z.number(),
   articleTitle: z.string().nullish(),
@@ -333,7 +336,8 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
     news: raw.news
       .map((item) => ({
         id: item.id,
-        title: item.title,
+        // Outlets' text comes HTML-encoded, as on the feed: decoded here, always rendered as text.
+        title: decode(item.title),
         source: item.source ?? "",
         url: safeHttpUrl(item.url ?? null),
         publishedAt: item.publishedAt ?? null,
@@ -341,10 +345,10 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
       .sort((a, b) => moment(b.publishedAt) - moment(a.publishedAt)),
     statements: raw.statements.map((item) => ({
       party: item.party ? mapParty(item.party) : null,
-      deputy: item.deputy?.trim() || null,
-      text: item.text,
+      speaker: item.speaker?.trim() || null,
+      text: decode(item.text),
       articleId: item.articleId,
-      articleTitle: item.articleTitle ?? "",
+      articleTitle: decode(item.articleTitle ?? ""),
       source: item.source ?? "",
       publishedAt: item.publishedAt ?? null,
     })),

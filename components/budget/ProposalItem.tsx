@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { BudgetProposal, BudgetVote } from "@/lib/api/budget";
-import { authorsShort, proposalHeading } from "@/lib/budget";
+import { authorsShort } from "@/lib/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { AmbiguityNote, ChoiceColumns, ResultBadge, VoteChips } from "./BudgetParts";
@@ -76,8 +76,13 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <ProposalMeta proposal={proposal} today={today} />
-            <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere]">{proposalHeading(proposal).main}</h3>
-            {proposal.plain && <p className="mt-0.5 font-mono text-[11px] text-muted [overflow-wrap:anywhere]">{proposal.title}</p>}
+            <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere]">{proposal.title}</h3>
+            {proposal.plain && (
+              <p className="mt-1 text-sm leading-snug [overflow-wrap:anywhere]">
+                <span className="mr-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-muted">Resumo</span>
+                {proposal.plain.summary}
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <ResultBadge result={proposal.result} />

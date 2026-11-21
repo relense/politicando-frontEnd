@@ -16,7 +16,6 @@ import {
   partyFull,
   partyLines,
   partyShort,
-  proposalHeading,
   RESULT_LABELS,
   votedLine,
 } from "@/lib/budget";
@@ -164,11 +163,6 @@ describe("names and headings readers understand (owner's review, 20 Nov)", () =>
     plain: null,
     votes: [] as { votedOn: string | null; phase: "committee" | "plenary" | null }[],
   };
-  it("«O que muda» leads when written, the official title under it; otherwise the official title alone", () => {
-    expect(proposalHeading(base)).toEqual({ main: base.title, official: null });
-    const plain = { summary: "Muda os escalões do IRS Jovem.", automatic: true, updatedAt: null };
-    expect(proposalHeading({ ...base, plain })).toEqual({ main: "Muda os escalões do IRS Jovem.", official: base.title });
-  });
   it("when and where it was voted: «Votada a 19-11-2026, em Comissão»", () => {
     expect(votedLine({ ...base, votes: [{ votedOn: "2026-11-19", phase: "committee" }] })).toBe("Votada a 19-11-2026, em Comissão");
     expect(
@@ -261,7 +255,7 @@ describe("the official status, without the source's «(a)»", () => {
 describe("«O que disseram», grouped by party", () => {
   const said = (slug: string | null, publishedAt: string | null, text = "Disse.") => ({
     party: slug ? { slug, acronym: slug.toUpperCase(), name: slug } : null,
-    deputy: null,
+    speaker: null,
     text,
     articleId: 1,
     articleTitle: "T",
