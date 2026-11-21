@@ -540,7 +540,7 @@ export const budgetHandlers = [
     const limit = Number(search.get("limit") ?? 20);
     const start = Number(search.get("cursor") ?? 0);
     // The list sends only «O que muda»: news and statements come with the single proposal.
-    const page = items.slice(start, start + limit).map(({ news: _news, statements: _statements, ...item }) => item);
+    const page = items.slice(start, start + limit).map((item) => ({ ...item, news: undefined, statements: undefined }));
     return HttpResponse.json({ items: page, nextCursor: start + limit < items.length ? String(start + limit) : null, total: items.length });
   }),
 ];
