@@ -1,4 +1,5 @@
 import { http, HttpResponse } from "msw";
+import { articles } from "./fixtures";
 
 const API = "*/api/v2";
 const SOURCE = "https://www.parlamento.pt/Cidadania/Paginas/DAOE.aspx";
@@ -99,6 +100,16 @@ const proposal = (fields: {
   votes?: ReturnType<typeof vote>[];
   resultPhase?: string | null;
   plain?: string;
+  news?: { id: number; title: string; source: string; url: string; publishedAt: string }[];
+  statements?: {
+    party: { slug: string; acronym: string; name: string } | null;
+    deputy: string | null;
+    text: string;
+    articleId: number;
+    articleTitle: string;
+    source: string;
+    publishedAt: string;
+  }[];
 }) => ({
   id: fields.id,
   year: fields.year ?? 2027,
@@ -123,7 +134,15 @@ const proposal = (fields: {
   documentUrl: `https://example.com/oe/${fields.id}.pdf`,
   sourceUrl: SOURCE,
   votes: fields.votes ?? [],
+  news: fields.news ?? [],
+  statements: fields.statements ?? [],
 });
+
+/** A mock article, as «Nas notícias» names it (mocks/fixtures.ts). */
+const newsOf = (id: number) => {
+  const item = articles.find((entry) => entry.id === id)!;
+  return { id, title: item.title, source: item.source, url: item.url!, publishedAt: item.publishedAt };
+};
 
 /** Fictional proposals in the contract's shape (docs/budget-api.md in the backend repo); votes on today's date, so "today" always has some. */
 export const budgetProposals = () => [
@@ -137,6 +156,36 @@ export const budgetProposals = () => [
     status: "Aprovado(a) em Comissão",
     authors: ["psd"],
     plain: "Muda os escalões do IRS Jovem para quem tem até 35 anos.",
+    news: [newsOf(100), newsOf(98)],
+    statements: [
+      {
+        party: PARTIES.psd,
+        deputy: "Rui Valadares",
+        text: "Os mais novos ficam com mais rendimento disponível.",
+        articleId: 100,
+        articleTitle: newsOf(100).title,
+        source: newsOf(100).source,
+        publishedAt: newsOf(100).publishedAt,
+      },
+      {
+        party: PARTIES.ps,
+        deputy: null,
+        text: "A medida chega a poucos jovens.",
+        articleId: 98,
+        articleTitle: newsOf(98).title,
+        source: newsOf(98).source,
+        publishedAt: newsOf(98).publishedAt,
+      },
+      {
+        party: null,
+        deputy: "Teresa Amaral",
+        text: "Uma voz sem partido indicado: fica de fora.",
+        articleId: 98,
+        articleTitle: newsOf(98).title,
+        source: newsOf(98).source,
+        publishedAt: newsOf(98).publishedAt,
+      },
+    ],
     votes: [vote(day(0), "approved", lines(RIGHT_FOR, { slug: "psd", deputy: "Rui Valadares", vote: "against" }))],
   }),
   proposal({
@@ -490,7 +539,8 @@ export const budgetHandlers = [
     else items = [...items].sort((a, b) => (b.lastVotedOn ?? "").localeCompare(a.lastVotedOn ?? ""));
     const limit = Number(search.get("limit") ?? 20);
     const start = Number(search.get("cursor") ?? 0);
-    const page = items.slice(start, start + limit);
+    // The list sends only «O que muda»: news and statements come with the single proposal.
+    const page = items.slice(start, start + limit).map(({ news: _news, statements: _statements, ...item }) => item);
     return HttpResponse.json({ items: page, nextCursor: start + limit < items.length ? String(start + limit) : null, total: items.length });
   }),
 ];

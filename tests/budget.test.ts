@@ -48,6 +48,34 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     expect((await getBudgetProposal(2027, 28302))?.plain).toBeNull();
   });
 
+  it("«Nas notícias» and «O que disseram»: only on the single proposal, newest first; empty until the backend fills them", async () => {
+    const proposal = await getBudgetProposal(2027, 28301);
+    expect(proposal!.news.map((item) => item.id)).toEqual([100, 98]);
+    expect(proposal!.news[0]).toMatchObject({ source: expect.any(String), url: "https://example.com/noticia/100" });
+    expect(proposal!.statements[0]).toMatchObject({ party: { slug: "psd", acronym: "PSD" }, deputy: "Rui Valadares", articleId: 100 });
+    expect(await getBudgetProposal(2027, 28302)).toMatchObject({ news: [], statements: [] });
+    // The list sends only «O que muda».
+    const page = await getBudgetProposals(2027, { q: "irs" });
+    expect(page.items[0]).toMatchObject({ news: [], statements: [] });
+  });
+
+  it("tolerates broken news or statements: a bad item is left out, a bad list reads as none", async () => {
+    const { mapBudgetProposal } = await import("@/lib/api/budget");
+    const raw = await fetchRaw();
+    const good = { id: 7, title: "Uma notícia", source: "Jornal", url: "javascript:alert(1)", publishedAt: "2026-11-20T10:00:00Z" };
+    const mapped = mapBudgetProposal({
+      ...raw,
+      news: [good, { title: "sem id" }],
+      statements: [
+        { party: null, deputy: null, text: "Disse.", articleId: 7, articleTitle: "T", source: "Jornal", publishedAt: null },
+        { text: 3 },
+      ],
+    });
+    expect(mapped.news).toEqual([{ ...good, url: null }]);
+    expect(mapped.statements).toHaveLength(1);
+    expect(mapBudgetProposal({ ...raw, news: "x", statements: { a: 1 } })).toMatchObject({ news: [], statements: [] });
+  });
+
   it("filters: still to vote is pending and sent to the plenary, together", async () => {
     const page = await getBudgetProposals(2027, { result: ["pending", "sent_to_plenary"] });
     expect(page.items.map((item) => item.result).sort()).toEqual(["pending", "pending", "sent_to_plenary"]);

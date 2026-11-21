@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
 import {
+  statementGroups,
   authorsShort,
   authorsPhrase,
   budgetBox,
@@ -254,5 +255,30 @@ describe("the official status, without the source's «(a)»", () => {
     expect(tidyStatus("Aprovado(a) em Plenário")).toBe("Aprovada em Plenário");
     expect(tidyStatus("Retirada")).toBe("Retirada");
     expect(tidyStatus(null)).toBeNull();
+  });
+});
+
+describe("«O que disseram», grouped by party", () => {
+  const said = (slug: string | null, publishedAt: string | null, text = "Disse.") => ({
+    party: slug ? { slug, acronym: slug.toUpperCase(), name: slug } : null,
+    deputy: null,
+    text,
+    articleId: 1,
+    articleTitle: "T",
+    source: "Jornal",
+    publishedAt,
+  });
+
+  it("leaves out statements without a party; the party with the newest statement first, newest first inside", () => {
+    const groups = statementGroups([
+      said("ps", "2026-11-18T10:00:00Z", "ps antiga"),
+      said(null, "2026-11-21T10:00:00Z"),
+      said("psd", "2026-11-19T10:00:00Z"),
+      said("ps", "2026-11-20T10:00:00Z", "ps nova"),
+      said("chega", null),
+    ]);
+    expect(groups.map((group) => group.party.slug)).toEqual(["ps", "psd", "chega"]);
+    expect(groups[0]!.statements.map((item) => item.text)).toEqual(["ps nova", "ps antiga"]);
+    expect(statementGroups([said(null, null)])).toEqual([]);
   });
 });

@@ -1,4 +1,13 @@
-import type { BudgetBill, BudgetChoice, BudgetParty, BudgetProposal, BudgetResult, BudgetSession, BudgetVote } from "@/lib/api/budget";
+import type {
+  BudgetBill,
+  BudgetChoice,
+  BudgetParty,
+  BudgetProposal,
+  BudgetResult,
+  BudgetSession,
+  BudgetStatement,
+  BudgetVote,
+} from "@/lib/api/budget";
 import { tidyName } from "@/lib/elections";
 import { formatDate, formatTime, lisbonDay } from "@/lib/format";
 import type { Vote } from "@/lib/types";
@@ -239,3 +248,19 @@ export function authorsPhrase(authors: BudgetProposal["authors"]): string | null
 
 /** The parliament writes «Rejeitado(a) em Comissão»; a proposal is feminine. */
 export const tidyStatus = (status: string | null): string | null => status?.replace(/o\(a\)/g, "a") ?? null;
+
+/**
+ * «O que disseram», by party: statements without a party are left out (owner's call); the party whose latest
+ * statement is newest comes first, and each party's statements newest first.
+ */
+export function statementGroups(statements: BudgetStatement[]): { party: BudgetParty; statements: BudgetStatement[] }[] {
+  const newest = (a: BudgetStatement, b: BudgetStatement) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+  const groups = new Map<string, { party: BudgetParty; statements: BudgetStatement[] }>();
+  for (const statement of [...statements].sort(newest)) {
+    if (!statement.party) continue;
+    const group = groups.get(statement.party.slug) ?? { party: statement.party, statements: [] };
+    group.statements.push(statement);
+    groups.set(statement.party.slug, group);
+  }
+  return [...groups.values()];
+}
