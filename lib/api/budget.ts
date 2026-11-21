@@ -1,3 +1,4 @@
+import { decode } from "he";
 import { z } from "zod";
 import type { Vote } from "@/lib/types";
 import { ApiError, cached, request, searchOf } from "./client";
@@ -333,7 +334,8 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
     news: raw.news
       .map((item) => ({
         id: item.id,
-        title: item.title,
+        // Outlets' text comes HTML-encoded, as on the feed: decoded here, always rendered as text.
+        title: decode(item.title),
         source: item.source ?? "",
         url: safeHttpUrl(item.url ?? null),
         publishedAt: item.publishedAt ?? null,
@@ -342,9 +344,9 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
     statements: raw.statements.map((item) => ({
       party: item.party ? mapParty(item.party) : null,
       deputy: item.deputy?.trim() || null,
-      text: item.text,
+      text: decode(item.text),
       articleId: item.articleId,
-      articleTitle: item.articleTitle ?? "",
+      articleTitle: decode(item.articleTitle ?? ""),
       source: item.source ?? "",
       publishedAt: item.publishedAt ?? null,
     })),
