@@ -52,13 +52,30 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   await expect(page.getByRole("heading", { level: 1, name: "Muda os escalões do IRS Jovem para quem tem até 35 anos." })).toBeVisible();
   await expect(page.getByText("Título oficial: Artigo 9.º do Código do IRS")).toBeVisible();
   await expect(page.getByText(/^Votada a \d\d-\d\d-\d{4}, em Comissão$/)).toBeVisible();
-  await expect(page.getByText("Partido Social Democrata", { exact: true })).toBeVisible();
+  await expect(page.locator("dl").getByText("Partido Social Democrata", { exact: true })).toBeVisible();
   // The source's «Aprovado(a)» reads as a sentence; the share text says «do PSD».
   await expect(page.getByText("Aprovada em Comissão", { exact: true })).toBeVisible();
   await expect(page.getByText(/\(a\)/)).toHaveCount(0);
   expect(await page.locator('meta[name="description"]').getAttribute("content")).toContain("para 2027, do PSD:");
   await expect(page.getByText("Aprovada", { exact: true }).first()).toBeVisible();
+  // «O que disseram»: from the news, grouped by party, each linking to its article; a voice without a party is left out.
+  const said = page.getByRole("region", { name: "O que disseram" });
+  await expect(said).toContainText("das notícias, não do Parlamento");
+  await expect(said.getByRole("heading", { level: 3 })).toHaveText(["Partido Social Democrata", "Partido Socialista"]);
+  await expect(said).toContainText("Os mais novos ficam com mais rendimento disponível.");
+  await expect(said).toContainText("Rui Valadares");
+  await expect(said).not.toContainText("Teresa Amaral");
+  await expect(said.getByRole("link", { name: /^segundo / }).first()).toHaveAttribute("href", "/article/100");
+  // «Nas notícias», newest first, to the article's page here.
+  const news = page.getByRole("region", { name: "Nas notícias" });
+  await expect(news.getByRole("link")).toHaveCount(2);
+  await expect(news.getByRole("link").first()).toHaveAttribute("href", "/article/100");
   await noSeriousA11yIssues(page);
+  // Empty until the backend fills them: no sections at all.
+  await page.goto("/orcamento/2027/proposta/28302");
+  await expect(page.getByRole("region", { name: "A votação" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "O que disseram" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Nas notícias" })).toHaveCount(0);
 
   await page.goto("/orcamento");
   // When a session began, never «a decorrer»: the parliament doesn't say when it ends.
