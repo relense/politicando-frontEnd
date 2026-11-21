@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
 import { AutomaticLabel, ProposalVotes } from "@/components/budget/ProposalItem";
-import { authorsPhrase, partyFull, proposalHeading, tidyStatus, votedLine } from "@/lib/budget";
+import { ProposalNewsList, ProposalStatements } from "@/components/budget/ProposalPress";
+import { authorsPhrase, partyFull, tidyStatus, votedLine } from "@/lib/budget";
 import { getBudgetProposal } from "@/lib/api/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const proposal = await load(ano, id);
   if (!proposal) return { title: "Proposta de alteração ao Orçamento" };
   return {
-    title: `${proposalHeading(proposal).main} · proposta ${proposal.number} ao OE ${proposal.year}`,
+    title: `${proposal.title} · proposta ${proposal.number} ao OE ${proposal.year}`,
     description: `Proposta de alteração n.º ${proposal.number} ao Orçamento do Estado para ${proposal.year}${
       authorsPhrase(proposal.authors) ? `, ${authorsPhrase(proposal.authors)}` : ""
     }: o resultado e como votou cada partido.`,
@@ -69,13 +70,16 @@ export default async function BudgetProposalPage({ params }: Props) {
         Proposta de alteração n.º {proposal.number}
         <ResultBadge result={proposal.result} />
       </p>
+      <h1 className="mt-1 font-serif text-3xl font-bold leading-tight [overflow-wrap:anywhere]">{proposal.title}</h1>
+      {/* The summary under the official title, labelled, so it's never taken for the official text. */}
       {proposal.plain && (
-        <p className="mt-3 font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--contra)" }}>
-          O que muda
-        </p>
+        <section aria-labelledby="resumo" className="mt-4 rounded-xl bg-surface px-4 py-3">
+          <h2 id="resumo" className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
+            Resumo
+          </h2>
+          <p className="mt-1 text-base leading-snug [overflow-wrap:anywhere]">{proposal.plain.summary}</p>
+        </section>
       )}
-      <h1 className="mt-1 font-serif text-3xl font-bold leading-tight [overflow-wrap:anywhere]">{proposalHeading(proposal).main}</h1>
-      {proposal.plain && <p className="mt-2 font-mono text-xs text-muted [overflow-wrap:anywhere]">Título oficial: {proposal.title}</p>}
       {votedLine(proposal) && <p className="mt-3 text-sm font-bold">{votedLine(proposal)}</p>}
       <dl className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {facts
@@ -95,6 +99,8 @@ export default async function BudgetProposalPage({ params }: Props) {
           <ProposalVotes proposal={proposal} />
         </div>
       </section>
+      <ProposalStatements statements={proposal.statements} />
+      <ProposalNewsList news={proposal.news} />
       <p className="mt-6 flex flex-wrap gap-2">
         {proposal.documentUrl && (
           <a

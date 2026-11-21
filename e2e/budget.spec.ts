@@ -42,23 +42,44 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   const irs = proposals.locator(":scope > li").filter({ hasText: "Artigo 9.º do Código do IRS" });
   await irs.getByText("Artigo 9.º do Código do IRS").click();
   await expect(irs).toContainText("Rui Valadares: contra");
-  // «O que muda», marked as written by a model.
-  await expect(irs).toContainText("Muda os escalões do IRS Jovem");
+  // The official title stays the heading; the summary under it, labelled «Resumo», marked as written by a model.
+  await expect(irs.getByRole("heading", { level: 3 })).toHaveText("Artigo 9.º do Código do IRS");
+  await expect(irs).toContainText("ResumoMuda os escalões do IRS Jovem");
   await expect(irs).toContainText("Resumo automático");
   await expect(irs.getByRole("link", { name: /PDF oficial/ })).toHaveAttribute("href", "https://example.com/oe/28301.pdf");
   await irs.getByRole("link", { name: /Página da proposta/ }).click();
   await expect(page).toHaveURL(/\/orcamento\/2027\/proposta\/28301$/);
-  // «O que muda» leads; the official title, when and where it was voted, under it.
-  await expect(page.getByRole("heading", { level: 1, name: "Muda os escalões do IRS Jovem para quem tem até 35 anos." })).toBeVisible();
-  await expect(page.getByText("Título oficial: Artigo 9.º do Código do IRS")).toBeVisible();
+  // The official title leads; the summary under it, labelled «Resumo», so it's never taken for the official text.
+  await expect(page.getByRole("heading", { level: 1, name: "Artigo 9.º do Código do IRS" })).toBeVisible();
+  const summary = page.getByRole("region", { name: "Resumo" });
+  await expect(summary).toContainText("Muda os escalões do IRS Jovem para quem tem até 35 anos.");
+  await expect(page.getByText("Título oficial:")).toHaveCount(0);
   await expect(page.getByText(/^Votada a \d\d-\d\d-\d{4}, em Comissão$/)).toBeVisible();
-  await expect(page.getByText("Partido Social Democrata", { exact: true })).toBeVisible();
+  await expect(page.locator("dl").getByText("Partido Social Democrata", { exact: true })).toBeVisible();
   // The source's «Aprovado(a)» reads as a sentence; the share text says «do PSD».
   await expect(page.getByText("Aprovada em Comissão", { exact: true })).toBeVisible();
   await expect(page.getByText(/\(a\)/)).toHaveCount(0);
   expect(await page.locator('meta[name="description"]').getAttribute("content")).toContain("para 2027, do PSD:");
   await expect(page.getByText("Aprovada", { exact: true }).first()).toBeVisible();
+  // «O que disseram»: from the news, grouped by party, each linking to its article; a voice without a party is left out.
+  const said = page.getByRole("region", { name: "O que disseram" });
+  await expect(said).toContainText("das notícias, não do registo do Parlamento");
+  await expect(said.getByRole("heading", { level: 3 })).toHaveText(["Partido Social Democrata", "Partido Socialista"]);
+  // Shown as the article has it (a quote in «» or a paraphrase): never wrapped in quotes of our own.
+  await expect(said.getByText("Diz que os mais novos ficam com «mais rendimento disponível».", { exact: true })).toBeVisible();
+  await expect(said).toContainText("Rui Valadares");
+  await expect(said).not.toContainText("Teresa Amaral");
+  await expect(said.getByRole("link", { name: /^segundo / }).first()).toHaveAttribute("href", "/article/100");
+  // «Nas notícias», newest first, to the article's page here.
+  const news = page.getByRole("region", { name: "Nas notícias" });
+  await expect(news.getByRole("link")).toHaveCount(2);
+  await expect(news.getByRole("link").first()).toHaveAttribute("href", "/article/100");
   await noSeriousA11yIssues(page);
+  // Empty until the backend fills them: no sections at all.
+  await page.goto("/orcamento/2027/proposta/28302");
+  await expect(page.getByRole("region", { name: "A votação" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "O que disseram" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Nas notícias" })).toHaveCount(0);
 
   await page.goto("/orcamento");
   // When a session began, never «a decorrer»: the parliament doesn't say when it ends.

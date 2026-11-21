@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
 import {
+  statementGroups,
   authorsShort,
   authorsPhrase,
   budgetBox,
@@ -15,7 +16,6 @@ import {
   partyFull,
   partyLines,
   partyShort,
-  proposalHeading,
   RESULT_LABELS,
   votedLine,
 } from "@/lib/budget";
@@ -163,11 +163,6 @@ describe("names and headings readers understand (owner's review, 20 Nov)", () =>
     plain: null,
     votes: [] as { votedOn: string | null; phase: "committee" | "plenary" | null }[],
   };
-  it("«O que muda» leads when written, the official title under it; otherwise the official title alone", () => {
-    expect(proposalHeading(base)).toEqual({ main: base.title, official: null });
-    const plain = { summary: "Muda os escalões do IRS Jovem.", automatic: true, updatedAt: null };
-    expect(proposalHeading({ ...base, plain })).toEqual({ main: "Muda os escalões do IRS Jovem.", official: base.title });
-  });
   it("when and where it was voted: «Votada a 19-11-2026, em Comissão»", () => {
     expect(votedLine({ ...base, votes: [{ votedOn: "2026-11-19", phase: "committee" }] })).toBe("Votada a 19-11-2026, em Comissão");
     expect(
@@ -254,5 +249,33 @@ describe("the official status, without the source's «(a)»", () => {
     expect(tidyStatus("Aprovado(a) em Plenário")).toBe("Aprovada em Plenário");
     expect(tidyStatus("Retirada")).toBe("Retirada");
     expect(tidyStatus(null)).toBeNull();
+  });
+});
+
+describe("«O que disseram», grouped by party", () => {
+  const said = (slug: string | null, publishedAt: string | null, text = "Disse.") => ({
+    party: slug ? { slug, acronym: slug.toUpperCase(), name: slug } : null,
+    speaker: null,
+    text,
+    articleId: 1,
+    articleTitle: "T",
+    source: "Jornal",
+    publishedAt,
+  });
+
+  it("leaves out statements without a party; the party with the newest statement first, newest first inside", () => {
+    const groups = statementGroups([
+      said("ps", "2026-11-18T10:00:00Z", "ps antiga"),
+      said(null, "2026-11-21T10:00:00Z"),
+      said("psd", "2026-11-19T10:00:00Z"),
+      said("ps", "2026-11-20T10:00:00Z", "ps nova"),
+      said("chega", null),
+    ]);
+    expect(groups.map((group) => group.party.slug)).toEqual(["ps", "psd", "chega"]);
+    expect(groups[0]!.statements.map((item) => item.text)).toEqual(["ps nova", "ps antiga"]);
+    expect(statementGroups([said(null, null)])).toEqual([]);
+    // By the moment, not the text: 10:30 in Lisbon summer time (+01:00) is before 10:00 UTC.
+    const mixed = statementGroups([said("ps", "2026-07-01T10:30:00+01:00", "antes"), said("ps", "2026-07-01T10:00:00Z", "depois")]);
+    expect(mixed[0]!.statements.map((item) => item.text)).toEqual(["depois", "antes"]);
   });
 });

@@ -7,7 +7,7 @@ import {
   type BudgetSummary,
   type BudgetYear,
 } from "@/lib/api/budget";
-import { authorsShort, budgetBox, budgetTally, partyShort, proposalHeading, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
+import { authorsShort, budgetBox, budgetTally, partyShort, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
 import { formatDate, formatLongDate, formatNumber, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
@@ -186,7 +186,7 @@ export function BudgetBox({
               <ResultBadge result={latest.result} />
             </p>
             <Link href={proposalPath(latest)} className="mt-1 block font-serif text-base font-bold leading-snug hover:underline">
-              {proposalHeading(latest).main}
+              {latest.title}
             </Link>
             <p className="mb-2 font-mono text-[11px] text-muted">
               {authorsShort(latest.authors) ? `${authorsShort(latest.authors)} · ` : ""}n.º {latest.number}

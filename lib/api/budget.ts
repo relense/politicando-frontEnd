@@ -1,3 +1,4 @@
+import { decode } from "he";
 import { z } from "zod";
 import type { Vote } from "@/lib/types";
 import { ApiError, cached, request, searchOf } from "./client";
@@ -67,6 +68,22 @@ export type BudgetProposal = {
   documentUrl: string | null;
   sourceUrl: string | null;
   votes: BudgetVote[];
+  /** «Nas notícias», newest first. Only on the single proposal; empty on the list. */
+  news: BudgetNews[];
+  /** «O que disseram», from the news (not the parliament). Only on the single proposal; empty on the list. */
+  statements: BudgetStatement[];
+};
+export type BudgetNews = { id: number; title: string; source: string; url: string | null; publishedAt: string | null };
+export type BudgetStatement = {
+  party: BudgetParty | null;
+  /** Who said it; null when it was the party itself. */
+  speaker: string | null;
+  /** A short quote (in «» or quotes, as the article has it) or a faithful paraphrase: shown as is. */
+  text: string;
+  articleId: number;
+  articleTitle: string;
+  source: string;
+  publishedAt: string | null;
 };
 /** The Budget's own bill: its votes have the shape of an initiative's (generalidade, votação final global…). */
 export type BudgetBill = {
@@ -131,6 +148,36 @@ const list = <T extends z.ZodTypeAny>(item: T) =>
     .nullish()
     .transform((items) => items ?? []);
 const partySchema = z.object({ slug: z.string(), acronym: z.string().nullish(), name: z.string().nullish() });
+/** When it was published, to sort by (any UTC offset); undated last. */
+const moment = (value: string | null) => (value && Date.parse(value)) || 0;
+/** A newer field: a bad item is left out and a bad list reads as none, never a broken page. */
+const looseList = <T extends z.ZodTypeAny>(item: T) =>
+  z
+    .array(z.unknown())
+    .nullish()
+    .catch(null)
+    .transform((items): z.infer<T>[] =>
+      (items ?? []).flatMap((entry) => {
+        const parsed = item.safeParse(entry);
+        return parsed.success ? [parsed.data] : [];
+      }),
+    );
+const newsSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  source: z.string().nullish(),
+  url: z.string().nullish(),
+  publishedAt: z.string().nullish(),
+});
+const statementSchema = z.object({
+  party: partySchema.nullish(),
+  speaker: z.string().nullish(),
+  text: z.string().min(1),
+  articleId: z.number(),
+  articleTitle: z.string().nullish(),
+  source: z.string().nullish(),
+  publishedAt: z.string().nullish(),
+});
 const lineSchema = z.object({
   party: partySchema.nullish(),
   group: z.string().nullish(),
@@ -170,6 +217,8 @@ export const budgetProposalSchema = z.object({
   documentUrl: z.string().nullish(),
   sourceUrl: z.string().nullish(),
   votes: list(voteSchema),
+  news: looseList(newsSchema),
+  statements: looseList(statementSchema),
 });
 const positionSchema = z.object({ party: z.string(), count: z.number().nullish() });
 const absentSchema = z.union([positionSchema, z.string().transform((party) => ({ party, count: null }))]);
@@ -284,6 +333,25 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
       : null,
     documentUrl: safeHttpUrl(raw.documentUrl ?? null),
     sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
+    news: raw.news
+      .map((item) => ({
+        id: item.id,
+        // Outlets' text comes HTML-encoded, as on the feed: decoded here, always rendered as text.
+        title: decode(item.title),
+        source: item.source ?? "",
+        url: safeHttpUrl(item.url ?? null),
+        publishedAt: item.publishedAt ?? null,
+      }))
+      .sort((a, b) => moment(b.publishedAt) - moment(a.publishedAt)),
+    statements: raw.statements.map((item) => ({
+      party: item.party ? mapParty(item.party) : null,
+      speaker: item.speaker?.trim() || null,
+      text: decode(item.text),
+      articleId: item.articleId,
+      articleTitle: decode(item.articleTitle ?? ""),
+      source: item.source ?? "",
+      publishedAt: item.publishedAt ?? null,
+    })),
     votes: raw.votes.map((vote) => ({
       votedOn: vote.votedOn ?? null,
       phase: phaseOf(vote.phase),
