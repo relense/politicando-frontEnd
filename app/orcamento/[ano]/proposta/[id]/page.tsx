@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
 import { AutomaticLabel, ProposalVotes } from "@/components/budget/ProposalItem";
+import { ProposalNewsList, ProposalStatements } from "@/components/budget/ProposalPress";
 import { authorsPhrase, partyFull, proposalHeading, tidyStatus, votedLine } from "@/lib/budget";
 import { getBudgetProposal } from "@/lib/api/budget";
 import { formatDate } from "@/lib/format";
@@ -95,6 +96,8 @@ export default async function BudgetProposalPage({ params }: Props) {
           <ProposalVotes proposal={proposal} />
         </div>
       </section>
+      <ProposalStatements statements={proposal.statements} />
+      <ProposalNewsList news={proposal.news} />
       <p className="mt-6 flex flex-wrap gap-2">
         {proposal.documentUrl && (
           <a
