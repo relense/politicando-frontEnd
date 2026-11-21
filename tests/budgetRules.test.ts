@@ -261,7 +261,7 @@ describe("the official status, without the source's «(a)»", () => {
 describe("«O que disseram», grouped by party", () => {
   const said = (slug: string | null, publishedAt: string | null, text = "Disse.") => ({
     party: slug ? { slug, acronym: slug.toUpperCase(), name: slug } : null,
-    deputy: null,
+    speaker: null,
     text,
     articleId: 1,
     articleTitle: "T",
