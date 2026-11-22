@@ -1,6 +1,10 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ForumText } from "@/components/forum/ForumText";
+import { IdeaVote, markOwnIdeaVote } from "@/components/forum/IdeaVote";
+import { ReplyVote, markOwnReplyVote } from "@/components/ideas/ReplyVote";
 import { ApiError } from "@/lib/api/client";
 import { forumErrorMessage, mapThreadDetail, mapThreadLink, mapThreadSummary, posterName } from "@/lib/api/forums";
 import { notificationHref, notificationText } from "@/lib/notifications";
@@ -174,5 +178,28 @@ describe("forum mappers", () => {
     expect(forumErrorMessage(new ApiError("x", 429, "rate_limited"))).toMatch(/depressa/);
     expect(forumErrorMessage(new ApiError("body/nickname That name is the team's", 400, "invalid_request"))).toMatch(/reservado/);
     expect(forumErrorMessage(new Error("x"))).toMatch(/Não foi possível/);
+  });
+});
+
+// A new thread and a new reply on an idea start with their author's vote (score 1): straight after posting, the arrow is pressed.
+describe("the author's own vote on what they just posted", () => {
+  const withQuery = (ui: ReactNode) => render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
+  it("a thread the reader opened shows «Votaste em», with no undo", () => {
+    markOwnIdeaVote(7101);
+    withQuery(<IdeaVote id={7101} title="A minha ideia" score={1} />);
+    expect(screen.getByRole("button", { name: "Votaste em «A minha ideia», 1 voto" })).toBeDisabled();
+  });
+
+  it("a reply the reader wrote on an idea shows «Votaste no comentário», with no undo", () => {
+    markOwnReplyVote(7102);
+    withQuery(<ReplyVote id={7102} score={1} author="leitora" />);
+    expect(screen.getByRole("button", { name: "Votaste no comentário de leitora, 1 voto" })).toBeDisabled();
+  });
+
+  it("others' threads and replies stay open", () => {
+    withQuery(<IdeaVote id={7103} title="De outra pessoa" score={4} />);
+    withQuery(<ReplyVote id={7104} score={0} author="ana" />);
+    expect(screen.getByRole("button", { name: "Votar em «De outra pessoa», 4 votos" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Votar no comentário de ana, 0 votos" })).toBeEnabled();
   });
 });
