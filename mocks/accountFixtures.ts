@@ -106,13 +106,33 @@ export function recordVote(request: Request, kind: "articles" | "editorial", key
   readerVotes.set(reader.id, votes);
 }
 
+/** Each reader's comment likes and forum votes, as /me/state lists them: their own on what they post included. */
+type VoteList = "comments" | "forum" | "forumPosts";
+const readerLists = new Map<number, Record<VoteList, number[]>>();
+export function recordListVote(request: Request, kind: VoteList, id: number, on: boolean) {
+  const reader = readerOf(request);
+  if (!reader) return;
+  const lists = readerLists.get(reader.id) ?? { comments: [], forum: [], forumPosts: [] };
+  lists[kind] = [id, ...lists[kind].filter((item) => item !== id)].filter((item) => on || item !== id);
+  readerLists.set(reader.id, lists);
+}
+
 const stateOf = (reader: MockReader) => ({
   saved: reader.saved,
   follows: reader.follows,
   hidden: reader.hidden,
   muted: reader.muted,
   read: reader.read,
-  votes: { articles: {}, editorial: {}, ...readerVotes.get(reader.id), stories: [], comments: [], forum: [], forumPosts: [] },
+  votes: {
+    articles: {},
+    editorial: {},
+    ...readerVotes.get(reader.id),
+    stories: [],
+    comments: [],
+    forum: [],
+    forumPosts: [],
+    ...readerLists.get(reader.id),
+  },
 });
 
 const signIn = (reader: MockReader, status = 200) => {

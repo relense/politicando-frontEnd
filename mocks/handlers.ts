@@ -15,7 +15,7 @@ import { budgetHandlers } from "./budgetFixtures";
 import { feedbackHandlers } from "./feedbackFixtures";
 import { forumHandlers, forumTarget, hideForum } from "./forumFixtures";
 import { storyHandlers } from "./storyFixtures";
-import { accountHandlers, gateRefusal, readerOf, recordVote } from "./accountFixtures";
+import { accountHandlers, gateRefusal, readerOf, recordListVote, recordVote } from "./accountFixtures";
 import { engagementHandlers, registerCommentLookup } from "./engagementFixtures";
 import { adminHandlers } from "./adminFixtures";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
@@ -244,9 +244,12 @@ export const handlers = [
       username: username || null,
       parentUsername: null,
       body,
+      // The author's own like counts.
+      likes: 1,
       createdAt: new Date().toISOString(),
     };
     postCommentStore.set(slug, [...(postCommentStore.get(slug) ?? []), created]);
+    recordListVote(request, "comments", created.id, true);
     return HttpResponse.json(created, { status: 201 });
   }),
   http.get(`${API}/governments/history`, () => HttpResponse.json(governmentHistory)),
@@ -632,11 +635,29 @@ export const handlers = [
       username: username || null,
       parentUsername: null,
       body,
+      // The author's own like counts.
+      likes: 1,
       createdAt: new Date().toISOString(),
       account: Boolean(reader),
     };
     store.set(articleId, [...(store.get(articleId) ?? []), created]);
+    recordListVote(request, "comments", created.id, true);
     return HttpResponse.json(created, { status: 201 });
+  }),
+  // Likes on news and blog-post comments; story comments' likes are in storyFixtures (nothing answered here: it goes on there).
+  http.post(`${API}/comments/:id/like`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const comment = [...store.values(), ...postCommentStore.values()].flat().find((item) => item.id === id) as
+      { likes?: number } | undefined;
+    if (!comment) return undefined;
+    const body = (await request
+      .clone()
+      .json()
+      .catch(() => null)) as { value?: unknown } | null;
+    if (body?.value !== 1 && body?.value !== 0) return fail(400, "invalid_request");
+    comment.likes = Math.max(0, (comment.likes ?? 0) + (body.value === 1 ? 1 : -1));
+    recordListVote(request, "comments", id, body.value === 1);
+    return HttpResponse.json({ likes: comment.likes, mine: body.value });
   }),
   ...contractHandlers,
   ...placeHandlers,

@@ -84,7 +84,7 @@ test("an idea: the team's pinned answer, the timeline, similar ideas, the best c
   await shot(page, "idea", isMobile);
 
   // Voting on a comment needs an account; with one it counts once.
-  await signUp(page);
+  const me = await signUp(page);
   await gotoReady(page, "/feedback/ideias/501");
   // The mock keeps votes between runs: read the count first.
   const ana = page.getByRole("button", { name: /^Votar no comentário de ana\.r, \d+ votos$/ });
@@ -98,6 +98,8 @@ test("an idea: the team's pinned answer, the timeline, similar ideas, the best c
   await page.getByRole("textbox", { name: "Comentário" }).fill(text);
   await page.getByRole("button", { name: "Comentar" }).click();
   await expect(comments.getByText(text)).toBeVisible();
+  // It starts with the author's own vote, already pressed.
+  await expect(comments.getByRole("button", { name: `Votaste no comentário de ${me}, 1 voto` })).toBeDisabled();
 
   // A duplicate points to the original.
   await gotoReady(page, "/feedback/ideias/509");
@@ -152,6 +154,8 @@ test("propose an idea: similar ones first, the text kept while logging in, then 
   await expect(page.getByRole("heading", { level: 1, name: "Modo escuro no email da newsletter" })).toBeVisible();
   await expect(page.getByText(/proposta a .* · Newsletter/)).toBeVisible();
   await expect(page.getByRole("list", { name: "Estado da ideia" }).locator('[aria-current="step"]')).toContainText("Proposta");
+  // The author's own vote counts, already pressed.
+  await expect(page.getByRole("button", { name: "Votaste em «Modo escuro no email da newsletter», 1 voto" })).toBeDisabled();
   // The draft is gone once published.
   await gotoReady(page, "/feedback/nova");
   await expect(page.getByRole("textbox", { name: "Título" })).toHaveValue("");

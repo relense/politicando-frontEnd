@@ -450,7 +450,8 @@ export function ReplyForm({
   rows = 4,
 }: {
   threadId: number;
-  onPosted: (posterId: string) => void;
+  /** The poster id for this thread, and the new reply's id. */
+  onPosted: (posterId: string, postId: number) => void;
   /** On a vote's thread: the reader's pick (shown beside the reply), null without one. */
   pick?: Pick | null;
   ref: Ref<ReplyFormHandle>;
@@ -514,7 +515,7 @@ export function ReplyForm({
       track("forum-reply", { thread: threadId });
       // Replying follows the thread (backend docs/engagement-api.md).
       if (reader) markFollowed("thread", threadId);
-      onPosted(created.posterId);
+      onPosted(created.posterId, created.id);
     } catch (failure) {
       setError(forumErrorMessage(failure));
     } finally {

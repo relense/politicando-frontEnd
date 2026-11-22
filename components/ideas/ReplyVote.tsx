@@ -44,6 +44,9 @@ const forget = (id: number) => {
   window.dispatchEvent(new Event(KEY));
 };
 
+/** A reply this reader just wrote on an idea: the API counts the author's own vote (score 1), so its arrow starts pressed. */
+export const markOwnReplyVote = (id: number) => remember(id);
+
 /** An answer from outside the button (the vote finished after logging in). */
 export function applyReplyAnswer(id: number, score: number) {
   remember(id);
