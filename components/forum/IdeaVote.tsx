@@ -48,6 +48,9 @@ const forget = (id: number) => {
   window.dispatchEvent(new Event(EVENT));
 };
 
+/** A thread this reader just opened: the API counts the author's own vote (score 1), so its arrow starts pressed. */
+export const markOwnIdeaVote = (id: number) => remember(id);
+
 /** An answer from outside the button (the vote finished after logging in). */
 export function applyIdeaAnswer(id: number, score: number) {
   remember(id);

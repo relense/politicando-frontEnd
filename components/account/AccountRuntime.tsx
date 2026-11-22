@@ -10,7 +10,7 @@ import { votePost, voteThread } from "@/lib/api/forums";
 import { markImporta } from "@/lib/api/stories";
 import { takePending, writeDraft, type PendingAction } from "@/lib/pendingAction";
 import { applyVoteAnswer } from "../ArticleVote";
-import { applyLikeAnswer } from "../CommentLike";
+import { applyLikeAnswer, markOwnLike } from "../CommentLike";
 import { applyIdeaAnswer } from "../forum/IdeaVote";
 import { applyReplyAnswer } from "../ideas/ReplyVote";
 import { applyImportaAnswer } from "../ImportaButton";
@@ -127,6 +127,7 @@ async function finish(action: PendingAction, reader: Reader, client: ReturnType<
           captchaToken: null,
           stance: action.stance,
         });
+        markOwnLike(created);
         writeDraft(action.target, action.parentId, "");
         track("comment-sent", { where: action.target.split("/")[1], reply: action.parentId !== null, afterLogin: true });
         await client.invalidateQueries({ queryKey: ["comments", action.target] });

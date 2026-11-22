@@ -12,6 +12,7 @@ import { track } from "@/lib/analytics";
 import { rememberPosterId } from "@/lib/forumSession";
 import { ideaClosed, ideaPath } from "./IdeaRow";
 import { useIdeaSearch } from "./useIdeaSearch";
+import { markOwnIdeaVote } from "@/components/forum/IdeaVote";
 
 /** What a reader without an account wrote, kept on this device while they log in (logging in leaves the page). */
 const DRAFT = "politicando:rascunho-ideia";
@@ -86,6 +87,8 @@ export function NewIdeaForm({ areas, initialTitle }: { areas: readonly string[];
       });
       writeDraft(null);
       rememberPosterId(created.id, created.posterId);
+      // The author's own vote, counted by the API (score 1).
+      markOwnIdeaVote(created.id);
       // Opening an idea follows it.
       markFollowed("thread", created.id);
       track("idea-created", { area: area || "none" });

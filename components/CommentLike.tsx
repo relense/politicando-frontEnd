@@ -43,6 +43,11 @@ function remember(id: number, on: boolean) {
 
 type LikeAnswer = { likes: number; mine: number };
 
+/** A comment this reader just posted: liked when the API counted the author's own like (likes 1; an older API answers 0). */
+export function markOwnLike(comment: { id: number; likes?: number }) {
+  if ((comment.likes ?? 0) > 0) remember(comment.id, true);
+}
+
 /** An answer from outside the button (the like finished after logging in). */
 export function applyLikeAnswer(id: number, answer: LikeAnswer) {
   remember(id, answer.mine === 1);
