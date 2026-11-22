@@ -8,6 +8,7 @@ import { useLockedOut, useReader } from "@/lib/account";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "../Captcha";
 import { SignInToTakePart } from "@/components/account/SignInToTakePart";
 import { track } from "@/lib/analytics";
+import { markOwnIdeaVote } from "./IdeaVote";
 
 /** Sent when the captcha is switched off for testing. The API decides whether it is accepted. */
 const CAPTCHA_OFF_TOKEN = "captcha-disabled";
@@ -87,6 +88,8 @@ export function NewThreadForm({
         captchaToken,
       });
       rememberPosterId(created.id, created.posterId);
+      // The author's own vote, counted by the API (score 1).
+      markOwnIdeaVote(created.id);
       track("forum-thread-created", { board });
       router.push(`${threadBase}/${created.id}`);
     } catch (failure) {

@@ -224,6 +224,42 @@ describe("comments", () => {
       expect((posted.at(-1) as { recaptchaToken?: unknown }).recaptchaToken ?? null).toBeNull();
     });
 
+    // The API counts the author's own like on a new comment (likes: 1); an older one answers 0 and nothing is pressed.
+    it.each([
+      [1, "true"],
+      [0, "false"],
+    ])("a new comment that comes back with %i likes shows the author's like pressed: %s", async (likes, pressed) => {
+      signedIn();
+      server.use(
+        http.post(`${API}/articles/:id/comments`, async ({ request }) => {
+          const body = (await request.json()) as { body: string };
+          return HttpResponse.json(
+            {
+              id: 950 + likes,
+              articleId: 1,
+              parentId: null,
+              username: "leitora",
+              parentUsername: null,
+              body: body.body,
+              likes,
+              createdAt: "2026-11-22T10:00:00.000Z",
+            },
+            { status: 201 },
+          );
+        }),
+      );
+      window.localStorage.removeItem("comment-likes");
+      const user = userEvent.setup();
+      withQuery(<CommentSection target="/articles/53" initialComments={[]} />);
+      await openBox(user);
+      await screen.findByText("leitora");
+      await user.type(screen.getByLabelText("Comentário"), "Com o meu gosto");
+      await user.click(screen.getByRole("button", { name: "Publicar" }));
+      const like = await screen.findByRole("button", { name: /gostos no comentário de leitora/ });
+      await waitFor(() => expect(like).toHaveAttribute("aria-pressed", pressed));
+      expect(like).toHaveTextContent(String(likes));
+    });
+
     it("removes the optimistic comment and keeps the text when the API fails", async () => {
       signedIn();
       server.use(http.post(`${API}/articles/:id/comments`, () => HttpResponse.json({}, { status: 500 })));

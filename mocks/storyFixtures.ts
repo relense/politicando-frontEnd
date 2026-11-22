@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { articles } from "./fixtures";
+import { recordListVote } from "./accountFixtures";
 
 /**
  * Stories (the backend's docs/stories-api.md), made from the test articles: article 100 is told by four outlets
@@ -239,10 +240,12 @@ export const storyHandlers = [
       parentUsername: null,
       body: body.body,
       stance: body.stance ?? null,
-      likes: 0,
+      // The author's own like counts (the API, since November 2026).
+      likes: 1,
       createdAt: new Date().toISOString(),
     };
     storyComments.set(id, [...(storyComments.get(id) ?? []), created]);
+    recordListVote(request, "comments", created.id, true);
     return HttpResponse.json(created, { status: 201 });
   }),
   http.post(`${API}/comments/:id/like`, async ({ params, request }) => {
@@ -253,6 +256,7 @@ export const storyHandlers = [
     if (body?.value !== 1 && body?.value !== 0) return fail(400, "invalid_request");
     // Every test reader is a new one: a like adds one, taking it back removes one.
     comment.likes = Math.max(0, comment.likes + (body.value === 1 ? 1 : -1));
+    recordListVote(request, "comments", id, body.value === 1);
     return HttpResponse.json({ likes: comment.likes, mine: body.value });
   }),
 ];

@@ -11,7 +11,7 @@ import { getThread, posterName, type ForumPost, type ReplySort, type ThreadDetai
 import { useAccountGate } from "@/lib/account";
 import { rememberPosterId } from "@/lib/forumSession";
 import { commentsLabel } from "@/lib/ideas";
-import { ReplyVote } from "./ReplyVote";
+import { ReplyVote, markOwnReplyVote } from "./ReplyVote";
 
 const POLL_MS = 20_000;
 const SORTS: { value: Exclude<ReplySort, "old">; label: string }[] = [
@@ -136,8 +136,10 @@ export function IdeaDiscussion({ initial, locked }: { initial: ThreadDetail; loc
           placeholder="Junta a tua opinião. O que te faria usar isto?"
           submitLabel="Comentar"
           signedAs="Comentas como"
-          onPosted={(posterId) => {
+          onPosted={(posterId, postId) => {
             rememberPosterId(threadId, posterId);
+            // The author's own vote on a reply to an idea, counted by the API (score 1).
+            markOwnReplyVote(postId);
             setSort("new");
             void queryClient.invalidateQueries({ queryKey: ["idea-replies", threadId] });
           }}

@@ -102,6 +102,9 @@ test("an article opens a new thread on its party's board, linked to it", async (
   await expect(page.getByRole("heading", { level: 1, name: "Discussão de teste sobre a notícia" })).toBeVisible();
   await expect(page.locator("#op").getByText("(tu)")).toBeVisible();
   await expect(page.getByRole("link", { name: /Notícia de teste número 100/ })).toHaveAttribute("href", "/article/100");
+  // The author's own vote counts: on the board it's already theirs, and there's no undo.
+  await page.goto("/forum/ps");
+  await expect(page.getByRole("button", { name: "Votaste em «Discussão de teste sobre a notícia», 1 voto" }).first()).toBeDisabled();
 });
 
 test("an article comment can be reported", async ({ page }) => {

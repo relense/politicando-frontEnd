@@ -12,6 +12,7 @@ import { GOLD, OUTLINE } from "./account/ui";
 import { Captcha, isCaptchaConfigured, isCaptchaOff, type CaptchaHandle } from "./Captcha";
 import { markFollowed } from "@/lib/accountExtras";
 import { track } from "@/lib/analytics";
+import { markOwnLike } from "./CommentLike";
 
 const MAX_LENGTH = 500;
 const MAX_USERNAME = 20;
@@ -111,6 +112,8 @@ export function CommentForm({ target, parentId, initialText = "", autoFocus, onP
       queryClient.setQueryData<Comment[]>(queryKey, (current = []) =>
         current.map((comment) => (comment.id === context.tempId ? created : comment)),
       );
+      // The author's own like, counted by the API.
+      markOwnLike(created);
       setText("");
       setStance(null);
       writeDraft(target, parentId, "");
