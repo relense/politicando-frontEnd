@@ -3,7 +3,7 @@ import { z } from "zod";
 import { looksLikeTeam } from "../lib/reservedNames";
 import { parties } from "./fixtures";
 import { addReport, audit, requireAdmin } from "./adminState";
-import { readerOf } from "./accountFixtures";
+import { readerOf, recordListVote } from "./accountFixtures";
 
 const API = "*/api/v2";
 
@@ -530,9 +530,10 @@ export const forumHandlers = [
       bumpedAt: now,
       pinned: false,
       locked: false,
+      // The author's own vote counts (only the automatic vote threads start at 0).
+      score: 1,
       ...(params.board === "ideias"
         ? {
-            score: 0,
             status: null,
             answer: null,
             answeredAt: null,
@@ -551,6 +552,7 @@ export const forumHandlers = [
             }
           : null,
     });
+    recordListVote(request, "forum", id, true);
     return HttpResponse.json({ id, posterId: posterFor(id) }, { status: 201 });
   }),
 
@@ -581,9 +583,12 @@ export const forumHandlers = [
       replyTo: replyTo ?? null,
       createdAt: now,
       hidden: false,
+      // On ideias the author's own vote counts; team replies (the admin route) start at 0.
+      ...(thread.board === "ideias" ? { score: 1 } : {}),
       pick: thread.board === "votacoes" && reader && thread.link?.initiative ? pickOf(reader.id, thread.link.initiative.id) : null,
     });
     thread.bumpedAt = now;
+    if (thread.board === "ideias") recordListVote(request, "forumPosts", id, true);
     return HttpResponse.json({ id, posterId }, { status: 201 });
   }),
 
@@ -596,6 +601,7 @@ export const forumHandlers = [
     // A vote on a duplicate counts on the original.
     const counted = thread.duplicateOf ? (threads.find((item) => item.id === thread.duplicateOf!.id) ?? thread) : thread;
     counted.score = (counted.score ?? 0) + 1;
+    recordListVote(request, "forum", thread.id, true);
     return HttpResponse.json({ score: counted.score });
   }),
 
@@ -606,6 +612,7 @@ export const forumHandlers = [
     if (threads.find((item) => item.id === post.threadId)?.board !== "ideias") return fail(400, "not_an_idea");
     if (!readerOf(request)) return fail(401, "login_required");
     post.score = (post.score ?? 0) + 1;
+    recordListVote(request, "forumPosts", post.id, true);
     return HttpResponse.json({ score: post.score });
   }),
 
