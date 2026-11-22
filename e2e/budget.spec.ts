@@ -37,6 +37,23 @@ test("State Budget: the current one, today's votes, each party, the filters and 
   // The proposals themselves, not the vote chips inside them.
   await expect(proposals.locator(":scope > li")).toHaveCount(3);
 
+  // One by one from the start: by the parliament's number (1C, 2C…), across every day, keeping the tab; and back.
+  const order = page.getByRole("navigation", { name: "Ordem" });
+  await expect(order.getByRole("link", { name: "Última votação" })).toHaveAttribute("aria-current", "true");
+  await order.getByRole("link", { name: "Número" }).click();
+  await expect(page).toHaveURL(/resultado=por-votar.*ordem=numero/);
+  await expect(order.getByRole("link", { name: "Número" })).toHaveAttribute("aria-current", "true");
+  await page.goto("/orcamento?ordem=numero#propostas");
+  const numbers = (await proposals.locator(":scope > li").allInnerTexts()).map((text) => Number(/n\.º (\d+)C/.exec(text)![1]));
+  expect(numbers.length).toBeGreaterThan(3);
+  expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
+  // The search keeps the order.
+  await page.getByRole("searchbox", { name: "Procurar nas propostas" }).fill("irs");
+  await page.getByRole("button", { name: "Filtrar" }).click();
+  await expect(page).toHaveURL(/q=irs.*ordem=numero|ordem=numero.*q=irs/);
+  await order.getByRole("link", { name: "Última votação" }).click();
+  await expect(page).not.toHaveURL(/ordem=/);
+
   // A search, then a proposal opened in place.
   await page.goto("/orcamento?q=irs#propostas");
   const irs = proposals.locator(":scope > li").filter({ hasText: "Artigo 9.º do Código do IRS" });
