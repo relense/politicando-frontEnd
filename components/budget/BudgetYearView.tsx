@@ -11,7 +11,16 @@ import {
   partyShort,
   sessionTime,
 } from "@/lib/budget";
-import { budgetFilters, budgetPath, queryOf, RESULT_TABS, TAB_RESULTS, type BudgetFilters, type BudgetSearch } from "@/lib/budgetFilters";
+import {
+  budgetFilters,
+  budgetPath,
+  ORDERS,
+  queryOf,
+  RESULT_TABS,
+  TAB_RESULTS,
+  type BudgetFilters,
+  type BudgetSearch,
+} from "@/lib/budgetFilters";
 import { formatDate, formatDayHeading, formatNumber, formatRelative, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { BudgetBox } from "./BudgetBox";
@@ -397,6 +406,7 @@ export function BudgetYearView({
             <form method="get" action={current ? "/orcamento" : `/orcamento/${year.year}`} className="mt-3 flex flex-wrap gap-2">
               {filters.party && <input type="hidden" name="partido" value={filters.party} />}
               {filters.result && <input type="hidden" name="resultado" value={filters.result} />}
+              {filters.order && <input type="hidden" name="ordem" value={filters.order} />}
               <label className="min-w-0 flex-1 basis-60">
                 <span className="sr-only">Procurar nas propostas</span>
                 <input
@@ -462,6 +472,28 @@ export function BudgetYearView({
                   </Link>
                 );
               })}
+            </nav>
+            {/* By number: 1C, 2C… across every day, to go through them one by one from the start. */}
+            <nav aria-label="Ordem" className="mt-2 flex flex-wrap items-center gap-x-2 font-mono text-[11px]">
+              <span className="text-muted">Ordem:</span>
+              {ORDERS.map((entry, index) => (
+                <span key={entry.label} className="flex items-center gap-2">
+                  {index > 0 && (
+                    <span aria-hidden="true" className="text-muted">
+                      ·
+                    </span>
+                  )}
+                  <Link
+                    href={at({ order: entry.key })}
+                    aria-current={filters.order === entry.key ? "true" : undefined}
+                    className={
+                      filters.order === entry.key ? "font-bold text-ink" : "text-muted underline underline-offset-2 hover:text-ink"
+                    }
+                  >
+                    {entry.label}
+                  </Link>
+                </span>
+              ))}
             </nav>
             {(filters.day || filters.topic || filters.q) && (
               <p className="mt-2 font-mono text-xs text-muted">
