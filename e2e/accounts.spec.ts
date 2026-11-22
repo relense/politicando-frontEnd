@@ -145,6 +145,23 @@ test("with an account, comments carry its name and need no captcha", async ({ pa
   const comment = page.locator("main li, main article").filter({ hasText: unique }).last();
   await expect(comment).toBeVisible();
   await expect(comment).toContainText(READER.username);
+  // It starts with the author's own like, which they can take back; the account remembers either way.
+  const like = comment.getByRole("button", { name: `gostos no comentário de ${READER.username}` });
+  await expect(like).toHaveAttribute("aria-pressed", "true");
+  await expect(like).toContainText("1");
+  const unliked = page.waitForResponse((response) => /\/comments\/\d+\/like$/.test(response.url()));
+  await like.click();
+  await unliked;
+  await expect(like).toHaveAttribute("aria-pressed", "false");
+  await expect(like).toContainText("0");
+  await page.reload();
+  await expect(
+    page
+      .locator("main li, main article")
+      .filter({ hasText: unique })
+      .last()
+      .getByRole("button", { name: /gostos no comentário de/ }),
+  ).toHaveAttribute("aria-pressed", "false");
 });
 
 test("without an account, the theme is chosen at the bottom of the menu, and kept across reloads without a flash", async ({
