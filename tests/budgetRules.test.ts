@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { BudgetBill, BudgetSession, BudgetVote } from "@/lib/api/budget";
+import type { BudgetBill, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
 import {
+  nextPlanned,
+  plannedDays,
+  plannedLine,
   statementGroups,
   authorsShort,
   authorsPhrase,
@@ -277,5 +280,48 @@ describe("«O que disseram», grouped by party", () => {
     // By the moment, not the text: 10:30 in Lisbon summer time (+01:00) is before 10:00 UTC.
     const mixed = statementGroups([said("ps", "2026-07-01T10:30:00+01:00", "antes"), said("ps", "2026-07-01T10:00:00Z", "depois")]);
     expect(mixed[0]!.statements.map((item) => item.text)).toEqual(["depois", "antes"]);
+  });
+});
+
+// The parliament's voting scripts: planned, not certain (docs/budget-api.md, "What's voted on which day").
+describe("planned voting days, from the scripts", () => {
+  const today = "2026-11-23";
+  const on = (date: string, venue: "committee" | "plenary" = "committee"): BudgetPlanned => ({
+    date,
+    venue,
+    position: 1,
+    scriptUrl: "https://example.com/guiao.pdf",
+  });
+
+  it("shows the next planned day only while it's still to be voted; once voted, the result instead", () => {
+    expect(nextPlanned({ result: "pending", scheduled: [on(today)] }, today)).toEqual(on(today));
+    expect(nextPlanned({ result: "sent_to_plenary", scheduled: [on(today)] }, today)).toEqual(on(today));
+    expect(nextPlanned({ result: "approved", scheduled: [on(today)] }, today)).toBeNull();
+    expect(nextPlanned({ result: "pending", scheduled: [] }, today)).toBeNull();
+  });
+
+  it("on two days (committee, then the plenary): the next one to come; a day gone by without the vote (postponed) is dropped", () => {
+    const both = [on("2026-11-20"), on("2026-11-25", "plenary")];
+    expect(nextPlanned({ result: "pending", scheduled: both }, today)).toEqual(on("2026-11-25", "plenary"));
+    expect(nextPlanned({ result: "pending", scheduled: [on("2026-11-20")] }, today)).toBeNull();
+  });
+
+  it("reads as a sentence: today, or the day, and where", () => {
+    expect(plannedLine(on(today), today)).toBe("Prevista para votação hoje, em comissão");
+    expect(plannedLine(on("2026-11-24", "plenary"), today)).toBe("Prevista para votação a 24-11-2026, em plenário");
+  });
+
+  it("the days ahead: one per day from today, committee and plenary together", () => {
+    const days: BudgetVotingDay[] = [
+      { date: "2026-11-19", venue: "plenary", proposals: 12, pending: 0 },
+      { date: today, venue: "committee", proposals: 236, pending: 230 },
+      { date: today, venue: "plenary", proposals: 6, pending: 6 },
+      { date: "2026-11-24", venue: "plenary", proposals: 2, pending: 2 },
+    ];
+    expect(plannedDays(days, today)).toEqual([
+      { date: today, proposals: 242, pending: 236, venues: ["committee", "plenary"] },
+      { date: "2026-11-24", proposals: 2, pending: 2, venues: ["plenary"] },
+    ]);
+    expect(plannedDays([], today)).toEqual([]);
   });
 });
