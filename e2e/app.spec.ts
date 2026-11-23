@@ -1431,3 +1431,15 @@ test("follow us: rarely in the feed until dismissed, at the side column's end, i
   await expect(page.getByRole("heading", { level: 2, name: "Fontes e método" })).toHaveAttribute("id", "fontes");
   await noSeriousA11yIssues(page);
 });
+
+test("an article says what kind it is, in gray under the outlet: news, opinion or a podcast", async ({ page }) => {
+  await page.goto("/article/93");
+  await expect(page.getByText("Opinião", { exact: true })).toBeVisible();
+  await page.goto("/article/100");
+  await expect(page.getByText("Notícia", { exact: true })).toBeVisible();
+  // In the feed too.
+  await gotoReady(page, "/");
+  const podcast = page.locator("main article").filter({ hasText: "Notícia de teste número 92" });
+  await expect(podcast.getByText("Podcast", { exact: true })).toBeVisible();
+  await noSeriousA11yIssues(page);
+});

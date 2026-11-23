@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArticleKindLabel } from "@/components/ArticleKind";
+import type { ArticleKind } from "@/lib/types";
 import type { ReactNode } from "react";
 import { storyPhoto, storyPath, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
@@ -28,6 +30,8 @@ type RowProps = {
   others: number;
   parties: ArticleParty[];
   commentCount: number;
+  /** An article's kind, in gray under the outlet; stories are news, so none. */
+  kind?: ArticleKind | null;
   /** Before the comments: the story's Importa, or nothing. */
   lead?: ReactNode;
   /** After the parties: one link to our own pages. */
@@ -47,6 +51,7 @@ function Row({
   others,
   parties,
   commentCount,
+  kind,
   lead,
   extra,
   menu,
@@ -72,6 +77,7 @@ function Row({
             </span>
           )}
         </p>
+        <ArticleKindLabel kind={kind} className="relative z-10 mt-0.5" />
         <h2 className="mt-1.5 text-[17px] font-semibold leading-snug sm:text-lg">
           <Link href={path} className="decoration-1 underline-offset-4 after:absolute after:inset-0 group-hover:underline">
             {title}
@@ -185,6 +191,7 @@ export function ArticleRow({ article, why }: { article: Article; why: string }) 
       others={0}
       parties={article.parties}
       commentCount={article.commentsCount}
+      kind={article.kind}
       save={<SaveButton articleId={article.id} title={article.title} className={saveClass} iconOnly />}
       menu={<ArticleMenu article={article} why={why} />}
     />

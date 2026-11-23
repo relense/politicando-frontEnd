@@ -38,6 +38,8 @@ export const articles: ApiArticle[] = Array.from({ length: 35 }, (_, index) => {
     upvotes: id === 98 ? 120 : id === 97 ? 40 : (id * 7) % 13,
     downvotes: id === 97 ? 38 : (id * 3) % 5,
     parties: tagged(TAGS[index % TAGS.length]!),
+    // What the outlet marks it as (docs/articles-api.md): an opinion piece and a podcast among the news.
+    kind: id === 93 ? "opinion" : id === 92 ? "podcast" : "news",
   };
 });
 

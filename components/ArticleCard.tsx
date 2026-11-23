@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArticleKindLabel } from "@/components/ArticleKind";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber, readsLabel } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleImage } from "./ArticleImage";
@@ -62,6 +63,7 @@ export function ArticleCard({
         </p>
         {why !== undefined && <ArticleMenu article={article} why={why} />}
       </div>
+      <ArticleKindLabel kind={article.kind} className="mt-1" />
 
       <h2 className={cardTitle}>
         {/* The whole card opens the story; the links on it stay on top. */}
