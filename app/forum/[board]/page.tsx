@@ -75,13 +75,14 @@ const boardTitle = (board: Board) => (board.acronym ? `Fórum do ${board.acronym
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const board = await loadBoard((await params).board);
-  const { ordem, pagina } = await searchParams;
+  const { pagina } = await searchParams;
   return {
     title: boardTitle(board),
     description: board.acronym
       ? `Discussões anónimas sobre o ${board.name} (${board.acronym}) e as suas propostas.`
       : "Discussões anónimas sobre política portuguesa.",
-    alternates: { canonical: pathOf(board.board, sortOf(ordem).param, pageOf(pagina)) },
+    // Another order is the same threads again: point to the board's own order (Search Console, 23 Nov).
+    alternates: { canonical: pathOf(board.board, SORTS[0]!.param, pageOf(pagina)) },
   };
 }
 
