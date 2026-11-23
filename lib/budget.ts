@@ -1,12 +1,15 @@
 import type {
   BudgetBill,
   BudgetChoice,
+  BudgetPlanned,
   BudgetParty,
   BudgetProposal,
   BudgetResult,
   BudgetSession,
   BudgetStatement,
+  BudgetVenue,
   BudgetVote,
+  BudgetVotingDay,
 } from "@/lib/api/budget";
 import { tidyName } from "@/lib/elections";
 import { formatDate, formatTime, lisbonDay } from "@/lib/format";
@@ -261,4 +264,37 @@ export function statementGroups(statements: BudgetStatement[]): { party: BudgetP
     groups.set(statement.party.slug, group);
   }
   return [...groups.values()];
+}
+
+/**
+ * The next day the voting scripts plan for a proposal still to be voted (planned, not certain). Once voted, none: the
+ * result says it. A day gone by without the vote (postponed) is dropped rather than shown out of date.
+ */
+export function nextPlanned(proposal: Pick<BudgetProposal, "result" | "scheduled">, today: string | null): BudgetPlanned | null {
+  if (proposal.result !== "pending" && proposal.result !== "sent_to_plenary") return null;
+  return proposal.scheduled.find((entry) => !today || entry.date >= today) ?? null;
+}
+
+const VENUES: Record<BudgetVenue, string> = { committee: "em comissão", plenary: "em plenário" };
+
+/** «Prevista para votação hoje, em comissão» / «… a 24-11-2026, em plenário». */
+export function plannedLine(entry: BudgetPlanned, today: string | null): string {
+  return `Prevista para votação ${entry.date === today ? "hoje" : `a ${formatDate(entry.date)}`}, ${VENUES[entry.venue]}`;
+}
+
+/** The voting days from today on, committee and plenary together, oldest first. */
+export function plannedDays(
+  days: BudgetVotingDay[],
+  today: string | null,
+): { date: string; proposals: number; pending: number; venues: BudgetVenue[] }[] {
+  const byDate = new Map<string, { date: string; proposals: number; pending: number; venues: BudgetVenue[] }>();
+  for (const day of days) {
+    if (today && day.date < today) continue;
+    const entry = byDate.get(day.date) ?? { date: day.date, proposals: 0, pending: 0, venues: [] };
+    entry.proposals += day.proposals;
+    entry.pending += day.pending;
+    if (!entry.venues.includes(day.venue)) entry.venues.push(day.venue);
+    byDate.set(day.date, entry);
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
