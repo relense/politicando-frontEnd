@@ -11,7 +11,7 @@ import { API, handlers } from "@/mocks/handlers";
 
 // Story cards say what they are (backend note): «Opinião», «Podcast» or «Newsletter»; news, the usual, says nothing.
 const server = setupServer(...handlers);
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
