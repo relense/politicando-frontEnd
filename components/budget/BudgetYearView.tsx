@@ -1,3 +1,4 @@
+import Form from "next/form";
 import Link from "next/link";
 import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type BudgetSummary, type BudgetYear } from "@/lib/api/budget";
 import {
@@ -26,6 +27,7 @@ import { partyColor } from "@/lib/parliament";
 import { BudgetBox } from "./BudgetBox";
 import { HeadlineColumns, ProgressBar, ResultBadge, SharesBar, ToneBadge } from "./BudgetParts";
 import { ProposalMeta, proposalPath } from "./ProposalItem";
+import { FilterButton, LinkPending, LoadingNote } from "./Pending";
 import { ProposalList } from "./ProposalList";
 
 const label = "font-mono text-[11px] font-bold uppercase tracking-widest";
@@ -399,11 +401,11 @@ export function BudgetYearView({
         )}
 
         {summary && (
-          <section aria-labelledby="propostas-titulo" id="propostas" className="scroll-mt-24">
+          <section aria-labelledby="propostas-titulo" id="propostas" className="group/list scroll-mt-24">
             <h2 id="propostas-titulo" className={sectionHeading}>
               {current ? "As propostas de alteração" : "Todas as propostas"}
             </h2>
-            <form method="get" action={current ? "/orcamento" : `/orcamento/${year.year}`} className="mt-3 flex flex-wrap gap-2">
+            <Form action={current ? "/orcamento" : `/orcamento/${year.year}`} className="mt-3 flex flex-wrap gap-2">
               {filters.party && <input type="hidden" name="partido" value={filters.party} />}
               {filters.result && <input type="hidden" name="resultado" value={filters.result} />}
               {filters.order && <input type="hidden" name="ordem" value={filters.order} />}
@@ -439,10 +441,8 @@ export function BudgetYearView({
                 <span>Dia de votação</span>
                 <input type="date" name="dia" defaultValue={filters.day ?? ""} className="bg-transparent py-2" />
               </label>
-              <button type="submit" className="rounded-full border border-ink bg-ink px-4 py-2 font-mono text-xs font-bold text-paper">
-                Filtrar
-              </button>
-            </form>
+              <FilterButton />
+            </Form>
             <nav aria-label="Proposta por" className="mt-3 flex flex-wrap items-center gap-1.5">
               <span className="font-mono text-[11px] text-muted">Proposta por</span>
               {summary.parties.map((entry) => (
@@ -453,6 +453,7 @@ export function BudgetYearView({
                   className={`rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${filters.party === entry.party.slug ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`}
                 >
                   {partyShort(entry.party)}
+                  <LinkPending />
                 </Link>
               ))}
             </nav>
@@ -469,6 +470,7 @@ export function BudgetYearView({
                   >
                     {tab.label}
                     {count !== null && ` ${formatNumber(count)}`}
+                    <LinkPending />
                   </Link>
                 );
               })}
@@ -491,6 +493,7 @@ export function BudgetYearView({
                     }
                   >
                     {entry.label}
+                    <LinkPending />
                   </Link>
                 </span>
               ))}
@@ -510,17 +513,21 @@ export function BudgetYearView({
                   className="underline"
                 >
                   limpar
+                  <LinkPending />
                 </Link>
               </p>
             )}
-            <div className="mt-2">
-              {page ? (
-                <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} />
-              ) : (
-                <p role="alert" className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-                  Não foi possível carregar as propostas. Tenta daqui a pouco.
-                </p>
-              )}
+            <div className="relative mt-2">
+              <LoadingNote />
+              <div className="transition-opacity group-has-[[data-pending]]/list:opacity-40">
+                {page ? (
+                  <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} />
+                ) : (
+                  <p role="alert" className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+                    Não foi possível carregar as propostas. Tenta daqui a pouco.
+                  </p>
+                )}
+              </div>
             </div>
           </section>
         )}
