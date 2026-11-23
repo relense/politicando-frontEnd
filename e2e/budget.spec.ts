@@ -142,3 +142,40 @@ test("the Budget's box beside the news, on wide screens", async ({ page, isMobil
   await box.getByRole("link", { name: /Ver as votações de hoje/ }).click();
   await expect(page).toHaveURL(/\/orcamento\?dia=\d{4}-\d{2}-\d{2}#propostas$/);
 });
+
+test("State Budget: a filter shows it's loading while the next list comes", async ({ page }) => {
+  await gotoReady(page, "/orcamento");
+  // The server can take seconds: hold the next page back to see the wait.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/orcamento\?.*resultado=por-votar/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  const loading = page.getByRole("status").filter({ hasText: "A carregar as propostas…" });
+  await expect(loading).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Resultado" })
+    .getByRole("link", { name: /^Por votar/ })
+    .click();
+  await expect(loading).toBeVisible();
+  release();
+  await expect(page).toHaveURL(/resultado=por-votar/);
+  await expect(loading).toHaveCount(0);
+
+  // The search too, on its button.
+  await page.unroute(/\/orcamento\?.*resultado=por-votar/);
+  let releaseSearch!: () => void;
+  const heldSearch = new Promise<void>((resolve) => (releaseSearch = resolve));
+  await page.route(/\/orcamento\?.*q=irs/, async (route) => {
+    await heldSearch;
+    await route.continue();
+  });
+  await page.getByRole("searchbox", { name: "Procurar nas propostas" }).fill("irs");
+  await page.getByRole("button", { name: "Filtrar" }).click();
+  await expect(page.getByRole("button", { name: "A filtrar…" })).toBeVisible();
+  await expect(loading).toBeVisible();
+  releaseSearch();
+  await expect(page).toHaveURL(/q=irs/);
+  await expect(page.getByRole("button", { name: "Filtrar" })).toBeVisible();
+});
