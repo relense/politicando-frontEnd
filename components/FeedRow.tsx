@@ -13,7 +13,7 @@ import { ImportaButton } from "./ImportaButton";
 import { PartyLogo } from "./PartyLogo";
 import { SaveButton } from "./SaveButton";
 import { SourceLogo } from "./SourceLogo";
-import { contextChips, leadOf } from "./StoryCard";
+import { contextChips, leadOf, storyKind } from "./StoryCard";
 
 /**
  * The compact list: one row per news, the headline and a line of text beside a small photo, with the counts, the
@@ -30,7 +30,7 @@ type RowProps = {
   others: number;
   parties: ArticleParty[];
   commentCount: number;
-  /** An article's kind, in gray under the outlet; stories are news, so none. */
+  /** An article's kind, in gray under the outlet; a story's only when it isn't news. */
   kind?: ArticleKind | null;
   /** Before the comments: the story's Importa, or nothing. */
   lead?: ReactNode;
@@ -143,6 +143,7 @@ export function StoryRow({ story, why }: { story: Story; why: string }) {
       others={story.sourceCount - 1}
       parties={story.parties}
       commentCount={story.commentCount}
+      kind={storyKind(story)}
       lead={
         <ImportaButton
           id={story.id}

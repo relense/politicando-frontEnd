@@ -1,6 +1,6 @@
 import { decode } from "he";
 import { z } from "zod";
-import type { Article, PersonMention } from "@/lib/types";
+import type { Article, ArticleKind, PersonMention } from "@/lib/types";
 import { formatRelative, lisbonDay, lisbonDayFrom } from "@/lib/format";
 import { sourceName } from "@/lib/sources";
 import { cached, idBatches, request, searchOf } from "./client";
@@ -69,6 +69,8 @@ const storySchema = z.object({
   debate: z.object({ agree: debateComment.nullable(), disagree: debateComment.nullable() }).nullish(),
   /** The ids of older stories joined into this one ([] usually, and from an older API). */
   mergedFrom: z.array(z.number()).catch([]),
+  /** News (most), or an opinion piece, podcast or newsletter: a card of one article. Null from an older API. */
+  kind: articleSchema.shape.kind,
 });
 
 const storyDetailSchema = storySchema.extend({
@@ -137,6 +139,8 @@ export type Story = {
   debate: { agree: DebateComment; disagree: DebateComment } | null;
   /** Older stories joined into this one: a reader's mark (read, Importa, followed) on one of them is on this story. */
   mergedFrom: number[];
+  /** News, or a card of one opinion piece, podcast or newsletter; null from an older API. */
+  kind?: ArticleKind | null;
 };
 
 /** Every id this story answers to: its own, then the older ones joined into it. */
@@ -162,6 +166,7 @@ function mapStory(api: z.infer<typeof storySchema>): Story {
   return {
     id: api.id,
     mergedFrom: api.mergedFrom.filter((id) => id !== api.id),
+    kind: api.kind ?? null,
     title: decode(api.title),
     excerpt: api.excerpt ? decode(api.excerpt) : null,
     imageUrl: safeHttpUrl(api.imageUrl),

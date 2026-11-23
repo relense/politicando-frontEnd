@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArticleKindLabel } from "@/components/ArticleKind";
 import { leadOf, storyPath, storyPhoto, type Story } from "@/lib/api/stories";
 import { excerpt, formatCardWhen, formatDateTime, formatNumber } from "@/lib/format";
 import { initiativePath } from "@/lib/initiatives";
@@ -16,6 +17,9 @@ import { DebatePair } from "./StoryParts";
 import { outletClick } from "@/lib/analytics";
 
 export { leadOf };
+
+/** A story's kind to show: «Opinião», «Podcast» or «Newsletter»; news, the usual, says nothing. */
+export const storyKind = (story: Pick<Story, "kind">) => (story.kind === "news" ? null : story.kind);
 
 /**
  * A story in the feed: one card for the same news told by several outlets. The first outlet and "+6 jornais"; the
@@ -64,6 +68,7 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
           />
         )}
       </div>
+      <ArticleKindLabel kind={storyKind(story)} className="mt-1" />
 
       <h2 className={cardTitle}>
         {/* The whole card opens the story; the links on it stay on top. */}
