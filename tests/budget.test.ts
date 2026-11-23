@@ -99,6 +99,36 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     expect(await getBudgetSummary(1999)).toBeNull();
   });
 
+  it("the voting scripts: the days ahead on the summary, and each proposal's planned days with its place and script", async () => {
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+    const summary = await getBudgetSummary(2027);
+    expect(summary?.votingDays[0]).toEqual({ date: today, venue: "committee", proposals: 4, pending: 2 });
+    expect(summary?.votingDays[1]).toMatchObject({ venue: "plenary", proposals: 1, pending: 1 });
+    // Not on a day's summary.
+    expect((await getBudgetSummary(2027, { votedFrom: today, votedTo: today }))?.votingDays).toEqual([]);
+    const planned = await getBudgetProposals(2027, { scheduledOn: today, sort: "scheduled" });
+    expect(planned.items.map((item) => item.id)).toEqual([28301, 28302, 28306, 28308]);
+    expect(planned.items[2]!.scheduled).toEqual([
+      { date: today, venue: "committee", position: 3, scriptUrl: "https://example.com/oe/guiao-comissao.pdf" },
+    ]);
+  });
+
+  it("tolerates a broken planned day: left out; a script that isn't a web link reads as none; an older API sends no days", async () => {
+    const { mapBudgetProposal } = await import("@/lib/api/budget");
+    const raw = await fetchRaw();
+    const mapped = mapBudgetProposal({
+      ...raw,
+      scheduled: [
+        { date: "2026-11-23", venue: "committee", position: 4, scriptUrl: "javascript:alert(1)" },
+        { date: "2026-11-24", venue: "somewhere" },
+        { venue: "plenary" },
+      ],
+    });
+    expect(mapped.scheduled).toEqual([{ date: "2026-11-23", venue: "committee", position: 4, scriptUrl: null }]);
+    expect(mapBudgetProposal({ ...raw, scheduled: undefined }).scheduled).toEqual([]);
+    expect(mapBudgetProposal({ ...raw, scheduled: "x" }).scheduled).toEqual([]);
+  });
+
   it("tolerates what an older or newer API sends: an unknown result or vote reads as unknown, not as a crash", async () => {
     const { mapBudgetProposal } = await import("@/lib/api/budget");
     const raw = {
