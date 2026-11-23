@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArticleKindLabel } from "@/components/ArticleKind";
 import { formatFullDateTime, readsLabel } from "@/lib/format";
 import type { Article } from "@/lib/types";
 import { ArticleActions } from "./ArticleActions";
@@ -30,6 +31,7 @@ export function ArticleDetail({ article, versions }: { article: Article; /** The
           </>
         )}
       </p>
+      <ArticleKindLabel kind={article.kind} className="-mt-2 mb-3" />
 
       <h1 className="text-2xl font-bold leading-tight sm:text-3xl xl:text-4xl xl:leading-[1.1]">{article.title}</h1>
 
