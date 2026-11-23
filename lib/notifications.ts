@@ -17,6 +17,8 @@ export function tabOf(item: Notification): Exclude<InboxTab, "tudo"> {
   return "seguir";
 }
 
+const BUDGET_VOTE_RESULTS = { approved: "Aprovada", rejected: "Rejeitada", superseded: "Prejudicada" } as const;
+
 /** One inbox line in words: who (in bold), what, and a short quote when there is one. */
 export type NotificationText = { actor: string | null; lead: string; quote: string | null };
 
@@ -63,6 +65,14 @@ export function notificationText(item: Notification): NotificationText {
         quote: null,
       };
     }
+    case "budget_vote": {
+      const vote = item.budgetProposal;
+      if (!vote?.title) return { actor: null, lead: "Uma proposta do Orçamento que segues foi votada", quote: null };
+      const result = vote.result ? BUDGET_VOTE_RESULTS[vote.result] : "Votada";
+      const where = vote.phase === "committee" ? " em comissão" : vote.phase === "plenary" ? " em plenário" : "";
+      const number = vote.number ? ` (${vote.number})` : "";
+      return { actor: null, lead: `${result}${where}: ${vote.title}${number}${vote.partLabel ? `, ${vote.partLabel}` : ""}`, quote: null };
+    }
     default:
       return { actor: null, lead: "Novidade na tua conta", quote: item.snippet };
   }
@@ -72,6 +82,7 @@ export function notificationText(item: Notification): NotificationText {
 export function notificationHref(item: Notification): string | null {
   const { link } = item;
   if (item.kind === "feedback_reply") return null;
+  if (link.budgetProposalId && link.budgetYear) return `/orcamento/${link.budgetYear}/proposta/${link.budgetProposalId}`;
   const comment = link.commentId ? `#comentario-${link.commentId}` : "";
   if (item.kind === "comment_reply") {
     if (link.articleId) return `/article/${link.articleId}${comment}`;

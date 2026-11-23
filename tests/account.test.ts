@@ -9,7 +9,7 @@ import { currentExtras } from "@/lib/accountExtras";
 
 const state: AccountState = {
   saved: { articles: [812, 790], stories: [41], editorial: [3], comments: [1203], threads: [17], replies: [4410] },
-  follows: { stories: [41], threads: [17] },
+  follows: { stories: [41], threads: [17], budgetProposals: [25391] },
   hidden: [777],
   muted: { sources: ["publico.pt"], parties: ["chega"] },
   read: [41, 39],
@@ -37,7 +37,7 @@ describe("the account in the browser", () => {
     expect(JSON.parse(window.localStorage.getItem("stories-read")!)).toEqual([39, 41]);
     // What only the account keeps: follows and the other saved things.
     expect(currentExtras()).toEqual({
-      follows: { story: [41], thread: [17] },
+      follows: { story: [41], thread: [17], budget_proposal: [25391] },
       saved: { editorial: [3], comment: [1203], thread: [17], reply: [4410] },
     });
     // And sends them back newest first, without votes, to merge.

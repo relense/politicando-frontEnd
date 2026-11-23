@@ -537,6 +537,16 @@ export async function getBudgetProposals(year: number, query: BudgetQuery = {}):
   return { items: raw.items.map(mapBudgetProposal), nextCursor: raw.nextCursor ?? null, total: raw.total ?? null };
 }
 
+/** The proposals this account follows, for «A seguir»: newest followed first, 20 a page. Private, never cached. */
+export async function getFollowedBudgetProposals(cursor?: string | null): Promise<BudgetProposalPage> {
+  const raw = await request(
+    `/me/follows/budget_proposals${searchOf({ cursor: cursor ?? undefined })}`,
+    z.object({ items: z.array(z.unknown()), nextCursor: z.string().nullish() }),
+    { cache: "no-store" },
+  );
+  return { items: raw.items.map(mapBudgetProposal), nextCursor: raw.nextCursor ?? null, total: null };
+}
+
 export function getBudgetProposal(year: number, id: number): Promise<BudgetProposal | null> {
   return orNull(async () => mapBudgetProposal(await request(`/budget/${year}/proposals/${id}`, z.unknown(), cached)));
 }

@@ -47,8 +47,8 @@ export const accountStateSchema = z.object({
   saved: z
     .object({ articles: ids, stories: ids, editorial: ids, comments: ids, threads: ids, replies: ids })
     .catch({ articles: [], stories: [], editorial: [], comments: [], threads: [], replies: [] }),
-  /** Stories and forum threads the reader follows (backend docs/engagement-api.md). */
-  follows: z.object({ stories: ids, threads: ids }).catch({ stories: [], threads: [] }),
+  /** Stories, forum threads and Budget proposals the reader follows (backend docs/engagement-api.md). */
+  follows: z.object({ stories: ids, threads: ids, budgetProposals: ids }).catch({ stories: [], threads: [], budgetProposals: [] }),
   hidden: ids,
   muted: z.object({ sources: strings, parties: strings }).catch({ sources: [], parties: [] }),
   read: ids,

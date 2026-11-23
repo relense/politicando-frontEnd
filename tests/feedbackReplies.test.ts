@@ -20,6 +20,8 @@ const reply = (feedback: Notification["feedback"]): Notification => ({
     postId: null,
     initiativeId: null,
     feedbackId: 12,
+    budgetProposalId: null,
+    budgetYear: null,
   },
   threadTitle: null,
   board: null,
@@ -27,6 +29,7 @@ const reply = (feedback: Notification["feedback"]): Notification => ({
   status: null,
   prediction: null,
   feedback,
+  budgetProposal: null,
 });
 
 describe("the team's answer in the inbox", () => {
