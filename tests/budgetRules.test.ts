@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BudgetBill, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
 import {
+  awaitingResults,
   nextPlanned,
   plannedDays,
   plannedLine,
@@ -125,6 +126,32 @@ describe("the State Budget's rules (lib/budget)", () => {
       expect(budgetBox({ bills: open, schedule: [late], pending: 9 }, now)).toMatchObject({ state: "session", session: { id: late.id } });
       const notYet = session("2026-11-19T15:00:00Z", false, { started: false });
       expect(budgetBox({ bills: open, schedule: [notYet], pending: 9 }, now)).toMatchObject({ state: "between" });
+    });
+    it("two sessions began today (the plenary at 10h, the committee at 15h): the latest, the one on now", () => {
+      const morning = session("2026-11-19T10:00:00Z", false, { started: true, stage: "plenary" });
+      const afternoon = session("2026-11-19T15:00:00Z", false, { started: true });
+      expect(budgetBox({ bills: open, schedule: [morning, afternoon], pending: 9 }, now)).toMatchObject({ session: { id: afternoon.id } });
+      expect(budgetBox({ bills: open, schedule: [afternoon, morning], pending: 9 }, now)).toMatchObject({ session: { id: afternoon.id } });
+    });
+    it("results the parliament hasn't published: the session began and its planned proposals are all still to vote", () => {
+      const day = (venue: "committee" | "plenary", proposals: number, pending: number): BudgetVotingDay => ({
+        date: "2026-11-19",
+        venue,
+        proposals,
+        pending,
+      });
+      const days = [day("plenary", 6, 0), day("committee", 236, 236)];
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), days, "2026-11-19")).toBe("committee");
+      // The plenary's are in; the final vote's session is a plenary.
+      expect(awaitingResults(session("2026-11-19T10:00:00Z", false, { stage: "plenary" }), days, "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T10:00:00Z", false, { stage: "final_vote" }), [day("plenary", 2, 2)], "2026-11-19")).toBe(
+        "plenary",
+      );
+      // Some already in: they're coming, nothing to explain. No script for it, or an older API with no stage: nothing said.
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), [day("committee", 236, 100)], "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), [], "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T15:00:00Z", false, { stage: null }), days, "2026-11-19")).toBeNull();
+      expect(awaitingResults(null, days, "2026-11-19")).toBeNull();
     });
     it("a session that began on another day isn't today's, even if a cached page still says started", () => {
       const yesterday = session("2026-11-18T10:00:00Z", false, { started: true });
