@@ -4,18 +4,15 @@ import { recordListVote } from "./accountFixtures";
 
 /**
  * Stories (the backend's docs/stories-api.md), made from the test articles: article 100 is told by four outlets
- * (100, 95, 90, 85); every other article is a story of one, with the article's id as the story's.
+ * (100, 95, 90, 85); every other article is a story of one, with the article's id as the story's. Opinion, podcasts
+ * and newsletters are always a card of their own, with their kind; nothing joins them.
  */
 const API = "*/api/v2";
 const fail = (status: number, code: string) => HttpResponse.json({ error: { code, message: code } }, { status });
 
 const GROUPS: number[][] = [[100, 95, 90, 85]];
 const grouped = new Set(GROUPS.flat());
-// Only news makes stories: opinion, podcasts and newsletters keep storyId null.
-const groups = [
-  ...GROUPS,
-  ...articles.filter((article) => !grouped.has(article.id) && (article.kind ?? "news") === "news").map((article) => [article.id]),
-];
+const groups = [...GROUPS, ...articles.filter((article) => !grouped.has(article.id)).map((article) => [article.id])];
 for (const group of groups) for (const id of group) articles.find((article) => article.id === id)!.storyId = group[0];
 
 /** Readers' marks, and this mock reader's own. */
@@ -126,6 +123,7 @@ function storyOf(group: number[]) {
     debate: debateOf(group[0]!),
     // The ids of older stories joined into this one (docs/stories-api.md): none here.
     mergedFrom: [] as number[],
+    kind: head.kind ?? "news",
     commentCount: (storyComments.get(group[0]!) ?? []).length + versions.reduce((sum, item) => sum + item.commentCount, 0),
   };
 }
@@ -193,7 +191,9 @@ export const storyHandlers = [
     });
   }),
   http.get(`${API}/today`, () => {
+    // «Hoje em 5» is news only.
     const list = stories()
+      .filter((item) => item.kind === "news")
       .sort((a, b) => b.sourceCount + Math.min(5, b.importa / 2) - (a.sourceCount + Math.min(5, a.importa / 2)))
       .slice(0, 5);
     // recentSourceCount: the outlets in the last 24 hours (all of them, in these fixtures).
