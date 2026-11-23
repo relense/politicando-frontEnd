@@ -6,7 +6,7 @@ import { follow, forgetFollowed, useExtras } from "@/lib/accountExtras";
 import type { FollowKind } from "@/lib/api/engagement";
 
 /**
- * "Seguir": the account is told when a forum thread gets new replies, or more outlets cover a story (backend
+ * "Seguir": the account is told when a forum thread gets new replies, more outlets cover a story, or a Budget proposal is voted (backend
  * docs/engagement-api.md). Replying in a thread or commenting on a story follows it already, so "A seguir" shows
  * and pressing it again stops.
  */
@@ -30,7 +30,7 @@ export function FollowButton({
   const following = followedIds.length > 0 && Boolean(reader);
   const gate = useAccountGate();
   const [failed, setFailed] = useState(false);
-  const what = kind === "story" ? "esta história" : "esta discussão";
+  const what = kind === "story" ? "esta história" : kind === "budget_proposal" ? "esta proposta" : "esta discussão";
 
   return (
     <span className={`inline-flex flex-col ${className}`}>

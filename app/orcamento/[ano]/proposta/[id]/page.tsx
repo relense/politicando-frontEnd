@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
+import { BudgetFollow } from "@/components/budget/BudgetFollow";
 import { AutomaticLabel, PlannedLine, ProposalVotes, ScriptLink } from "@/components/budget/ProposalItem";
 import { ProposalNewsList, ProposalStatements } from "@/components/budget/ProposalPress";
 import { authorsPhrase, partyFull, tidyStatus, votedLine } from "@/lib/budget";
@@ -86,6 +87,9 @@ export default async function BudgetProposalPage({ params }: Props) {
       )}
       {votedLine(proposal) && <p className="mt-3 text-sm font-bold">{votedLine(proposal)}</p>}
       <PlannedLine proposal={proposal} today={today} className="mt-3 text-sm" />
+      <div className="mt-3">
+        <BudgetFollow proposal={proposal} large />
+      </div>
       <dl className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {facts
           .filter((fact): fact is [string, string] => Boolean(fact[1]))

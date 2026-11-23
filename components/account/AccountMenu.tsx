@@ -140,6 +140,9 @@ function SignedIn({ reader }: { reader: Reader }) {
               >
                 Notificações
               </MenuLink>
+              <MenuLink href="/conta/seguir" onClick={close} icon="m5 12 4.5 4.5L19 7">
+                A seguir
+              </MenuLink>
               <MenuLink href="/conta/comentarios" onClick={close} icon="M4 5h16v11H8l-4 4V5Z">
                 Os meus comentários
               </MenuLink>

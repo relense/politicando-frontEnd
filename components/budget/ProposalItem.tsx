@@ -4,6 +4,7 @@ import { authorsShort, nextPlanned, plannedLine } from "@/lib/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { AmbiguityNote, ChoiceColumns, ResultBadge, VoteChips } from "./BudgetParts";
+import { BudgetFollow } from "./BudgetFollow";
 
 export const proposalPath = (proposal: Pick<BudgetProposal, "year" | "id">) => `/orcamento/${proposal.year}/proposta/${proposal.id}`;
 
@@ -128,6 +129,7 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
             Página da proposta <span aria-hidden="true">→</span>
           </Link>
           <ScriptLink proposal={proposal} today={today} />
+          <BudgetFollow proposal={proposal} />
           {proposal.documentUrl && (
             <a
               href={proposal.documentUrl}
