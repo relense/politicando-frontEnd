@@ -179,3 +179,46 @@ test("State Budget: a filter shows it's loading while the next list comes", asyn
   await expect(page).toHaveURL(/q=irs/);
   await expect(page.getByRole("button", { name: "Filtrar" })).toBeVisible();
 });
+
+test("State Budget: what's planned for today and the days ahead, from the parliament's voting scripts", async ({ page }) => {
+  const lisbon = (offset: number) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+  const [today, tomorrow] = [lisbon(0), lisbon(1)];
+  const dmy = (date: string) => date.split("-").reverse().join("-");
+  await gotoReady(page, "/orcamento");
+  // Today's box: what's planned, in voting order, the voted ones with their result.
+  const box = page.getByRole("region", { name: /^Votações de hoje/ });
+  const planned = box.getByRole("list", { name: "Em votação hoje" });
+  await expect(box).toContainText("Em votação hoje · previsto · 4 propostas");
+  await expect(planned.getByRole("listitem")).toHaveText([
+    /Aprovada.*Artigo 9\.º do Código do IRS/,
+    /Rejeitada.*Artigo 2\.º do Código do IMI/,
+    /Por votar.*Artigo 87\.º do Código do IRC/,
+    /Por votar.*Artigo 140\.º · Serviço Nacional de Saúde/,
+  ]);
+  // The days ahead, one line each, to that day's list.
+  const ahead = box.getByRole("list", { name: "Próximos dias previstos" });
+  await expect(ahead.getByRole("link")).toHaveText([`${dmy(tomorrow)} · 1 proposta · em plenário`]);
+  await expect(ahead.getByRole("link")).toHaveAttribute("href", `/orcamento?previsto=${tomorrow}#propostas`);
+
+  // The day's list: in the scripts' order.
+  await box.getByRole("link", { name: /Ver as 4 previstas para hoje/ }).click();
+  await expect(page).toHaveURL(new RegExp(`previsto=${today}`));
+  const proposals = page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li");
+  await expect(proposals).toHaveCount(4);
+  await expect(proposals.first()).toContainText("Artigo 9.º do Código do IRS");
+  await expect(page.getByText(`Previstas para votação a ${dmy(today)}`)).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ordem" }).getByRole("link", { name: "Ordem de votação" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  // Still to vote: when and where it's planned, and the script; voted: the result instead.
+  const irc = proposals.filter({ hasText: "Artigo 87.º do Código do IRC" });
+  await expect(irc).toContainText("Prevista para votação hoje, em comissão");
+  await expect(proposals.first()).not.toContainText("Prevista para votação");
+  await irc.getByText("Artigo 87.º do Código do IRC").click();
+  await expect(irc.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
+  await irc.getByRole("link", { name: /Página da proposta/ }).click();
+  await expect(page.getByText("Prevista para votação hoje, em comissão")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
+  await noSeriousA11yIssues(page);
+});
