@@ -63,7 +63,8 @@ describe("a story's kind", () => {
 
   it("an older API sends none, or one the site doesn't know: no label, nothing breaks", async () => {
     const raw = (await (await fetch(`${API}/stories?limit=1`)).json()) as { items: Record<string, unknown>[] };
-    const { kind: _kind, ...older } = raw.items[0]!;
+    const older = { ...raw.items[0]! };
+    delete older.kind;
     server.use(
       http.get(`${API}/stories`, () => HttpResponse.json({ items: [older, { ...older, id: 2, kind: "video" }], nextCursor: null })),
     );
