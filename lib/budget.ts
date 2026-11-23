@@ -6,6 +6,7 @@ import type {
   BudgetProposal,
   BudgetResult,
   BudgetSession,
+  BudgetSessionStage,
   BudgetStatement,
   BudgetVenue,
   BudgetVote,
@@ -186,11 +187,30 @@ export function budgetBox(
   }
   if (pending === 0 && schedule.length === 0) return null;
   const today = lisbonDay(new Date(now).toISOString());
-  const started = schedule.find(
-    (item) => !item.allDay && (item.started ?? Date.parse(item.startsAt) <= now) && lisbonDay(item.startsAt) === today,
-  );
+  // The latest to begin: the plenary in the morning, then the committee in the afternoon.
+  const started = schedule
+    .filter((item) => !item.allDay && (item.started ?? Date.parse(item.startsAt) <= now) && lisbonDay(item.startsAt) === today)
+    .sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
   if (started) return { state: "session", session: started };
   return { state: "between", next: schedule.find((item) => Date.parse(item.startsAt) > now) ?? null };
+}
+
+const VENUE_OF: Record<BudgetSessionStage, BudgetVenue> = {
+  committee: "committee",
+  plenary: "plenary",
+  general_vote: "plenary",
+  final_vote: "plenary",
+};
+
+/**
+ * A session began, and every proposal the voting scripts put on it today is still to vote: the parliament hasn't
+ * published its results yet (they come in a while after). Where, or null when some are in or nothing is known.
+ */
+export function awaitingResults(session: BudgetSession | null, days: BudgetVotingDay[], today: string): BudgetVenue | null {
+  if (!session?.stage) return null;
+  const venue = VENUE_OF[session.stage];
+  const day = days.find((entry) => entry.date === today && entry.venue === venue);
+  return day && day.proposals > 0 && day.pending === day.proposals ? venue : null;
 }
 
 /** The session that ends with the final overall vote, once the parliament's agenda shows it. */
