@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { readerOf, type MockReader } from "./accountFixtures";
+import { budgetProposals } from "./budgetFixtures";
 import { registerFeedbackNotifier } from "./adminFixtures";
 import { publicPosts } from "./editorialAdmin";
 import { addVoteThread, forumItem, registerPickLookup } from "./forumFixtures";
@@ -30,8 +31,10 @@ const LINK = {
   postId: null,
   initiativeId: null,
   feedbackId: null,
+  budgetProposalId: null,
+  budgetYear: null,
 };
-const EXTRA = { threadTitle: null, board: null, headline: null, prediction: null };
+const EXTRA = { threadTitle: null, board: null, headline: null, prediction: null, budgetProposal: null };
 
 /** Each reader's inbox, seeded on first look: a reply, a followed thread and a settled prediction. */
 const inboxes = new Map<number, ReturnType<typeof seedInbox>>();
@@ -102,6 +105,30 @@ registerFeedbackNotifier((readerId, feedback) => {
     feedback,
   } as never);
 });
+
+// budget_vote (engagement-api.md): one line per vote, never coalesced. The mock announces one right after following.
+let nextBudgetNotice = 9500;
+function announceBudgetVote(reader: MockReader, proposal: ReturnType<typeof budgetProposals>[number]) {
+  inboxOf(reader).unshift({
+    id: nextBudgetNotice++,
+    kind: "budget_vote",
+    actorName: null,
+    count: 1,
+    createdAt: new Date().toISOString(),
+    read: false,
+    snippet: null,
+    link: { ...LINK, budgetProposalId: proposal.id, budgetYear: proposal.year },
+    ...EXTRA,
+    budgetProposal: {
+      number: proposal.number,
+      title: proposal.title,
+      votedOn: new Date().toISOString().slice(0, 10),
+      phase: "committee",
+      result: "approved",
+      partLabel: null,
+    },
+  } as never);
+}
 
 /** Open predictions: the first few initiatives; the crowd's picks, and each reader's. */
 const TOPICS = [
@@ -243,14 +270,38 @@ export const engagementHandlers = [
     http[method](
       `${API}/me/follows/:kind/:id`,
       withReader((reader, _request, params) => {
-        const list = params.kind === "story" ? "stories" : params.kind === "thread" ? "threads" : null;
+        const list =
+          params.kind === "story"
+            ? "stories"
+            : params.kind === "thread"
+              ? "threads"
+              : params.kind === "budget_proposal"
+                ? "budgetProposals"
+                : null;
         if (!list) return fail(404, "not_found");
         const id = Number(params.id);
+        const proposal = list === "budgetProposals" ? budgetProposals().find((item) => item.id === id) : null;
+        if (list === "budgetProposals" && !proposal) return fail(404, "not_found");
         const rest = reader.follows[list].filter((item) => item !== id);
+        const already = rest.length < reader.follows[list].length;
         reader.follows[list] = method === "put" ? [id, ...rest] : rest;
+        // A stand-in for the next hourly budget run: the vote on a newly followed proposal arrives in the inbox.
+        if (proposal && method === "put" && !already) announceBudgetVote(reader, proposal);
         return noContent();
       }),
     ),
+  ),
+
+  http.get(
+    `${API}/me/follows/budget_proposals`,
+    withReader((reader) => {
+      const all = budgetProposals();
+      const items = reader.follows.budgetProposals
+        .map((id) => all.find((item) => item.id === id))
+        .filter((item) => item !== undefined)
+        .map((item) => ({ ...item, news: undefined, statements: undefined }));
+      return HttpResponse.json({ items, nextCursor: null });
+    }),
   ),
 
   http.get(`${API}/predictions/open`, ({ request }) => {

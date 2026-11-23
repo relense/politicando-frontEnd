@@ -24,7 +24,7 @@ const BUTTON =
 const INPUT = "w-full rounded-xl border border-line bg-paper px-3 py-2.5 font-mono text-sm";
 
 /** Without a session: what the page is for, and the way in (and back here). */
-function SignedOut({ title, text, path }: { title: string; text: string; path: string }) {
+export function SignedOut({ title, text, path }: { title: string; text: string; path: string }) {
   const back = `?depois=${encodeURIComponent(path)}`;
   return (
     <div className="max-w-xl rounded-2xl border border-dashed border-line p-6">

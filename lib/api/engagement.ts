@@ -28,6 +28,7 @@ export const NOTIFICATION_KINDS = [
   "prediction_result",
   "idea_status",
   "feedback_reply",
+  "budget_vote",
 ] as const;
 
 export const notificationSchema = z.object({
@@ -48,6 +49,9 @@ export const notificationSchema = z.object({
       postId: nullableId,
       initiativeId: nullableId,
       feedbackId: nullableId,
+      /** `budget_vote`: the proposal and its Budget's year. */
+      budgetProposalId: nullableId,
+      budgetYear: nullableId,
     })
     .catch({
       commentId: null,
@@ -58,6 +62,8 @@ export const notificationSchema = z.object({
       postId: null,
       initiativeId: null,
       feedbackId: null,
+      budgetProposalId: null,
+      budgetYear: null,
     }),
   threadTitle: nullableText,
   board: nullableText,
@@ -75,6 +81,19 @@ export const notificationSchema = z.object({
     .catch(null),
   /** `feedback_reply`: the team's answer to a message the reader sent, shown in the inbox itself. */
   feedback: z.object({ id: z.number(), reply: z.string().nullable() }).nullish().catch(null),
+  /** `budget_vote`: the vote as it was when announced; `result` is this vote's (one line per part), not the proposal's. */
+  budgetProposal: z
+    .object({
+      number: z.string().nullish(),
+      title: z.string().nullish(),
+      votedOn: z.string().nullish(),
+      phase: z.enum(["committee", "plenary"]).nullish().catch(null),
+      result: z.enum(["approved", "rejected", "superseded"]).nullish().catch(null),
+      partLabel: z.string().nullish(),
+    })
+    .nullish()
+    .catch(null)
+    .transform((value) => value ?? null),
 });
 export type Notification = z.infer<typeof notificationSchema>;
 
@@ -88,7 +107,7 @@ export const markNotificationsRead = (ids?: number[]) => request("/me/notificati
 
 // ── Seguir ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export type FollowKind = "story" | "thread";
+export type FollowKind = "story" | "thread" | "budget_proposal";
 export const setFollow = (kind: FollowKind, id: number, on: boolean) =>
   request(`/me/follows/${kind}/${id}`, z.unknown(), json(on ? "PUT" : "DELETE"));
 

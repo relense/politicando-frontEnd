@@ -159,12 +159,15 @@ describe("forum mappers", () => {
         postId: null,
         initiativeId: null,
         feedbackId: null,
+        budgetProposalId: null,
+        budgetYear: null,
       },
       threadTitle: "Alertas do meu distrito",
       board: "ideias",
       headline: null,
       prediction: null,
       status: "planned",
+      budgetProposal: null,
     };
     expect(notificationText(item).lead).toBe("A ideia que segues, “Alertas do meu distrito”, está agora: Planeada");
     expect(notificationHref(item)).toBe("/feedback/ideias/501");

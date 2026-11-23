@@ -14,7 +14,7 @@ export type MockReader = {
   password: string;
   createdAt: string;
   saved: { articles: number[]; stories: number[]; editorial: number[]; comments: number[]; threads: number[]; replies: number[] };
-  follows: { stories: number[]; threads: number[] };
+  follows: { stories: number[]; threads: number[]; budgetProposals: number[] };
   hidden: number[];
   muted: { sources: string[]; parties: string[] };
   read: number[];
@@ -32,7 +32,7 @@ const readers: MockReader[] = [
     password: "palavra-passe-de-teste",
     createdAt: "2026-11-10T10:00:00.000Z",
     saved: { articles: [101], stories: [], editorial: [], comments: [], threads: [], replies: [] },
-    follows: { stories: [], threads: [] },
+    follows: { stories: [], threads: [], budgetProposals: [] },
     hidden: [],
     muted: { sources: [], parties: [] },
     read: [],
@@ -183,7 +183,7 @@ export const accountHandlers = [
       password,
       createdAt: new Date().toISOString(),
       saved: { articles: [], stories: [], editorial: [], comments: [], threads: [], replies: [] },
-      follows: { stories: [], threads: [] },
+      follows: { stories: [], threads: [], budgetProposals: [] },
       hidden: [],
       muted: { sources: [], parties: [] },
       read: [],
