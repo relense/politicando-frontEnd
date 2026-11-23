@@ -1,6 +1,6 @@
 import type { BudgetQuery, BudgetResult } from "@/lib/api/budget";
 
-/** The State Budget list's filters in the address: ?partido=ps&resultado=por-votar&tema=IRS&q=…&dia=2026-11-19&ordem=numero. */
+/** The State Budget list's filters in the address: ?partido=ps&resultado=por-votar&tema=IRS&q=…&dia=2026-11-19&ordem=numero&previsto=2026-11-23. */
 
 export const RESULT_TABS = [
   { key: null, label: "Todas" },
@@ -28,6 +28,8 @@ export type BudgetFilters = {
   q: string | null;
   day: string | null;
   order: BudgetOrder | null;
+  /** A day the voting scripts plan: its proposals, in voting order (committee, then plenary) unless ordered by number. */
+  planned: string | null;
 };
 export type BudgetSearch = Record<string, string | string[] | undefined>;
 
@@ -39,13 +41,16 @@ export function budgetFilters(search: BudgetSearch, known: { parties: readonly s
   const q = one(search.q)?.trim().slice(0, 100) || null;
   const day = one(search.dia);
   const order = one(search.ordem);
+  const planned = one(search.previsto);
+  const isDay = (value: string | null) => !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
   return {
     party: party && known.parties.includes(party) ? party : null,
     result: result && result in TAB_RESULTS ? (result as ResultTab) : null,
     topic: topic && known.topics.includes(topic) ? topic : null,
     q,
-    day: day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null,
+    day: isDay(day) ? day : null,
     order: order === "numero" ? order : null,
+    planned: isDay(planned) ? planned : null,
   };
 }
 
@@ -57,7 +62,8 @@ export function queryOf(filters: BudgetFilters): Omit<BudgetQuery, "cursor"> {
     q: filters.q ?? undefined,
     votedFrom: filters.day ?? undefined,
     votedTo: filters.day ?? undefined,
-    sort: filters.order === "numero" ? "number" : undefined,
+    scheduledOn: filters.planned ?? undefined,
+    sort: filters.order === "numero" ? "number" : filters.planned ? "scheduled" : undefined,
     limit: 20,
   };
 }
@@ -70,6 +76,7 @@ export function budgetPath(year: number, current: boolean, filters: BudgetFilter
   if (filters.q) query.set("q", filters.q);
   if (filters.day) query.set("dia", filters.day);
   if (filters.order) query.set("ordem", filters.order);
+  if (filters.planned) query.set("previsto", filters.planned);
   const base = current ? "/orcamento" : `/orcamento/${year}`;
   return `${base}${query.size > 0 ? `?${query}` : ""}${hash}`;
 }

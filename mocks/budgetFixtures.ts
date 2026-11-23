@@ -3,6 +3,8 @@ import { articles } from "./fixtures";
 
 const API = "*/api/v2";
 const SOURCE = "https://www.parlamento.pt/Cidadania/Paginas/DAOE.aspx";
+const COMMITTEE_SCRIPT = "https://example.com/oe/guiao-comissao.pdf";
+const PLENARY_SCRIPT = "https://example.com/oe/guiao-plenario.pdf";
 
 /** A day from today, in Lisbon, as "2026-11-20". */
 const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
@@ -85,6 +87,18 @@ const LEFT_FOR: Partial<Record<Slug, Choice>> = {
   jpp: "abstention",
 };
 
+/** The voting scripts (docs/budget-api.md, "What's voted on which day"): today in committee, in order; tomorrow in the plenary. */
+const scripts = () => [
+  { date: day(0), venue: "committee", scriptUrl: COMMITTEE_SCRIPT, ids: [28301, 28302, 28306, 28308] },
+  { date: day(1), venue: "plenary", scriptUrl: PLENARY_SCRIPT, ids: [28307] },
+];
+const scheduledOf = (id: number) =>
+  scripts().flatMap((script) =>
+    script.ids.includes(id)
+      ? [{ date: script.date, venue: script.venue, position: script.ids.indexOf(id) + 1, scriptUrl: script.scriptUrl }]
+      : [],
+  );
+
 const proposal = (fields: {
   id: number;
   year?: number;
@@ -134,6 +148,7 @@ const proposal = (fields: {
   documentUrl: `https://example.com/oe/${fields.id}.pdf`,
   sourceUrl: SOURCE,
   votes: fields.votes ?? [],
+  scheduled: scheduledOf(fields.id),
   news: fields.news ?? [],
   statements: fields.statements ?? [],
 });
@@ -501,6 +516,14 @@ function summaryOf(year: number, votedFrom: string | null, votedTo: string | nul
             },
           ]
         : [],
+    votingDays:
+      year2027 && !days
+        ? scripts().map((script) => {
+            const planned = items.filter((item) => script.ids.includes(item.id));
+            const still = planned.filter((item) => item.result === "pending" || item.result === "sent_to_plenary");
+            return { date: script.date, venue: script.venue, proposals: planned.length, pending: still.length };
+          })
+        : [],
     sourceUrl: SOURCE,
   };
 }
@@ -527,15 +550,24 @@ export const budgetHandlers = [
     const q = search.get("q");
     const from = search.get("votedFrom");
     const to = search.get("votedTo");
+    const scheduledOn = search.get("scheduledOn");
+    if (search.get("sort") === "scheduled" && !scheduledOn) return HttpResponse.json({ error: "scheduled_on_required" }, { status: 400 });
     let items = proposalsOf(Number(params.year)).filter(
       (item) =>
         (!party || item.authors.parties.some((entry) => entry.slug === party)) &&
         (results.length === 0 || results.includes(item.result)) &&
         (!topic || item.topics.includes(topic)) &&
         (!q || ascii(`${item.number} ${item.title} ${item.article ?? ""} ${item.topics.join(" ")}`).includes(ascii(q))) &&
-        (!(from || to) || item.votes.some((entry) => (!from || entry.votedOn >= from) && (!to || entry.votedOn <= to))),
+        (!(from || to) || item.votes.some((entry) => (!from || entry.votedOn >= from) && (!to || entry.votedOn <= to))) &&
+        (!scheduledOn || item.scheduled.some((entry) => entry.date === scheduledOn)),
     );
-    if (search.get("sort") === "number") items = [...items].sort((a, b) => a.number.localeCompare(b.number, "pt", { numeric: true }));
+    // The day's scripts' order: committee first, then the plenary.
+    const placeOn = (item: (typeof items)[number]) => {
+      const entry = item.scheduled.find((planned) => planned.date === scheduledOn)!;
+      return (entry.venue === "committee" ? 0 : 10_000) + entry.position;
+    };
+    if (search.get("sort") === "scheduled") items = [...items].sort((a, b) => placeOn(a) - placeOn(b));
+    else if (search.get("sort") === "number") items = [...items].sort((a, b) => a.number.localeCompare(b.number, "pt", { numeric: true }));
     else items = [...items].sort((a, b) => (b.lastVotedOn ?? "").localeCompare(a.lastVotedOn ?? ""));
     const limit = Number(search.get("limit") ?? 20);
     const start = Number(search.get("cursor") ?? 0);
