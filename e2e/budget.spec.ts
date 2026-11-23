@@ -189,6 +189,8 @@ test("State Budget: what's planned for today and the days ahead, from the parlia
   const box = page.getByRole("region", { name: /^Votações de hoje/ });
   const planned = box.getByRole("list", { name: "Em votação hoje" });
   await expect(box).toContainText("Em votação hoje · previsto · 4 propostas");
+  // Some of today's results are in: nothing to explain (none in would read «Resultados … ainda não publicados pelo Parlamento»).
+  await expect(box).not.toContainText("ainda não publicados");
   await expect(planned.getByRole("listitem")).toHaveText([
     /Aprovada.*Artigo 9\.º do Código do IRS/,
     /Rejeitada.*Artigo 2\.º do Código do IMI/,
