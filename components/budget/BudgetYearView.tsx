@@ -1,8 +1,16 @@
 import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type BudgetSummary, type BudgetYear } from "@/lib/api/budget";
 import {
+  getBudgetProposals,
+  getBudgetSummary,
+  type BudgetProposalPage,
+  type BudgetSummary,
+  type BudgetVenue,
+  type BudgetYear,
+} from "@/lib/api/budget";
+import {
+  awaitingResults,
   budgetBox,
   budgetStage,
   budgetTally,
@@ -58,13 +66,31 @@ export async function loadBudgetYear(year: BudgetYear, current: boolean, search:
 type Loaded = Awaited<ReturnType<typeof loadBudgetYear>>;
 
 /** «Em votação hoje · previsto»: the voting scripts' first proposals for today, in order; voted ones with their result. */
-function PlannedToday({ page, total, href, children }: { page: BudgetProposalPage; total: number; href: string; children?: ReactNode }) {
+function PlannedToday({
+  page,
+  total,
+  href,
+  awaiting = null,
+  children,
+}: {
+  page: BudgetProposalPage;
+  total: number;
+  href: string;
+  /** A session began and none of its results are out yet: said, so «Por votar» doesn't read as us being late. */
+  awaiting?: BudgetVenue | null;
+  children?: ReactNode;
+}) {
   const count = Math.max(total, page.total ?? 0, page.items.length);
   return (
     <div className="rounded-2xl border border-line p-4">
       <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
         Em votação hoje · previsto · {formatNumber(count)} {count === 1 ? "proposta" : "propostas"}
       </p>
+      {awaiting && (
+        <p className="mt-1 text-sm text-muted">
+          Resultados {awaiting === "committee" ? "da comissão" : "do plenário"} ainda não publicados pelo Parlamento.
+        </p>
+      )}
       <ul aria-label="Em votação hoje" className="mt-2 flex flex-col gap-2">
         {page.items.map((proposal) => (
           <li key={proposal.id} className="flex items-start gap-2">
@@ -178,6 +204,7 @@ export function BudgetYearView({
   const days = summary && current ? plannedDays(summary.votingDays, today) : [];
   const plannedTotal = days[0]?.date === today ? days[0].proposals : 0;
   const ahead = days.filter((entry) => entry.date !== today);
+  const awaiting = box?.state === "session" && summary && today ? awaitingResults(box.session, summary.votingDays, today) : null;
 
   return (
     <div data-wide className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -345,7 +372,12 @@ export function BudgetYearView({
                   </p>
                 </div>
                 {plannedPage && plannedPage.items.length > 0 ? (
-                  <PlannedToday page={plannedPage} total={plannedTotal} href={at({ planned: today, day: null, result: null })}>
+                  <PlannedToday
+                    page={plannedPage}
+                    total={plannedTotal}
+                    awaiting={awaiting}
+                    href={at({ planned: today, day: null, result: null })}
+                  >
                     <Link href={at({ day: today, result: null, planned: null })} className="underline">
                       Já votadas hoje: {formatNumber(todayPage?.total ?? todayVoted.length)}
                     </Link>
@@ -376,7 +408,12 @@ export function BudgetYearView({
                   {box?.state === "between" && box.next ? ` Próxima sessão de votação: ${formatDayHeading(box.next.startsAt, now)}.` : ""}
                 </p>
                 {plannedPage && plannedPage.items.length > 0 && (
-                  <PlannedToday page={plannedPage} total={plannedTotal} href={at({ planned: today, day: null, result: null })} />
+                  <PlannedToday
+                    page={plannedPage}
+                    total={plannedTotal}
+                    awaiting={awaiting}
+                    href={at({ planned: today, day: null, result: null })}
+                  />
                 )}
               </div>
             )}
