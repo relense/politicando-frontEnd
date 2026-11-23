@@ -334,6 +334,13 @@ test("sitemap and robots are served", async ({ request }) => {
   expect(sitemap).toContain("/governo");
   expect(sitemap).toContain("/eleicoes");
   expect(await (await request.get("/robots.txt")).text()).toContain("Sitemap:");
+  // Filtered lists (Search Console, 23 Nov): one filter is indexed; combinations and stages are not; another order points to the list.
+  const robotsOf = async (path: string) =>
+    /<meta name="robots" content="([^"]+)"/.exec(await (await request.get(path)).text())?.[1] ?? null;
+  expect(await robotsOf("/iniciativas?partido=psd")).toBeNull();
+  expect(await robotsOf("/iniciativas?partido=psd&tema=transparencia")).toBe("noindex, follow");
+  expect(await robotsOf("/iniciativas?fase=president")).toBe("noindex, follow");
+  expect(await (await request.get("/forum/geral?ordem=recentes")).text()).toMatch(/<link rel="canonical" href="[^"]*\/forum\/geral"\/>/);
 });
 
 for (const colorScheme of ["light", "dark"] as const) {

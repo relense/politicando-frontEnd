@@ -151,3 +151,21 @@ export function legislationLd(item: { path: string; name: string; kind: string; 
     ...(item.officialUrl ? { sameAs: [item.officialUrl] } : {}),
   };
 }
+
+/**
+ * A filtered list's robots: the list alone or with one filter is a page worth finding ("Iniciativas do PSD"); a
+ * search, two filters together or a narrowing one (a stage) is the same items again, kept out of the index so search
+ * engines spend their visits on real pages. Links are still followed.
+ */
+export function filteredListRobots({
+  filters,
+  narrowing = false,
+  search,
+}: {
+  filters: (string | null | undefined)[];
+  narrowing?: boolean;
+  search?: string | null;
+}): { index: false; follow: true } | undefined {
+  const chosen = filters.filter(Boolean).length;
+  return search?.trim() || narrowing || chosen > 1 ? { index: false, follow: true } : undefined;
+}
