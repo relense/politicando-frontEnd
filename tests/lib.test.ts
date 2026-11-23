@@ -32,9 +32,9 @@ const apiArticle = (overrides: Partial<ApiArticle> = {}): ApiArticle => ({
 describe("mappers", () => {
   // Backend docs/articles-api.md, kind: a gray label under the outlet, so opinion is never taken for news.
   it("reads what kind of article it is, labelled; an older API or an unknown kind has none", () => {
-    expect(mapArticle(apiArticle({ kind: "opinion" } as Partial<ApiArticle>)).kind).toBe("opinion");
+    expect(mapArticle(apiArticle({ kind: "opinion" })).kind).toBe("opinion");
     expect(mapArticle(apiArticle()).kind).toBeNull();
-    expect(mapArticle(apiArticle({ kind: "essay" } as Partial<ApiArticle>)).kind).toBeNull();
+    expect(mapArticle(articleSchema.parse({ ...apiArticle(), kind: "essay" })).kind).toBeNull();
     expect(articleKindLabel("news")).toBe("Notícia");
     expect(articleKindLabel("opinion")).toBe("Opinião");
     expect(articleKindLabel("podcast")).toBe("Podcast");

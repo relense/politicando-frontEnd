@@ -27,9 +27,13 @@ export type Article = {
   initiatives: { id: number; title: string }[];
   /** The story with the other outlets' versions, when the API groups them. */
   storyId?: number | null;
+  /** News, opinion, a podcast or a newsletter, as the outlet marks it; null until the API says. */
+  kind?: ArticleKind | null;
   /** Everyone named in it who has a page here, most mentioned first. */
   people?: PersonMention[];
 };
+
+export type ArticleKind = "news" | "opinion" | "podcast" | "newsletter";
 
 /** Someone named in a news item who has a page on this site. */
 export type PersonMention = { kind: "deputy" | "government" | "president" | "local"; id: string; name: string };
