@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapArticle, safeHttpUrl } from "@/lib/api/mappers";
+import { articleKindLabel, mapArticle, safeHttpUrl } from "@/lib/api/mappers";
 import { articleSchema, type ApiArticle } from "@/lib/api/schemas";
 import { buildBacklinks, buildCommentTree, countReplies, displayName, mentionsOf, splitMentions } from "@/lib/comments";
 import { commentLinkLabel, commentsLabel, excerpt, formatDateTime, formatLongDateTime, formatRelative } from "@/lib/format";
@@ -30,6 +30,18 @@ const apiArticle = (overrides: Partial<ApiArticle> = {}): ApiArticle => ({
 });
 
 describe("mappers", () => {
+  // Backend docs/articles-api.md, kind: a gray label under the outlet, so opinion is never taken for news.
+  it("reads what kind of article it is, labelled; an older API or an unknown kind has none", () => {
+    expect(mapArticle(apiArticle({ kind: "opinion" } as Partial<ApiArticle>)).kind).toBe("opinion");
+    expect(mapArticle(apiArticle()).kind).toBeNull();
+    expect(mapArticle(apiArticle({ kind: "essay" } as Partial<ApiArticle>)).kind).toBeNull();
+    expect(articleKindLabel("news")).toBe("Notícia");
+    expect(articleKindLabel("opinion")).toBe("Opinião");
+    expect(articleKindLabel("podcast")).toBe("Podcast");
+    expect(articleKindLabel("newsletter")).toBe("Newsletter");
+    expect(articleKindLabel(null)).toBeNull();
+  });
+
   it("decodes entities in titles and excerpts", () => {
     const article = mapArticle(apiArticle({ title: "A &amp; B", excerpt: "C &amp; D" }));
     expect(article).toMatchObject({ title: "A & B", excerpt: "C & D" });
