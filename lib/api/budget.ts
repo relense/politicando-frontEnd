@@ -68,11 +68,18 @@ export type BudgetProposal = {
   documentUrl: string | null;
   sourceUrl: string | null;
   votes: BudgetVote[];
+  /** The voting days the parliament's scripts («guiões de votações») put it on, oldest first. Planned, not certain. */
+  scheduled: BudgetPlanned[];
   /** «Nas notícias», newest first. Only on the single proposal; empty on the list. */
   news: BudgetNews[];
   /** «O que disseram», from the news (not the parliament). Only on the single proposal; empty on the list. */
   statements: BudgetStatement[];
 };
+export type BudgetVenue = "committee" | "plenary";
+/** A day a voting script puts a proposal on: its place in that day's script for that venue, and the script (PDF). */
+export type BudgetPlanned = { date: string; venue: BudgetVenue; position: number | null; scriptUrl: string | null };
+/** A voting day from the scripts: how many proposals it takes and how many still wait for a vote. */
+export type BudgetVotingDay = { date: string; venue: BudgetVenue; proposals: number; pending: number };
 export type BudgetNews = { id: number; title: string; source: string; url: string | null; publishedAt: string | null };
 export type BudgetStatement = {
   party: BudgetParty | null;
@@ -139,6 +146,8 @@ export type BudgetSummary = {
   bills: BudgetBill[];
   /** The Budget voting sessions to come (from the agenda); empty once all is voted and on a day's summary. */
   schedule: BudgetSession[];
+  /** Which proposals each voting day takes, from the scripts, oldest first; empty before the first and on a day's summary. */
+  votingDays: BudgetVotingDay[];
   sourceUrl: string | null;
 };
 
@@ -197,6 +206,15 @@ const voteSchema = z.object({
   ambiguous: z.boolean().nullish(),
   ambiguity: z.string().nullish(),
 });
+const venueSchema = z.enum(["committee", "plenary"]);
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const plannedSchema = z.object({
+  date: dateSchema,
+  venue: venueSchema,
+  position: z.number().nullish(),
+  scriptUrl: z.string().nullish(),
+});
+const votingDaySchema = z.object({ date: dateSchema, venue: venueSchema, proposals: z.number().nullish(), pending: z.number().nullish() });
 export const budgetProposalSchema = z.object({
   id: z.number(),
   year: z.number(),
@@ -217,6 +235,7 @@ export const budgetProposalSchema = z.object({
   documentUrl: z.string().nullish(),
   sourceUrl: z.string().nullish(),
   votes: list(voteSchema),
+  scheduled: looseList(plannedSchema),
   news: looseList(newsSchema),
   statements: looseList(statementSchema),
 });
@@ -292,6 +311,7 @@ const summarySchema = z.object({
       started: z.boolean().nullish(),
     }),
   ),
+  votingDays: looseList(votingDaySchema),
   sourceUrl: z.string().nullish(),
 });
 
@@ -333,6 +353,12 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
       : null,
     documentUrl: safeHttpUrl(raw.documentUrl ?? null),
     sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
+    scheduled: raw.scheduled.map((item) => ({
+      date: item.date,
+      venue: item.venue,
+      position: item.position ?? null,
+      scriptUrl: safeHttpUrl(item.scriptUrl ?? null),
+    })),
     news: raw.news
       .map((item) => ({
         id: item.id,
@@ -466,6 +492,12 @@ export function getBudgetSummary(year: number, days: BudgetDays = {}): Promise<B
         allDay: item.allDay ?? false,
         started: item.started ?? null,
       })),
+      votingDays: raw.votingDays.map((item) => ({
+        date: item.date,
+        venue: item.venue,
+        proposals: item.proposals ?? 0,
+        pending: item.pending ?? 0,
+      })),
       sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
     };
   });
@@ -476,7 +508,9 @@ export type BudgetQuery = BudgetDays & {
   result?: BudgetResult[];
   topic?: string;
   q?: string;
-  sort?: "voted" | "number";
+  /** The proposals the voting scripts put on this day (YYYY-MM-DD); `sort: "scheduled"` needs it. */
+  scheduledOn?: string;
+  sort?: "voted" | "number" | "scheduled";
   cursor?: string;
   limit?: number;
 };
@@ -490,6 +524,7 @@ export async function getBudgetProposals(year: number, query: BudgetQuery = {}):
     q: query.q?.trim() || undefined,
     votedFrom: query.votedFrom,
     votedTo: query.votedTo,
+    scheduledOn: query.scheduledOn,
     sort: query.sort,
     cursor: query.cursor,
     limit: query.limit,
@@ -500,6 +535,16 @@ export async function getBudgetProposals(year: number, query: BudgetQuery = {}):
     cached,
   );
   return { items: raw.items.map(mapBudgetProposal), nextCursor: raw.nextCursor ?? null, total: raw.total ?? null };
+}
+
+/** The proposals this account follows, for «A seguir»: newest followed first, 20 a page. Private, never cached. */
+export async function getFollowedBudgetProposals(cursor?: string | null): Promise<BudgetProposalPage> {
+  const raw = await request(
+    `/me/follows/budget_proposals${searchOf({ cursor: cursor ?? undefined })}`,
+    z.object({ items: z.array(z.unknown()), nextCursor: z.string().nullish() }),
+    { cache: "no-store" },
+  );
+  return { items: raw.items.map(mapBudgetProposal), nextCursor: raw.nextCursor ?? null, total: null };
 }
 
 export function getBudgetProposal(year: number, id: number): Promise<BudgetProposal | null> {

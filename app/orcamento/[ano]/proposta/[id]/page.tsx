@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { ApiError } from "@/lib/api/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 import { ResultBadge } from "@/components/budget/BudgetParts";
-import { AutomaticLabel, ProposalVotes } from "@/components/budget/ProposalItem";
+import { BudgetFollow } from "@/components/budget/BudgetFollow";
+import { AutomaticLabel, PlannedLine, ProposalVotes, ScriptLink } from "@/components/budget/ProposalItem";
 import { ProposalNewsList, ProposalStatements } from "@/components/budget/ProposalPress";
 import { authorsPhrase, partyFull, tidyStatus, votedLine } from "@/lib/budget";
 import { getBudgetProposal } from "@/lib/api/budget";
-import { formatDate } from "@/lib/format";
+import { formatDate, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 
 type Props = { params: Promise<{ ano: string; id: string }> };
@@ -43,6 +45,9 @@ export default async function BudgetProposalPage({ params }: Props) {
   const { ano, id } = await params;
   const proposal = await load(ano, id);
   if (!proposal) notFound();
+  // Today, for the planned voting day (from the voting scripts).
+  await connection();
+  const today = lisbonDay(new Date().toISOString());
   const facts: [string, string | null][] = [
     [
       "Proposta por",
@@ -81,6 +86,10 @@ export default async function BudgetProposalPage({ params }: Props) {
         </section>
       )}
       {votedLine(proposal) && <p className="mt-3 text-sm font-bold">{votedLine(proposal)}</p>}
+      <PlannedLine proposal={proposal} today={today} className="mt-3 text-sm" />
+      <div className="mt-3">
+        <BudgetFollow proposal={proposal} large />
+      </div>
       <dl className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {facts
           .filter((fact): fact is [string, string] => Boolean(fact[1]))
@@ -102,6 +111,7 @@ export default async function BudgetProposalPage({ params }: Props) {
       <ProposalStatements statements={proposal.statements} />
       <ProposalNewsList news={proposal.news} />
       <p className="mt-6 flex flex-wrap gap-2">
+        <ScriptLink proposal={proposal} today={today} />
         {proposal.documentUrl && (
           <a
             href={proposal.documentUrl}

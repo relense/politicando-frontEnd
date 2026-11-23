@@ -11,7 +11,11 @@ const fail = (status: number, code: string) => HttpResponse.json({ error: { code
 
 const GROUPS: number[][] = [[100, 95, 90, 85]];
 const grouped = new Set(GROUPS.flat());
-const groups = [...GROUPS, ...articles.filter((article) => !grouped.has(article.id)).map((article) => [article.id])];
+// Only news makes stories: opinion, podcasts and newsletters keep storyId null.
+const groups = [
+  ...GROUPS,
+  ...articles.filter((article) => !grouped.has(article.id) && (article.kind ?? "news") === "news").map((article) => [article.id]),
+];
 for (const group of groups) for (const id of group) articles.find((article) => article.id === id)!.storyId = group[0];
 
 /** Readers' marks, and this mock reader's own. */

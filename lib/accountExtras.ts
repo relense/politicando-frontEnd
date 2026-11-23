@@ -6,7 +6,7 @@ import { setFollow, setSaved, type FollowKind, type SaveKind } from "./api/engag
 import { track } from "@/lib/analytics";
 
 /*
- * What only an account keeps, with no copy in the browser's own lists: the stories and threads it follows, and the
+ * What only an account keeps, with no copy in the browser's own lists: the stories, threads and Budget proposals it follows, and the
  * blog posts, comments, threads and replies it saved. Filled from /me/state (lib/account.ts), emptied on logging out,
  * and changed at once on the page while the change travels.
  */
@@ -16,14 +16,17 @@ export type Extras = {
   saved: Record<SaveKind, number[]>;
 };
 
-const EMPTY: Extras = { follows: { story: [], thread: [] }, saved: { editorial: [], comment: [], thread: [], reply: [] } };
+const EMPTY: Extras = {
+  follows: { story: [], thread: [], budget_proposal: [] },
+  saved: { editorial: [], comment: [], thread: [], reply: [] },
+};
 let extras: Extras = EMPTY;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 
 export function setExtrasFrom(state: AccountState) {
   extras = {
-    follows: { story: state.follows.stories, thread: state.follows.threads },
+    follows: { story: state.follows.stories, thread: state.follows.threads, budget_proposal: state.follows.budgetProposals },
     saved: { editorial: state.saved.editorial, comment: state.saved.comments, thread: state.saved.threads, reply: state.saved.replies },
   };
   emit();

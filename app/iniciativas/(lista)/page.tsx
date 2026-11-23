@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { filteredListRobots } from "@/lib/seo";
 import Link from "next/link";
 import { connection } from "next/server";
 import { InitiativeList } from "@/components/InitiativeList";
@@ -89,9 +90,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title: topic ? `${topic.label} · ${where}` : where,
     description:
       "As propostas de lei e recomendações que entram no Parlamento, explicadas em linguagem simples: o que são, em que fase estão, quem as propôs e como se votou.",
-    // A search or another order is the same list again: point to it without them, and keep searches out of the index.
+    // Another order is the same list again: point to it without. A search, a party and a topic together, or a stage
+    // are near-duplicates by the thousand (Search Console, 23 Nov): kept out of the index, links still followed.
     alternates: { canonical: pathOf({ ...filters, q: null, oldest: false }) },
-    robots: filters.q ? { index: false, follow: true } : undefined,
+    robots: filteredListRobots({ filters: [filters.party, filters.topic], narrowing: Boolean(filters.stage), search: filters.q }),
   };
 }
 

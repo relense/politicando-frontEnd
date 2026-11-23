@@ -1,9 +1,12 @@
+import Form from "next/form";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { getBudgetProposals, getBudgetSummary, type BudgetProposalPage, type BudgetSummary, type BudgetYear } from "@/lib/api/budget";
 import {
   budgetBox,
   budgetStage,
   budgetTally,
+  plannedDays,
   choiceShares,
   finalVoteSession,
   headlineVotes,
@@ -26,6 +29,7 @@ import { partyColor } from "@/lib/parliament";
 import { BudgetBox } from "./BudgetBox";
 import { HeadlineColumns, ProgressBar, ResultBadge, SharesBar, ToneBadge } from "./BudgetParts";
 import { ProposalMeta, proposalPath } from "./ProposalItem";
+import { FilterButton, LinkPending, LoadingNote } from "./Pending";
 import { ProposalList } from "./ProposalList";
 
 const label = "font-mono text-[11px] font-bold uppercase tracking-widest";
@@ -39,14 +43,47 @@ export async function loadBudgetYear(year: BudgetYear, current: boolean, search:
     parties: summary?.parties.map((entry) => entry.party.slug) ?? [],
     topics: summary?.topics.map((entry) => entry.topic) ?? [],
   });
-  const [page, todayPage] = await Promise.all([
+  // «Em votação hoje»: what the voting scripts plan for today, in their order.
+  const plannedToday = Boolean(current && today && summary?.votingDays.some((entry) => entry.date === today));
+  const [page, todayPage, plannedPage] = await Promise.all([
     summary ? getBudgetProposals(year.year, queryOf(filters)).catch((): BudgetProposalPage | null => null) : null,
     summary && current && today ? getBudgetProposals(year.year, { votedFrom: today, votedTo: today, limit: 6 }).catch(() => null) : null,
+    plannedToday && today
+      ? getBudgetProposals(year.year, { scheduledOn: today, sort: "scheduled", limit: 5 }).catch((): BudgetProposalPage | null => null)
+      : null,
   ]);
-  return { summary, filters, page, todayPage, today };
+  return { summary, filters, page, todayPage, plannedPage, today };
 }
 
 type Loaded = Awaited<ReturnType<typeof loadBudgetYear>>;
+
+/** «Em votação hoje · previsto»: the voting scripts' first proposals for today, in order; voted ones with their result. */
+function PlannedToday({ page, total, href, children }: { page: BudgetProposalPage; total: number; href: string; children?: ReactNode }) {
+  const count = Math.max(total, page.total ?? 0, page.items.length);
+  return (
+    <div className="rounded-2xl border border-line p-4">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted">
+        Em votação hoje · previsto · {formatNumber(count)} {count === 1 ? "proposta" : "propostas"}
+      </p>
+      <ul aria-label="Em votação hoje" className="mt-2 flex flex-col gap-2">
+        {page.items.map((proposal) => (
+          <li key={proposal.id} className="flex items-start gap-2">
+            <ResultBadge result={proposal.result} />
+            <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
+              {proposal.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs font-bold">
+        <Link href={href} className="underline">
+          Ver as {formatNumber(count)} previstas para hoje <span aria-hidden="true">→</span>
+        </Link>
+        {children}
+      </p>
+    </div>
+  );
+}
 
 /** The years at the top: the current one, the three before it, the rest in a fold. */
 function YearTabs({ years, shown, currentYear }: { years: number[]; shown: number; currentYear: number }) {
@@ -112,7 +149,7 @@ export function BudgetYearView({
   loaded: Loaded;
   now: number;
 }) {
-  const { summary, filters, page, todayPage, today } = loaded;
+  const { summary, filters, page, todayPage, plannedPage, today } = loaded;
   const stage = budgetStage(year.bills);
   const { general, final } = headlineVotes(year.bills);
   const headline = final ?? general;
@@ -128,7 +165,7 @@ export function BudgetYearView({
   const { approved, rejected } = tally;
   const box =
     summary && current ? budgetBox({ bills: year.bills, schedule: summary.schedule, pending: year.pending }, now, { keep: true }) : null;
-  const filtered = Boolean(filters.party || filters.topic || filters.q || filters.day);
+  const filtered = Boolean(filters.party || filters.topic || filters.q || filters.day || filters.planned);
   const tabCount = (key: (typeof RESULT_TABS)[number]["key"]) =>
     filtered || !summary
       ? null
@@ -137,6 +174,10 @@ export function BudgetYearView({
         : TAB_RESULTS[key].reduce((sum, result) => sum + (summary.results[result] ?? 0), 0);
   const at = (next: Partial<BudgetFilters>) => budgetPath(year.year, current, { ...filters, ...next }, "#propostas");
   const todayVoted = todayPage?.items ?? [];
+  // The voting scripts' days from today: today's in the box, the days ahead one line each.
+  const days = summary && current ? plannedDays(summary.votingDays, today) : [];
+  const plannedTotal = days[0]?.date === today ? days[0].proposals : 0;
+  const ahead = days.filter((entry) => entry.date !== today);
 
   return (
     <div data-wide className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -303,28 +344,56 @@ export function BudgetYearView({
                     )}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-line p-4">
-                  <p className={`${label} text-muted`}>Já votadas hoje · {formatNumber(todayPage?.total ?? todayVoted.length)}</p>
-                  <ul className="mt-2 flex flex-col gap-2">
-                    {todayVoted.slice(0, 5).map((proposal) => (
-                      <li key={proposal.id} className="flex items-start gap-2">
-                        <ResultBadge result={proposal.result} />
-                        <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
-                          {proposal.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={at({ day: today, result: null })} className="mt-3 inline-block font-mono text-xs font-bold underline">
-                    Ver todas as de hoje <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
+                {plannedPage && plannedPage.items.length > 0 ? (
+                  <PlannedToday page={plannedPage} total={plannedTotal} href={at({ planned: today, day: null, result: null })}>
+                    <Link href={at({ day: today, result: null, planned: null })} className="underline">
+                      Já votadas hoje: {formatNumber(todayPage?.total ?? todayVoted.length)}
+                    </Link>
+                  </PlannedToday>
+                ) : (
+                  <div className="rounded-2xl border border-line p-4">
+                    <p className={`${label} text-muted`}>Já votadas hoje · {formatNumber(todayPage?.total ?? todayVoted.length)}</p>
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {todayVoted.slice(0, 5).map((proposal) => (
+                        <li key={proposal.id} className="flex items-start gap-2">
+                          <ResultBadge result={proposal.result} />
+                          <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
+                            {proposal.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href={at({ day: today, result: null })} className="mt-3 inline-block font-mono text-xs font-bold underline">
+                      Ver todas as de hoje <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="mt-3 rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
-                Hoje ainda não houve votações.
-                {box?.state === "between" && box.next ? ` Próxima sessão de votação: ${formatDayHeading(box.next.startsAt, now)}.` : ""}
-              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                <p className="rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
+                  Hoje ainda não houve votações.
+                  {box?.state === "between" && box.next ? ` Próxima sessão de votação: ${formatDayHeading(box.next.startsAt, now)}.` : ""}
+                </p>
+                {plannedPage && plannedPage.items.length > 0 && (
+                  <PlannedToday page={plannedPage} total={plannedTotal} href={at({ planned: today, day: null, result: null })} />
+                )}
+              </div>
+            )}
+            {ahead.length > 0 && (
+              <div className="mt-3">
+                <p className={`${label} text-muted`}>Próximos dias previstos</p>
+                <ul aria-label="Próximos dias previstos" className="mt-1 flex flex-col gap-1">
+                  {ahead.map((entry) => (
+                    <li key={entry.date}>
+                      <Link href={at({ planned: entry.date, day: null, result: null })} className="font-mono text-xs font-bold underline">
+                        {formatDate(entry.date)} · {formatNumber(entry.proposals)} {entry.proposals === 1 ? "proposta" : "propostas"} ·{" "}
+                        {entry.venues.map((venue) => (venue === "committee" ? "em comissão" : "em plenário")).join(" e ")}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
         )}
@@ -399,14 +468,15 @@ export function BudgetYearView({
         )}
 
         {summary && (
-          <section aria-labelledby="propostas-titulo" id="propostas" className="scroll-mt-24">
+          <section aria-labelledby="propostas-titulo" id="propostas" className="group/list scroll-mt-24">
             <h2 id="propostas-titulo" className={sectionHeading}>
               {current ? "As propostas de alteração" : "Todas as propostas"}
             </h2>
-            <form method="get" action={current ? "/orcamento" : `/orcamento/${year.year}`} className="mt-3 flex flex-wrap gap-2">
+            <Form action={current ? "/orcamento" : `/orcamento/${year.year}`} className="mt-3 flex flex-wrap gap-2">
               {filters.party && <input type="hidden" name="partido" value={filters.party} />}
               {filters.result && <input type="hidden" name="resultado" value={filters.result} />}
               {filters.order && <input type="hidden" name="ordem" value={filters.order} />}
+              {filters.planned && <input type="hidden" name="previsto" value={filters.planned} />}
               <label className="min-w-0 flex-1 basis-60">
                 <span className="sr-only">Procurar nas propostas</span>
                 <input
@@ -439,10 +509,8 @@ export function BudgetYearView({
                 <span>Dia de votação</span>
                 <input type="date" name="dia" defaultValue={filters.day ?? ""} className="bg-transparent py-2" />
               </label>
-              <button type="submit" className="rounded-full border border-ink bg-ink px-4 py-2 font-mono text-xs font-bold text-paper">
-                Filtrar
-              </button>
-            </form>
+              <FilterButton />
+            </Form>
             <nav aria-label="Proposta por" className="mt-3 flex flex-wrap items-center gap-1.5">
               <span className="font-mono text-[11px] text-muted">Proposta por</span>
               {summary.parties.map((entry) => (
@@ -453,6 +521,7 @@ export function BudgetYearView({
                   className={`rounded-full border px-2 py-0.5 font-mono text-[11px] font-bold ${filters.party === entry.party.slug ? "border-ink bg-ink text-paper" : "border-line hover:bg-surface"}`}
                 >
                   {partyShort(entry.party)}
+                  <LinkPending />
                 </Link>
               ))}
             </nav>
@@ -469,6 +538,7 @@ export function BudgetYearView({
                   >
                     {tab.label}
                     {count !== null && ` ${formatNumber(count)}`}
+                    <LinkPending />
                   </Link>
                 );
               })}
@@ -490,14 +560,16 @@ export function BudgetYearView({
                       filters.order === entry.key ? "font-bold text-ink" : "text-muted underline underline-offset-2 hover:text-ink"
                     }
                   >
-                    {entry.label}
+                    {entry.key === null && filters.planned ? "Ordem de votação" : entry.label}
+                    <LinkPending />
                   </Link>
                 </span>
               ))}
             </nav>
-            {(filters.day || filters.topic || filters.q) && (
+            {(filters.day || filters.topic || filters.q || filters.planned) && (
               <p className="mt-2 font-mono text-xs text-muted">
                 {[
+                  filters.planned && `Previstas para votação a ${formatDate(filters.planned)}`,
                   filters.day && `Votadas a ${formatDate(filters.day)}`,
                   filters.topic && `Tema: ${filters.topic}`,
                   filters.q && `«${filters.q}»`,
@@ -506,21 +578,25 @@ export function BudgetYearView({
                   .join(" · ")}{" "}
                 ·{" "}
                 <Link
-                  href={budgetPath(year.year, current, { ...filters, day: null, topic: null, q: null }, "#propostas")}
+                  href={budgetPath(year.year, current, { ...filters, day: null, topic: null, q: null, planned: null }, "#propostas")}
                   className="underline"
                 >
                   limpar
+                  <LinkPending />
                 </Link>
               </p>
             )}
-            <div className="mt-2">
-              {page ? (
-                <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} />
-              ) : (
-                <p role="alert" className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-                  Não foi possível carregar as propostas. Tenta daqui a pouco.
-                </p>
-              )}
+            <div className="relative mt-2">
+              <LoadingNote />
+              <div className="transition-opacity group-has-[[data-pending]]/list:opacity-40">
+                {page ? (
+                  <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} />
+                ) : (
+                  <p role="alert" className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+                    Não foi possível carregar as propostas. Tenta daqui a pouco.
+                  </p>
+                )}
+              </div>
             </div>
           </section>
         )}

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { BudgetProposal, BudgetVote } from "@/lib/api/budget";
-import { authorsShort } from "@/lib/budget";
+import { authorsShort, nextPlanned, plannedLine } from "@/lib/budget";
 import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { AmbiguityNote, ChoiceColumns, ResultBadge, VoteChips } from "./BudgetParts";
+import { BudgetFollow } from "./BudgetFollow";
 
 export const proposalPath = (proposal: Pick<BudgetProposal, "year" | "id">) => `/orcamento/${proposal.year}/proposta/${proposal.id}`;
 
@@ -67,6 +68,28 @@ export function ProposalVotes({ proposal }: { proposal: BudgetProposal }) {
   );
 }
 
+/** «Prevista para votação hoje, em comissão»: while still to be voted, from the voting scripts (planned, not certain). */
+export function PlannedLine({ proposal, today, className = "" }: { proposal: BudgetProposal; today: string | null; className?: string }) {
+  const planned = nextPlanned(proposal, today);
+  return planned ? <p className={`font-mono text-[11px] font-bold ${className}`}>{plannedLine(planned, today)}</p> : null;
+}
+
+/** The day's voting script (PDF), beside the official PDF. */
+export function ScriptLink({ proposal, today }: { proposal: BudgetProposal; today: string | null }) {
+  const planned = nextPlanned(proposal, today);
+  if (!planned?.scriptUrl) return null;
+  return (
+    <a
+      href={planned.scriptUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="rounded-lg border border-line px-3 py-1.5 font-mono text-xs font-bold hover:bg-surface"
+    >
+      Guião de votações <span aria-hidden="true">↗</span>
+    </a>
+  );
+}
+
 /** In the list: the line and the chips; opened in place, the votes in full and the links. */
 export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; today: string | null }) {
   const vote = latestVote(proposal);
@@ -77,6 +100,7 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
           <div className="min-w-0">
             <ProposalMeta proposal={proposal} today={today} />
             <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere]">{proposal.title}</h3>
+            <PlannedLine proposal={proposal} today={today} className="mt-0.5" />
             {proposal.plain && (
               <p className="mt-1 text-sm leading-snug [overflow-wrap:anywhere]">
                 <span className="mr-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-muted">Resumo</span>
@@ -104,6 +128,8 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
           >
             Página da proposta <span aria-hidden="true">→</span>
           </Link>
+          <ScriptLink proposal={proposal} today={today} />
+          <BudgetFollow proposal={proposal} />
           {proposal.documentUrl && (
             <a
               href={proposal.documentUrl}

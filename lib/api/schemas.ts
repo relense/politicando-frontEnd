@@ -59,6 +59,8 @@ export const articleSchema = z.object({
   parties: z.array(articlePartySchema),
   /** The story it belongs to, with the other outlets' versions; null for a few minutes after it is found. */
   storyId: z.number().nullish(),
+  /** What the outlet marks it as; only news makes stories. Unknown or missing (an older API): none. */
+  kind: z.enum(["news", "opinion", "podcast", "newsletter"]).nullish().catch(null),
   /** Initiatives the article mentions; only on the detail. */
   initiatives: z.array(z.object({ id: z.number(), title: z.string() })).nullish(),
   /** Everyone named in it who has a page here, most mentioned first. */

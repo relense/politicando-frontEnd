@@ -1,6 +1,7 @@
 import { decode } from "he";
 import type {
   Article,
+  ArticleKind,
   Comment,
   Election,
   ElectionList,
@@ -110,6 +111,11 @@ export function mapPartyStanding(party: ApiParty): PartyStanding | null {
   return { seats, votes: election?.votes ?? 0, validPct: election?.validPct ?? 0, coalition: election?.coalition ?? false };
 }
 
+const ARTICLE_KINDS: Record<ArticleKind, string> = { news: "Notícia", opinion: "Opinião", podcast: "Podcast", newsletter: "Newsletter" };
+
+/** The gray label under the outlet: what kind of article it is. */
+export const articleKindLabel = (kind: ArticleKind | null | undefined): string | null => (kind ? ARTICLE_KINDS[kind] : null);
+
 export function mapArticle(article: ApiArticle): Article {
   return {
     id: article.id,
@@ -130,6 +136,7 @@ export function mapArticle(article: ApiArticle): Article {
         : null,
     initiatives: (article.initiatives ?? []).map((item) => ({ id: item.id, title: decode(item.title) })),
     storyId: article.storyId ?? null,
+    kind: article.kind ?? null,
     people: (article.people ?? []).map((person) => ({ ...person, name: decode(person.name) })),
   };
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { gotoReady, noSeriousA11yIssues } from "./helpers";
+import { gotoReady, noSeriousA11yIssues, signUp } from "./helpers";
 
 test("State Budget: the current one, today's votes, each party, the filters and a proposal opened in place and on its page", async ({
   page,
@@ -141,4 +141,143 @@ test("the Budget's box beside the news, on wide screens", async ({ page, isMobil
   await expect(box).toContainText("Última votação");
   await box.getByRole("link", { name: /Ver as votações de hoje/ }).click();
   await expect(page).toHaveURL(/\/orcamento\?dia=\d{4}-\d{2}-\d{2}#propostas$/);
+});
+
+test("State Budget: a filter shows it's loading while the next list comes", async ({ page }) => {
+  await gotoReady(page, "/orcamento");
+  // The server can take seconds: hold the next page back to see the wait.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/orcamento\?.*resultado=por-votar/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  const loading = page.getByRole("status").filter({ hasText: "A carregar as propostas…" });
+  await expect(loading).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Resultado" })
+    .getByRole("link", { name: /^Por votar/ })
+    .click();
+  await expect(loading).toBeVisible();
+  release();
+  await expect(page).toHaveURL(/resultado=por-votar/);
+  await expect(loading).toHaveCount(0);
+
+  // The search too, on its button.
+  await page.unroute(/\/orcamento\?.*resultado=por-votar/);
+  let releaseSearch!: () => void;
+  const heldSearch = new Promise<void>((resolve) => (releaseSearch = resolve));
+  await page.route(/\/orcamento\?.*q=irs/, async (route) => {
+    await heldSearch;
+    await route.continue();
+  });
+  await page.getByRole("searchbox", { name: "Procurar nas propostas" }).fill("irs");
+  await page.getByRole("button", { name: "Filtrar" }).click();
+  await expect(page.getByRole("button", { name: "A filtrar…" })).toBeVisible();
+  await expect(loading).toBeVisible();
+  releaseSearch();
+  await expect(page).toHaveURL(/q=irs/);
+  await expect(page.getByRole("button", { name: "Filtrar" })).toBeVisible();
+});
+
+test("State Budget: what's planned for today and the days ahead, from the parliament's voting scripts", async ({ page }) => {
+  const lisbon = (offset: number) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+  const [today, tomorrow] = [lisbon(0), lisbon(1)];
+  const dmy = (date: string) => date.split("-").reverse().join("-");
+  await gotoReady(page, "/orcamento");
+  // Today's box: what's planned, in voting order, the voted ones with their result.
+  const box = page.getByRole("region", { name: /^Votações de hoje/ });
+  const planned = box.getByRole("list", { name: "Em votação hoje" });
+  await expect(box).toContainText("Em votação hoje · previsto · 4 propostas");
+  await expect(planned.getByRole("listitem")).toHaveText([
+    /Aprovada.*Artigo 9\.º do Código do IRS/,
+    /Rejeitada.*Artigo 2\.º do Código do IMI/,
+    /Por votar.*Artigo 87\.º do Código do IRC/,
+    /Por votar.*Artigo 140\.º · Serviço Nacional de Saúde/,
+  ]);
+  // The days ahead, one line each, to that day's list.
+  const ahead = box.getByRole("list", { name: "Próximos dias previstos" });
+  await expect(ahead.getByRole("link")).toHaveText([`${dmy(tomorrow)} · 1 proposta · em plenário`]);
+  await expect(ahead.getByRole("link")).toHaveAttribute("href", `/orcamento?previsto=${tomorrow}#propostas`);
+
+  // The day's list: in the scripts' order.
+  await box.getByRole("link", { name: /Ver as 4 previstas para hoje/ }).click();
+  await expect(page).toHaveURL(new RegExp(`previsto=${today}`));
+  const proposals = page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li");
+  await expect(proposals).toHaveCount(4);
+  await expect(proposals.first()).toContainText("Artigo 9.º do Código do IRS");
+  await expect(page.getByText(`Previstas para votação a ${dmy(today)}`)).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ordem" }).getByRole("link", { name: "Ordem de votação" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  // Still to vote: when and where it's planned, and the script; voted: the result instead.
+  const irc = proposals.filter({ hasText: "Artigo 87.º do Código do IRC" });
+  await expect(irc).toContainText("Prevista para votação hoje, em comissão");
+  await expect(proposals.first()).not.toContainText("Prevista para votação");
+  await irc.getByText("Artigo 87.º do Código do IRC").click();
+  await expect(irc.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
+  await irc.getByRole("link", { name: /Página da proposta/ }).click();
+  await expect(page).toHaveURL(/\/orcamento\/2027\/proposta\/28306$/);
+  await expect(page.getByText("Prevista para votação hoje, em comissão")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
+  await noSeriousA11yIssues(page);
+});
+
+test("State Budget: follow a proposal still to vote, see it under «A seguir», get its vote in the inbox, and stop", async ({ page }) => {
+  const username = await signUp(page);
+  // Voted already: nothing left to tell, no button.
+  await page.goto("/orcamento/2027/proposta/28301");
+  await expect(page.getByRole("heading", { level: 1, name: "Artigo 9.º do Código do IRS" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Seguir esta proposta/ })).toHaveCount(0);
+  // Still to vote: «Seguir», then «A seguir».
+  await page.goto("/orcamento/2027/proposta/28306");
+  const follow = page.getByRole("button", { name: "Seguir esta proposta" });
+  await follow.click();
+  await expect(page.getByRole("button", { name: "A seguir esta proposta" })).toHaveAttribute("aria-pressed", "true");
+
+  // In the list too, opened in place.
+  await page.goto("/orcamento?resultado=por-votar#propostas");
+  const sns = page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li").filter({ hasText: "Artigo 140.º" });
+  await sns.getByText("Artigo 140.º · Serviço Nacional de Saúde").click();
+  await sns.getByRole("button", { name: /^Seguir/ }).click();
+  await expect(sns.getByRole("button", { name: /^A seguir/ })).toHaveAttribute("aria-pressed", "true");
+
+  // «A seguir», from the account's menu: newest followed first, with where each stands.
+  await page
+    .getByRole("button", { name: new RegExp(username) })
+    .first()
+    .click();
+  await page
+    .getByRole("region", { name: "A tua conta" })
+    .getByRole("link", { name: /A seguir/ })
+    .click();
+  await expect(page).toHaveURL(/\/conta\/seguir$/);
+  await expect(page.getByRole("heading", { level: 1, name: "A seguir" })).toBeVisible();
+  const followed = page.getByRole("list", { name: "Propostas que segues" }).getByRole("listitem");
+  await expect(followed).toHaveCount(2);
+  await expect(followed.first()).toContainText("Artigo 140.º · Serviço Nacional de Saúde");
+  await expect(followed.nth(1)).toContainText("Prevista para votação hoje, em comissão");
+  await noSeriousA11yIssues(page);
+
+  // The vote, in the inbox, to the proposal's page.
+  await page.goto("/conta/notificacoes");
+  const line = page.getByRole("list", { name: "Notificações" }).getByRole("listitem").filter({ hasText: "Artigo 87.º do Código do IRC" });
+  await expect(line).toContainText("Aprovada em comissão: Artigo 87.º do Código do IRC (1450C)");
+  await expect(line.getByRole("link").first()).toHaveAttribute("href", "/orcamento/2027/proposta/28306");
+
+  // Stop following, from «A seguir».
+  await page.goto("/conta/seguir");
+  await followed
+    .first()
+    .getByRole("button", { name: /^A seguir/ })
+    .click();
+  await page.reload();
+  await expect(followed).toHaveCount(1);
+});
+
+test("State Budget: «A seguir» asks to log in first", async ({ page }) => {
+  await page.goto("/conta/seguir");
+  await expect(page.getByRole("heading", { level: 1, name: "A seguir" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Entrar" }).first()).toBeVisible();
 });
