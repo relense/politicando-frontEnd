@@ -218,6 +218,7 @@ test("State Budget: what's planned for today and the days ahead, from the parlia
   await irc.getByText("Artigo 87.º do Código do IRC").click();
   await expect(irc.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
   await irc.getByRole("link", { name: /Página da proposta/ }).click();
+  await expect(page).toHaveURL(/\/orcamento\/2027\/proposta\/28306$/);
   await expect(page.getByText("Prevista para votação hoje, em comissão")).toBeVisible();
   await expect(page.getByRole("link", { name: /Guião de votações/ })).toHaveAttribute("href", "https://example.com/oe/guiao-comissao.pdf");
   await noSeriousA11yIssues(page);
