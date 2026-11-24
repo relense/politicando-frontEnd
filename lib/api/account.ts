@@ -239,6 +239,10 @@ export function accountErrorMessage(error: unknown): string {
       return "Esse email já está confirmado noutra conta.";
     case "mail_unavailable":
       return "Não conseguimos enviar emails neste momento. Tenta daqui a pouco.";
+    case "account_suspended":
+      return "Esta conta está suspensa pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
+    case "account_banned":
+      return "Esta conta foi banida pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
     default:
       if (error instanceof ApiError && error.status === 400)
         return "Confirma os campos: o nome tem 3 a 20 letras, números ou _, e a palavra-passe pelo menos 8 caracteres.";
