@@ -346,12 +346,13 @@ export const engagementHandlers = [
         replyCount: 0,
         tally: null,
         state: "upcoming",
-        opensAt: "2026-11-24T15:00:00.000Z",
+        // Far ahead, so it stays "not open yet" whatever day the tests run.
+        opensAt: "2099-11-24T15:00:00.000Z",
         closesAt: null,
         threadId: null,
         myPick: null,
         split: null,
-        voteDate: "2026-12-01",
+        voteDate: "2099-12-01",
         voteResult: null,
         outcome: null,
       });

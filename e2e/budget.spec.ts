@@ -283,3 +283,14 @@ test("State Budget: «A seguir» asks to log in first", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "A seguir" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Entrar" }).first()).toBeVisible();
 });
+
+test("State Budget: a final vote taken from the news, before the parliament publishes it, says it's provisional and links its source", async ({
+  page,
+}) => {
+  await page.goto("/orcamento/2026");
+  const final = page.getByRole("region", { name: "Votação final global" });
+  await expect(final).toContainText("Provisório (fonte: Jornal de Exemplo");
+  await expect(final).toContainText("), ainda não publicado pelo Parlamento");
+  await expect(final.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/orcamento-aprovado");
+  await noSeriousA11yIssues(page);
+});

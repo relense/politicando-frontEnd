@@ -5,7 +5,10 @@ import { ApiError } from "@/lib/api/client";
 import { markImporta } from "@/lib/api/stories";
 import { formatNumber } from "@/lib/format";
 import { useAccountGate } from "@/lib/account";
+import { standingShort } from "@/lib/api/account";
 import { track } from "@/lib/analytics";
+
+const FAILED = "Não contou. Tenta outra vez.";
 
 // The stories this reader marked "Importa", kept on the device as {"29":1}, to draw the button filled. Storage may be
 // blocked: then it isn't filled after a reload, and the API still keeps one mark per reader.
@@ -162,7 +165,7 @@ export function ImportaButton({
 }) {
   const state = useImporta(id, importa, importance, mergedFrom);
   const [pending, setPending] = useState<boolean | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const mine = pending ?? state.mine;
   // While the mark travels, the count moves at once.
   const count = pending === null || pending === state.mine ? state.importa : Math.max(0, state.importa + (pending ? 1 : -1));
@@ -172,7 +175,7 @@ export function ImportaButton({
     const next = !mine;
     if (next && gate("importa", button, { kind: "importa", id })) return;
     setPending(next);
-    setFailed(false);
+    setFailed(null);
     try {
       const answer = await markImporta(id, next ? 1 : 0);
       // Taken back: the marks kept under the old ids go too, or the button would still show it.
@@ -181,7 +184,7 @@ export function ImportaButton({
       if (next) track("importa", { where: "story", story: id });
     } catch (error) {
       // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
-      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(standingShort(error) ?? FAILED);
     } finally {
       setPending(null);
     }
@@ -219,7 +222,7 @@ export function ImportaButton({
       )}
       {failed && (
         <span role="alert" className="mt-1 font-mono text-[11px] text-muted">
-          Não contou. Tenta outra vez.
+          {failed}
         </span>
       )}
     </span>

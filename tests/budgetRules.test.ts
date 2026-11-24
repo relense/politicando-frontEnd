@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BudgetBill, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
+import type { BudgetBill, BudgetBillVote, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
 import {
   awaitingResults,
   nextPlanned,
@@ -20,10 +20,10 @@ import {
   partyFull,
   partyLines,
   partyShort,
+  provisionalNote,
   RESULT_LABELS,
   votedLine,
 } from "@/lib/budget";
-import type { Vote } from "@/lib/types";
 
 const party = (slug: string, acronym = slug.toUpperCase()) => ({ slug, acronym, name: acronym });
 const committee = (lines: BudgetVote["parties"]): BudgetVote => ({
@@ -39,7 +39,7 @@ const committee = (lines: BudgetVote["parties"]): BudgetVote => ({
   ambiguous: false,
   ambiguity: null,
 });
-const headline = (date: string, phase: string, result = "Aprovado"): Vote => ({
+const headline = (date: string, phase: string, result = "Aprovado"): BudgetBillVote => ({
   id: date,
   date,
   phase,
@@ -50,8 +50,10 @@ const headline = (date: string, phase: string, result = "Aprovado"): Vote => ({
   abstention: [{ partySlug: "ps", count: null }],
   absent: [],
   named: [],
+  provisional: false,
+  source: null,
 });
-const bill = (status: string, votes: Vote[]): BudgetBill => ({
+const bill = (status: string, votes: BudgetBillVote[]): BudgetBill => ({
   initiativeId: 1,
   legislature: "XVII",
   number: "110",
@@ -350,5 +352,23 @@ describe("planned voting days, from the scripts", () => {
       { date: "2026-11-24", proposals: 2, pending: 2, venues: ["plenary"] },
     ]);
     expect(plannedDays([], today)).toEqual([]);
+  });
+});
+
+describe("a Budget vote added from the news, before the parliament publishes it", () => {
+  it("says so, with its source (no article guessed before the outlet's name), linking the source; an official vote says nothing", () => {
+    expect(provisionalNote({ provisional: true, source: { name: "RTP", url: "https://rtp.example/oe" } })).toEqual({
+      text: "Provisório (fonte: RTP), ainda não publicado pelo Parlamento",
+      url: "https://rtp.example/oe",
+    });
+    expect(provisionalNote({ provisional: true, source: { name: "Jornal de Exemplo", url: null } })).toEqual({
+      text: "Provisório (fonte: Jornal de Exemplo), ainda não publicado pelo Parlamento",
+      url: null,
+    });
+    expect(provisionalNote({ provisional: true, source: null })).toEqual({
+      text: "Provisório, ainda não publicado pelo Parlamento",
+      url: null,
+    });
+    expect(provisionalNote({ provisional: false, source: null })).toBeNull();
   });
 });

@@ -92,6 +92,11 @@ export type BudgetStatement = {
   source: string;
   publishedAt: string | null;
 };
+/**
+ * A vote on the Budget's own bill. `provisional`: added by the team from the news before the parliament's open data
+ * publishes it, with its `source`; both go once the official vote arrives.
+ */
+export type BudgetBillVote = Vote & { provisional: boolean; source: { name: string; url: string | null } | null };
 /** The Budget's own bill: its votes have the shape of an initiative's (generalidade, votação final global…). */
 export type BudgetBill = {
   initiativeId: number | null;
@@ -99,7 +104,7 @@ export type BudgetBill = {
   number: string | null;
   title: string;
   status: string;
-  votes: Vote[];
+  votes: BudgetBillVote[];
 };
 export type BudgetYear = {
   year: number;
@@ -259,6 +264,8 @@ const billSchema = z.object({
       abstention: list(positionSchema),
       absent: list(absentSchema),
       named: list(z.object({ name: z.string(), group: z.string(), position: z.string() })),
+      provisional: z.boolean().nullish().catch(null),
+      source: z.object({ name: z.string(), url: z.string().nullish() }).nullish().catch(null),
     }),
   ),
 });
@@ -419,6 +426,9 @@ function mapBill(raw: z.infer<typeof billSchema>): BudgetBill {
       abstention: positions(vote.abstention),
       absent: positions(vote.absent),
       named: vote.named,
+      provisional: vote.provisional ?? false,
+      source:
+        vote.provisional && vote.source?.name.trim() ? { name: vote.source.name.trim(), url: safeHttpUrl(vote.source.url ?? null) } : null,
     })),
   };
 }

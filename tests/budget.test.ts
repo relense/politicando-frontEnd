@@ -24,6 +24,17 @@ describe("the State Budget API (docs/budget-api.md)", () => {
     expect(budgets!.items[2]).toMatchObject({ proposals: 0, syncedAt: null });
   });
 
+  it("a bill's vote taken from the news before the parliament publishes it is marked provisional, with its source", async () => {
+    const budgets = await getBudgets();
+    const [general, final] = budgets!.items[1]!.bills[0]!.votes;
+    expect(general).toMatchObject({ provisional: false, source: null });
+    expect(final).toMatchObject({
+      phase: "Votação final global",
+      provisional: true,
+      source: { name: "Jornal de Exemplo", url: "https://exemplo.pt/orcamento-aprovado" },
+    });
+  });
+
   it("maps a proposal: authors, votes per party, a deputy apart, the official PDF", async () => {
     const proposal = await getBudgetProposal(2027, 28301);
     expect(proposal).toMatchObject({

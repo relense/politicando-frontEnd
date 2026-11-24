@@ -22,6 +22,7 @@ import { formatLongDate, formatNumber, formatTime } from "@/lib/format";
 import { useNow } from "@/lib/useNow";
 import { useVoteThread, VoteNews, VotesBoardBox, VoteThreadPreview } from "./VoteDiscussion";
 import { track } from "@/lib/analytics";
+import { standingShort } from "@/lib/api/account";
 
 /*
  * "Passa ou chumba?" (backend docs/engagement-api.md): before a vote in Parliament, each reader says whether they think
@@ -270,7 +271,7 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
       </p>
       {choose.isError && !refusedClosed && !askedToLogIn && (
         <p role="alert" className="mt-2 font-mono text-[11px] text-danger">
-          Não contou. Tenta outra vez.
+          {standingShort(choose.error) ?? "Não contou. Tenta outra vez."}
         </p>
       )}
 

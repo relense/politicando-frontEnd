@@ -62,7 +62,7 @@ describe("what a reader did", () => {
     expect(activityLabel(item("vote", "up", null))).toBe("Votou a favor (▲)");
     expect(activityLabel(item("vote", "down", null))).toBe("Votou contra (▼)");
     expect(activityLabel(item("follow", null, null))).toBe("Passou a seguir");
-    expect(activityLabel(item("read", null, null))).toBe("Leu");
+    expect(activityLabel(item("read", null, null))).toBe("Marcou como lida no «Hoje em 5»");
     expect(activityLabel(item("teleport", null, null))).toBe("Atividade");
   });
 

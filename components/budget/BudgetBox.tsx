@@ -12,6 +12,7 @@ import { formatDate, formatLongDate, formatNumber, lisbonDay } from "@/lib/forma
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
 import { latestVote, proposalPath } from "./ProposalItem";
+import { ProvisionalNote } from "./ProvisionalNote";
 
 export type BudgetBoxData = { year: BudgetYear; summary: BudgetSummary; latest: BudgetProposal | null };
 
@@ -143,6 +144,7 @@ export function BudgetBox({
             <span className={`${label} text-muted`}>Votação final global</span>
             <ToneBadge tone={/^aprovad/i.test(box.final.result) ? "approved" : "rejected"}>{box.final.result}</ToneBadge>
           </p>
+          <ProvisionalNote vote={box.final} className="mt-1" />
           <ul aria-label="Como votou cada partido na votação final global" className="mt-2 flex flex-wrap gap-1">
             {(
               [
