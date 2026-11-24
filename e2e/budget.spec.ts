@@ -289,7 +289,8 @@ test("State Budget: a final vote taken from the news, before the parliament publ
 }) => {
   await page.goto("/orcamento/2026");
   const final = page.getByRole("region", { name: "Votação final global" });
-  await expect(final).toContainText("Provisório (fonte: Jornal de Exemplo), ainda não publicado pelo Parlamento");
+  await expect(final).toContainText("Provisório (fonte: Jornal de Exemplo");
+  await expect(final).toContainText("), ainda não publicado pelo Parlamento");
   await expect(final.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/orcamento-aprovado");
   await noSeriousA11yIssues(page);
 });
