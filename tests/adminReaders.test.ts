@@ -2,7 +2,7 @@ import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { activitySchema, getReaders, readerAction, readerSchema } from "@/lib/api/admin";
-import { activityHref, activityLabel, readerStatusLine } from "@/lib/adminReaders";
+import { activityHref, activityLabel, readerStatusLine, signupHref } from "@/lib/adminReaders";
 import { register } from "@/lib/api/account";
 
 // The team's view of readers' accounts (asked of the backend: admin «readers», see docs/api-handoff.md).
@@ -127,5 +127,16 @@ describe("where a reader signed up from", () => {
     await register({ ...base, signupFrom: `/${"a".repeat(400)}` });
     await register(base);
     expect(bodies.map((body) => body.signupFrom)).toEqual(["/orcamento/2027/proposta/25391", undefined, undefined, undefined]);
+  });
+});
+
+describe("the page a reader signed up from, as a link", () => {
+  it("links only a path on this site; anything else, sent straight to the API, stays text", () => {
+    expect(signupHref("/orcamento/2027/proposta/25391")).toBe("/orcamento/2027/proposta/25391");
+    expect(signupHref("//evil.example/x")).toBeNull();
+    expect(signupHref("https://evil.example")).toBeNull();
+    expect(signupHref("javascript:alert(1)")).toBeNull();
+    expect(signupHref("/\\evil.example")).toBeNull();
+    expect(signupHref(null)).toBeNull();
   });
 });
