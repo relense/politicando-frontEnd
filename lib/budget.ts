@@ -1,5 +1,6 @@
 import type {
   BudgetBill,
+  BudgetBillVote,
   BudgetChoice,
   BudgetPlanned,
   BudgetParty,
@@ -138,7 +139,7 @@ const passed = (vote: Vote) => /^aprovad/i.test(vote.result);
 const currentBill = (bills: BudgetBill[]) => bills[bills.length - 1] ?? null;
 
 /** The Budget's own votes, from its bill's record (the parliament's terms for the phase). */
-export function headlineVotes(bills: BudgetBill[]): { general: Vote | null; final: Vote | null } {
+export function headlineVotes(bills: BudgetBill[]): { general: BudgetBillVote | null; final: BudgetBillVote | null } {
   const votes = currentBill(bills)?.votes ?? [];
   return {
     general: votes.findLast((vote) => GENERAL.test(vote.phase ?? "")) ?? null,
@@ -161,11 +162,22 @@ export function budgetStage(bills: BudgetBill[]): { label: string; tone: Tone } 
   return general ? { label: "Em especialidade", tone: "pending" } : { label: "Em discussão", tone: "pending" };
 }
 
+/** A vote the team added from the news, before the parliament publishes it: said so, with its source. Null when official. */
+export function provisionalNote(vote: Pick<BudgetBillVote, "provisional" | "source">): { text: string; url: string | null } | null {
+  if (!vote.provisional) return null;
+  const tail = "ainda não publicado pelo Parlamento";
+  return vote.source
+    ? { text: `Provisório (fonte: ${vote.source.name}), ${tail}`, url: vote.source.url }
+    : { text: `Provisório, ${tail}`, url: null };
+}
+
 /** After the final vote, the box stays on the news this long. */
 const FINAL_SHOWN_DAYS = 7;
 
 export type BudgetBox =
-  { state: "session"; session: BudgetSession } | { state: "between"; next: BudgetSession | null } | { state: "final"; final: Vote };
+  | { state: "session"; session: BudgetSession }
+  | { state: "between"; next: BudgetSession | null }
+  | { state: "final"; final: BudgetBillVote };
 
 /**
  * The Budget's box (on its page and beside the news), while it's being voted:

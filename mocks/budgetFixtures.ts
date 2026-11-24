@@ -344,14 +344,19 @@ const bills2026 = [
         ["chega", "livre", "pcp", "be", "pan", "jpp"],
         ["ps", "il"],
       ),
-      headline(
-        "2025-11-28",
-        "Votação final global",
-        "Aprovado",
-        ["psd", "cds-pp"],
-        ["chega", "livre", "pcp", "be", "pan", "jpp"],
-        ["ps", "il"],
-      ),
+      // Taken from the news before the parliament's open data has it (docs/budget-api.md).
+      {
+        ...headline(
+          "2025-11-28",
+          "Votação final global",
+          "Aprovado",
+          ["psd", "cds-pp"],
+          ["chega", "livre", "pcp", "be", "pan", "jpp"],
+          ["ps", "il"],
+        ),
+        provisional: true,
+        source: { name: "Jornal de Exemplo", url: "https://exemplo.pt/orcamento-aprovado" },
+      },
     ],
     "35",
   ),
