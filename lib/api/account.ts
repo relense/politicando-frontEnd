@@ -1,6 +1,7 @@
 import { isSitePath } from "./mappers";
 import { z } from "zod";
 import { ApiError, request } from "./client";
+import { formatDate } from "@/lib/format";
 
 /*
  * Readers' accounts (backend docs/accounts-api.md): a public username and a password, and an optional private email that,
@@ -208,6 +209,35 @@ export function changeList(change: ListChange, on: boolean) {
   return request(path, z.unknown(), json(on ? "PUT" : "DELETE"));
 }
 
+// ── A suspended or banned account ──────────────────────────────────────────────────────────────────────────────────
+// The reader stays logged in; login and every participation write answer 403 account_suspended (its message ending with
+// the end date, ISO, UTC) or account_banned.
+
+const STANDING_TAIL = " Se achas que é um engano, escreve-nos pela página de feedback.";
+
+function standingOf(error: unknown): { banned: boolean; until: string | null } | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === "account_banned") return { banned: true, until: null };
+  if (error.code !== "account_suspended") return null;
+  const date = /(\d{4}-\d{2}-\d{2})(?:T[\d:.]+Z?)?\s*\.?\s*$/.exec(error.message)?.[1];
+  return { banned: false, until: date ? formatDate(`${date}T12:00:00Z`) : null };
+}
+
+/** Why a suspended or banned account was refused, in full (forms), or null when the error isn't about that. */
+export function standingMessage(error: unknown): string | null {
+  const standing = standingOf(error);
+  if (!standing) return null;
+  if (standing.banned) return `Esta conta foi banida pela moderação.${STANDING_TAIL}`;
+  return `Esta conta está suspensa pela moderação${standing.until ? ` até ${standing.until}` : ""}.${STANDING_TAIL}`;
+}
+
+/** The same in a few words, for the small buttons (votes, likes, Importa). */
+export function standingShort(error: unknown): string | null {
+  const standing = standingOf(error);
+  if (!standing) return null;
+  return standing.banned ? "Conta banida pela moderação." : `Conta suspensa${standing.until ? ` até ${standing.until}` : ""}.`;
+}
+
 /** The API's error codes, in words for readers. */
 export function accountErrorMessage(error: unknown): string {
   const code = error instanceof ApiError ? error.code : null;
@@ -239,9 +269,8 @@ export function accountErrorMessage(error: unknown): string {
     case "mail_unavailable":
       return "Não conseguimos enviar emails neste momento. Tenta daqui a pouco.";
     case "account_suspended":
-      return "Esta conta está suspensa pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
     case "account_banned":
-      return "Esta conta foi banida pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
+      return standingMessage(error) ?? "Não foi possível. Tenta outra vez.";
     default:
       if (error instanceof ApiError && error.status === 400)
         return "Confirma os campos: o nome tem 3 a 20 letras, números ou _, e a palavra-passe pelo menos 8 caracteres.";

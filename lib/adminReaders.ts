@@ -28,7 +28,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   prediction: "Fez uma previsão",
   report: "Denunciou",
   feedback: "Escreveu à equipa",
-  read: "Leu",
+  read: "Marcou como lida no «Hoje em 5»",
 };
 
 export function activityLabel(item: Pick<ReaderActivity, "kind" | "text">): string {
