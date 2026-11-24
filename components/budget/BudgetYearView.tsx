@@ -39,6 +39,7 @@ import { HeadlineColumns, ProgressBar, ResultBadge, SharesBar, ToneBadge } from 
 import { ProposalMeta, proposalPath } from "./ProposalItem";
 import { FilterButton, LinkPending, LoadingNote } from "./Pending";
 import { ProposalList } from "./ProposalList";
+import { ProvisionalNote } from "./ProvisionalNote";
 
 const label = "font-mono text-[11px] font-bold uppercase tracking-widest";
 const sectionHeading = "border-b-2 border-ink pb-1 font-mono text-xs font-bold uppercase tracking-widest";
@@ -247,6 +248,7 @@ export function BudgetYearView({
             <h2 id="votacao-do-orcamento" className={`${label} mb-3 text-muted`}>
               {headline.phase ?? "Votação"}
             </h2>
+            <ProvisionalNote vote={headline} className="-mt-2 mb-3" />
             <HeadlineColumns vote={headline} acronymOf={acronymOf} />
             {!current && summary && (
               <p className="mt-3 flex flex-wrap gap-x-4 font-mono text-xs">
