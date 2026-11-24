@@ -29,7 +29,16 @@ describe("a reader, as the team sees it", () => {
     expect(readerSchema.parse(full)).toEqual(full);
     const bare = readerSchema.parse({ id: 1, username: "a", createdAt: "2026-11-02T10:14:00.000Z", status: "frozen" });
     expect(bare).toMatchObject({ email: null, emailConfirmed: false, lastSeenAt: null, status: "active", signupFrom: null });
-    expect(bare.counts).toEqual({ comments: 0, forumPosts: 0, importa: 0, follows: 0, saved: 0, predictions: 0, reportsMade: 0, reportsAgainst: 0 });
+    expect(bare.counts).toEqual({
+      comments: 0,
+      forumPosts: 0,
+      importa: 0,
+      follows: 0,
+      saved: 0,
+      predictions: 0,
+      reportsMade: 0,
+      reportsAgainst: 0,
+    });
   });
 
   it("says where they stand: suspended until a day, banned, deleted", () => {

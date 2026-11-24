@@ -216,6 +216,134 @@ export type AuditEntry = z.infer<typeof auditSchema>;
 export const getAudit = async (entity: string, limit = 100) =>
   (await call(`/audit${query({ entity, limit })}`, z.object({ items: z.array(auditSchema) }))).items;
 
+/*
+ * Readers' accounts, for the administrators only (asked of the backend: docs/api-handoff.md, «Admin: readers»).
+ * Never sent: passwords, IPs, sessions. Opening a reader and every action go into the audit log.
+ */
+
+export const READER_STATUSES = ["active", "suspended", "banned", "deleted"] as const;
+export type ReaderStatus = (typeof READER_STATUSES)[number];
+
+const count = z.number().catch(0).default(0);
+const COUNT_KEYS = ["comments", "forumPosts", "importa", "follows", "saved", "predictions", "reportsMade", "reportsAgainst"] as const;
+const countsSchema = z.object(
+  Object.fromEntries(COUNT_KEYS.map((key) => [key, count])) as Record<(typeof COUNT_KEYS)[number], typeof count>,
+);
+const noCounts = countsSchema.parse({});
+const optionalText = z
+  .string()
+  .nullish()
+  .catch(null)
+  .transform((value) => value ?? null);
+
+export const readerSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  email: optionalText,
+  emailConfirmed: z.boolean().catch(false).default(false),
+  newsletter: z.boolean().catch(false).default(false),
+  createdAt: z.string(),
+  lastSeenAt: optionalText,
+  status: z.enum(READER_STATUSES).catch("active").default("active"),
+  suspendedUntil: optionalText,
+  /** The site's page they signed up from (sent by the site at sign-up), or null. */
+  signupFrom: optionalText,
+  counts: countsSchema.catch(noCounts).default(noCounts),
+});
+export type Reader = z.infer<typeof readerSchema>;
+
+const moderationSchema = z.object({
+  at: z.string(),
+  action: z.string(),
+  by: z.object({ id: z.number(), name: z.string() }).nullish().catch(null),
+  reason: optionalText,
+  until: optionalText,
+});
+export const readerDetailSchema = readerSchema.extend({ moderation: z.array(moderationSchema).catch([]).default([]) });
+export type ReaderDetail = z.infer<typeof readerDetailSchema>;
+
+const readerPageSchema = z.object({
+  items: z.array(readerSchema),
+  nextCursor: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null),
+  total: z
+    .number()
+    .nullish()
+    .transform((value) => value ?? null),
+});
+export type ReaderPage = z.infer<typeof readerPageSchema>;
+
+export const readerStatsSchema = z.object({
+  total: count,
+  newToday: count,
+  newThisWeek: count,
+  active7d: count,
+  active30d: count,
+  withEmail: count,
+  emailConfirmed: count,
+  suspended: count,
+  banned: count,
+  signupsByDay: z
+    .array(z.object({ date: z.string(), count: z.number() }))
+    .catch([])
+    .default([]),
+});
+export type ReaderStats = z.infer<typeof readerStatsSchema>;
+
+export const activitySchema = z.object({
+  at: z.string(),
+  /** comment, forum_thread, forum_post, importa, vote, follow, unfollow, save, prediction, report, feedback, read; others still read. */
+  kind: z.string(),
+  text: optionalText,
+  removed: z.boolean().catch(false).default(false),
+  target: z
+    .object({
+      type: z.string(),
+      id: z.number(),
+      title: optionalText,
+      year: z.number().nullish().catch(null),
+      board: optionalText,
+      slug: optionalText,
+    })
+    .nullish()
+    .catch(null)
+    .transform((value) => value ?? null),
+});
+export type ReaderActivity = z.infer<typeof activitySchema>;
+const activityPageSchema = z.object({
+  items: z.array(activitySchema),
+  nextCursor: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? null),
+});
+
+export type ReaderSort = "newest" | "oldest" | "last_seen" | "most_active";
+export type ReaderFilters = {
+  q: string | null;
+  email: "confirmed" | "unconfirmed" | "none" | null;
+  status: ReaderStatus | null;
+  active: 7 | 30 | null;
+  sort: ReaderSort;
+};
+
+export const getReaders = (filters: ReaderFilters, cursor?: string | null) =>
+  call(`/readers${query({ ...filters, sort: filters.sort === "newest" ? null : filters.sort, cursor })}`, readerPageSchema);
+export const getReaderStats = () => call("/readers/stats", readerStatsSchema);
+export const getReader = (id: number) => call(`/readers/${id}`, readerDetailSchema);
+export const getReaderActivity = (id: number, cursor?: string | null) =>
+  call(`/readers/${id}/activity${query({ cursor })}`, activityPageSchema);
+
+export type ReaderAction = "suspend" | "unsuspend" | "ban" | "unban" | "remove-content";
+export const readerAction = (id: number, action: ReaderAction, body: { reason: string; until?: string }) =>
+  call(`/readers/${id}/${action}`, readerDetailSchema, { method: "POST", body });
+export const deleteReaderAccount = (id: number, reason: string) => call(`/readers/${id}`, null, { method: "DELETE", body: { reason } });
+/** Who opened this reader's page and what was done, from the audit log. */
+export const getReaderAudit = async (id: number) =>
+  (await call(`/audit${query({ entity: "reader", entityId: id, limit: 50 })}`, z.object({ items: z.array(auditSchema) }))).items;
+
 /* Feedback inbox */
 
 export const FEEDBACK_KIND_LABELS: Record<string, string> = { error: "Erro", idea: "Ideia", broken: "Não funciona", other: "Outra coisa" };
