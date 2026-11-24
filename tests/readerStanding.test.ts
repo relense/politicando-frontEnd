@@ -3,6 +3,7 @@ import { ApiError } from "@/lib/api/client";
 import { accountErrorMessage, standingMessage, standingShort } from "@/lib/api/account";
 import { activityLabel } from "@/lib/adminReaders";
 import { activitySchema } from "@/lib/api/admin";
+import { forumErrorMessage } from "@/lib/api/forums";
 
 // A suspended or banned reader stays logged in; login and every participation write answer 403 with the reason
 // (backend docs/accounts-api.md). account_suspended's message ends with the end date (ISO, UTC).
@@ -33,6 +34,12 @@ describe("a reader's standing, when the API refuses", () => {
     expect(standingShort(suspended)).toBe("Conta suspensa até 01-12-2026.");
     expect(standingShort(banned)).toBe("Conta banida pela moderação.");
     expect(standingShort(new ApiError("x", 500, null))).toBeNull();
+  });
+});
+
+describe("a forum post refused for the account's standing", () => {
+  it("says so, not «tenta novamente»", () => {
+    expect(forumErrorMessage(banned)).toBe(standingMessage(banned));
   });
 });
 
