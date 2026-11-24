@@ -3,6 +3,7 @@ import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { activitySchema, getReaders, readerAction, readerSchema } from "@/lib/api/admin";
 import { activityHref, activityLabel, readerStatusLine } from "@/lib/adminReaders";
+import { register } from "@/lib/api/account";
 
 // The team's view of readers' accounts (asked of the backend: admin «readers», see docs/api-handoff.md).
 const server = setupServer();
@@ -108,5 +109,23 @@ describe("the readers' API", () => {
     const reader = await readerAction(812, "suspend", { reason: "Insultos repetidos", until: "2026-12-01T00:00:00.000Z" });
     expect(sent).toEqual([{ path: "812/suspend", body: { reason: "Insultos repetidos", until: "2026-12-01T00:00:00.000Z" } }]);
     expect(reader.status).toBe("suspended");
+  });
+});
+
+describe("where a reader signed up from", () => {
+  it("the sign-up sends the site's page they came from; anything else isn't sent", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post("*/api/v2/auth/register", async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ user: { id: 9, username: "novo", createdAt: "2026-11-24T10:00:00.000Z" } }, { status: 201 });
+      }),
+    );
+    const base = { username: "novo", password: "uma-palavra-passe", captchaToken: "t" };
+    await register({ ...base, signupFrom: "/orcamento/2027/proposta/25391" });
+    await register({ ...base, signupFrom: "//outro.site/x" });
+    await register({ ...base, signupFrom: `/${"a".repeat(400)}` });
+    await register(base);
+    expect(bodies.map((body) => body.signupFrom)).toEqual(["/orcamento/2027/proposta/25391", undefined, undefined, undefined]);
   });
 });
