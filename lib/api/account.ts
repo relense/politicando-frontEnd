@@ -101,7 +101,6 @@ export const registerAnswerSchema = z.object({
 });
 /** `signupFrom`: the site's page the reader came from (for the team's view of readers); only a path on this site. */
 export type SignUp = Credentials & { email?: string; newsletter?: boolean; signupFrom?: string };
-const sitePath = (path: string | undefined) => (path && /^\/(?!\/)/.test(path) && path.length <= 300 ? path : undefined);
 export const register = ({ email, newsletter, signupFrom, ...input }: SignUp) =>
   request(
     "/auth/register",
@@ -109,7 +108,7 @@ export const register = ({ email, newsletter, signupFrom, ...input }: SignUp) =>
     json("POST", {
       ...credentials(input),
       ...(email ? { email, newsletter: Boolean(newsletter) } : {}),
-      ...(sitePath(signupFrom) ? { signupFrom } : {}),
+      ...(isSitePath(signupFrom) && signupFrom.length <= 300 ? { signupFrom } : {}),
     }),
   );
 export const logIn = async (input: Credentials) => (await request("/auth/login", userAnswer, json("POST", credentials(input)))).user;

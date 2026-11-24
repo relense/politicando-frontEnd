@@ -1,4 +1,5 @@
 import type { Reader, ReaderActivity, ReaderStatus } from "@/lib/api/admin";
+import { isSitePath } from "@/lib/api/mappers";
 import { editorialPath } from "@/lib/editorial";
 import { formatDate } from "@/lib/format";
 
@@ -68,3 +69,6 @@ export const READER_COUNT_LABELS: { key: keyof Reader["counts"]; label: string }
   { key: "reportsMade", label: "Denúncias feitas" },
   { key: "reportsAgainst", label: "Denúncias recebidas" },
 ];
+
+/** Where they signed up from, as a link only when it's a path on this site (the API stores what it was sent). */
+export const signupHref = (path: string | null): string | null => (isSitePath(path) ? path : null);

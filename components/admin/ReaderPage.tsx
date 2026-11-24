@@ -12,7 +12,7 @@ import {
   type ReaderAction,
   type ReaderDetail,
 } from "@/lib/api/admin";
-import { activityHref, activityLabel, activityText, READER_COUNT_LABELS, readerStatusLine } from "@/lib/adminReaders";
+import { activityHref, activityLabel, activityText, READER_COUNT_LABELS, readerStatusLine, signupHref } from "@/lib/adminReaders";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { buttonClass, Empty, ErrorNote, inputClass, useExpiry, useExpiryOf } from "./ui";
 
@@ -167,12 +167,12 @@ function Profile({ reader }: { reader: ReaderDetail }) {
     ["Última visita", reader.lastSeenAt ? formatDateTime(reader.lastSeenAt) : "Nunca"],
     [
       "Registou-se a partir de",
-      reader.signupFrom ? (
-        <Link href={reader.signupFrom} target="_blank" className="text-link underline [overflow-wrap:anywhere]">
+      signupHref(reader.signupFrom) ? (
+        <Link href={signupHref(reader.signupFrom)!} target="_blank" className="text-link underline [overflow-wrap:anywhere]">
           {reader.signupFrom}
         </Link>
       ) : (
-        "Não sabemos"
+        (reader.signupFrom ?? "Não sabemos")
       ),
     ],
   ];
