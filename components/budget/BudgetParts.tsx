@@ -1,5 +1,5 @@
 import type { BudgetChoice, BudgetResult, BudgetVote } from "@/lib/api/budget";
-import { CHOICE_COLORS, CHOICE_LABELS, partyLines, RESULT_LABELS, RESULT_TONES, type Tone } from "@/lib/budget";
+import { CHOICE_COLORS, CHOICE_LABELS, partyLines, resultLabel, RESULT_TONES, type Tone } from "@/lib/budget";
 import { formatNumber } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import type { Vote } from "@/lib/types";
@@ -25,8 +25,9 @@ export function ToneBadge({ tone, children }: { tone: Tone; children: React.Reac
   );
 }
 
-export const ResultBadge = ({ result }: { result: BudgetResult }) => (
-  <ToneBadge tone={RESULT_TONES[result]}>{RESULT_LABELS[result]}</ToneBadge>
+/** `awaited`: the final vote is in, so a proposal still open reads «Resultado por publicar» (lib/budget resultsAwaited). */
+export const ResultBadge = ({ result, awaited = false }: { result: BudgetResult; awaited?: boolean }) => (
+  <ToneBadge tone={RESULT_TONES[result]}>{resultLabel(result, awaited)}</ToneBadge>
 );
 
 const MARKS: Record<BudgetChoice, string> = { favor: "✓", against: "×", abstention: "–", absent: "○" };

@@ -9,13 +9,15 @@ import { BudgetFollow } from "./BudgetFollow";
 export const proposalPath = (proposal: Pick<BudgetProposal, "year" | "id">) => `/orcamento/${proposal.year}/proposta/${proposal.id}`;
 
 /** «PSD · n.º 1260C · IRS · votada a 19-11-2026»: who proposed it, its number, topic and when it was voted. */
-export function ProposalMeta({ proposal, today }: { proposal: BudgetProposal; today: string | null }) {
+export function ProposalMeta({ proposal, today, awaited = false }: { proposal: BudgetProposal; today: string | null; awaited?: boolean }) {
   const first = proposal.authors.parties[0];
   const when = proposal.lastVotedOn
     ? proposal.lastVotedOn === today
       ? "votada hoje"
       : `votada a ${formatDate(proposal.lastVotedOn)}`
-    : "por votar";
+    : awaited
+      ? "resultado por publicar"
+      : "por votar";
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-muted">
       {first && <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: partyColor(first.slug) }} />}
@@ -91,14 +93,14 @@ export function ScriptLink({ proposal, today }: { proposal: BudgetProposal; toda
 }
 
 /** In the list: the line and the chips; opened in place, the votes in full and the links. */
-export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; today: string | null }) {
+export function ProposalItem({ proposal, today, awaited = false }: { proposal: BudgetProposal; today: string | null; awaited?: boolean }) {
   const vote = latestVote(proposal);
   return (
     <details className="group border-b border-line py-3 [&_summary::-webkit-details-marker]:hidden">
       <summary className="flex cursor-pointer list-none flex-col gap-1.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <ProposalMeta proposal={proposal} today={today} />
+            <ProposalMeta proposal={proposal} today={today} awaited={awaited} />
             <h3 className="mt-0.5 font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere]">{proposal.title}</h3>
             <PlannedLine proposal={proposal} today={today} className="mt-0.5" />
             {proposal.plain && (
@@ -109,7 +111,7 @@ export function ProposalItem({ proposal, today }: { proposal: BudgetProposal; to
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <ResultBadge result={proposal.result} />
+            <ResultBadge result={proposal.result} awaited={awaited} />
             <span aria-hidden="true" className="font-mono text-[11px] text-muted">
               <span className="group-open:hidden">Abrir ▾</span>
               <span className="hidden group-open:inline">Fechar ▴</span>
