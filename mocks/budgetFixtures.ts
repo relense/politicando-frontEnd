@@ -380,7 +380,7 @@ const budgetYears = () => {
   const items = budgetProposals();
   return [
     { year: 2027, ...counts(items), lastVotedOn: day(0), syncedAt: new Date(Date.now() - 12 * 60_000).toISOString(), bills: bills2027() },
-    { year: 2026, proposals: 3, voted: 3, pending: 0, lastVotedOn: "2025-11-25", syncedAt: "2025-11-28T12:00:00.000Z", bills: bills2026 },
+    { year: 2026, proposals: 4, voted: 3, pending: 1, lastVotedOn: "2025-11-25", syncedAt: "2025-11-28T12:00:00.000Z", bills: bills2026 },
     { year: 2005, proposals: 0, voted: 0, pending: 0, lastVotedOn: null, syncedAt: null, bills: bills2005 },
   ];
 };
@@ -418,6 +418,18 @@ const past2026 = () => [
     status: "Aprovado(a) em Comissão",
     authors: ["livre"],
     votes: [vote("2025-11-24", "approved", lines({ ...LEFT_FOR, psd: "favor" }))],
+  }),
+  // Called up to the plenary, its result not published yet when the final vote came (docs/budget-api.md).
+  proposal({
+    id: 26004,
+    year: 2026,
+    number: "91C",
+    title: "Artigo 12.º · Abono de família",
+    topics: ["Segurança Social"],
+    result: "sent_to_plenary",
+    status: "Avocado(a)",
+    authors: ["ps"],
+    votes: [],
   }),
 ];
 
