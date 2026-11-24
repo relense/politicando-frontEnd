@@ -99,12 +99,17 @@ export const registerAnswerSchema = z.object({
     .catch(undefined)
     .transform((value) => value ?? null),
 });
-export type SignUp = Credentials & { email?: string; newsletter?: boolean };
-export const register = ({ email, newsletter, ...input }: SignUp) =>
+/** `signupFrom`: the site's page the reader came from (for the team's view of readers); only a path on this site. */
+export type SignUp = Credentials & { email?: string; newsletter?: boolean; signupFrom?: string };
+export const register = ({ email, newsletter, signupFrom, ...input }: SignUp) =>
   request(
     "/auth/register",
     registerAnswerSchema,
-    json("POST", { ...credentials(input), ...(email ? { email, newsletter: Boolean(newsletter) } : {}) }),
+    json("POST", {
+      ...credentials(input),
+      ...(email ? { email, newsletter: Boolean(newsletter) } : {}),
+      ...(isSitePath(signupFrom) && signupFrom.length <= 300 ? { signupFrom } : {}),
+    }),
   );
 export const logIn = async (input: Credentials) => (await request("/auth/login", userAnswer, json("POST", credentials(input)))).user;
 export const logOut = () => request("/auth/logout", z.unknown(), json("POST"));
@@ -233,6 +238,10 @@ export function accountErrorMessage(error: unknown): string {
       return "Esse email já está confirmado noutra conta.";
     case "mail_unavailable":
       return "Não conseguimos enviar emails neste momento. Tenta daqui a pouco.";
+    case "account_suspended":
+      return "Esta conta está suspensa pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
+    case "account_banned":
+      return "Esta conta foi banida pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.";
     default:
       if (error instanceof ApiError && error.status === 400)
         return "Confirma os campos: o nome tem 3 a 20 letras, números ou _, e a palavra-passe pelo menos 8 caracteres.";

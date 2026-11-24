@@ -24,6 +24,7 @@ const SECTIONS: { href: string; label: string; moderator?: boolean; admin?: bool
   { href: "/admin/ideias", label: "Ideias", moderator: true },
   { href: "/admin/feedback", label: "Feedback", moderator: true },
   { href: "/admin/artigos", label: "Artigos" },
+  { href: "/admin/utilizadores", label: "Utilizadores", admin: true },
   { href: "/admin/equipa", label: "Equipa", admin: true },
   { href: "/admin/conta", label: "A minha conta" },
 ];

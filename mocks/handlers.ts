@@ -18,6 +18,7 @@ import { storyHandlers } from "./storyFixtures";
 import { accountHandlers, gateRefusal, readerOf, recordListVote, recordVote } from "./accountFixtures";
 import { engagementHandlers, registerCommentLookup } from "./engagementFixtures";
 import { adminHandlers } from "./adminFixtures";
+import { adminReaderHandlers } from "./adminReaders";
 import { audit, hiddenComments, reportsStore, requireAdmin } from "./adminState";
 import { presidencyHandlers } from "./presidencyFixtures";
 import { peopleHandlers } from "./peopleFixtures";
@@ -667,6 +668,7 @@ export const handlers = [
   ...feedbackHandlers,
   ...forumHandlers,
   ...storyHandlers,
+  ...adminReaderHandlers,
   ...adminHandlers,
   ...accountHandlers,
   ...engagementHandlers,

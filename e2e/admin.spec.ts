@@ -386,3 +386,51 @@ test("blog: unsaved writing survives a reload, and a moderator can feature any p
   await expect(page.getByText("Saiu dos destaques.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Pôr em destaque" })).toBeVisible();
 });
+
+test("readers: only an admin sees them; the totals, a search, one reader's activity with links, a suspension and its undo", async ({
+  page,
+}, testInfo) => {
+  await signIn(page, MODERATOR);
+  await expect(page.getByRole("navigation", { name: "Secções da moderação" }).getByRole("link", { name: "Utilizadores" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Sair" }).click();
+
+  await signIn(page, ADMIN, "/admin/utilizadores");
+  await expect(page.getByRole("heading", { name: "Utilizadores", level: 1 })).toBeVisible();
+  const totals = page.getByRole("list", { name: "Totais" });
+  await expect(totals).toContainText("Contas");
+  await expect(totals).toContainText("Suspensas1");
+  const list = page.getByRole("list", { name: "Contas" });
+  await expect(list.getByRole("listitem")).toHaveCount(50);
+  await page.getByRole("button", { name: "Carregar mais" }).click();
+  await expect(list.getByRole("listitem")).toHaveCount(60);
+  await noSeriousA11yIssues(page);
+
+  await page.getByLabel("Procurar").fill("atenta");
+  await page.getByRole("button", { name: "Procurar" }).click();
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await list.getByRole("link", { name: "leitora_atenta" }).click();
+
+  await expect(page.getByRole("heading", { name: "leitora_atenta", level: 1 })).toBeVisible();
+  await expect(page.getByText("leitora.atenta@exemplo.pt")).toBeVisible();
+  await expect(page.getByRole("link", { name: "/orcamento/2027/proposta/25391" })).toBeVisible();
+  const timeline = page.getByRole("list", { name: "O que fez" });
+  const comment = timeline.getByRole("listitem").filter({ hasText: "Comentou" });
+  await expect(comment).toContainText("falta dizer de onde vem o dinheiro");
+  await expect(comment.getByRole("link", { name: "Notícia de teste número 100" })).toHaveAttribute("href", "/article/100");
+  await expect(timeline).toContainText("Votou a favor (▲)");
+  // Opening the account is in the log, by name.
+  await expect(page.getByRole("list", { name: "Registo" })).toContainText("Rita Fonseca abriu esta conta");
+  await noSeriousA11yIssues(page);
+
+  // Suspend until a day, with a reason; then lift it (the mock API keeps state between projects).
+  await page.getByRole("button", { name: "Suspender…" }).click();
+  await page.getByLabel("Até").fill("2026-12-31");
+  await page.getByLabel("Motivo").fill(`Teste ${testInfo.project.name}`);
+  await page.getByRole("button", { name: "Suspender", exact: true }).click();
+  await expect(page.getByText("Suspensa até 31-12-2026").first()).toBeVisible();
+  await expect(page.getByRole("list", { name: "Moderação" })).toContainText(`Teste ${testInfo.project.name}`);
+  await page.getByRole("button", { name: "Levantar a suspensão…" }).click();
+  await page.getByLabel("Motivo").fill("Engano no teste");
+  await page.getByRole("button", { name: "Levantar a suspensão", exact: true }).click();
+  await expect(page.getByText("Ativa", { exact: true }).first()).toBeVisible();
+});

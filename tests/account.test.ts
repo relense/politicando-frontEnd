@@ -138,6 +138,13 @@ describe("the account's email", () => {
     expect(accountErrorMessage(new ApiError("x", 400, "invalid_email"))).toMatch(/email/);
     expect(accountErrorMessage(new ApiError("x", 400, "invalid_token"))).toMatch(/já não é válida/);
     expect(accountErrorMessage(new ApiError("x", 409, "email_taken"))).toMatch(/outra conta/);
+    // Suspended or banned by the team: said plainly, at login and when taking part.
+    expect(accountErrorMessage(new ApiError("x", 403, "account_suspended"))).toBe(
+      "Esta conta está suspensa pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.",
+    );
+    expect(accountErrorMessage(new ApiError("x", 403, "account_banned"))).toBe(
+      "Esta conta foi banida pela moderação. Se achas que é um engano, escreve-nos pela página de feedback.",
+    );
     expect(accountErrorMessage(new ApiError("x", 503, "mail_unavailable"))).toMatch(/email/);
   });
 });
