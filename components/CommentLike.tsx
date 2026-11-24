@@ -4,7 +4,10 @@ import { useState, useSyncExternalStore } from "react";
 import { ApiError, likeComment } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format";
 import { useAccountGate } from "@/lib/account";
+import { standingShort } from "@/lib/api/account";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
+
+const FAILED = "Não contou. Tenta outra vez.";
 
 // The comments this reader liked, kept on the device. Storage may be blocked: then the button still works this visit.
 const KEY = "comment-likes";
@@ -59,7 +62,7 @@ export function CommentLike({ id, likes, name }: { id: number; likes: number; na
   const remembered = parse(useSyncExternalStore(subscribe, read, () => "[]")).includes(id);
   const [state, setState] = useState<{ likes: number; mine: boolean | null }>({ likes, mine: null });
   const [pending, setPending] = useState<boolean | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const was = state.mine ?? remembered;
   const mine = pending ?? was;
   useAnswer<LikeAnswer>("like", id, (answer) => setState({ likes: answer.likes, mine: answer.mine === 1 }));
@@ -70,14 +73,14 @@ export function CommentLike({ id, likes, name }: { id: number; likes: number; na
     const next = !mine;
     if (next && gate("like", button, { kind: "like", id })) return;
     setPending(next);
-    setFailed(false);
+    setFailed(null);
     try {
       const answer = await likeComment(id, next ? 1 : 0);
       remember(id, answer.mine === 1);
       setState({ likes: answer.likes, mine: answer.mine === 1 });
     } catch (error) {
       // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
-      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(standingShort(error) ?? FAILED);
     } finally {
       setPending(null);
     }
@@ -97,7 +100,7 @@ export function CommentLike({ id, likes, name }: { id: number; likes: number; na
       </button>
       {failed && (
         <span role="alert" className="absolute left-0 top-full whitespace-nowrap text-[11px] font-normal text-danger">
-          Não contou. Tenta outra vez.
+          {failed}
         </span>
       )}
     </span>

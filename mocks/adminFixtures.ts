@@ -238,8 +238,11 @@ export const adminHandlers = [
     if (admin instanceof Response) return admin;
     const query = new URL(request.url).searchParams;
     const entity = query.get("entity");
+    const entityId = query.get("entityId");
     const limit = Number(query.get("limit") ?? 50);
-    return HttpResponse.json({ items: auditLog.filter((entry) => !entity || entry.entity === entity).slice(0, limit) });
+    return HttpResponse.json({
+      items: auditLog.filter((entry) => (!entity || entry.entity === entity) && (!entityId || entry.entityId === entityId)).slice(0, limit),
+    });
   }),
 
   http.get(`${API}/admin/feedback`, ({ request }) => {

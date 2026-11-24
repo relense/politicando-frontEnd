@@ -189,6 +189,8 @@ test("State Budget: what's planned for today and the days ahead, from the parlia
   const box = page.getByRole("region", { name: /^Votações de hoje/ });
   const planned = box.getByRole("list", { name: "Em votação hoje" });
   await expect(box).toContainText("Em votação hoje · previsto · 4 propostas");
+  // Some of today's results are in: nothing to explain (none in would read «Resultados … ainda não publicados pelo Parlamento»).
+  await expect(box).not.toContainText("ainda não publicados");
   await expect(planned.getByRole("listitem")).toHaveText([
     /Aprovada.*Artigo 9\.º do Código do IRS/,
     /Rejeitada.*Artigo 2\.º do Código do IMI/,
@@ -280,4 +282,15 @@ test("State Budget: «A seguir» asks to log in first", async ({ page }) => {
   await page.goto("/conta/seguir");
   await expect(page.getByRole("heading", { level: 1, name: "A seguir" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Entrar" }).first()).toBeVisible();
+});
+
+test("State Budget: a final vote taken from the news, before the parliament publishes it, says it's provisional and links its source", async ({
+  page,
+}) => {
+  await page.goto("/orcamento/2026");
+  const final = page.getByRole("region", { name: "Votação final global" });
+  await expect(final).toContainText("Provisório (fonte: Jornal de Exemplo");
+  await expect(final).toContainText("), ainda não publicado pelo Parlamento");
+  await expect(final.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/orcamento-aprovado");
+  await noSeriousA11yIssues(page);
 });

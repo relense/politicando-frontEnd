@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { BudgetBill, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
+import type { BudgetBill, BudgetBillVote, BudgetPlanned, BudgetSession, BudgetVote, BudgetVotingDay } from "@/lib/api/budget";
 import {
+  awaitingResults,
   nextPlanned,
   plannedDays,
   plannedLine,
@@ -19,10 +20,10 @@ import {
   partyFull,
   partyLines,
   partyShort,
+  provisionalNote,
   RESULT_LABELS,
   votedLine,
 } from "@/lib/budget";
-import type { Vote } from "@/lib/types";
 
 const party = (slug: string, acronym = slug.toUpperCase()) => ({ slug, acronym, name: acronym });
 const committee = (lines: BudgetVote["parties"]): BudgetVote => ({
@@ -38,7 +39,7 @@ const committee = (lines: BudgetVote["parties"]): BudgetVote => ({
   ambiguous: false,
   ambiguity: null,
 });
-const headline = (date: string, phase: string, result = "Aprovado"): Vote => ({
+const headline = (date: string, phase: string, result = "Aprovado"): BudgetBillVote => ({
   id: date,
   date,
   phase,
@@ -49,8 +50,10 @@ const headline = (date: string, phase: string, result = "Aprovado"): Vote => ({
   abstention: [{ partySlug: "ps", count: null }],
   absent: [],
   named: [],
+  provisional: false,
+  source: null,
 });
-const bill = (status: string, votes: Vote[]): BudgetBill => ({
+const bill = (status: string, votes: BudgetBillVote[]): BudgetBill => ({
   initiativeId: 1,
   legislature: "XVII",
   number: "110",
@@ -125,6 +128,32 @@ describe("the State Budget's rules (lib/budget)", () => {
       expect(budgetBox({ bills: open, schedule: [late], pending: 9 }, now)).toMatchObject({ state: "session", session: { id: late.id } });
       const notYet = session("2026-11-19T15:00:00Z", false, { started: false });
       expect(budgetBox({ bills: open, schedule: [notYet], pending: 9 }, now)).toMatchObject({ state: "between" });
+    });
+    it("two sessions began today (the plenary at 10h, the committee at 15h): the latest, the one on now", () => {
+      const morning = session("2026-11-19T10:00:00Z", false, { started: true, stage: "plenary" });
+      const afternoon = session("2026-11-19T15:00:00Z", false, { started: true });
+      expect(budgetBox({ bills: open, schedule: [morning, afternoon], pending: 9 }, now)).toMatchObject({ session: { id: afternoon.id } });
+      expect(budgetBox({ bills: open, schedule: [afternoon, morning], pending: 9 }, now)).toMatchObject({ session: { id: afternoon.id } });
+    });
+    it("results the parliament hasn't published: the session began and its planned proposals are all still to vote", () => {
+      const day = (venue: "committee" | "plenary", proposals: number, pending: number): BudgetVotingDay => ({
+        date: "2026-11-19",
+        venue,
+        proposals,
+        pending,
+      });
+      const days = [day("plenary", 6, 0), day("committee", 236, 236)];
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), days, "2026-11-19")).toBe("committee");
+      // The plenary's are in; the final vote's session is a plenary.
+      expect(awaitingResults(session("2026-11-19T10:00:00Z", false, { stage: "plenary" }), days, "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T10:00:00Z", false, { stage: "final_vote" }), [day("plenary", 2, 2)], "2026-11-19")).toBe(
+        "plenary",
+      );
+      // Some already in: they're coming, nothing to explain. No script for it, or an older API with no stage: nothing said.
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), [day("committee", 236, 100)], "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T15:00:00Z"), [], "2026-11-19")).toBeNull();
+      expect(awaitingResults(session("2026-11-19T15:00:00Z", false, { stage: null }), days, "2026-11-19")).toBeNull();
+      expect(awaitingResults(null, days, "2026-11-19")).toBeNull();
     });
     it("a session that began on another day isn't today's, even if a cached page still says started", () => {
       const yesterday = session("2026-11-18T10:00:00Z", false, { started: true });
@@ -323,5 +352,23 @@ describe("planned voting days, from the scripts", () => {
       { date: "2026-11-24", proposals: 2, pending: 2, venues: ["plenary"] },
     ]);
     expect(plannedDays([], today)).toEqual([]);
+  });
+});
+
+describe("a Budget vote added from the news, before the parliament publishes it", () => {
+  it("says so, with its source (no article guessed before the outlet's name), linking the source; an official vote says nothing", () => {
+    expect(provisionalNote({ provisional: true, source: { name: "RTP", url: "https://rtp.example/oe" } })).toEqual({
+      text: "Provisório (fonte: RTP), ainda não publicado pelo Parlamento",
+      url: "https://rtp.example/oe",
+    });
+    expect(provisionalNote({ provisional: true, source: { name: "Jornal de Exemplo", url: null } })).toEqual({
+      text: "Provisório (fonte: Jornal de Exemplo), ainda não publicado pelo Parlamento",
+      url: null,
+    });
+    expect(provisionalNote({ provisional: true, source: null })).toEqual({
+      text: "Provisório, ainda não publicado pelo Parlamento",
+      url: null,
+    });
+    expect(provisionalNote({ provisional: false, source: null })).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ApiError, cached, request, screenedMessage, searchOf } from "./client";
+import { standingMessage } from "./account";
 import { reservedNameMessage } from "../reservedNames";
 
 /* Anonymous forums: one board per party and a general one. Nobody signs in; each poster gets an ID per thread. */
@@ -335,6 +336,7 @@ const FORUM_ERRORS: Record<string, string> = {
 /** A friendly message for a failed post, in Portuguese. */
 export function forumErrorMessage(error: unknown): string {
   return (
+    standingMessage(error) ||
     screenedMessage(error) ||
     reservedNameMessage(error) ||
     (error instanceof ApiError && error.code && FORUM_ERRORS[error.code]) ||
