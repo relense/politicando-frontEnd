@@ -230,7 +230,7 @@ function AuthForm({ mode, back, onCreated }: { mode: Mode; back: string; onCreat
     mutationFn: async ({ name, captchaToken }: { name: string; captchaToken: string }) => {
       if (!register_) return { user: await logIn({ username: name, password, captchaToken }), emailSent: false, newsletter: null };
       const given = email.trim();
-      return register({ username: name, password, captchaToken, ...(given ? { email: given, newsletter } : {}) });
+      return register({ username: name, password, captchaToken, signupFrom: back, ...(given ? { email: given, newsletter } : {}) });
     },
     onSuccess: async (answer) => {
       if (register_) {
