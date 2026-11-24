@@ -4,7 +4,10 @@ import { useState, useSyncExternalStore } from "react";
 import { ApiError, voteArticle } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format";
 import { useAccountGate } from "@/lib/account";
+import { standingShort } from "@/lib/api/account";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
+
+const FAILED = "O voto não contou. Tenta outra vez.";
 
 // This reader's votes on news, kept on the device as {"12":1,"40":-1}. Storage may be blocked: then the arrows simply
 // don't stay lit after a reload, and the API still keeps one vote per reader.
@@ -66,7 +69,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
   // The totals as last answered by the API (or as the page came), and the vote the reader just made, if any.
   const [totals, setTotals] = useState({ up, down, mine: remembered });
   const [pending, setPending] = useState<number | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const mine = pending ?? (totals.mine || remembered);
   useAnswer<VoteAnswer>("vote", id, setTotals);
 
@@ -82,7 +85,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
   async function vote(value: 1 | -1, button: HTMLElement) {
     const next = mine === value ? 0 : value;
     if (next !== 0 && gate("vote", button, { kind: "vote", id, value })) return;
-    setFailed(false);
+    setFailed(null);
     setPending(next);
     try {
       const answer = await voteArticle(id, next);
@@ -90,7 +93,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
       remember(id, answer.mine);
     } catch (error) {
       // Needs an account: the login prompt opens instead (components/account/AccountRuntime).
-      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(standingShort(error) ?? FAILED);
     } finally {
       setPending(null);
     }
@@ -134,7 +137,7 @@ export function ArticleVote({ id, title, up, down, className = "" }: Props) {
       </button>
       {failed && (
         <span role="alert" className="absolute left-0 top-full mt-1 whitespace-nowrap text-[11px] font-normal text-danger">
-          O voto não contou. Tenta outra vez.
+          {failed}
         </span>
       )}
     </span>

@@ -3,11 +3,14 @@
 import { useState, useSyncExternalStore } from "react";
 import { useAccountGate } from "@/lib/account";
 import { ApiError, markPost } from "@/lib/api/client";
+import { standingShort } from "@/lib/api/account";
 import { formatNumber } from "@/lib/format";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
 import { voteStore } from "./ArticleVote";
 import { ImportanceDots } from "./ImportaButton";
 import { track } from "@/lib/analytics";
+
+const FAILED = "Não contou. Tenta outra vez.";
 
 const keyOf = (slug: string) => `post:${slug}`;
 type Answer = { importa: number; mine: number };
@@ -26,7 +29,7 @@ export function PostImporta({ slug, title, importa }: { slug: string; title: str
   const remembered = voteStore.parse(useSyncExternalStore(voteStore.subscribe, voteStore.read, () => "{}"))[keyOf(slug)] === 1;
   const [state, setState] = useState<{ importa: number; mine: boolean | null }>({ importa, mine: null });
   const [pending, setPending] = useState<boolean | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const gate = useAccountGate();
   useAnswer<Answer>("post", slug, (answer) => setState({ importa: answer.importa, mine: answer.mine === 1 }));
   const was = state.mine ?? remembered;
@@ -39,7 +42,7 @@ export function PostImporta({ slug, title, importa }: { slug: string; title: str
     const next = !mine;
     if (next && gate("post", button, { kind: "post", slug })) return;
     setPending(next);
-    setFailed(false);
+    setFailed(null);
     try {
       const answer = await markPost(slug, next ? 1 : 0);
       voteStore.remember(keyOf(slug), answer.mine);
@@ -47,7 +50,7 @@ export function PostImporta({ slug, title, importa }: { slug: string; title: str
       if (next) track("importa", { where: "blog", post: slug });
     } catch (error) {
       // Needs an account: the login note opens instead (components/account/AccountRuntime).
-      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(true);
+      if (!(error instanceof ApiError && error.code === "login_required")) setFailed(standingShort(error) ?? FAILED);
     } finally {
       setPending(null);
     }
@@ -69,7 +72,7 @@ export function PostImporta({ slug, title, importa }: { slug: string; title: str
       </button>
       {failed && (
         <span role="alert" className="mt-1 font-mono text-[11px] text-muted">
-          Não contou. Tenta outra vez.
+          {failed}
         </span>
       )}
     </span>

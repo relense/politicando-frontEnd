@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api/client";
 import { voteThread } from "@/lib/api/forums";
+import { standingShort } from "@/lib/api/account";
 import { useAccountGate, useReader } from "@/lib/account";
 import { markFollowed } from "@/lib/accountExtras";
 import { publishAnswer, useAnswer } from "@/lib/liveAnswers";
@@ -77,8 +78,8 @@ export function IdeaVote({
   const stored = useSyncExternalStore(subscribe, readVoted, () => "");
   const [count, setCount] = useState(score);
   useAnswer<number>("idea", id, setCount);
-  // "account": the API asked for one, and the login prompt opened instead of an error.
-  const [failed, setFailed] = useState<false | "error" | "account">(false);
+  // "account": the API asked for one, and the login prompt opened instead of an error. A string: why it didn't count.
+  const [failed, setFailed] = useState<false | string | "account">(false);
   const voted = stored.split(",").includes(String(id)) && !failed;
 
   const gate = useAccountGate();
@@ -95,7 +96,9 @@ export function IdeaVote({
     } catch (error) {
       setCount(score);
       forget(id);
-      setFailed(error instanceof ApiError && error.code === "login_required" ? "account" : "error");
+      setFailed(
+        error instanceof ApiError && error.code === "login_required" ? "account" : (standingShort(error) ?? "Não contou. Tenta outra vez."),
+      );
     }
   }
 
@@ -115,9 +118,9 @@ export function IdeaVote({
           <span className="sr-only"> em «{title}»,</span> <span aria-hidden="true">▲</span> {count}
           <span className="sr-only"> {count === 1 ? "voto" : "votos"}</span>
         </button>
-        {failed === "error" && (
+        {failed && failed !== "account" && (
           <span role="alert" className="mt-1 text-[10px] leading-tight text-danger">
-            Não contou. Tenta outra vez.
+            {failed}
           </span>
         )}
       </span>
@@ -140,9 +143,9 @@ export function IdeaVote({
         </span>
         {count}
       </button>
-      {failed === "error" && (
+      {failed && failed !== "account" && (
         <span role="alert" className="mt-1 text-center text-[10px] leading-tight text-danger">
-          Não contou. Tenta outra vez.
+          {failed}
         </span>
       )}
     </span>

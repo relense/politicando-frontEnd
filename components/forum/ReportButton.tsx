@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/lib/api/client";
 import { ARTICLE_REPORT_REASONS, createReport, REPORT_REASONS, type ReportKind, type ReportReason } from "@/lib/api/forums";
 import { useAccountGate } from "@/lib/account";
+import { standingMessage } from "@/lib/api/account";
 
 type Props = {
   kind: ReportKind;
@@ -28,6 +29,7 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -41,6 +43,7 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
       if (startOpen) setTimeout(() => onClose?.(), 2500);
     } catch (error) {
       // Needs an account: the login prompt opens instead, and the form stays as it was.
+      setRefusal(standingMessage(error));
       setState(error instanceof ApiError && error.code === "login_required" ? "idle" : "failed");
     }
   }
@@ -95,7 +98,7 @@ export function ReportButton({ kind, id, className = "", startOpen = false, onCl
           />
           {state === "failed" && (
             <p role="alert" className="mt-2 text-danger">
-              Não foi possível enviar a denúncia. Tenta novamente daqui a pouco.
+              {refusal ?? "Não foi possível enviar a denúncia. Tenta novamente daqui a pouco."}
             </p>
           )}
           <div className="mt-2 flex justify-end gap-2 font-mono text-sm">
