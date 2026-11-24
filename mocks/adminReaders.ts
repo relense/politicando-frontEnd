@@ -291,7 +291,8 @@ export const adminReaderHandlers = [
     if (!reader) return adminFail(404, "not_found");
     const body = (await request.json().catch(() => null)) as { reason?: unknown } | null;
     if (typeof body?.reason !== "string" || body.reason.trim().length < 3) return adminFail(400, "invalid_request");
-    Object.assign(reader, { status: "deleted", email: null });
+    // Deleted accounts are removed, not kept as rows (backend docs/admin-api.md).
+    readers.splice(readers.indexOf(reader), 1);
     audit(admin, "reader.delete", "reader", reader.id);
     return new HttpResponse(null, { status: 204 });
   }),

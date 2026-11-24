@@ -220,15 +220,18 @@ function Actions({ reader }: { reader: ReaderDetail }) {
       setOpen(null);
       setReason("");
       setUntil("");
+      void client.invalidateQueries({ queryKey: ["admin-readers"] });
+      void client.invalidateQueries({ queryKey: ["admin-reader-stats"] });
+      // A deleted account is gone from the API (404): this page keeps what it showed, with the confirmation.
+      if (act === "delete") return;
       void client.invalidateQueries({ queryKey: ["admin-reader", reader.id] });
       void client.invalidateQueries({ queryKey: ["admin-reader-activity", reader.id] });
       void client.invalidateQueries({ queryKey: ["admin-reader-audit", reader.id] });
-      void client.invalidateQueries({ queryKey: ["admin-readers"] });
-      void client.invalidateQueries({ queryKey: ["admin-reader-stats"] });
     },
     onError: expiry,
   });
-  const shown = ACTS.filter((entry) => entry.when(reader));
+  const gone = run.isSuccess && run.variables === "delete";
+  const shown = gone ? [] : ACTS.filter((entry) => entry.when(reader));
   const current = ACTS.find((entry) => entry.act === open);
 
   return (

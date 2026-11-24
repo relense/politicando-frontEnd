@@ -13,7 +13,6 @@ const STATUS_TABS: { value: string; label: string }[] = [
   { value: "active", label: "Ativas" },
   { value: "suspended", label: "Suspensas" },
   { value: "banned", label: "Banidas" },
-  { value: "deleted", label: "Apagadas" },
 ];
 
 /** Every reader's account (administrators only): the totals, then a list to search, filter and sort, each opening its page. */
