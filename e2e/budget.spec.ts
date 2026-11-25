@@ -119,7 +119,7 @@ test("State Budget: a past one has its final vote, a summary per party and every
   await expect(page.getByRole("heading", { level: 1, name: "Orçamento do Estado 2026" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Votação final global" })).toContainText("CDS-PP");
   await expect(page.getByRole("region", { name: "Resumo por partido" })).toContainText("PSD");
-  await expect(page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li")).toHaveCount(3);
+  await expect(page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li")).toHaveCount(4);
   await noSeriousA11yIssues(page);
 
   await page.goto("/orcamento/2005");
@@ -292,5 +292,15 @@ test("State Budget: a final vote taken from the news, before the parliament publ
   await expect(final).toContainText("Provisório (fonte: Jornal de Exemplo");
   await expect(final).toContainText("), ainda não publicado pelo Parlamento");
   await expect(final.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/orcamento-aprovado");
+
+  // After the final vote, what's still open was almost certainly voted: its result isn't published yet, not «por votar».
+  await expect(page.getByRole("navigation", { name: "Resultado" })).toContainText("Resultado por publicar");
+  const open = page.getByRole("list", { name: "Propostas de alteração" }).locator(":scope > li").filter({ hasText: "Abono de família" });
+  await expect(open).toContainText("Resultado por publicar");
+  await expect(open).toContainText("resultado por publicar");
+  await expect(page.getByText(/por votar/i)).toHaveCount(0);
   await noSeriousA11yIssues(page);
+
+  await page.goto("/orcamento/2026/proposta/26004");
+  await expect(page.getByText("Resultado por publicar").first()).toBeVisible();
 });

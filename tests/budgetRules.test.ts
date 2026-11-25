@@ -21,6 +21,8 @@ import {
   partyLines,
   partyShort,
   provisionalNote,
+  resultLabel,
+  resultsAwaited,
   RESULT_LABELS,
   votedLine,
 } from "@/lib/budget";
@@ -370,5 +372,25 @@ describe("a Budget vote added from the news, before the parliament publishes it"
       url: null,
     });
     expect(provisionalNote({ provisional: false, source: null })).toBeNull();
+  });
+});
+
+describe("after the final vote, what's left to publish", () => {
+  const general = headline("2026-10-28", "Votação na generalidade");
+  const final = headline("2026-11-24", "Votação final global");
+
+  it("is «resultado por publicar» once the final vote is in (official or provisional); before it, «por votar»", () => {
+    expect(resultsAwaited([bill("in_progress", [general])])).toBe(false);
+    expect(resultsAwaited([bill("approved", [general, final])])).toBe(true);
+    expect(resultsAwaited([bill("approved", [general, { ...final, provisional: true, source: { name: "RTP", url: null } }])])).toBe(true);
+    expect(resultsAwaited([])).toBe(false);
+  });
+
+  it("relabels a pending or called-up proposal, nothing else", () => {
+    expect(resultLabel("pending", false)).toBe("Por votar");
+    expect(resultLabel("sent_to_plenary", false)).toBe("Avocada pelo Plenário");
+    expect(resultLabel("pending", true)).toBe("Resultado por publicar");
+    expect(resultLabel("sent_to_plenary", true)).toBe("Resultado por publicar");
+    expect(resultLabel("approved", true)).toBe("Aprovada");
   });
 });
