@@ -34,16 +34,25 @@ const seatSchema = z.object({
   votes: z.number().nullish(),
   validPct: z.number().nullish(),
   mandates: z.number().nullish(),
+  /** Who the list elected, in list order (CNE's official map); missing until the API imports them. */
+  members: z
+    .array(z.object({ name: z.string(), position: z.number().nullish(), role: text, localOfficialId: text }))
+    .nullish()
+    .catch(null),
 });
 
 export const placeDetailSchema = placeRefSchema.extend({
   parent: placeRefSchema.nullish(),
   children: z.array(placeRefSchema).nullish(),
   mayor: mayorSchema.nullish(),
+  /** A parish: the head of the most-voted list for its assembleia de freguesia. */
+  juntaPresident: mayorSchema.nullish().catch(null),
   council: z
     .object({
       election: z.string(),
       organs: z.array(z.object({ organ: z.string(), totalMandates: z.number().nullish(), seats: z.array(seatSchema) })),
+      /** Where the names come from; `asOf` is the official map's latest rectification. Null when no names are loaded. */
+      source: z.object({ name: z.string(), url: text, asOf: text }).nullish().catch(null),
     })
     .nullish(),
   deputies: z
@@ -104,9 +113,21 @@ export type CouncilSeats = {
   votes: number | null;
   validPct: number | null;
   mandates: number;
+  /** Who it elected, in list order; null until the API sends names, [] when this list's are unknown. */
+  members: CouncilMember[] | null;
 };
 
+/** Someone elected on the night (later substitutions aren't tracked anywhere public). */
+export type CouncilMember = { name: string; position: number | null; president: boolean; localOfficialId: string | null };
+
 export type CouncilOrgan = { organ: string; totalMandates: number; seats: CouncilSeats[] };
+
+export type Council = {
+  election: string;
+  organs: CouncilOrgan[];
+  /** `asOf`: the official map's latest rectification (ISO date), not the election day. */
+  source: { name: string; url: string | null; asOf: string | null } | null;
+};
 
 export type PlaceDeputy = { id: number; name: string; photoUrl: string | null; party: { slug: string; acronym: string } | null };
 
@@ -123,7 +144,9 @@ export type PlaceDetail = Place & {
   parent: Place | null;
   children: Place[];
   mayor: Mayor | null;
-  council: { election: string; organs: CouncilOrgan[] } | null;
+  /** A parish's junta president, worked out from the results; no page of their own. */
+  juntaPresident: Mayor | null;
+  council: Council | null;
   deputies: { circle: { key: string; name: string }; items: PlaceDeputy[] } | null;
   elections: PlaceElection[];
   contracts: {
@@ -169,12 +192,25 @@ export function mapPlaceDetail(input: z.output<typeof placeDetailSchema>): Place
                 votes: seat.votes ?? null,
                 validPct: seat.validPct ?? null,
                 mandates: seat.mandates ?? 0,
+                members: seat.members
+                  ? seat.members
+                      .map((member) => ({
+                        name: member.name,
+                        position: member.position ?? null,
+                        president: member.role === "presidente",
+                        localOfficialId: member.localOfficialId ?? null,
+                      }))
+                      .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity))
+                  : null,
               }))
               .sort((a, b) => b.mandates - a.mandates || (b.votes ?? 0) - (a.votes ?? 0));
             const won = seats.reduce((sum, seat) => sum + seat.mandates, 0);
             return { organ: organ.organ, totalMandates: organ.totalMandates ?? won, seats };
           })
           .filter((organ) => organ.seats.length > 0),
+        source: input.council.source
+          ? { name: input.council.source.name, url: safeHttpUrl(input.council.source.url), asOf: input.council.source.asOf ?? null }
+          : null,
       }
     : null;
   const contracts = input.contracts ?? {};
@@ -183,6 +219,7 @@ export function mapPlaceDetail(input: z.output<typeof placeDetailSchema>): Place
     parent: input.parent ? mapRef(input.parent) : null,
     children: (input.children ?? []).map(mapRef).sort((a, b) => a.name.localeCompare(b.name, "pt")),
     mayor: mapMayor(input.mayor),
+    juntaPresident: mapMayor(input.juntaPresident),
     council: council && council.organs.length > 0 ? council : null,
     deputies: input.deputies
       ? {

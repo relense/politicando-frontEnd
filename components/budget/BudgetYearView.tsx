@@ -18,6 +18,7 @@ import {
   choiceShares,
   finalVoteSession,
   headlineVotes,
+  resultsAwaited,
   partyFull,
   partyShort,
   sessionTime,
@@ -72,6 +73,7 @@ function PlannedToday({
   total,
   href,
   awaiting = null,
+  resultsLate = false,
   children,
 }: {
   page: BudgetProposalPage;
@@ -79,6 +81,8 @@ function PlannedToday({
   href: string;
   /** A session began and none of its results are out yet: said, so «Por votar» doesn't read as us being late. */
   awaiting?: BudgetVenue | null;
+  /** The final vote is in: a proposal still open reads «Resultado por publicar». */
+  resultsLate?: boolean;
   children?: ReactNode;
 }) {
   const count = Math.max(total, page.total ?? 0, page.items.length);
@@ -95,7 +99,7 @@ function PlannedToday({
       <ul aria-label="Em votação hoje" className="mt-2 flex flex-col gap-2">
         {page.items.map((proposal) => (
           <li key={proposal.id} className="flex items-start gap-2">
-            <ResultBadge result={proposal.result} />
+            <ResultBadge result={proposal.result} awaited={resultsLate} />
             <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
               {proposal.title}
             </Link>
@@ -180,6 +184,8 @@ export function BudgetYearView({
   const stage = budgetStage(year.bills);
   const { general, final } = headlineVotes(year.bills);
   const headline = final ?? general;
+  // After the final vote, what's still open was almost certainly voted; the parliament hasn't published it yet.
+  const resultsLate = resultsAwaited(year.bills);
   const bill = year.bills[year.bills.length - 1] ?? null;
   // Its day ahead of time, from the agenda; gone once the vote is in.
   const finalSession = !final && current && summary ? finalVoteSession(summary.schedule) : null;
@@ -295,7 +301,9 @@ export function BudgetYearView({
                   propostas de alteração já votadas, de <strong>{formatNumber(tally.total)}</strong>
                 </span>
               </span>
-              <span className="font-mono text-xs text-muted">{formatNumber(tally.pending)} por votar</span>
+              <span className="font-mono text-xs text-muted">
+                {formatNumber(tally.pending)} {resultsLate ? "com resultado por publicar" : "por votar"}
+              </span>
             </h2>
             <div className="mt-3">
               <ProgressBar approved={approved} rejected={rejected} total={tally.total} label="Propostas de alteração" />
@@ -353,7 +361,7 @@ export function BudgetYearView({
                       {todayVoted[0]!.plain.summary}
                     </p>
                   )}
-                  <ProposalMeta proposal={todayVoted[0]!} today={today} />
+                  <ProposalMeta proposal={todayVoted[0]!} today={today} awaited={resultsLate} />
                   <p className="mt-3 flex flex-wrap gap-2">
                     <Link
                       href={proposalPath(todayVoted[0]!)}
@@ -378,6 +386,7 @@ export function BudgetYearView({
                     page={plannedPage}
                     total={plannedTotal}
                     awaiting={awaiting}
+                    resultsLate={resultsLate}
                     href={at({ planned: today, day: null, result: null })}
                   >
                     <Link href={at({ day: today, result: null, planned: null })} className="underline">
@@ -390,7 +399,7 @@ export function BudgetYearView({
                     <ul className="mt-2 flex flex-col gap-2">
                       {todayVoted.slice(0, 5).map((proposal) => (
                         <li key={proposal.id} className="flex items-start gap-2">
-                          <ResultBadge result={proposal.result} />
+                          <ResultBadge result={proposal.result} awaited={resultsLate} />
                           <Link href={proposalPath(proposal)} className="text-sm font-bold leading-snug hover:underline">
                             {proposal.title}
                           </Link>
@@ -414,6 +423,7 @@ export function BudgetYearView({
                     page={plannedPage}
                     total={plannedTotal}
                     awaiting={awaiting}
+                    resultsLate={resultsLate}
                     href={at({ planned: today, day: null, result: null })}
                   />
                 )}
@@ -575,7 +585,7 @@ export function BudgetYearView({
                     aria-current={active ? "page" : undefined}
                     className={`-mb-px border-b-2 pb-2 font-mono text-xs ${active ? "border-ink font-bold" : "border-transparent text-muted hover:text-ink"}`}
                   >
-                    {tab.label}
+                    {resultsLate && tab.key === "por-votar" ? "Resultado por publicar" : tab.label}
                     {count !== null && ` ${formatNumber(count)}`}
                     <LinkPending />
                   </Link>
@@ -629,7 +639,7 @@ export function BudgetYearView({
               <LoadingNote />
               <div className="transition-opacity group-has-[[data-pending]]/list:opacity-40">
                 {page ? (
-                  <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} />
+                  <ProposalList year={year.year} query={queryOf(filters)} initialPage={page} today={today} awaited={resultsLate} />
                 ) : (
                   <p role="alert" className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
                     Não foi possível carregar as propostas. Tenta daqui a pouco.

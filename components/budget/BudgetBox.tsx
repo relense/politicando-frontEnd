@@ -7,7 +7,7 @@ import {
   type BudgetSummary,
   type BudgetYear,
 } from "@/lib/api/budget";
-import { authorsShort, budgetBox, budgetTally, partyShort, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
+import { authorsShort, budgetBox, budgetTally, partyShort, resultsAwaited, sessionTime, type BudgetBox as BoxState } from "@/lib/budget";
 import { formatDate, formatLongDate, formatNumber, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { ProgressBar, ResultBadge, ToneBadge, VoteChips } from "./BudgetParts";
@@ -185,7 +185,7 @@ export function BudgetBox({
                   ? "Última votação"
                   : `Última votação · ${formatDate(latest.lastVotedOn)}`}
               </span>
-              <ResultBadge result={latest.result} />
+              <ResultBadge result={latest.result} awaited={resultsAwaited(year.bills)} />
             </p>
             <Link href={proposalPath(latest)} className="mt-1 block font-serif text-base font-bold leading-snug hover:underline">
               {latest.title}

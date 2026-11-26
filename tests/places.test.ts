@@ -102,6 +102,57 @@ describe("place mapper", () => {
   });
 });
 
+describe("who was elected to each body (CNE's official map)", () => {
+  const parse = (council: object, more: object = {}) =>
+    mapPlaceDetail(placeDetailSchema.parse({ key: "LOCAL-130301", name: "Aião", level: "parish", dicofre: "130301", council, ...more }));
+  const organ = (seats: object[]) => ({ election: "autarquicas-2025", organs: [{ organ: "AF", totalMandates: 3, seats }] });
+  const seat = (more: object) => ({
+    list: "PS",
+    label: "PARTIDO SOCIALISTA",
+    parties: ["ps"],
+    votes: 100,
+    validPct: 60,
+    mandates: 2,
+    ...more,
+  });
+
+  it("reads each list's elected in list order, with the president marked and a page only when there is one", () => {
+    const place = parse(
+      {
+        ...organ([
+          seat({
+            members: [
+              { name: "Nome Dois", position: 2, role: null, localOfficialId: null },
+              { name: "Nome Um", position: 1, role: "presidente", localOfficialId: "nome-um" },
+            ],
+          }),
+        ]),
+        source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo", asOf: "2026-08-06" },
+      },
+      { juntaPresident: { name: "Nome Um", list: "PS", label: "PARTIDO SOCIALISTA", parties: ["ps"], election: "autarquicas-2025" } },
+    );
+    expect(place.council?.organs[0]?.seats[0]?.members).toEqual([
+      { name: "Nome Um", position: 1, president: true, localOfficialId: "nome-um" },
+      { name: "Nome Dois", position: 2, president: false, localOfficialId: null },
+    ]);
+    expect(place.council).toMatchObject({
+      // The map's latest rectification, not the election day.
+      source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo", asOf: "2026-08-06" },
+    });
+    expect(place.juntaPresident).toMatchObject({ id: null, name: "Nome Um", label: "PARTIDO SOCIALISTA", parties: ["ps"] });
+  });
+
+  it("an older API: no names yet (null, not an empty list), no source, no junta president; an unsafe link is dropped", () => {
+    const older = parse(organ([seat({})]));
+    expect(older.council?.organs[0]?.seats[0]?.members).toBeNull();
+    expect(older.council?.source).toBeNull();
+    expect(older.juntaPresident).toBeNull();
+    const unknownList = parse({ ...organ([seat({ members: [] })]), source: { name: "CNE", url: "javascript:alert(1)" } });
+    expect(unknownList.council?.organs[0]?.seats[0]?.members).toEqual([]);
+    expect(unknownList.council?.source).toEqual({ name: "CNE", url: null, asOf: null });
+  });
+});
+
 describe("places API against the mocks", () => {
   const server = setupServer(...placeHandlers);
   beforeAll(() => server.listen());

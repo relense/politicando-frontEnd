@@ -20,7 +20,13 @@ test("the map of mayors leads to a municipality, its parishes and back up to the
   await expect(page.getByRole("heading", { level: 1, name: "Águeda" })).toBeVisible();
   await expect(page.getByText("Marta Quintela").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Câmara Municipal · 9 mandatos" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Deputados eleitos por Aveiro/ })).toBeVisible();
+  // Deputies are elected per círculo, not per municipality: said so, and the list starts folded.
+  await expect(page.getByRole("heading", { name: "Deputados à Assembleia da República · círculo eleitoral: Aveiro" })).toBeVisible();
+  await expect(page.getByText("Águeda não elege deputados próprios")).toBeVisible();
+  const deputies = page.getByRole("region", { name: /Deputados à Assembleia da República/ });
+  await expect(deputies.getByRole("link").first()).toBeHidden();
+  await deputies.getByText(/^Ver os \d+ deputados do círculo$/).click();
+  await expect(deputies.getByRole("link").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver os contratos da câmara →" })).toHaveAttribute("href", "/contratos/entidade/500000101");
   const ld = await page.locator('main script[type="application/ld+json"]').textContent();
   expect(JSON.parse(ld!)[0]).toMatchObject({ "@type": "AdministrativeArea", name: "Águeda" });
@@ -76,6 +82,48 @@ test("the map: find a place, it is framed and its card opens beside the map; zoo
   // An address with a place opens on it.
   await page.goto("/sitios?local=LOCAL-010100");
   await expect(page.getByRole("region", { name: "Águeda" })).toBeVisible();
+});
+
+test("who was elected: the câmara's names open, the assemblies folded, the source cited; a parish's junta president", async ({ page }) => {
+  await page.goto("/sitios/LOCAL-010100");
+  const organs = page.getByRole("region", { name: /Vereadores e assembleia municipal/ });
+  const camara = organs.getByRole("list", { name: "Eleitos para a Câmara Municipal" });
+  // Each list's names are a list inside the list of lists.
+  await expect(camara.getByRole("list").getByRole("listitem").filter({ hasText: "Marta Quintela" })).toContainText("Presidente da câmara");
+  await expect(camara.getByRole("link", { name: "Marta Quintela" })).toHaveAttribute("href", "/autarcas/marta-quintela");
+  // The assembly's 27 start folded.
+  const assembleia = organs.getByRole("list", { name: "Eleitos para a Assembleia Municipal" });
+  await expect(assembleia).toBeHidden();
+  await organs.getByText("Ver os 27 eleitos").click();
+  await expect(assembleia.getByRole("list").getByRole("listitem")).toHaveCount(27);
+  // A list whose names on the official map don't add up to its seats: its seats, no names.
+  await expect(camara.getByRole("listitem").filter({ hasText: "Coligação PSD/CDS" })).toContainText("Nomes incompletos no mapa oficial.");
+  // The source line, its link carrying a hidden "(abre num novo separador)"; the date is the map's latest rectification.
+  await expect(
+    organs.getByText(/^Eleitos nas Autárquicas 2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)/).first(),
+  ).toContainText("retificações até 01-03-2022). Substituições posteriores não estão refletidas.");
+  await expect(organs.getByRole("link", { name: /CNE, Mapa Oficial/ }).first()).toHaveAttribute("href", "https://www.cne.pt/");
+  await expect(organs.getByText(/não vêm nos resultados oficiais/)).toHaveCount(0);
+
+  // A district's own page keeps its deputies open.
+  await page.goto("/sitios/LOCAL-010000");
+  await expect(
+    page
+      .getByRole("region", { name: /Deputados à Assembleia da República/ })
+      .getByRole("link")
+      .first(),
+  ).toBeVisible();
+
+  // A parish: who presides over the junta, up top.
+  await page.goto("/sitios/LOCAL-010109");
+  const junta = page.getByRole("region", { name: "Quem preside à Junta de Freguesia de Fermentelos" });
+  await expect(junta.getByText("Presidente da junta")).toBeVisible();
+  await expect(page.getByText(/Os presidentes de junta não são publicados/)).toHaveCount(0);
+
+  // An API without the names yet: the seats only, and the note says why.
+  await page.goto("/sitios/LOCAL-111100");
+  await expect(page.getByText(/não vêm nos resultados oficiais/)).toBeVisible();
+  await expect(page.getByRole("list", { name: "Eleitos para a Câmara Municipal" })).toHaveCount(0);
 });
 
 test("the district map, the election link and unknown places", async ({ page }) => {

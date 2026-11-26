@@ -8,8 +8,8 @@ import { ResultBadge } from "@/components/budget/BudgetParts";
 import { BudgetFollow } from "@/components/budget/BudgetFollow";
 import { AutomaticLabel, PlannedLine, ProposalVotes, ScriptLink } from "@/components/budget/ProposalItem";
 import { ProposalNewsList, ProposalStatements } from "@/components/budget/ProposalPress";
-import { authorsPhrase, partyFull, tidyStatus, votedLine } from "@/lib/budget";
-import { getBudgetProposal } from "@/lib/api/budget";
+import { authorsPhrase, partyFull, resultsAwaited, tidyStatus, votedLine } from "@/lib/budget";
+import { getBudgetProposal, getBudgets } from "@/lib/api/budget";
 import { formatDate, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 
@@ -48,6 +48,9 @@ export default async function BudgetProposalPage({ params }: Props) {
   // Today, for the planned voting day (from the voting scripts).
   await connection();
   const today = lisbonDay(new Date().toISOString());
+  // After its Budget's final vote, a proposal still open reads «Resultado por publicar»; without the list, as before.
+  const budgets = await getBudgets().catch(() => null);
+  const awaited = resultsAwaited(budgets?.items.find((item) => item.year === proposal.year)?.bills ?? []);
   const facts: [string, string | null][] = [
     [
       "Proposta por",
@@ -73,7 +76,7 @@ export default async function BudgetProposalPage({ params }: Props) {
           />
         )}
         Proposta de alteração n.º {proposal.number}
-        <ResultBadge result={proposal.result} />
+        <ResultBadge result={proposal.result} awaited={awaited} />
       </p>
       <h1 className="mt-1 font-serif text-3xl font-bold leading-tight [overflow-wrap:anywhere]">{proposal.title}</h1>
       {/* The summary under the official title, labelled, so it's never taken for the official text. */}

@@ -9,9 +9,17 @@ import { DeputyPortrait } from "@/components/DeputyProfile";
 import { ElectionMap, type MapPlace } from "@/components/ElectionMap";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getElections, getParties } from "@/lib/api/client";
-import { getPlaceDetail, getPlaces, type CouncilOrgan, type Mayor, type PlaceDetail, type PlaceSummary } from "@/lib/api/places";
+import {
+  getPlaceDetail,
+  getPlaces,
+  type Council,
+  type CouncilOrgan,
+  type Mayor,
+  type PlaceDetail,
+  type PlaceSummary,
+} from "@/lib/api/places";
 import { electionPath, listColor, ORGAN_LABELS, tidyName } from "@/lib/elections";
-import { formatLongDate, formatNumber, formatPercent } from "@/lib/format";
+import { formatDate, formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { placeMap } from "@/lib/maps";
 import { partyPath } from "@/lib/parties";
 import { localOfficialPath } from "@/lib/api/localOfficials";
@@ -95,8 +103,6 @@ function describe(place: PlaceDetail, municipality: PlaceDetail | null): string 
   const mayor = place.mayor ? `${place.mayor.name} preside à Câmara Municipal de ${place.name}. ` : "";
   return `${mayor}Composição da câmara e da assembleia municipal.${circle}, resultados eleitorais e contratos públicos de ${place.name}.`;
 }
-
-const DEPUTIES_SHOWN = 12;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const place = await loadPlace((await params).key);
@@ -208,6 +214,12 @@ export default async function PlacePage({ params }: Props) {
         </Section>
       )}
 
+      {place.level === "parish" && place.juntaPresident && (
+        <Section id="presidente" title={`Quem preside à Junta de Freguesia de ${place.name}`}>
+          <MayorCard mayor={place.juntaPresident} placeKey={place.key} parties={parties} imported={imported} role="Presidente da junta" />
+        </Section>
+      )}
+
       {place.level === "parish" && municipality && (
         <Section id="concelho" title={`O concelho de ${municipality.name}`}>
           <Link href={placePath(municipality.key)} className="flex items-center gap-4 rounded-2xl border border-line p-4 hover:bg-surface">
@@ -223,9 +235,11 @@ export default async function PlacePage({ params }: Props) {
               →
             </span>
           </Link>
-          <p className="mt-2 font-mono text-[11px] text-muted">
-            Os presidentes de junta não são publicados com os resultados; mostramos a lista mais votada na assembleia de freguesia.
-          </p>
+          {!place.juntaPresident && (
+            <p className="mt-2 font-mono text-[11px] text-muted">
+              Os presidentes de junta não são publicados com os resultados; mostramos a lista mais votada na assembleia de freguesia.
+            </p>
+          )}
         </Section>
       )}
 
@@ -241,7 +255,7 @@ export default async function PlacePage({ params }: Props) {
         >
           <div className="grid gap-6 md:grid-cols-2">
             {place.council.organs.map((organ) => (
-              <CouncilCard key={organ.organ} organ={organ} parties={parties} />
+              <CouncilCard key={organ.organ} organ={organ} council={place.council!} parties={parties} />
             ))}
           </div>
           <p className="mt-3 font-mono text-[11px] text-muted">
@@ -251,48 +265,32 @@ export default async function PlacePage({ params }: Props) {
                 não estão disponíveis.{" "}
               </>
             )}
-            Os nomes dos vereadores e deputados municipais não vêm nos resultados oficiais; mostramos os mandatos de cada lista.
+            {!hasNames(place.council) &&
+              "Os nomes dos vereadores e deputados municipais não vêm nos resultados oficiais; mostramos os mandatos de cada lista."}
           </p>
         </Section>
       )}
 
       {place.deputies && place.deputies.items.length > 0 && (
-        <Section id="deputados" title={`Deputados eleitos por ${place.deputies.circle.name}`} note="Quem te representa no Parlamento">
-          {/* On a phone a big circle (Lisboa elects 48) shows the first 12; the rest open with a press, without scripts. */}
-          <div className="group/deps">
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {place.deputies.items.map((deputy, index) => (
-                <li
-                  key={deputy.id}
-                  className={index >= DEPUTIES_SHOWN ? "max-sm:hidden max-sm:group-has-[input:checked]/deps:block" : undefined}
-                >
-                  <Link
-                    href={`/deputados/${deputy.id}`}
-                    className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
-                  >
-                    <DeputyPortrait
-                      deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
-                      size="xs"
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
-                      {deputy.party && (
-                        <span className="block font-mono text-[11px] text-muted">
-                          {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {place.deputies.items.length > DEPUTIES_SHOWN && (
-              <label className="mt-3 inline-flex cursor-pointer rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface has-[:focus-visible]:outline has-[:focus-visible]:outline-2 sm:hidden group-has-[input:checked]/deps:hidden">
-                <input type="checkbox" className="sr-only" />
-                Ver os {place.deputies.items.length} deputados
-              </label>
-            )}
-          </div>
+        <Section id="deputados" title="Deputados à Assembleia da República" note={`círculo eleitoral: ${place.deputies.circle.name}`}>
+          <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted">
+            {place.level === "district" ? "" : `${place.name} não elege deputados próprios. `}
+            Os deputados são eleitos por círculo eleitoral (os distritos, as regiões autónomas e a emigração) e representam todo o país.
+          </p>
+          {place.level === "district" ? (
+            <DeputyList deputies={place.deputies.items} parties={parties} />
+          ) : (
+            // Folded below the district: a big círculo (Porto elects 40) would bury the municipality's own page.
+            <details className="group/deps">
+              <summary className="inline-flex cursor-pointer list-none rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface [&::-webkit-details-marker]:hidden">
+                <span className="group-open/deps:hidden">Ver os {place.deputies.items.length} deputados do círculo</span>
+                <span className="hidden group-open/deps:inline">Esconder os deputados</span>
+              </summary>
+              <div className="mt-4">
+                <DeputyList deputies={place.deputies.items} parties={parties} />
+              </div>
+            </details>
+          )}
         </Section>
       )}
 
@@ -395,6 +393,36 @@ function seatName(seat: { label: string; parties: string[] }, parties: Party[]):
   return party ? tidyName(party.name) : shortList(seat.label);
 }
 
+type PlaceDeputies = NonNullable<PlaceDetail["deputies"]>["items"];
+
+function DeputyList({ deputies, parties }: { deputies: PlaceDeputies; parties: Party[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {deputies.map((deputy) => (
+        <li key={deputy.id}>
+          <Link
+            href={`/deputados/${deputy.id}`}
+            className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
+          >
+            <DeputyPortrait
+              deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
+              size="xs"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
+              {deputy.party && (
+                <span className="block font-mono text-[11px] text-muted">
+                  {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
+                </span>
+              )}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Section({ id, title, note, children }: { id: string; title: string; note?: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="mb-12">
@@ -420,7 +448,19 @@ function Initials({ mayor, size }: { mayor: Mayor; size: "sm" | "lg" }) {
   );
 }
 
-function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; placeKey: string; parties: Party[]; imported: Set<string> }) {
+function MayorCard({
+  mayor,
+  placeKey,
+  parties,
+  imported,
+  role = "Presidente da câmara",
+}: {
+  mayor: Mayor;
+  placeKey: string;
+  parties: Party[];
+  imported: Set<string>;
+  role?: string;
+}) {
   const ours = mayor.parties.flatMap((slug) => {
     const party = parties.find((candidate) => candidate.slug === slug);
     return party ? [party] : [];
@@ -429,7 +469,7 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
     <div className="flex flex-col gap-5 rounded-2xl border border-line p-5 sm:flex-row sm:items-center">
       <Initials mayor={mayor} size="lg" />
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Presidente da câmara</p>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">{role}</p>
         <p className="text-2xl font-bold leading-tight">
           {mayor.id ? (
             <Link href={localOfficialPath(mayor.id)} className="hover:underline">
@@ -470,7 +510,9 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
 }
 
 /** The seats of one council: a bar of seats in the lists' colours, then each list with its mandates. */
-function CouncilCard({ organ, parties }: { organ: CouncilOrgan; parties: Party[] }) {
+const hasNames = (council: Council) => council.organs.some((organ) => organ.seats.some((seat) => seat.members !== null));
+
+function CouncilCard({ organ, council, parties }: { organ: CouncilOrgan; council: Council; parties: Party[] }) {
   const seats = organ.seats.flatMap((seat) => Array.from({ length: seat.mandates }, () => listColor({ partySlugs: seat.parties })));
   return (
     <div className="rounded-2xl border border-line p-4">
@@ -512,6 +554,87 @@ function CouncilCard({ organ, parties }: { organ: CouncilOrgan; parties: Party[]
           </li>
         ))}
       </ul>
+      {organ.seats.some((seat) => seat.members !== null) && <ElectedNames organ={organ} council={council} parties={parties} />}
+    </div>
+  );
+}
+
+const PRESIDENT_OF: Record<string, string> = { CM: "Presidente da câmara", AF: "Presidente da junta" };
+
+/** Who each list elected, in list order: the câmara's few open, an assembly's many folded; then where the names come from. */
+function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; council: Council; parties: Party[] }) {
+  const body = ORGAN_LABELS[organ.organ] ?? organ.organ;
+  const count = organ.seats.reduce((sum, seat) => sum + (seat.members?.length ?? 0), 0);
+  const names = (
+    <ul aria-label={`Eleitos para a ${body}`} className="mt-3 space-y-3">
+      {organ.seats
+        .filter((seat) => seat.members !== null && seat.mandates > 0)
+        .map((seat) => (
+          <li key={seat.list}>
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted">
+              <span
+                aria-hidden="true"
+                className="size-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: listColor({ partySlugs: seat.parties }) }}
+              />
+              {seatName(seat, parties)} · {seat.mandates}
+            </p>
+            {seat.members!.length === 0 ? (
+              // The official map's names for this list don't add up to its seats: none rather than the wrong people.
+              <p className="mt-1 text-sm text-muted">Nomes incompletos no mapa oficial.</p>
+            ) : (
+              <ul className="mt-1 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
+                {seat.members!.map((member) => (
+                  <li key={`${member.position}-${member.name}`} className="min-w-0">
+                    {member.localOfficialId ? (
+                      <Link href={localOfficialPath(member.localOfficialId)} className="font-bold underline-offset-4 hover:underline">
+                        {member.name}
+                      </Link>
+                    ) : (
+                      <span className={member.president ? "font-bold" : undefined}>{member.name}</span>
+                    )}
+                    {member.president && PRESIDENT_OF[organ.organ] && (
+                      <span className="font-mono text-[11px] text-muted"> · {PRESIDENT_OF[organ.organ]}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+    </ul>
+  );
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      {organ.organ === "CM" || count === 0 ? (
+        names
+      ) : (
+        <details className="group/names">
+          <summary className="inline-flex cursor-pointer list-none rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface [&::-webkit-details-marker]:hidden">
+            <span className="group-open/names:hidden">Ver os {count} eleitos</span>
+            <span className="hidden group-open/names:inline">Esconder os eleitos</span>
+          </summary>
+          {names}
+        </details>
+      )}
+      <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">
+        Eleitos nas {electionName(council.election)}.{" "}
+        {council.source && (
+          <>
+            Fonte:{" "}
+            {council.source.url ? (
+              <a href={council.source.url} target="_blank" rel="noopener noreferrer" className="underline">
+                {council.source.name}
+                <span className="sr-only"> (abre num novo separador)</span>
+              </a>
+            ) : (
+              council.source.name
+            )}
+            {council.source.asOf && <> (retificações até {formatDate(`${council.source.asOf.slice(0, 10)}T12:00:00Z`)})</>}.{" "}
+          </>
+        )}
+        Substituições posteriores não estão refletidas.
+      </p>
     </div>
   );
 }

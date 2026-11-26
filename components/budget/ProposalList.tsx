@@ -10,11 +10,14 @@ export function ProposalList({
   query,
   initialPage,
   today,
+  awaited = false,
 }: {
   year: number;
   query: Omit<BudgetQuery, "cursor">;
   initialPage: BudgetProposalPage;
   today: string | null;
+  /** The final vote is in: a proposal still open reads «Resultado por publicar». */
+  awaited?: boolean;
 }) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } = useInfiniteQuery({
     queryKey: ["budget", year, "proposals", query],
@@ -33,7 +36,7 @@ export function ProposalList({
       <ul aria-label="Propostas de alteração" className="flex flex-col">
         {items.map((proposal) => (
           <li key={proposal.id}>
-            <ProposalItem proposal={proposal} today={today} />
+            <ProposalItem proposal={proposal} today={today} awaited={awaited} />
           </li>
         ))}
       </ul>

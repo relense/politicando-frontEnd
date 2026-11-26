@@ -162,6 +162,16 @@ export function budgetStage(bills: BudgetBill[]): { label: string; tone: Tone } 
   return general ? { label: "Em especialidade", tone: "pending" } : { label: "Em discussão", tone: "pending" };
 }
 
+/**
+ * After the final overall vote (official or provisional), a proposal still pending or called up was almost certainly
+ * voted: the parliament just hasn't published its result. Before it, «por votar» is still right.
+ */
+export const resultsAwaited = (bills: BudgetBill[]): boolean => headlineVotes(bills).final !== null;
+
+/** A proposal's result in words, «Resultado por publicar» for one still open after the final vote. */
+export const resultLabel = (result: BudgetResult, awaited: boolean): string =>
+  awaited && (result === "pending" || result === "sent_to_plenary") ? "Resultado por publicar" : RESULT_LABELS[result];
+
 /** A vote the team added from the news, before the parliament publishes it: said so, with its source. Null when official. */
 export function provisionalNote(vote: Pick<BudgetBillVote, "provisional" | "source">): { text: string; url: string | null } | null {
   if (!vote.provisional) return null;
