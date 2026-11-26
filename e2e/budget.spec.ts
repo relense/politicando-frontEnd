@@ -312,7 +312,10 @@ test("State Budget: after the vote, what the Government announced, dated and sou
   const after = page.getByRole("region", { name: "Depois da votação" });
   await expect(after).toContainText("não vai aplicar uma norma aprovada");
   await expect(after).toContainText("26-11-2026");
-  await expect(after.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/governo-normas-orcamento");
+  await expect(after.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute(
+    "href",
+    "https://exemplo.pt/governo-normas-orcamento",
+  );
   await noSeriousA11yIssues(page);
 
   // The list of those proposals, from the filter's total: one here.
@@ -330,7 +333,10 @@ test("State Budget: after the vote, what the Government announced, dated and sou
   await expect(status).toContainText("O Governo diz que não vai aplicar");
   await expect(status).toContainText("O Governo invoca a lei-travão.");
   await expect(status).toContainText("26-11-2026");
-  await expect(status.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute("href", "https://exemplo.pt/governo-normas-orcamento");
+  await expect(status.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute(
+    "href",
+    "https://exemplo.pt/governo-normas-orcamento",
+  );
   await noSeriousA11yIssues(page);
 
   // Nothing recorded: nothing shown.

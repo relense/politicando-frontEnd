@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
 import { AmbiguityNote, ChoiceColumns, ResultBadge, VoteChips } from "./BudgetParts";
 import { BudgetFollow } from "./BudgetFollow";
+import { ImplementationBadge } from "./AfterVote";
 
 export const proposalPath = (proposal: Pick<BudgetProposal, "year" | "id">) => `/orcamento/${proposal.year}/proposta/${proposal.id}`;
 
@@ -112,6 +113,7 @@ export function ProposalItem({ proposal, today, awaited = false }: { proposal: B
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <ResultBadge result={proposal.result} awaited={awaited} />
+            <ImplementationBadge implementation={proposal.implementation} />
             <span aria-hidden="true" className="font-mono text-[11px] text-muted">
               <span className="group-open:hidden">Abrir ▾</span>
               <span className="hidden group-open:inline">Fechar ▴</span>
