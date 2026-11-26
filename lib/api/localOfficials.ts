@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cached, request } from "./client";
+import { cached, request, searchOf } from "./client";
 import { mapArticle } from "./mappers";
 import { articleSchema } from "./schemas";
 import type { Article } from "@/lib/types";
@@ -110,3 +110,56 @@ export async function getLocalOfficial(id: string): Promise<LocalOfficial> {
 
 /** A local official's page on this site (the backend announces the same address to IndexNow). */
 export const localOfficialPath = (id: string) => `/autarcas/${encodeURIComponent(id)}`;
+
+// ── Search by name (places-api.md "GET /local-officials/search") ───────────────────────────────────────────────────────
+
+const ORGANS = ["CM", "AM", "AF"] as const;
+const placeRef = z.object({ key: z.string(), name: z.string(), level: z.string().nullish() });
+const searchItemSchema = z.object({
+  name: z.string().min(1),
+  organ: z.enum(ORGANS),
+  role: z.string().nullish(),
+  place: placeRef,
+  municipality: placeRef.nullish().catch(null),
+  list: z.string().nullish(),
+  label: z.string().nullish(),
+  parties: z.array(z.string()).nullish().catch(null),
+  localOfficialId: z.string().nullish(),
+});
+const searchSchema = z.object({ items: z.array(z.unknown()).catch([]) });
+
+/** Anyone elected locally (CNE's map, latest autárquicas): the body, whether they preside, the place, the list. */
+export type LocalOfficialHit = {
+  name: string;
+  organ: (typeof ORGANS)[number];
+  president: boolean;
+  place: { key: string; name: string };
+  municipality: { key: string; name: string } | null;
+  list: string | null;
+  label: string | null;
+  parties: string[];
+  localOfficialId: string | null;
+};
+
+/** By name, best match first; a bad item is left out. `q` needs 3+ characters (the API answers 400 otherwise). */
+export async function searchLocalOfficials(q: string, limit = 10): Promise<LocalOfficialHit[]> {
+  const raw = await request(`/local-officials/search${searchOf({ q, limit })}`, searchSchema, cached);
+  return raw.items.flatMap((entry) => {
+    const parsed = searchItemSchema.safeParse(entry);
+    if (!parsed.success) return [];
+    const item = parsed.data;
+    return [
+      {
+        name: item.name,
+        organ: item.organ,
+        president: item.role === "presidente",
+        place: { key: item.place.key, name: item.place.name },
+        municipality: item.municipality ? { key: item.municipality.key, name: item.municipality.name } : null,
+        list: item.list ?? null,
+        label: item.label ?? null,
+        parties: item.parties ?? [],
+        localOfficialId: item.localOfficialId ?? null,
+      },
+    ];
+  });
+}

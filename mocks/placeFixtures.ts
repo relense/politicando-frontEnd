@@ -234,6 +234,43 @@ export const placeHandlers = [
     }));
     return HttpResponse.json({ items } satisfies ApiPlaceList);
   }),
+  // Everyone elected, by name (places-api.md "GET /local-officials/search"): before /:id, which would take "search".
+  http.get(`${API}/local-officials/search`, ({ request }) => {
+    const params = new URL(request.url).searchParams;
+    const q = (params.get("q") ?? "").trim();
+    if (q.length < 3) return HttpResponse.json({ error: "invalid_request" }, { status: 400 });
+    const limit = Math.min(Number(params.get("limit") ?? 10), 50);
+    const fold = (text: string) =>
+      text
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase();
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const rank = { CM: 0, AM: 1, AF: 2 } as Record<string, number>;
+    const found = PLACES.filter((node) => node.level !== "district").flatMap((node) => {
+      const parent = node.level === "parish" ? byKey(node.parent) : undefined;
+      return (detail(node).council?.organs ?? []).flatMap((organ) =>
+        organ.seats.flatMap((seat) =>
+          (seat.members ?? [])
+            .filter((member) => words.every((word) => fold(member.name).includes(word)))
+            .map((member) => ({
+              name: member.name,
+              organ: organ.organ,
+              role: member.role,
+              place: { key: node.key, name: node.name, level: node.level },
+              municipality: parent ? { key: parent.key, name: parent.name } : null,
+              list: seat.list,
+              label: seat.label,
+              parties: seat.parties,
+              localOfficialId: member.localOfficialId,
+              election: "autarquicas-2025",
+            })),
+        ),
+      );
+    });
+    found.sort((a, b) => Number(b.role === "presidente") - Number(a.role === "presidente") || rank[a.organ]! - rank[b.organ]!);
+    return HttpResponse.json({ items: found.slice(0, limit), total: found.length });
+  }),
   // A mayor's own page (places-api.md "GET /local-officials/:id").
   http.get(`${API}/local-officials/:id`, ({ params }) => {
     const node = PLACES.find((item) => item.mayor?.id === params.id);

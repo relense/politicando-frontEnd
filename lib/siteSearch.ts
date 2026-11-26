@@ -2,7 +2,7 @@ import { getBudgetProposals, getBudgets } from "@/lib/api/budget";
 import { getFeedPage, getInitiatives, getParliament, getParties } from "@/lib/api/client";
 import { getContracts } from "@/lib/api/contracts";
 import { getBoards, getThreads } from "@/lib/api/forums";
-import { localOfficialPath } from "@/lib/api/localOfficials";
+import { localOfficialPath, searchLocalOfficials, type LocalOfficialHit } from "@/lib/api/localOfficials";
 import { getPlaces } from "@/lib/api/places";
 import { getStories, storyPath } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -14,7 +14,7 @@ import { partyPath } from "@/lib/parties";
  * One search across the site (/procurar): each section the API can already search (news, stories, initiatives, the
  * Budget, contracts, the forum) asked together, and the lists we have whole (deputies, mayors, places, parties)
  * matched here. A few hits per section; a section that fails is left out, and only all of them failing is an error.
- * Vereadores, assembly members and junta presidents wait for the backend's name search.
+ * Anyone elected locally comes from the backend's name search; an older API without it still has the mayors.
  */
 
 export type SearchHit = { title: string; meta: string | null; href: string };
@@ -41,13 +41,30 @@ const byStart = <T>(items: T[], name: (item: T) => string, query: string) => {
 
 const LEVELS = { district: "Distrito", municipality: "Município", parish: "Freguesia" } as const;
 
+const BODIES = { CM: "Câmara Municipal", AM: "Assembleia Municipal", AF: "Assembleia de Freguesia" } as const;
+
+/** «Presidente da Junta de Freguesia de Margaride (Felgueiras) · PS»: what they were elected to, and the list. */
+function localMeta(item: LocalOfficialHit, acronym: Map<string, string>): string {
+  const where = `${item.place.name}${item.municipality ? ` (${item.municipality.name})` : ""}`;
+  const body =
+    item.president && item.organ === "CM"
+      ? `Presidente da Câmara Municipal de ${where}`
+      : item.president && item.organ === "AF"
+        ? `Presidente da Junta de Freguesia de ${where}`
+        : `${BODIES[item.organ]} de ${where}`;
+  const list = item.parties.map((slug) => acronym.get(slug) ?? slug.toUpperCase()).join(", ") || item.label || item.list;
+  return list ? `${body} · ${list}` : body;
+}
+
 async function people(q: string): Promise<SearchHit[]> {
-  const [parliament, municipalities, parties] = await Promise.all([
+  const [parliament, local, parties] = await Promise.all([
     getParliament().catch(() => null),
-    getPlaces({ level: "municipality" }).catch(() => null),
+    searchLocalOfficials(q, SHOWN * 2).catch(() => null),
     getParties().catch(() => []),
   ]);
-  if (!parliament && !municipalities) throw new Error("people unavailable");
+  // Without the local search (an older API), the mayors from the places list.
+  const municipalities = local ? null : await getPlaces({ level: "municipality" }).catch(() => null);
+  if (!parliament && !local && !municipalities) throw new Error("people unavailable");
   const acronym = new Map(parties.map((party) => [party.slug, party.acronym]));
   const deputies = byStart(
     (parliament?.deputies ?? []).filter((deputy) => matchesAll(deputy.name, q)),
@@ -57,6 +74,11 @@ async function people(q: string): Promise<SearchHit[]> {
     title: deputy.name,
     meta: [`Deputado à Assembleia da República`, deputy.group, deputy.constituency].filter(Boolean).join(" · "),
     href: `/deputados/${deputy.id}`,
+  }));
+  const elected = (local ?? []).map((item) => ({
+    title: item.name,
+    meta: localMeta(item, acronym),
+    href: item.localOfficialId ? localOfficialPath(item.localOfficialId) : `/sitios/${item.place.key}#orgaos`,
   }));
   const mayors = byStart(
     (municipalities ?? []).filter((place) => place.mayor && matchesAll(place.mayor.name, q)),
@@ -71,7 +93,11 @@ async function people(q: string): Promise<SearchHit[]> {
       href: mayor.id ? localOfficialPath(mayor.id) : `/sitios/${place.key}`,
     };
   });
-  return [...deputies, ...mayors];
+  // The same person once (a mayor is in both lists' answers only through an older API, but a page links once).
+  const seen = new Set<string>();
+  return [...deputies, ...elected, ...mayors].filter(
+    (hit) => !seen.has(`${hit.title}|${hit.href}`) && seen.add(`${hit.title}|${hit.href}`),
+  );
 }
 
 async function places(q: string): Promise<SearchHit[]> {
