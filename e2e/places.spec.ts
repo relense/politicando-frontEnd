@@ -20,7 +20,13 @@ test("the map of mayors leads to a municipality, its parishes and back up to the
   await expect(page.getByRole("heading", { level: 1, name: "Águeda" })).toBeVisible();
   await expect(page.getByText("Marta Quintela").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Câmara Municipal · 9 mandatos" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Deputados eleitos por Aveiro/ })).toBeVisible();
+  // Deputies are elected per círculo, not per municipality: said so, and the list starts folded.
+  await expect(page.getByRole("heading", { name: "Deputados à Assembleia da República · círculo eleitoral: Aveiro" })).toBeVisible();
+  await expect(page.getByText("Águeda não elege deputados próprios")).toBeVisible();
+  const deputies = page.getByRole("region", { name: /Deputados à Assembleia da República/ });
+  await expect(deputies.getByRole("link").first()).toBeHidden();
+  await deputies.getByText(/^Ver os \d+ deputados do círculo$/).click();
+  await expect(deputies.getByRole("link").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Ver os contratos da câmara →" })).toHaveAttribute("href", "/contratos/entidade/500000101");
   const ld = await page.locator('main script[type="application/ld+json"]').textContent();
   expect(JSON.parse(ld!)[0]).toMatchObject({ "@type": "AdministrativeArea", name: "Águeda" });
