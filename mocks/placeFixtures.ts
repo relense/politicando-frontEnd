@@ -94,8 +94,25 @@ const LISTS = [
   { list: "MIC", label: "MOVIMENTO INDEPENDENTE DO CONCELHO", parties: [] },
 ];
 
+const FIRST = ["Alda", "Bruno", "Carla", "Dinis", "Elsa", "Fábio", "Glória", "Hugo", "Inês", "Jaime", "Lívia", "Mauro", "Nádia", "Óscar"];
+const LAST = ["Arnaut", "Bettencourt", "Calado", "Damasceno", "Esteves", "Falcão", "Gouveia", "Horta", "Lacerda", "Meireles", "Nóbrega"];
+/** Made-up names for the people a list elected, in list order; the winning list's first is the president. */
+function members(node: Node, organ: string, listIndex: number, count: number, winner: Mayor | undefined) {
+  return Array.from({ length: count }, (_, index) => {
+    const seed = node.seed * 31 + listIndex * 7 + index * 3 + organ.length;
+    const head = listIndex === 0 && index === 0;
+    const name = head && organ === "CM" && winner ? winner.name : `${FIRST[seed % FIRST.length]} ${LAST[(seed * 5) % LAST.length]}`;
+    return {
+      name,
+      position: index + 1,
+      role: head && organ !== "AM" ? "presidente" : null,
+      localOfficialId: head && organ === "CM" && winner ? (winner.id ?? null) : null,
+    };
+  });
+}
+
 /** Seats on one council: the mayor's list first, made-up votes nudged by the place's seed. */
-function seats(node: Node, total: number) {
+function seats(node: Node, total: number, organ: string) {
   const winner = node.mayor ?? byKey(node.parent)?.mayor;
   const lists = winner
     ? [{ list: winner.list, label: winner.label, parties: winner.parties }, ...LISTS.filter((item) => item.list !== winner.list)]
@@ -112,7 +129,16 @@ function seats(node: Node, total: number) {
     votes: votes[index]!,
     validPct: Math.round((votes[index]! / valid) * 10000) / 100,
     mandates: won[index]!,
+    // Sintra stands for an API that hasn't imported the names yet.
+    ...(node.key === "LOCAL-111100" ? {} : { members: members(node, organ, index, won[index]!, node.mayor) }),
   }));
+}
+
+/** The head of the most-voted list in the parish's assembly, as the API works it out. */
+function juntaPresident(node: Node) {
+  const [top] = seats(node, 9, "AF");
+  const head = top!.members?.[0];
+  return head ? { name: head.name, list: top!.list, label: top!.label, parties: top!.parties, election: "autarquicas-2021" } : null;
 }
 
 const districtOf = (node: Node): Node => (node.level === "district" ? node : districtOf(byKey(node.parent)!));
@@ -126,6 +152,7 @@ function detail(node: Node): ApiPlaceDetail {
     parent: node.parent ? ref(byKey(node.parent)!) : NATIONAL,
     children: PLACES.filter((child) => child.parent === node.key).map(ref),
     mayor: node.mayor ?? null,
+    juntaPresident: node.level === "parish" ? juntaPresident(node) : null,
     council:
       node.level === "district"
         ? null
@@ -134,10 +161,13 @@ function detail(node: Node): ApiPlaceDetail {
             organs:
               node.level === "municipality"
                 ? [
-                    { organ: "CM", totalMandates: 9, seats: seats(node, 9) },
-                    { organ: "AM", totalMandates: 27, seats: seats(node, 27) },
+                    { organ: "CM", totalMandates: 9, seats: seats(node, 9, "CM") },
+                    { organ: "AM", totalMandates: 27, seats: seats(node, 27, "AM") },
                   ]
-                : [{ organ: "AF", totalMandates: 9, seats: seats(node, 9) }],
+                : [{ organ: "AF", totalMandates: 9, seats: seats(node, 9, "AF") }],
+            ...(node.key === "LOCAL-111100"
+              ? {}
+              : { source: { name: "CNE, Mapa Oficial dos resultados (exemplo)", url: "https://www.cne.pt/" }, asOf: "2021-09-26" }),
           },
     deputies: {
       circle: { key: district.key, name: district.name },
