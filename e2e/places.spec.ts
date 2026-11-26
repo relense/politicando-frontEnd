@@ -88,16 +88,19 @@ test("who was elected: the câmara's names open, the assemblies folded, the sour
   await page.goto("/sitios/LOCAL-010100");
   const organs = page.getByRole("region", { name: /Vereadores e assembleia municipal/ });
   const camara = organs.getByRole("list", { name: "Eleitos para a Câmara Municipal" });
-  await expect(camara.getByRole("listitem").filter({ hasText: "Marta Quintela" })).toContainText("Presidente da câmara");
+  // Each list's names are a list inside the list of lists.
+  await expect(camara.getByRole("list").getByRole("listitem").filter({ hasText: "Marta Quintela" })).toContainText("Presidente da câmara");
   await expect(camara.getByRole("link", { name: "Marta Quintela" })).toHaveAttribute("href", "/autarcas/marta-quintela");
   // The assembly's 27 start folded.
   const assembleia = organs.getByRole("list", { name: "Eleitos para a Assembleia Municipal" });
   await expect(assembleia).toBeHidden();
   await organs.getByText("Ver os 27 eleitos").click();
-  await expect(assembleia.getByRole("listitem")).toHaveCount(27);
-  await expect(
-    organs.getByText(/Eleitos a 26-09-2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)\. Substituições posteriores/).first(),
-  ).toBeVisible();
+  await expect(assembleia.getByRole("list").getByRole("listitem")).toHaveCount(27);
+  // The source line, its link carrying a hidden "(abre num novo separador)".
+  await expect(organs.getByText(/^Eleitos a 26-09-2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)/).first()).toContainText(
+    "Substituições posteriores não estão refletidas.",
+  );
+  await expect(organs.getByRole("link", { name: /CNE, Mapa Oficial/ }).first()).toHaveAttribute("href", "https://www.cne.pt/");
   await expect(organs.getByText(/não vêm nos resultados oficiais/)).toHaveCount(0);
 
   // A district's own page keeps its deputies open.
