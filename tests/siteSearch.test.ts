@@ -36,6 +36,54 @@ describe("the site's search", () => {
     });
   });
 
+  it("finds anyone elected locally by name (backend: GET /local-officials/search): a junta's president links to the parish", async () => {
+    const { searchLocalOfficials } = await import("@/lib/api/localOfficials");
+    const [first] = await searchLocalOfficials("Fermentelos", 50).catch(() => []);
+    expect(first).toBeUndefined(); // a place's name isn't a person's
+    const found = await searchLocalOfficials("glória", 50);
+    const president = found.find((item) => item.organ === "AF" && item.president)!;
+    expect(president).toBeDefined();
+    const people = group(await searchSite(president.name), "pessoas");
+    expect(people?.hits).toContainEqual({
+      title: president.name,
+      meta: expect.stringMatching(/^Presidente da Junta de Freguesia de .+ \(.+\)/),
+      href: `/sitios/${president.place.key}#orgaos`,
+    });
+  });
+
+  it("an older API without the local search still finds mayors from the places list", async () => {
+    server.use(http.get("*/api/v2/local-officials/search", () => HttpResponse.json({ error: "not_found" }, { status: 404 })));
+    const people = group(await searchSite("Marta Quintela"), "pessoas");
+    expect(people?.hits[0]).toMatchObject({ title: "Marta Quintela", href: "/autarcas/marta-quintela" });
+  });
+
+  it("the local search's answer is read tolerantly: a bad item is left out, a vereador links to the câmara", async () => {
+    server.use(
+      http.get("*/api/v2/local-officials/search", () =>
+        HttpResponse.json({
+          items: [
+            {
+              name: "Lívia Exemplo",
+              organ: "CM",
+              role: null,
+              place: { key: "LOCAL-130300", name: "Felgueiras", level: "municipality" },
+              municipality: null,
+              list: "PS",
+              label: "Partido Socialista",
+              parties: ["ps"],
+              localOfficialId: null,
+              election: "autarquicas-2025",
+            },
+            { name: 3 },
+          ],
+          total: 2,
+        }),
+      ),
+    );
+    const people = group(await searchSite("livia exemplo"), "pessoas");
+    expect(people?.hits).toEqual([{ title: "Lívia Exemplo", meta: "Câmara Municipal de Felgueiras · PS", href: "/sitios/LOCAL-130300#orgaos" }]);
+  });
+
   it("finds a place under Sítios, saying what kind it is", async () => {
     const places = group(await searchSite("agueda"), "sitios");
     expect(places?.hits[0]).toEqual({ title: "Águeda", meta: "Município · distrito de Aveiro", href: "/sitios/LOCAL-010100" });
