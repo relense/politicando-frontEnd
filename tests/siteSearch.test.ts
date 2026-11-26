@@ -81,7 +81,9 @@ describe("the site's search", () => {
       ),
     );
     const people = group(await searchSite("livia exemplo"), "pessoas");
-    expect(people?.hits).toEqual([{ title: "Lívia Exemplo", meta: "Câmara Municipal de Felgueiras · PS", href: "/sitios/LOCAL-130300#orgaos" }]);
+    expect(people?.hits).toEqual([
+      { title: "Lívia Exemplo", meta: "Câmara Municipal de Felgueiras · PS", href: "/sitios/LOCAL-130300#orgaos" },
+    ]);
   });
 
   it("finds a place under Sítios, saying what kind it is", async () => {

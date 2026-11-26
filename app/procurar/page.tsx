@@ -25,7 +25,7 @@ function Group({ group }: { group: SearchGroup }) {
       </h2>
       <ul className="mt-1 flex flex-col">
         {group.hits.map((hit) => (
-          <li key={hit.href} className="border-b border-line">
+          <li key={`${hit.title}|${hit.href}`} className="border-b border-line">
             <Link href={hit.href} className="group block py-2">
               <span className="block font-serif text-lg font-bold leading-snug [overflow-wrap:anywhere] group-hover:underline">
                 {hit.title}
