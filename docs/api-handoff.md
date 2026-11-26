@@ -27,6 +27,12 @@ only `lib/api/` knows their shape. For local work, run either the mock (`npm run
   `<img>` (`components/ArticleImage.tsx`), not `next/image`, so no `remotePatterns` entry is needed; add one only if
   that changes.
 
+- **The Budget after the vote:** built on the backend's `budget-after-vote` branch, not deployed yet; contract in the
+  backend's `docs/budget-api.md`, "After the vote". `afterVote` on `GET /budget/:year/summary` and each year of
+  `GET /budget` (the team's dated notes with their source), `implementation` on each proposal (`applied | not_applied |
+  disputed`, null when unknown) and `?implementation=not_applied`. The frontend reads them (`lib/api/budget.ts`): a
+  «Depois da votação» box on the year's page, a badge in the list and a section on the proposal's page. Until then, nothing shows.
+
 - **Who was elected to each local body:** built on the backend's `local-elected-names` branch, not deployed yet;
   contract in the backend's `docs/places-api.md`, "Who was elected". From CNE's official map (Mapa Oficial n.º 2-B/2025),
   as elected on 12 Oct 2025 (no later substitutions). In `GET /places/:key`: `council.organs[].seats[].members`
