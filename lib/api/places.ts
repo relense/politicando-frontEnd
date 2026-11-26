@@ -51,9 +51,8 @@ export const placeDetailSchema = placeRefSchema.extend({
     .object({
       election: z.string(),
       organs: z.array(z.object({ organ: z.string(), totalMandates: z.number().nullish(), seats: z.array(seatSchema) })),
-      /** Where the names come from, and the day they were elected. */
-      source: z.object({ name: z.string(), url: text }).nullish().catch(null),
-      asOf: text.catch(null),
+      /** Where the names come from; `asOf` is the official map's latest rectification. Null when no names are loaded. */
+      source: z.object({ name: z.string(), url: text, asOf: text }).nullish().catch(null),
     })
     .nullish(),
   deputies: z
@@ -126,9 +125,8 @@ export type CouncilOrgan = { organ: string; totalMandates: number; seats: Counci
 export type Council = {
   election: string;
   organs: CouncilOrgan[];
-  source: { name: string; url: string | null } | null;
-  /** The day they were elected (ISO date). */
-  asOf: string | null;
+  /** `asOf`: the official map's latest rectification (ISO date), not the election day. */
+  source: { name: string; url: string | null; asOf: string | null } | null;
 };
 
 export type PlaceDeputy = { id: number; name: string; photoUrl: string | null; party: { slug: string; acronym: string } | null };
@@ -210,8 +208,9 @@ export function mapPlaceDetail(input: z.output<typeof placeDetailSchema>): Place
             return { organ: organ.organ, totalMandates: organ.totalMandates ?? won, seats };
           })
           .filter((organ) => organ.seats.length > 0),
-        source: input.council.source ? { name: input.council.source.name, url: safeHttpUrl(input.council.source.url) } : null,
-        asOf: input.council.asOf ?? null,
+        source: input.council.source
+          ? { name: input.council.source.name, url: safeHttpUrl(input.council.source.url), asOf: input.council.source.asOf ?? null }
+          : null,
       }
     : null;
   const contracts = input.contracts ?? {};

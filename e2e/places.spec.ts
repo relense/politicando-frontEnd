@@ -96,10 +96,12 @@ test("who was elected: the câmara's names open, the assemblies folded, the sour
   await expect(assembleia).toBeHidden();
   await organs.getByText("Ver os 27 eleitos").click();
   await expect(assembleia.getByRole("list").getByRole("listitem")).toHaveCount(27);
-  // The source line, its link carrying a hidden "(abre num novo separador)".
-  await expect(organs.getByText(/^Eleitos a 26-09-2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)/).first()).toContainText(
-    "Substituições posteriores não estão refletidas.",
-  );
+  // A list whose names on the official map don't add up to its seats: its seats, no names.
+  await expect(camara.getByRole("listitem").filter({ hasText: "Coligação PSD/CDS" })).toContainText("Nomes incompletos no mapa oficial.");
+  // The source line, its link carrying a hidden "(abre num novo separador)"; the date is the map's latest rectification.
+  await expect(
+    organs.getByText(/^Eleitos nas Autárquicas 2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)/).first(),
+  ).toContainText("retificações até 01-03-2022). Substituições posteriores não estão refletidas.");
   await expect(organs.getByRole("link", { name: /CNE, Mapa Oficial/ }).first()).toHaveAttribute("href", "https://www.cne.pt/");
   await expect(organs.getByText(/não vêm nos resultados oficiais/)).toHaveCount(0);
 
