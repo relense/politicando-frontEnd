@@ -5,6 +5,7 @@ import type {
   BudgetPlanned,
   BudgetParty,
   BudgetProposal,
+  BudgetProposalPage,
   BudgetResult,
   BudgetSession,
   BudgetSessionStage,
@@ -12,6 +13,7 @@ import type {
   BudgetVenue,
   BudgetVote,
   BudgetVotingDay,
+  ImplementationStatus,
 } from "@/lib/api/budget";
 import { tidyName } from "@/lib/elections";
 import { formatDate, formatTime, lisbonDay } from "@/lib/format";
@@ -339,4 +341,28 @@ export function plannedDays(
     byDate.set(day.date, entry);
   }
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ── After the vote ─────────────────────────────────────────────────────────────────────────────────────────────────
+// What the Government announced, recorded by the team with its source: worded as an announcement, never as a fact we checked.
+
+const IMPLEMENTATION_LABELS: Record<ImplementationStatus, string> = {
+  not_applied: "O Governo diz que não vai aplicar",
+  applied: "O Governo diz que vai aplicar",
+  disputed: "Aplicação contestada",
+};
+export const implementationLabel = (status: ImplementationStatus): string => IMPLEMENTATION_LABELS[status];
+export const IMPLEMENTATION_TONES: Record<ImplementationStatus, Tone> = {
+  not_applied: "rejected",
+  applied: "approved",
+  disputed: "neutral",
+};
+
+/**
+ * N in «As N propostas que o Governo diz que não vai aplicar», from `implementation=not_applied&limit=1`. An older API
+ * ignores the filter and sends everything back: then the first item isn't one, and nothing is claimed.
+ */
+export function notAppliedCount(page: BudgetProposalPage | null): number {
+  if (!page || page.items[0]?.implementation?.status !== "not_applied") return 0;
+  return page.total ?? page.items.length;
 }

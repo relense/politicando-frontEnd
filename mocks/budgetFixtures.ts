@@ -3,6 +3,17 @@ import { articles } from "./fixtures";
 
 const API = "*/api/v2";
 const SOURCE = "https://www.parlamento.pt/Cidadania/Paginas/DAOE.aspx";
+/** «Depois da votação»: a fictional announcement and its source, as the team would record it (docs/budget-api.md, "After the vote"). */
+const ANNOUNCEMENT = "https://exemplo.pt/governo-normas-orcamento";
+const afterVote2027 = [
+  {
+    date: "2026-11-26",
+    text: "O Governo anunciou que não vai aplicar uma norma aprovada, sobre a comissão de reembolso antecipado no crédito à habitação, invocando a lei-travão.",
+    sourceName: "Jornal de Exemplo",
+    sourceUrl: ANNOUNCEMENT,
+    proposalIds: [28304],
+  },
+];
 const COMMITTEE_SCRIPT = "https://example.com/oe/guiao-comissao.pdf";
 const PLENARY_SCRIPT = "https://example.com/oe/guiao-plenario.pdf";
 
@@ -115,6 +126,7 @@ const proposal = (fields: {
   resultPhase?: string | null;
   plain?: string;
   news?: { id: number; title: string; source: string; url: string; publishedAt: string }[];
+  implementation?: { status: string; date: string; note: string | null; sourceName: string; sourceUrl: string };
   statements?: {
     party: { slug: string; acronym: string; name: string } | null;
     speaker: string | null;
@@ -151,6 +163,7 @@ const proposal = (fields: {
   scheduled: scheduledOf(fields.id),
   news: fields.news ?? [],
   statements: fields.statements ?? [],
+  implementation: fields.implementation ?? null,
 });
 
 /** A mock article, as «Nas notícias» names it (mocks/fixtures.ts). */
@@ -236,6 +249,13 @@ export const budgetProposals = () => [
     result: "approved",
     status: "Aprovado(a) em Comissão",
     authors: ["ps"],
+    implementation: {
+      status: "not_applied",
+      date: "2026-11-26",
+      note: "O Governo invoca a lei-travão.",
+      sourceName: "Jornal de Exemplo",
+      sourceUrl: ANNOUNCEMENT,
+    },
     votes: [vote(day(-1), "approved", lines({ ...LEFT_FOR, psd: "favor", "cds-pp": "favor" }))],
   }),
   proposal({
@@ -379,9 +399,25 @@ const counts = (items: ReturnType<typeof budgetProposals>) => {
 const budgetYears = () => {
   const items = budgetProposals();
   return [
-    { year: 2027, ...counts(items), lastVotedOn: day(0), syncedAt: new Date(Date.now() - 12 * 60_000).toISOString(), bills: bills2027() },
-    { year: 2026, proposals: 4, voted: 3, pending: 1, lastVotedOn: "2025-11-25", syncedAt: "2025-11-28T12:00:00.000Z", bills: bills2026 },
-    { year: 2005, proposals: 0, voted: 0, pending: 0, lastVotedOn: null, syncedAt: null, bills: bills2005 },
+    {
+      year: 2027,
+      ...counts(items),
+      lastVotedOn: day(0),
+      syncedAt: new Date(Date.now() - 12 * 60_000).toISOString(),
+      bills: bills2027(),
+      afterVote: afterVote2027,
+    },
+    {
+      year: 2026,
+      proposals: 4,
+      voted: 3,
+      pending: 1,
+      lastVotedOn: "2025-11-25",
+      syncedAt: "2025-11-28T12:00:00.000Z",
+      bills: bills2026,
+      afterVote: [],
+    },
+    { year: 2005, proposals: 0, voted: 0, pending: 0, lastVotedOn: null, syncedAt: null, bills: bills2005, afterVote: [] },
   ];
 };
 
@@ -541,6 +577,7 @@ function summaryOf(year: number, votedFrom: string | null, votedTo: string | nul
             return { date: script.date, venue: script.venue, proposals: planned.length, pending: still.length };
           })
         : [],
+    afterVote: budgetYears().find((item) => item.year === year)?.afterVote ?? [],
     sourceUrl: SOURCE,
   };
 }
@@ -568,6 +605,7 @@ export const budgetHandlers = [
     const from = search.get("votedFrom");
     const to = search.get("votedTo");
     const scheduledOn = search.get("scheduledOn");
+    const implementation = search.get("implementation");
     if (search.get("sort") === "scheduled" && !scheduledOn) return HttpResponse.json({ error: "scheduled_on_required" }, { status: 400 });
     let items = proposalsOf(Number(params.year)).filter(
       (item) =>
@@ -576,7 +614,8 @@ export const budgetHandlers = [
         (!topic || item.topics.includes(topic)) &&
         (!q || ascii(`${item.number} ${item.title} ${item.article ?? ""} ${item.topics.join(" ")}`).includes(ascii(q))) &&
         (!(from || to) || item.votes.some((entry) => (!from || entry.votedOn >= from) && (!to || entry.votedOn <= to))) &&
-        (!scheduledOn || item.scheduled.some((entry) => entry.date === scheduledOn)),
+        (!scheduledOn || item.scheduled.some((entry) => entry.date === scheduledOn)) &&
+        (!implementation || item.implementation?.status === implementation),
     );
     // The day's scripts' order: committee first, then the plenary.
     const placeOn = (item: (typeof items)[number]) => {

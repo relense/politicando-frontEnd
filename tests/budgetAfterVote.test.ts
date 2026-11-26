@@ -94,6 +94,8 @@ describe("the filter in the address", () => {
     expect(budgetFilters({ aplicacao: "talvez" }, known).applied).toBeNull();
     expect(queryOf({ ...none, applied: "nao-aplicadas" }).implementation).toBe("not_applied");
     expect(queryOf(none).implementation).toBeUndefined();
-    expect(budgetPath(2027, true, { ...none, applied: "nao-aplicadas", party: "ps" })).toBe("/orcamento?partido=ps&aplicacao=nao-aplicadas");
+    expect(budgetPath(2027, true, { ...none, applied: "nao-aplicadas", party: "ps" })).toBe(
+      "/orcamento?partido=ps&aplicacao=nao-aplicadas",
+    );
   });
 });
