@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
+import { ImplementationSection } from "@/components/budget/AfterVote";
 import { ResultBadge } from "@/components/budget/BudgetParts";
 import { BudgetFollow } from "@/components/budget/BudgetFollow";
 import { AutomaticLabel, PlannedLine, ProposalVotes, ScriptLink } from "@/components/budget/ProposalItem";
@@ -89,6 +90,7 @@ export default async function BudgetProposalPage({ params }: Props) {
         </section>
       )}
       {votedLine(proposal) && <p className="mt-3 text-sm font-bold">{votedLine(proposal)}</p>}
+      <ImplementationSection implementation={proposal.implementation} />
       <PlannedLine proposal={proposal} today={today} className="mt-3 text-sm" />
       <div className="mt-3">
         <BudgetFollow proposal={proposal} large />

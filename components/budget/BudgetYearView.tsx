@@ -16,6 +16,7 @@ import {
   budgetTally,
   plannedDays,
   choiceShares,
+  notAppliedCount,
   finalVoteSession,
   headlineVotes,
   resultsAwaited,
@@ -35,6 +36,7 @@ import {
 } from "@/lib/budgetFilters";
 import { formatDate, formatDayHeading, formatNumber, formatRelative, lisbonDay } from "@/lib/format";
 import { partyColor } from "@/lib/parliament";
+import { AfterVoteSection } from "./AfterVote";
 import { BudgetBox } from "./BudgetBox";
 import { HeadlineColumns, ProgressBar, ResultBadge, SharesBar, ToneBadge } from "./BudgetParts";
 import { ProposalMeta, proposalPath } from "./ProposalItem";
@@ -55,14 +57,20 @@ export async function loadBudgetYear(year: BudgetYear, current: boolean, search:
   });
   // «Em votação hoje»: what the voting scripts plan for today, in their order.
   const plannedToday = Boolean(current && today && summary?.votingDays.some((entry) => entry.date === today));
-  const [page, todayPage, plannedPage] = await Promise.all([
+  // «Depois da votação»: the summary's notes, or the year's from the list when there's no summary.
+  const afterVote = summary?.afterVote ?? year.afterVote;
+  const [page, todayPage, plannedPage, notAppliedPage] = await Promise.all([
     summary ? getBudgetProposals(year.year, queryOf(filters)).catch((): BudgetProposalPage | null => null) : null,
     summary && current && today ? getBudgetProposals(year.year, { votedFrom: today, votedTo: today, limit: 6 }).catch(() => null) : null,
     plannedToday && today
       ? getBudgetProposals(year.year, { scheduledOn: today, sort: "scheduled", limit: 5 }).catch((): BudgetProposalPage | null => null)
       : null,
+    // N in «As N propostas que o Governo diz que não vai aplicar», only when there are notes to show it under.
+    summary && afterVote.length > 0
+      ? getBudgetProposals(year.year, { implementation: "not_applied", limit: 1 }).catch((): BudgetProposalPage | null => null)
+      : null,
   ]);
-  return { summary, filters, page, todayPage, plannedPage, today };
+  return { summary, filters, page, todayPage, plannedPage, today, afterVote, notApplied: notAppliedCount(notAppliedPage) };
 }
 
 type Loaded = Awaited<ReturnType<typeof loadBudgetYear>>;
@@ -180,7 +188,7 @@ export function BudgetYearView({
   loaded: Loaded;
   now: number;
 }) {
-  const { summary, filters, page, todayPage, plannedPage, today } = loaded;
+  const { summary, filters, page, todayPage, plannedPage, today, afterVote, notApplied } = loaded;
   const stage = budgetStage(year.bills);
   const { general, final } = headlineVotes(year.bills);
   const headline = final ?? general;
@@ -198,7 +206,7 @@ export function BudgetYearView({
   const { approved, rejected } = tally;
   const box =
     summary && current ? budgetBox({ bills: year.bills, schedule: summary.schedule, pending: year.pending }, now, { keep: true }) : null;
-  const filtered = Boolean(filters.party || filters.topic || filters.q || filters.day || filters.planned);
+  const filtered = Boolean(filters.party || filters.topic || filters.q || filters.day || filters.planned || filters.applied);
   const tabCount = (key: (typeof RESULT_TABS)[number]["key"]) =>
     filtered || !summary
       ? null
@@ -332,6 +340,17 @@ export function BudgetYearView({
             </p>
           </section>
         )}
+
+        <AfterVoteSection
+          notes={afterVote}
+          notApplied={notApplied}
+          href={budgetPath(
+            year.year,
+            current,
+            { party: null, result: null, topic: null, q: null, day: null, order: null, planned: null, applied: "nao-aplicadas" },
+            "#propostas",
+          )}
+        />
 
         {summary && current && year.pending > 0 && (
           <section aria-labelledby="hoje" className="mb-8">
@@ -526,6 +545,7 @@ export function BudgetYearView({
               {filters.result && <input type="hidden" name="resultado" value={filters.result} />}
               {filters.order && <input type="hidden" name="ordem" value={filters.order} />}
               {filters.planned && <input type="hidden" name="previsto" value={filters.planned} />}
+              {filters.applied && <input type="hidden" name="aplicacao" value={filters.applied} />}
               <label className="min-w-0 flex-1 basis-60">
                 <span className="sr-only">Procurar nas propostas</span>
                 <input
@@ -615,9 +635,10 @@ export function BudgetYearView({
                 </span>
               ))}
             </nav>
-            {(filters.day || filters.topic || filters.q || filters.planned) && (
+            {(filters.day || filters.topic || filters.q || filters.planned || filters.applied) && (
               <p className="mt-2 font-mono text-xs text-muted">
                 {[
+                  filters.applied && "Que o Governo diz que não vai aplicar",
                   filters.planned && `Previstas para votação a ${formatDate(filters.planned)}`,
                   filters.day && `Votadas a ${formatDate(filters.day)}`,
                   filters.topic && `Tema: ${filters.topic}`,
@@ -627,7 +648,12 @@ export function BudgetYearView({
                   .join(" · ")}{" "}
                 ·{" "}
                 <Link
-                  href={budgetPath(year.year, current, { ...filters, day: null, topic: null, q: null, planned: null }, "#propostas")}
+                  href={budgetPath(
+                    year.year,
+                    current,
+                    { ...filters, day: null, topic: null, q: null, planned: null, applied: null },
+                    "#propostas",
+                  )}
                   className="underline"
                 >
                   limpar

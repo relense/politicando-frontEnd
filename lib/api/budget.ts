@@ -74,7 +74,21 @@ export type BudgetProposal = {
   news: BudgetNews[];
   /** «O que disseram», from the news (not the parliament). Only on the single proposal; empty on the list. */
   statements: BudgetStatement[];
+  /** After the vote: what the Government announced about applying it, with its source. Null when nothing is known. */
+  implementation: BudgetImplementation | null;
 };
+export const IMPLEMENTATION_STATUSES = ["applied", "not_applied", "disputed"] as const;
+export type ImplementationStatus = (typeof IMPLEMENTATION_STATUSES)[number];
+/** Recorded by hand by the team from an announcement: dated, with its source; a later one replaces it. */
+export type BudgetImplementation = {
+  status: ImplementationStatus;
+  date: string;
+  note: string | null;
+  sourceName: string;
+  sourceUrl: string | null;
+};
+/** «Depois da votação»: an announcement about the year's approved proposals, as the team wrote it, with its source. */
+export type BudgetAfterVote = { date: string; text: string; sourceName: string; sourceUrl: string | null; proposalIds: number[] };
 export type BudgetVenue = "committee" | "plenary";
 /** A day a voting script puts a proposal on: its place in that day's script for that venue, and the script (PDF). */
 export type BudgetPlanned = { date: string; venue: BudgetVenue; position: number | null; scriptUrl: string | null };
@@ -114,6 +128,7 @@ export type BudgetYear = {
   lastVotedOn: string | null;
   syncedAt: string | null;
   bills: BudgetBill[];
+  afterVote: BudgetAfterVote[];
 };
 export type BudgetSessionStage = "committee" | "plenary" | "general_vote" | "final_vote";
 /**
@@ -153,6 +168,8 @@ export type BudgetSummary = {
   schedule: BudgetSession[];
   /** Which proposals each voting day takes, from the scripts, oldest first; empty before the first and on a day's summary. */
   votingDays: BudgetVotingDay[];
+  /** «Depois da votação», newest first; empty when nothing is recorded (or from an older API). */
+  afterVote: BudgetAfterVote[];
   sourceUrl: string | null;
 };
 
@@ -219,6 +236,36 @@ const plannedSchema = z.object({
   position: z.number().nullish(),
   scriptUrl: z.string().nullish(),
 });
+const filled = z
+  .string()
+  .transform((value) => value.trim())
+  .pipe(z.string().min(1));
+const afterVoteSchema = z.object({
+  date: dateSchema,
+  text: filled,
+  sourceName: filled,
+  sourceUrl: z.string().nullish(),
+  proposalIds: z.array(z.number()).nullish().catch(null),
+});
+const implementationSchema = z.object({
+  status: z.enum(IMPLEMENTATION_STATUSES),
+  date: dateSchema,
+  note: z.string().nullish(),
+  sourceName: filled,
+  sourceUrl: z.string().nullish(),
+});
+/** «Depois da votação», tolerant: a note without its text, date or source is left out; anything else reads as none. */
+export function parseAfterVote(input: unknown): BudgetAfterVote[] {
+  return looseList(afterVoteSchema)
+    .parse(input)
+    .map((item) => ({
+      date: item.date,
+      text: item.text,
+      sourceName: item.sourceName,
+      sourceUrl: safeHttpUrl(item.sourceUrl ?? null),
+      proposalIds: item.proposalIds ?? [],
+    }));
+}
 const votingDaySchema = z.object({ date: dateSchema, venue: venueSchema, proposals: z.number().nullish(), pending: z.number().nullish() });
 export const budgetProposalSchema = z.object({
   id: z.number(),
@@ -243,6 +290,7 @@ export const budgetProposalSchema = z.object({
   scheduled: looseList(plannedSchema),
   news: looseList(newsSchema),
   statements: looseList(statementSchema),
+  implementation: z.unknown().optional(),
 });
 const positionSchema = z.object({ party: z.string(), count: z.number().nullish() });
 const absentSchema = z.union([positionSchema, z.string().transform((party) => ({ party, count: null }))]);
@@ -277,6 +325,7 @@ const yearSchema = z.object({
   lastVotedOn: z.string().nullish(),
   syncedAt: z.string().nullish(),
   bills: list(billSchema),
+  afterVote: z.unknown().optional(),
 });
 const counts = z.record(z.string(), z.number()).nullish();
 const summarySchema = z.object({
@@ -319,6 +368,7 @@ const summarySchema = z.object({
     }),
   ),
   votingDays: looseList(votingDaySchema),
+  afterVote: z.unknown().optional(),
   sourceUrl: z.string().nullish(),
 });
 
@@ -333,8 +383,18 @@ const mapParty = (raw: z.infer<typeof partySchema>): BudgetParty => ({
 const mapCounts = (raw: Record<string, number> | null | undefined): Partial<Record<BudgetResult, number>> =>
   Object.fromEntries(Object.entries(raw ?? {}).filter(([key]) => (BUDGET_RESULTS as readonly string[]).includes(key)));
 
+/** Only on an approved or partially approved proposal; an unknown status or a missing source reads as nothing. */
+function mapImplementation(input: unknown, result: BudgetResult): BudgetImplementation | null {
+  if (result !== "approved" && result !== "partially_approved") return null;
+  const parsed = implementationSchema.safeParse(input);
+  if (!parsed.success) return null;
+  const { status, date, note, sourceName, sourceUrl } = parsed.data;
+  return { status, date, note: note?.trim() || null, sourceName, sourceUrl: safeHttpUrl(sourceUrl ?? null) };
+}
+
 export function mapBudgetProposal(input: unknown): BudgetProposal {
   const raw = budgetProposalSchema.parse(input);
+  const result = oneOf(BUDGET_RESULTS, raw.result) ?? "unclear";
   return {
     id: raw.id,
     year: raw.year,
@@ -345,7 +405,7 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
     target: raw.target ?? null,
     kind: raw.kind ?? null,
     status: raw.status ?? null,
-    result: oneOf(BUDGET_RESULTS, raw.result) ?? "unclear",
+    result,
     resultPhase: phaseOf(raw.resultPhase),
     unanimous: raw.unanimous ?? false,
     authors: {
@@ -403,6 +463,7 @@ export function mapBudgetProposal(input: unknown): BudgetProposal {
       ambiguous: vote.ambiguous ?? false,
       ambiguity: vote.ambiguity ?? null,
     })),
+    implementation: mapImplementation(raw.implementation, result),
   };
 }
 
@@ -441,6 +502,7 @@ const mapYear = (raw: z.infer<typeof yearSchema>): BudgetYear => ({
   lastVotedOn: raw.lastVotedOn ?? null,
   syncedAt: raw.syncedAt ?? null,
   bills: raw.bills.map(mapBill),
+  afterVote: parseAfterVote(raw.afterVote),
 });
 
 /** A 404 (the API doesn't have the Budget yet, or not that year) is "nothing", not an error. */
@@ -508,6 +570,7 @@ export function getBudgetSummary(year: number, days: BudgetDays = {}): Promise<B
         proposals: item.proposals ?? 0,
         pending: item.pending ?? 0,
       })),
+      afterVote: parseAfterVote(raw.afterVote),
       sourceUrl: safeHttpUrl(raw.sourceUrl ?? null),
     };
   });
@@ -521,6 +584,8 @@ export type BudgetQuery = BudgetDays & {
   /** The proposals the voting scripts put on this day (YYYY-MM-DD); `sort: "scheduled"` needs it. */
   scheduledOn?: string;
   sort?: "voted" | "number" | "scheduled";
+  /** Approved proposals with this status after the vote. */
+  implementation?: ImplementationStatus;
   cursor?: string;
   limit?: number;
 };
@@ -536,6 +601,7 @@ export async function getBudgetProposals(year: number, query: BudgetQuery = {}):
     votedTo: query.votedTo,
     scheduledOn: query.scheduledOn,
     sort: query.sort,
+    implementation: query.implementation,
     cursor: query.cursor,
     limit: query.limit,
   });
