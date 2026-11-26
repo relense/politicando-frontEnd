@@ -84,6 +84,46 @@ test("the map: find a place, it is framed and its card opens beside the map; zoo
   await expect(page.getByRole("region", { name: "Águeda" })).toBeVisible();
 });
 
+test("who was elected: the câmara's names open, the assemblies folded, the source cited; a parish's junta president", async ({ page }) => {
+  await page.goto("/sitios/LOCAL-010100");
+  const organs = page.getByRole("region", { name: /Vereadores e assembleia municipal/ });
+  const camara = organs.getByRole("list", { name: "Eleitos para a Câmara Municipal" });
+  // Each list's names are a list inside the list of lists.
+  await expect(camara.getByRole("list").getByRole("listitem").filter({ hasText: "Marta Quintela" })).toContainText("Presidente da câmara");
+  await expect(camara.getByRole("link", { name: "Marta Quintela" })).toHaveAttribute("href", "/autarcas/marta-quintela");
+  // The assembly's 27 start folded.
+  const assembleia = organs.getByRole("list", { name: "Eleitos para a Assembleia Municipal" });
+  await expect(assembleia).toBeHidden();
+  await organs.getByText("Ver os 27 eleitos").click();
+  await expect(assembleia.getByRole("list").getByRole("listitem")).toHaveCount(27);
+  // The source line, its link carrying a hidden "(abre num novo separador)".
+  await expect(organs.getByText(/^Eleitos a 26-09-2021\. Fonte: CNE, Mapa Oficial dos resultados \(exemplo\)/).first()).toContainText(
+    "Substituições posteriores não estão refletidas.",
+  );
+  await expect(organs.getByRole("link", { name: /CNE, Mapa Oficial/ }).first()).toHaveAttribute("href", "https://www.cne.pt/");
+  await expect(organs.getByText(/não vêm nos resultados oficiais/)).toHaveCount(0);
+
+  // A district's own page keeps its deputies open.
+  await page.goto("/sitios/LOCAL-010000");
+  await expect(
+    page
+      .getByRole("region", { name: /Deputados à Assembleia da República/ })
+      .getByRole("link")
+      .first(),
+  ).toBeVisible();
+
+  // A parish: who presides over the junta, up top.
+  await page.goto("/sitios/LOCAL-010109");
+  const junta = page.getByRole("region", { name: "Quem preside à Junta de Freguesia de Fermentelos" });
+  await expect(junta.getByText("Presidente da junta")).toBeVisible();
+  await expect(page.getByText(/Os presidentes de junta não são publicados/)).toHaveCount(0);
+
+  // An API without the names yet: the seats only, and the note says why.
+  await page.goto("/sitios/LOCAL-111100");
+  await expect(page.getByText(/não vêm nos resultados oficiais/)).toBeVisible();
+  await expect(page.getByRole("list", { name: "Eleitos para a Câmara Municipal" })).toHaveCount(0);
+});
+
 test("the district map, the election link and unknown places", async ({ page }) => {
   await page.goto("/sitios");
   await page.getByRole("link", { name: "Distritos" }).click();

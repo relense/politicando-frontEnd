@@ -9,9 +9,17 @@ import { DeputyPortrait } from "@/components/DeputyProfile";
 import { ElectionMap, type MapPlace } from "@/components/ElectionMap";
 import { PartyLogo } from "@/components/PartyLogo";
 import { ApiError, getElections, getParties } from "@/lib/api/client";
-import { getPlaceDetail, getPlaces, type CouncilOrgan, type Mayor, type PlaceDetail, type PlaceSummary } from "@/lib/api/places";
+import {
+  getPlaceDetail,
+  getPlaces,
+  type Council,
+  type CouncilOrgan,
+  type Mayor,
+  type PlaceDetail,
+  type PlaceSummary,
+} from "@/lib/api/places";
 import { electionPath, listColor, ORGAN_LABELS, tidyName } from "@/lib/elections";
-import { formatLongDate, formatNumber, formatPercent } from "@/lib/format";
+import { formatDate, formatLongDate, formatNumber, formatPercent } from "@/lib/format";
 import { placeMap } from "@/lib/maps";
 import { partyPath } from "@/lib/parties";
 import { localOfficialPath } from "@/lib/api/localOfficials";
@@ -206,6 +214,12 @@ export default async function PlacePage({ params }: Props) {
         </Section>
       )}
 
+      {place.level === "parish" && place.juntaPresident && (
+        <Section id="presidente" title={`Quem preside à Junta de Freguesia de ${place.name}`}>
+          <MayorCard mayor={place.juntaPresident} placeKey={place.key} parties={parties} imported={imported} role="Presidente da junta" />
+        </Section>
+      )}
+
       {place.level === "parish" && municipality && (
         <Section id="concelho" title={`O concelho de ${municipality.name}`}>
           <Link href={placePath(municipality.key)} className="flex items-center gap-4 rounded-2xl border border-line p-4 hover:bg-surface">
@@ -221,9 +235,11 @@ export default async function PlacePage({ params }: Props) {
               →
             </span>
           </Link>
-          <p className="mt-2 font-mono text-[11px] text-muted">
-            Os presidentes de junta não são publicados com os resultados; mostramos a lista mais votada na assembleia de freguesia.
-          </p>
+          {!place.juntaPresident && (
+            <p className="mt-2 font-mono text-[11px] text-muted">
+              Os presidentes de junta não são publicados com os resultados; mostramos a lista mais votada na assembleia de freguesia.
+            </p>
+          )}
         </Section>
       )}
 
@@ -239,7 +255,7 @@ export default async function PlacePage({ params }: Props) {
         >
           <div className="grid gap-6 md:grid-cols-2">
             {place.council.organs.map((organ) => (
-              <CouncilCard key={organ.organ} organ={organ} parties={parties} />
+              <CouncilCard key={organ.organ} organ={organ} council={place.council!} parties={parties} />
             ))}
           </div>
           <p className="mt-3 font-mono text-[11px] text-muted">
@@ -249,7 +265,8 @@ export default async function PlacePage({ params }: Props) {
                 não estão disponíveis.{" "}
               </>
             )}
-            Os nomes dos vereadores e deputados municipais não vêm nos resultados oficiais; mostramos os mandatos de cada lista.
+            {!hasNames(place.council) &&
+              "Os nomes dos vereadores e deputados municipais não vêm nos resultados oficiais; mostramos os mandatos de cada lista."}
           </p>
         </Section>
       )}
@@ -431,7 +448,19 @@ function Initials({ mayor, size }: { mayor: Mayor; size: "sm" | "lg" }) {
   );
 }
 
-function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; placeKey: string; parties: Party[]; imported: Set<string> }) {
+function MayorCard({
+  mayor,
+  placeKey,
+  parties,
+  imported,
+  role = "Presidente da câmara",
+}: {
+  mayor: Mayor;
+  placeKey: string;
+  parties: Party[];
+  imported: Set<string>;
+  role?: string;
+}) {
   const ours = mayor.parties.flatMap((slug) => {
     const party = parties.find((candidate) => candidate.slug === slug);
     return party ? [party] : [];
@@ -440,7 +469,7 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
     <div className="flex flex-col gap-5 rounded-2xl border border-line p-5 sm:flex-row sm:items-center">
       <Initials mayor={mayor} size="lg" />
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">Presidente da câmara</p>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">{role}</p>
         <p className="text-2xl font-bold leading-tight">
           {mayor.id ? (
             <Link href={localOfficialPath(mayor.id)} className="hover:underline">
@@ -481,7 +510,9 @@ function MayorCard({ mayor, placeKey, parties, imported }: { mayor: Mayor; place
 }
 
 /** The seats of one council: a bar of seats in the lists' colours, then each list with its mandates. */
-function CouncilCard({ organ, parties }: { organ: CouncilOrgan; parties: Party[] }) {
+const hasNames = (council: Council) => council.organs.some((organ) => organ.seats.some((seat) => seat.members !== null));
+
+function CouncilCard({ organ, council, parties }: { organ: CouncilOrgan; council: Council; parties: Party[] }) {
   const seats = organ.seats.flatMap((seat) => Array.from({ length: seat.mandates }, () => listColor({ partySlugs: seat.parties })));
   return (
     <div className="rounded-2xl border border-line p-4">
@@ -523,6 +554,84 @@ function CouncilCard({ organ, parties }: { organ: CouncilOrgan; parties: Party[]
           </li>
         ))}
       </ul>
+      {organ.seats.some((seat) => seat.members !== null) && <ElectedNames organ={organ} council={council} parties={parties} />}
+    </div>
+  );
+}
+
+const PRESIDENT_OF: Record<string, string> = { CM: "Presidente da câmara", AF: "Presidente da junta" };
+
+/** Who each list elected, in list order: the câmara's few open, an assembly's many folded; then where the names come from. */
+function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; council: Council; parties: Party[] }) {
+  const body = ORGAN_LABELS[organ.organ] ?? organ.organ;
+  const count = organ.seats.reduce((sum, seat) => sum + (seat.members?.length ?? 0), 0);
+  const names = (
+    <ul aria-label={`Eleitos para a ${body}`} className="mt-3 space-y-3">
+      {organ.seats
+        .filter((seat) => seat.members && seat.members.length > 0)
+        .map((seat) => (
+          <li key={seat.list}>
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted">
+              <span
+                aria-hidden="true"
+                className="size-2.5 shrink-0 rounded-sm"
+                style={{ backgroundColor: listColor({ partySlugs: seat.parties }) }}
+              />
+              {seatName(seat, parties)} · {seat.mandates}
+            </p>
+            <ul className="mt-1 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
+              {seat.members!.map((member) => (
+                <li key={`${member.position}-${member.name}`} className="min-w-0">
+                  {member.localOfficialId ? (
+                    <Link href={localOfficialPath(member.localOfficialId)} className="font-bold underline-offset-4 hover:underline">
+                      {member.name}
+                    </Link>
+                  ) : (
+                    <span className={member.president ? "font-bold" : undefined}>{member.name}</span>
+                  )}
+                  {member.president && PRESIDENT_OF[organ.organ] && (
+                    <span className="font-mono text-[11px] text-muted"> · {PRESIDENT_OF[organ.organ]}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+    </ul>
+  );
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      {organ.organ === "CM" ? (
+        names
+      ) : (
+        <details className="group/names">
+          <summary className="inline-flex cursor-pointer list-none rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface [&::-webkit-details-marker]:hidden">
+            <span className="group-open/names:hidden">Ver os {count} eleitos</span>
+            <span className="hidden group-open/names:inline">Esconder os eleitos</span>
+          </summary>
+          {names}
+        </details>
+      )}
+      <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">
+        {council.asOf && (
+          <>Eleitos a {formatDate(/^\d{4}-\d{2}-\d{2}$/.test(council.asOf) ? `${council.asOf}T12:00:00Z` : council.asOf)}. </>
+        )}
+        {council.source && (
+          <>
+            Fonte:{" "}
+            {council.source.url ? (
+              <a href={council.source.url} target="_blank" rel="noopener noreferrer" className="underline">
+                {council.source.name}
+                <span className="sr-only"> (abre num novo separador)</span>
+              </a>
+            ) : (
+              council.source.name
+            )}
+            .{" "}
+          </>
+        )}
+        Substituições posteriores não estão refletidas.
+      </p>
     </div>
   );
 }
