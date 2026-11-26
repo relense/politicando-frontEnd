@@ -96,8 +96,6 @@ function describe(place: PlaceDetail, municipality: PlaceDetail | null): string 
   return `${mayor}Composição da câmara e da assembleia municipal.${circle}, resultados eleitorais e contratos públicos de ${place.name}.`;
 }
 
-const DEPUTIES_SHOWN = 12;
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const place = await loadPlace((await params).key);
   if (place.level !== "district" && place.level !== "municipality" && place.level !== "parish") return { title: place.name };
@@ -257,42 +255,25 @@ export default async function PlacePage({ params }: Props) {
       )}
 
       {place.deputies && place.deputies.items.length > 0 && (
-        <Section id="deputados" title={`Deputados eleitos por ${place.deputies.circle.name}`} note="Quem te representa no Parlamento">
-          {/* On a phone a big circle (Lisboa elects 48) shows the first 12; the rest open with a press, without scripts. */}
-          <div className="group/deps">
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {place.deputies.items.map((deputy, index) => (
-                <li
-                  key={deputy.id}
-                  className={index >= DEPUTIES_SHOWN ? "max-sm:hidden max-sm:group-has-[input:checked]/deps:block" : undefined}
-                >
-                  <Link
-                    href={`/deputados/${deputy.id}`}
-                    className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
-                  >
-                    <DeputyPortrait
-                      deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
-                      size="xs"
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
-                      {deputy.party && (
-                        <span className="block font-mono text-[11px] text-muted">
-                          {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {place.deputies.items.length > DEPUTIES_SHOWN && (
-              <label className="mt-3 inline-flex cursor-pointer rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface has-[:focus-visible]:outline has-[:focus-visible]:outline-2 sm:hidden group-has-[input:checked]/deps:hidden">
-                <input type="checkbox" className="sr-only" />
-                Ver os {place.deputies.items.length} deputados
-              </label>
-            )}
-          </div>
+        <Section id="deputados" title="Deputados à Assembleia da República" note={`círculo eleitoral: ${place.deputies.circle.name}`}>
+          <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted">
+            {place.level === "district" ? "" : `${place.name} não elege deputados próprios. `}
+            Os deputados são eleitos por círculo eleitoral (os distritos, as regiões autónomas e a emigração) e representam todo o país.
+          </p>
+          {place.level === "district" ? (
+            <DeputyList deputies={place.deputies.items} parties={parties} />
+          ) : (
+            // Folded below the district: a big círculo (Porto elects 40) would bury the municipality's own page.
+            <details className="group/deps">
+              <summary className="inline-flex cursor-pointer list-none rounded-full border border-line px-4 py-2 font-mono text-xs font-bold hover:bg-surface [&::-webkit-details-marker]:hidden">
+                <span className="group-open/deps:hidden">Ver os {place.deputies.items.length} deputados do círculo</span>
+                <span className="hidden group-open/deps:inline">Esconder os deputados</span>
+              </summary>
+              <div className="mt-4">
+                <DeputyList deputies={place.deputies.items} parties={parties} />
+              </div>
+            </details>
+          )}
         </Section>
       )}
 
@@ -393,6 +374,36 @@ function shortList(label: string): string {
 function seatName(seat: { label: string; parties: string[] }, parties: Party[]): string {
   const party = seat.parties.length === 1 ? parties.find((candidate) => candidate.slug === seat.parties[0]) : undefined;
   return party ? tidyName(party.name) : shortList(seat.label);
+}
+
+type PlaceDeputies = NonNullable<PlaceDetail["deputies"]>["items"];
+
+function DeputyList({ deputies, parties }: { deputies: PlaceDeputies; parties: Party[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {deputies.map((deputy) => (
+        <li key={deputy.id}>
+          <Link
+            href={`/deputados/${deputy.id}`}
+            className="flex h-full items-center gap-3 rounded-2xl border border-line p-3 hover:bg-surface"
+          >
+            <DeputyPortrait
+              deputy={{ id: deputy.id, name: deputy.name, photoUrl: deputy.photoUrl, partySlug: deputy.party?.slug ?? null }}
+              size="xs"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold leading-snug">{deputy.name}</span>
+              {deputy.party && (
+                <span className="block font-mono text-[11px] text-muted">
+                  {acronymOf(deputy.party.slug, parties) ?? deputy.party.acronym}
+                </span>
+              )}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Section({ id, title, note, children }: { id: string; title: string; note?: string; children: ReactNode }) {
