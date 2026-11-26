@@ -32,6 +32,17 @@ export function Header() {
           <Link href="/parlamento" className="hidden rounded px-2 py-1.5 font-mono text-sm font-bold hover:bg-surface sm:block lg:hidden">
             Parlamento
           </Link>
+          {/* The site's search: beside the news on wide screens, here elsewhere. */}
+          <Link
+            href="/procurar"
+            aria-label="Procurar no Politicando"
+            className="flex size-10 items-center justify-center rounded hover:bg-surface xl:hidden"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-4-4" />
+            </svg>
+          </Link>
           {/* The account (the theme moved into its menu, and into the sections menu without one). */}
           <AccountMenu />
         </div>
