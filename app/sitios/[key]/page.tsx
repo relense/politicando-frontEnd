@@ -568,7 +568,7 @@ function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; counci
   const names = (
     <ul aria-label={`Eleitos para a ${body}`} className="mt-3 space-y-3">
       {organ.seats
-        .filter((seat) => seat.members && seat.members.length > 0)
+        .filter((seat) => seat.members !== null && seat.mandates > 0)
         .map((seat) => (
           <li key={seat.list}>
             <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted">
@@ -579,29 +579,34 @@ function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; counci
               />
               {seatName(seat, parties)} · {seat.mandates}
             </p>
-            <ul className="mt-1 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
-              {seat.members!.map((member) => (
-                <li key={`${member.position}-${member.name}`} className="min-w-0">
-                  {member.localOfficialId ? (
-                    <Link href={localOfficialPath(member.localOfficialId)} className="font-bold underline-offset-4 hover:underline">
-                      {member.name}
-                    </Link>
-                  ) : (
-                    <span className={member.president ? "font-bold" : undefined}>{member.name}</span>
-                  )}
-                  {member.president && PRESIDENT_OF[organ.organ] && (
-                    <span className="font-mono text-[11px] text-muted"> · {PRESIDENT_OF[organ.organ]}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            {seat.members!.length === 0 ? (
+              // The official map's names for this list don't add up to its seats: none rather than the wrong people.
+              <p className="mt-1 text-sm text-muted">Nomes incompletos no mapa oficial.</p>
+            ) : (
+              <ul className="mt-1 grid gap-x-4 gap-y-0.5 text-sm sm:grid-cols-2">
+                {seat.members!.map((member) => (
+                  <li key={`${member.position}-${member.name}`} className="min-w-0">
+                    {member.localOfficialId ? (
+                      <Link href={localOfficialPath(member.localOfficialId)} className="font-bold underline-offset-4 hover:underline">
+                        {member.name}
+                      </Link>
+                    ) : (
+                      <span className={member.president ? "font-bold" : undefined}>{member.name}</span>
+                    )}
+                    {member.president && PRESIDENT_OF[organ.organ] && (
+                      <span className="font-mono text-[11px] text-muted"> · {PRESIDENT_OF[organ.organ]}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
     </ul>
   );
   return (
     <div className="mt-4 border-t border-line pt-3">
-      {organ.organ === "CM" ? (
+      {organ.organ === "CM" || count === 0 ? (
         names
       ) : (
         <details className="group/names">
@@ -613,9 +618,7 @@ function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; counci
         </details>
       )}
       <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">
-        {council.asOf && (
-          <>Eleitos a {formatDate(/^\d{4}-\d{2}-\d{2}$/.test(council.asOf) ? `${council.asOf}T12:00:00Z` : council.asOf)}. </>
-        )}
+        Eleitos nas {electionName(council.election)}.{" "}
         {council.source && (
           <>
             Fonte:{" "}
@@ -627,7 +630,7 @@ function ElectedNames({ organ, council, parties }: { organ: CouncilOrgan; counci
             ) : (
               council.source.name
             )}
-            .{" "}
+            {council.source.asOf && <> (retificações até {formatDate(`${council.source.asOf.slice(0, 10)}T12:00:00Z`)})</>}.{" "}
           </>
         )}
         Substituições posteriores não estão refletidas.

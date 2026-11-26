@@ -130,7 +130,12 @@ function seats(node: Node, total: number, organ: string) {
     validPct: Math.round((votes[index]! / valid) * 10000) / 100,
     mandates: won[index]!,
     // Sintra stands for an API that hasn't imported the names yet.
-    ...(node.key === "LOCAL-111100" ? {} : { members: members(node, organ, index, won[index]!, node.mayor) }),
+    ...(node.key === "LOCAL-111100"
+      ? {}
+      : // Águeda's second câmara list: the map's names don't add up to its seats, so the API sends none.
+        {
+          members: node.key === "LOCAL-010100" && organ === "CM" && index === 1 ? [] : members(node, organ, index, won[index]!, node.mayor),
+        }),
   }));
 }
 
@@ -167,7 +172,7 @@ function detail(node: Node): ApiPlaceDetail {
                 : [{ organ: "AF", totalMandates: 9, seats: seats(node, 9, "AF") }],
             ...(node.key === "LOCAL-111100"
               ? {}
-              : { source: { name: "CNE, Mapa Oficial dos resultados (exemplo)", url: "https://www.cne.pt/" }, asOf: "2021-09-26" }),
+              : { source: { name: "CNE, Mapa Oficial dos resultados (exemplo)", url: "https://www.cne.pt/", asOf: "2022-03-01" } }),
           },
     deputies: {
       circle: { key: district.key, name: district.name },

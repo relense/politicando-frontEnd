@@ -27,11 +27,12 @@ only `lib/api/` knows their shape. For local work, run either the mock (`npm run
   `<img>` (`components/ArticleImage.tsx`), not `next/image`, so no `remotePatterns` entry is needed; add one only if
   that changes.
 
-- **Who was elected to each local body (agreed 26 Nov 2026, backend building it):** from CNE's official map (Mapa
-  Oficial n.º 2-B/2025, corrections to 6 Aug 2026), all 308 CM and AM and 3 259 AF, as elected on 12 Oct 2025 (no
-  later substitutions). In `GET /places/:key`: `council.organs[].seats[].members` (`[{ name, position, role:
-  "presidente" | null, localOfficialId }]`, list order), `council.source` (`{ name, url }`), `council.asOf`, and on a
-  parish `juntaPresident` (`{ name, list, label, parties, election }`). The frontend reads them already
+- **Who was elected to each local body:** built on the backend's `local-elected-names` branch, not deployed yet;
+  contract in the backend's `docs/places-api.md`, "Who was elected". From CNE's official map (Mapa Oficial n.º 2-B/2025),
+  as elected on 12 Oct 2025 (no later substitutions). In `GET /places/:key`: `council.organs[].seats[].members`
+  (`[{ name, position, role: "presidente" | null, localOfficialId }]`, list order; absent = no names loaded; `[]` = the
+  map's names don't add up to the seats), `council.source` (`{ name, url, asOf }`, `asOf` the latest rectification), and
+  on a parish `juntaPresident` (`{ name, list, label, parties, election }`). The frontend reads them already
   (`lib/api/places.ts`); without them the page keeps the seats only.
 
 ## Open, not confirmed
