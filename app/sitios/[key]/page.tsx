@@ -271,6 +271,21 @@ export default async function PlacePage({ params }: Props) {
         </Section>
       )}
 
+      {place.children.length > 0 && place.level === "municipality" && (
+        <Section id="freguesias" title={`Freguesias de ${place.name}`} note={`${place.children.length}`}>
+          <p className="mb-3 text-sm text-muted">Abre uma freguesia para ver quem preside à junta e quem foi eleito para a assembleia.</p>
+          <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+            {place.children.map((child) => (
+              <li key={child.key}>
+                <Link href={placePath(child.key)} className="-mx-2 block rounded px-2 py-1 hover:bg-surface hover:underline">
+                  {child.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {place.deputies && place.deputies.items.length > 0 && (
         <Section id="deputados" title="Deputados à Assembleia da República" note={`círculo eleitoral: ${place.deputies.circle.name}`}>
           <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted">
@@ -329,20 +344,6 @@ export default async function PlacePage({ params }: Props) {
           title={`Contratos públicos ${place.level === "district" ? "no distrito" : place.level === "parish" ? "" : "da câmara"}`.trim()}
         >
           <ContractsBox place={place} />
-        </Section>
-      )}
-
-      {place.children.length > 0 && place.level === "municipality" && (
-        <Section id="freguesias" title={`Freguesias de ${place.name}`} note={`${place.children.length}`}>
-          <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
-            {place.children.map((child) => (
-              <li key={child.key}>
-                <Link href={placePath(child.key)} className="-mx-2 block rounded px-2 py-1 hover:bg-surface hover:underline">
-                  {child.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
         </Section>
       )}
 
