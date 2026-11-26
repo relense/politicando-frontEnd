@@ -1058,6 +1058,10 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // How each outlet headlined it, folded under the logos.
   await card.getByText("4 jornais contaram isto").click();
   await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
+  // Each outlet with when it published, first to publish first: who reported first, and when.
+  const told = card.locator("details ol > li");
+  await expect(told.first()).toContainText(/\w{3}\., \d{1,2} \w{3}\. · \d{2}:\d{2}/);
+  await expect(told.first().locator("time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
   // Importa: one mark, taken back by pressing again.
   const importa = card.getByRole("button", { name: /^Importa/ });
   await expect(importa).toHaveAttribute("aria-pressed", "false");
