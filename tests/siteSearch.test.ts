@@ -29,7 +29,11 @@ describe("the site's search", () => {
 
   it("finds a mayor under Pessoas, linking to their page", async () => {
     const people = group(await searchSite("Marta Quintela"), "pessoas");
-    expect(people?.hits[0]).toEqual({ title: "Marta Quintela", meta: "Presidente da Câmara Municipal de Águeda · PS", href: "/autarcas/marta-quintela" });
+    expect(people?.hits[0]).toEqual({
+      title: "Marta Quintela",
+      meta: "Presidente da Câmara Municipal de Águeda · PS",
+      href: "/autarcas/marta-quintela",
+    });
   });
 
   it("finds a place under Sítios, saying what kind it is", async () => {
