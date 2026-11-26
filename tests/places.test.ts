@@ -127,8 +127,7 @@ describe("who was elected to each body (CNE's official map)", () => {
             ],
           }),
         ]),
-        source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo" },
-        asOf: "2025-10-12",
+        source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo", asOf: "2026-08-06" },
       },
       { juntaPresident: { name: "Nome Um", list: "PS", label: "PARTIDO SOCIALISTA", parties: ["ps"], election: "autarquicas-2025" } },
     );
@@ -137,8 +136,8 @@ describe("who was elected to each body (CNE's official map)", () => {
       { name: "Nome Dois", position: 2, president: false, localOfficialId: null },
     ]);
     expect(place.council).toMatchObject({
-      source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo" },
-      asOf: "2025-10-12",
+      // The map's latest rectification, not the election day.
+      source: { name: "CNE, Mapa Oficial n.º 2-B/2025", url: "https://www.cne.pt/exemplo", asOf: "2026-08-06" },
     });
     expect(place.juntaPresident).toMatchObject({ id: null, name: "Nome Um", label: "PARTIDO SOCIALISTA", parties: ["ps"] });
   });
@@ -146,11 +145,11 @@ describe("who was elected to each body (CNE's official map)", () => {
   it("an older API: no names yet (null, not an empty list), no source, no junta president; an unsafe link is dropped", () => {
     const older = parse(organ([seat({})]));
     expect(older.council?.organs[0]?.seats[0]?.members).toBeNull();
-    expect(older.council).toMatchObject({ source: null, asOf: null });
+    expect(older.council?.source).toBeNull();
     expect(older.juntaPresident).toBeNull();
     const unknownList = parse({ ...organ([seat({ members: [] })]), source: { name: "CNE", url: "javascript:alert(1)" } });
     expect(unknownList.council?.organs[0]?.seats[0]?.members).toEqual([]);
-    expect(unknownList.council?.source).toEqual({ name: "CNE", url: null });
+    expect(unknownList.council?.source).toEqual({ name: "CNE", url: null, asOf: null });
   });
 });
 
