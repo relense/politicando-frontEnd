@@ -4,13 +4,14 @@ import { recordListVote } from "./accountFixtures";
 
 /**
  * Stories (the backend's docs/stories-api.md), made from the test articles: article 100 is told by four outlets
- * (100, 95, 90, 85), and 98 is Expresso's later piece (its first is 90); every other article is a story of one, with the article's id as the story's. Opinion, podcasts
- * and newsletters are always a card of their own, with their kind; nothing joins them.
+ * (100, 95, 90, 85), and 94 is Expresso's later piece (its first is 90); every other article is a story of one, with
+ * the article's id as the story's. Opinion, podcasts and newsletters are always a card of their own, with their kind;
+ * nothing joins them.
  */
 const API = "*/api/v2";
 const fail = (status: number, code: string) => HttpResponse.json({ error: { code, message: code } }, { status });
 
-const GROUPS: number[][] = [[100, 95, 90, 85, 98]];
+const GROUPS: number[][] = [[100, 95, 90, 85, 94]];
 const grouped = new Set(GROUPS.flat());
 const groups = [...GROUPS, ...articles.filter((article) => !grouped.has(article.id)).map((article) => [article.id])];
 for (const group of groups) for (const id of group) articles.find((article) => article.id === id)!.storyId = group[0];
@@ -94,15 +95,17 @@ function storyOf(group: number[]) {
     articleCount: versions.length,
     sourceCount: new Set(versions.map((item) => item.source)).size,
     // One per outlet, its first piece, first to publish first; later pieces only in `articles` (the single story).
-    sources: versions.filter((item, index) => versions.findIndex((other) => other.source === item.source) === index).map((item) => ({
-      name: item.source,
-      articleId: item.id,
-      title: item.title,
-      url: item.url,
-      publishedAt: item.publishedAt,
-      // Each outlet's own photo, as asked of the backend.
-      imageUrl: item.imageUrl,
-    })),
+    sources: versions
+      .filter((item, index) => versions.findIndex((other) => other.source === item.source) === index)
+      .map((item) => ({
+        name: item.source,
+        articleId: item.id,
+        title: item.title,
+        url: item.url,
+        publishedAt: item.publishedAt,
+        // Each outlet's own photo, as asked of the backend.
+        imageUrl: item.imageUrl,
+      })),
     parties: [...new Map(versions.flatMap((item) => item.parties).map((party) => [party.slug, party])).values()],
     deputies: [],
     government: [],

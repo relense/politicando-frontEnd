@@ -30,8 +30,8 @@ describe("a story's later pieces", () => {
   it("the mock story sends one source per outlet and every article, as the API does", async () => {
     const story = await getStory(100);
     expect(story!.versions.map((item) => item.articleId)).toEqual([85, 90, 95, 100]);
-    expect(story!.articles.map((item) => item.id)).toEqual([85, 90, 95, 98, 100]);
-    expect(laterPieces(story!).map((item) => item.id)).toEqual([98]);
+    expect(story!.articles.map((item) => item.id)).toEqual([85, 90, 94, 95, 100]);
+    expect(laterPieces(story!).map((item) => item.id)).toEqual([94]);
     expect(story!.lastPublishedAt).toBe(story!.articles.at(-1)!.publishedAt);
   });
 });
