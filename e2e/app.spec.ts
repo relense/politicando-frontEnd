@@ -1062,7 +1062,8 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   const told = card.locator("details ol > li");
   // As on the article page: «26-11-2026 | 10:06», and «Ler ↗» to the outlet's own site.
   await expect(told).toHaveCount(4);
-  await expect(told.first()).toContainText(/\d{2}-\d{2}-\d{4} \| \d{2}:\d{2}/);
+  await expect(told.first()).toContainText(/\d{2}-\d{2}-\d{4} \| \d{2}:\d{2} · primeiro a publicar/);
+  await expect(told.nth(1)).not.toContainText("primeiro a publicar");
   await expect(told.first().locator("time").first()).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
   await expect(told.first().getByRole("link", { name: /^Ler em .+ \(abre num novo separador\)$/ })).toHaveAttribute(
     "href",
