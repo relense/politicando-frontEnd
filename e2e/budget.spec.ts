@@ -304,3 +304,46 @@ test("State Budget: a final vote taken from the news, before the parliament publ
   await page.goto("/orcamento/2026/proposta/26004");
   await expect(page.getByText("Resultado por publicar").first()).toBeVisible();
 });
+
+test("State Budget: after the vote, what the Government announced, dated and sourced, and the proposals it says it won't apply", async ({
+  page,
+}) => {
+  await page.goto("/orcamento");
+  const after = page.getByRole("region", { name: "Depois da votação" });
+  await expect(after).toContainText("não vai aplicar uma norma aprovada");
+  await expect(after).toContainText("26-11-2026");
+  await expect(after.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute(
+    "href",
+    "https://exemplo.pt/governo-normas-orcamento",
+  );
+  await noSeriousA11yIssues(page);
+
+  // The list of those proposals, from the filter's total: one here.
+  await after.getByRole("link", { name: "A proposta que o Governo diz que não vai aplicar" }).click();
+  await expect(page).toHaveURL(/aplicacao=nao-aplicadas/);
+  const list = page.getByRole("list", { name: "Propostas de alteração" });
+  await expect(list.locator(":scope > li")).toHaveCount(1);
+  await expect(list).toContainText("Comissão de reembolso antecipado");
+  await expect(list).toContainText("O Governo diz que não vai aplicar");
+  await expect(page.getByText("Que o Governo diz que não vai aplicar ·")).toBeVisible();
+
+  // On the proposal's page: the status, its note, date and source.
+  await page.goto("/orcamento/2027/proposta/28304");
+  const status = page.getByRole("region", { name: "Depois da votação" });
+  await expect(status).toContainText("O Governo diz que não vai aplicar");
+  await expect(status).toContainText("O Governo invoca a lei-travão.");
+  await expect(status).toContainText("26-11-2026");
+  await expect(status.getByRole("link", { name: /Jornal de Exemplo/ })).toHaveAttribute(
+    "href",
+    "https://exemplo.pt/governo-normas-orcamento",
+  );
+  await noSeriousA11yIssues(page);
+
+  // Nothing recorded: nothing shown.
+  await page.goto("/orcamento/2027/proposta/28301");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Depois da votação" })).toHaveCount(0);
+  await page.goto("/orcamento/2026");
+  await expect(page.getByRole("heading", { level: 1, name: "Orçamento do Estado 2026" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Depois da votação" })).toHaveCount(0);
+});

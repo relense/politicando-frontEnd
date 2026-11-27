@@ -105,6 +105,12 @@ test("who was elected: the câmara's names open, the assemblies folded, the sour
   await expect(organs.getByRole("link", { name: /CNE, Mapa Oficial/ }).first()).toHaveAttribute("href", "https://www.cne.pt/");
   await expect(organs.getByText(/não vêm nos resultados oficiais/)).toHaveCount(0);
 
+  // The parishes come right after the câmara and assembly, before the deputies.
+  const parishes = await page.getByRole("heading", { name: /Freguesias de Águeda/ }).boundingBox();
+  const deputiesHeading = await page.getByRole("heading", { name: /Deputados à Assembleia da República/ }).boundingBox();
+  expect(parishes!.y).toBeLessThan(deputiesHeading!.y);
+  await expect(page.getByText("Abre uma freguesia para ver quem preside à junta")).toBeVisible();
+
   // A district's own page keeps its deputies open.
   await page.goto("/sitios/LOCAL-010000");
   await expect(

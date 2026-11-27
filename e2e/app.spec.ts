@@ -257,7 +257,7 @@ test("article page shows the excerpt and links to the original", async ({ page }
   const link = page.getByRole("link", { name: /Ler o artigo completo em Público/ });
   await expect(link).toHaveAttribute("href", "https://example.com/noticia/100");
   await expect(link).toHaveAttribute("target", "_blank");
-  await expect(page.locator("article h1 + p")).toContainText("…");
+  await expect(page.getByText(/^Este é o texto de exemplo da notícia 100\./)).toContainText("…");
   await expect(page.locator("article time").first()).toContainText(/^[A-ZÁÉ][a-zçá-]+(-feira)?, \d+ de /);
   await expect(page.getByRole("button", { name: "Copiar ligação" })).toBeVisible();
   // The people it names who have a page here, each linked to it.
@@ -1058,6 +1058,16 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   // How each outlet headlined it, folded under the logos.
   await card.getByText("4 jornais contaram isto").click();
   await expect(card.getByRole("link", { name: /Notícia de teste número 85/ })).toBeVisible();
+  // Each outlet with when it published, first to publish first: who reported first, and when.
+  const told = card.locator("details ol > li");
+  // As on the article page: «26-11-2026 | 10:06», and «Ler ↗» to the outlet's own site.
+  await expect(told).toHaveCount(4);
+  await expect(told.first()).toContainText(/\d{2}-\d{2}-\d{4} \| \d{2}:\d{2}/);
+  await expect(told.first().locator("time").first()).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
+  await expect(told.first().getByRole("link", { name: /^Ler em .+ \(abre num novo separador\)$/ })).toHaveAttribute(
+    "href",
+    /^https:\/\/example\.com\/noticia\/\d+$/,
+  );
   // Importa: one mark, taken back by pressing again.
   const importa = card.getByRole("button", { name: /^Importa/ });
   await expect(importa).toHaveAttribute("aria-pressed", "false");
@@ -1073,11 +1083,22 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   await expect(today.getByRole("listitem").first()).toContainText(/\d+ jorna(l|is) · /);
   await noSeriousA11yIssues(page);
 
-  await card.getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true }).click();
+  // The card's title (the outlet's own row, opened above, has the same headline).
+  await card
+    .getByRole("link", { name: "Notícia de teste número 100: Parlamento debate o orçamento & a saúde", exact: true })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/article\/100$/);
   await expect(page.getByText("4 jornais nesta história")).toBeVisible();
   const versions = page.getByRole("navigation", { name: "Versões desta notícia" });
   await expect(versions.locator("a[aria-current=page]")).toHaveCount(1);
+  // One chip per outlet; Expresso's later piece is under the headline, newest, and in «Desenvolvimentos».
+  await expect(versions.getByRole("listitem")).toHaveCount(4);
+  const updated = page.getByText(/^Atualizado (às|a) /);
+  await expect(updated.getByRole("link", { name: /Notícia de teste número 94/ })).toHaveAttribute("href", "/article/94");
+  const developments = page.getByRole("region", { name: "Desenvolvimentos" });
+  await expect(developments.getByRole("listitem")).toHaveCount(1);
+  await expect(developments.getByRole("link", { name: /Notícia de teste número 94/ })).toHaveAttribute("href", "/article/94");
   await expect(page.getByRole("heading", { level: 2, name: "Como cada jornal contou" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: /^Debate/ })).toBeVisible();
   await expect(page.locator("figcaption", { hasText: "A favor" })).toBeVisible();

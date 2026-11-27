@@ -10,7 +10,17 @@ import { PartyChips } from "./PartyChips";
 import { outletClick } from "@/lib/analytics";
 
 /** The article page's main column. We only have a teaser, so the way to the original is the main action. */
-export function ArticleDetail({ article, versions }: { article: Article; /** The story's outlets, as tabs. */ versions?: ReactNode }) {
+export function ArticleDetail({
+  article,
+  versions,
+  updated,
+}: {
+  article: Article;
+  /** The story's outlets, as tabs. */
+  versions?: ReactNode;
+  /** Under the headline: the story's newest later piece. */
+  updated?: ReactNode;
+}) {
   const published = formatFullDateTime(article.publishedAt);
 
   return (
@@ -34,6 +44,7 @@ export function ArticleDetail({ article, versions }: { article: Article; /** The
       <ArticleKindLabel kind={article.kind} className="-mt-2 mb-3" />
 
       <h1 className="text-2xl font-bold leading-tight sm:text-3xl xl:text-4xl xl:leading-[1.1]">{article.title}</h1>
+      {updated}
 
       {article.excerpt && <p className="mt-4 text-lg leading-relaxed text-ink/90">{article.excerpt}</p>}
 

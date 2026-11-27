@@ -362,3 +362,19 @@ export function storyPhoto(story: Pick<Story, "title" | "versions" | "imageUrl">
   const owner = [lead, ...story.versions].find((version) => isOutletPhoto(url, version.sourceDomain));
   return { url, credit: owner?.source ?? null };
 }
+
+/**
+ * A story's later pieces («Desenvolvimentos»): every article that isn't its outlet's first, newest first. An outlet's
+ * first is its chip and its headline in «como cada jornal contou»; GET /stories/:id sends every article.
+ */
+export function laterPieces(story: Pick<StoryDetail, "articles">): Article[] {
+  const oldestFirst = [...story.articles].sort((a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt));
+  const seen = new Set<string>();
+  const later = oldestFirst.filter((article) => {
+    const outlet = article.sourceDomain || article.source;
+    if (seen.has(outlet)) return true;
+    seen.add(outlet);
+    return false;
+  });
+  return later.reverse();
+}

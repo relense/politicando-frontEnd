@@ -405,7 +405,7 @@ test("readers: only an admin sees them; the totals, a search, one reader's activ
   await expect(list.getByRole("listitem")).toHaveCount(60);
   await noSeriousA11yIssues(page);
 
-  await page.getByLabel("Procurar").fill("atenta");
+  await page.getByLabel("Procurar", { exact: true }).fill("atenta");
   await page.getByRole("button", { name: "Procurar" }).click();
   await expect(list.getByRole("listitem")).toHaveCount(1);
   await list.getByRole("link", { name: "leitora_atenta" }).click();

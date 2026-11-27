@@ -1,7 +1,7 @@
 import Link from "next/link";
-import type { DebateComment, StoryDetail } from "@/lib/api/stories";
+import { laterPieces, type DebateComment, type StoryDetail } from "@/lib/api/stories";
 import { editorialPath, KIND_LABELS } from "@/lib/editorial";
-import { formatCardWhen, formatDateTime, formatLongDate, formatNumber } from "@/lib/format";
+import { formatCardWhen, formatDate, formatDateTime, formatLongDate, formatNumber, formatTime, lisbonDay } from "@/lib/format";
 import { partyPath } from "@/lib/parties";
 import type { EditorialKind } from "@/lib/types";
 import { ImportaButton, ImportaCount } from "./ImportaButton";
@@ -49,6 +49,68 @@ export function StoryVersions({ story, current }: { story: StoryDetail; current:
         })}
       </ul>
     </nav>
+  );
+}
+
+/** «às 22:57» today, «a 25-11-2026 às 22:57» another day (Lisbon time). */
+const atTime = (value: string, now: number) =>
+  lisbonDay(value) === lisbonDay(new Date(now).toISOString())
+    ? `às ${formatTime(value)}`
+    : `a ${formatDate(value)} às ${formatTime(value)}`;
+
+/**
+ * Under the headline, when an outlet published again after its first piece: the newest, which is what moved the story
+ * up the list («última» above), so a returning reader finds it.
+ */
+export function StoryUpdated({ story, current, now }: { story: StoryDetail; current: number; now: number }) {
+  const newest = laterPieces(story)[0];
+  if (!newest) return null;
+  const label = `${newest.source}: ${newest.title}`;
+  return (
+    <p className="mt-2 font-mono text-xs text-muted">
+      Atualizado {atTime(newest.publishedAt, now)} ·{" "}
+      {newest.id === current ? (
+        <span className="text-ink">{label}</span>
+      ) : (
+        <Link href={`/article/${newest.id}`} className="text-ink underline underline-offset-2 hover:no-underline">
+          {label}
+        </Link>
+      )}
+    </p>
+  );
+}
+
+/** «Desenvolvimentos»: every piece that isn't its outlet's first (the chips), newest first. */
+export function StoryDevelopments({ story, current }: { story: StoryDetail; current: number }) {
+  const pieces = laterPieces(story);
+  if (pieces.length === 0) return null;
+  return (
+    <section aria-labelledby="desenvolvimentos" className="-mt-2 mb-5">
+      <h2 id="desenvolvimentos" className="mb-1.5 font-mono text-[11px] uppercase tracking-widest text-muted">
+        Desenvolvimentos
+      </h2>
+      <ol className="divide-y divide-line rounded-xl border border-line">
+        {pieces.map((item) => {
+          const here = item.id === current;
+          return (
+            <li key={item.id} className={`px-3 py-2 ${here ? "bg-surface" : ""}`}>
+              <span className="block font-mono text-[11px] text-muted">
+                {/* Plain text, not <time>: the article's own date, below, is the page's. */}
+                {formatDateTime(item.publishedAt)} · <b className="text-ink">{item.source}</b>
+                {here && " · a ver"}
+              </span>
+              {here ? (
+                <span className="block text-sm leading-snug">{item.title}</span>
+              ) : (
+                <Link href={`/article/${item.id}`} className="block text-sm leading-snug hover:underline">
+                  {item.title}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 

@@ -4,7 +4,16 @@ import { connection } from "next/server";
 import { ArticleDetail } from "@/components/ArticleDetail";
 import { CommentSection } from "@/components/CommentSection";
 import { CountRead } from "@/components/CountRead";
-import { DebatePair, HowEachToldList, ImportaBox, StoryContextBox, StoryVersions, FollowStoryBox } from "@/components/StoryParts";
+import {
+  DebatePair,
+  HowEachToldList,
+  ImportaBox,
+  StoryContextBox,
+  StoryDevelopments,
+  StoryUpdated,
+  StoryVersions,
+  FollowStoryBox,
+} from "@/components/StoryParts";
 import { MarkStoryRead } from "@/components/TodayInFive";
 import { getStory } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
@@ -106,6 +115,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** The request's time, for «Atualizado às» (today) or with the date (another day). */
+const requestTime = () => Date.now();
+
 export default async function ArticlePage({ params }: Props) {
   await connection();
   const article = await loadArticle((await params).id);
@@ -145,7 +157,15 @@ export default async function ArticlePage({ params }: Props) {
           <ArticleDetail
             // A story names everyone across its versions; one article alone may name fewer.
             article={story && story.people.length > 0 ? { ...article, people: story.people } : article}
-            versions={story && <StoryVersions story={story} current={article.id} />}
+            versions={
+              story && (
+                <>
+                  <StoryVersions story={story} current={article.id} />
+                  <StoryDevelopments story={story} current={article.id} />
+                </>
+              )
+            }
+            updated={story && <StoryUpdated story={story} current={article.id} now={requestTime()} />}
           />
           {story && <HowEachToldList story={story} current={article.id} />}
           {/* On narrower screens, before the comments: in a long thread they'd be lost below it. */}
