@@ -1398,6 +1398,10 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
     "href",
     "https://www.tiktok.com/@politicandopt",
   );
+  await expect(footer.getByRole("link", { name: /politicando\.pt no Facebook/ })).toHaveAttribute(
+    "href",
+    "https://www.facebook.com/politicando.pt/",
+  );
   await expect(footer.getByRole("link", { name: /Podcast no Spotify/ })).toHaveAttribute(
     "href",
     "https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT",
@@ -1411,7 +1415,7 @@ test("our profiles: X and the podcast in the footer and the menu, and in the sit
   await expect(page.locator('meta[name="twitter:site"]')).toHaveAttribute("content", "@politicando_pt");
   const site = await page.locator('script[type="application/ld+json"]').allTextContents();
   expect(site.join("")).toContain(
-    '"sameAs":["https://x.com/politicando_pt","https://www.instagram.com/politicando.pt/","https://www.tiktok.com/@politicandopt","https://www.threads.com/@politicando.pt","https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT"]',
+    '"sameAs":["https://x.com/politicando_pt","https://www.instagram.com/politicando.pt/","https://www.facebook.com/politicando.pt/","https://www.tiktok.com/@politicandopt","https://www.threads.com/@politicando.pt","https://open.spotify.com/show/6qMcWa60jvf3CqsSZtzPtT"]',
   );
 });
 

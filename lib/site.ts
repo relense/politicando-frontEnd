@@ -23,6 +23,7 @@ export const X_HANDLE = "@politicando_pt";
 export const SOCIAL_PROFILES = [
   { key: "x", name: "X (Twitter)", label: X_HANDLE, url: "https://x.com/politicando_pt" },
   { key: "instagram", name: "Instagram", label: "@politicando.pt", url: "https://www.instagram.com/politicando.pt/" },
+  { key: "facebook", name: "Facebook", label: "politicando.pt", url: "https://www.facebook.com/politicando.pt/" },
   { key: "tiktok", name: "TikTok", label: "@politicandopt", url: "https://www.tiktok.com/@politicandopt" },
   { key: "threads", name: "Threads", label: "@politicando.pt", url: "https://www.threads.com/@politicando.pt" },
   { key: "spotify", name: "Spotify", label: "Podcast", url: PODCAST_SHOW_URL },
