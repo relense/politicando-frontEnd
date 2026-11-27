@@ -17,6 +17,10 @@ import { loadFeed } from "@/lib/api/feed";
 import { getToday } from "@/lib/api/stories";
 import { FEATURES } from "@/lib/features";
 import { TodayInFive } from "@/components/TodayInFive";
+import { TodayCounts } from "@/components/TodayCounts";
+import { getTodayCounts } from "@/lib/api/todayCounts";
+import { dayStart } from "@/lib/todayCounts";
+import { partyColor } from "@/lib/parliament";
 import { PodcastBox } from "@/components/PodcastBox";
 import { getPodcast } from "@/lib/podcast";
 import { getLatestEpisode } from "@/lib/api/podcast";
@@ -94,7 +98,7 @@ export default async function HomePage({ searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   // The day's blocks, side by side ("Hoje", backend docs/engagement-api.md): each is cached on its own.
-  const [page, highlights, sidebar, nextEvent, episode, allToday, predictions, budget] = await Promise.all([
+  const [page, highlights, sidebar, nextEvent, episode, allToday, predictions, budget, counts] = await Promise.all([
     loadFeed({ party: chosen.parties, q, source: chosen.sources, limit: FEED_PAGE_SIZE }, order),
     loadHighlights(),
     loadNewsSidebar(),
@@ -105,7 +109,22 @@ export default async function HomePage({ searchParams }: Props) {
     getOpenPredictions(3, cached).catch(() => []),
     // The State Budget's box, while it's being voted (and a week after the final vote).
     loadBudgetBox(),
+    // Today's news per outlet and party, since 05:00 in Lisbon.
+    getTodayCounts(dayStart(requestTime())),
   ]);
+  const countsShown =
+    counts.total > 0 && (counts.sources.length > 0 || counts.parties.length > 0)
+      ? {
+          total: counts.total,
+          sources: counts.sources.map((item) => ({ key: item.name, label: sourceName(item.name), count: item.count })),
+          parties: counts.parties.map((item) => ({
+            key: item.slug,
+            label: parties.find((party) => party.slug === item.slug)?.acronym ?? item.slug.toUpperCase(),
+            count: item.count,
+            color: partyColor(item.slug),
+          })),
+        }
+      : null;
   const budgetShown = showsBudgetBox(budget, requestTime()) ? budget : null;
   // "Hoje em 5" needs a few stories to mean anything: with fewer than 3 in the last 24 hours, no box.
   const today = allToday.length >= 3 ? allToday : [];
@@ -199,6 +218,7 @@ export default async function HomePage({ searchParams }: Props) {
             <SiteSearchBox compact />
             {podcast && <PodcastBox podcast={podcast} episode={episode} />}
             {budgetShown && <BudgetBox data={budgetShown} now={requestTime()} />}
+            {countsShown && <TodayCounts {...countsShown} />}
             {today.length > 0 && <TodayInFive stories={today} />}
             {predictions.length > 0 && <PredictionsCard initial={predictions} />}
             {spotlight && <BlogSpotlight post={spotlight} />}
