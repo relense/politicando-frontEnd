@@ -152,51 +152,33 @@ function HowEachTold({ story }: { story: Story }) {
         </span>
       </summary>
       <ol className="mt-2">
-        {story.versions.map((item) => {
-          const when = formatDateTime(item.publishedAt);
-          return (
-            <li key={item.articleId} className="flex items-start gap-3 border-t border-[var(--card-line-soft)] py-2">
-              {/* First to publish first (the API's order); the date and «Ler ↗» as on the article page. */}
-              <span className="flex w-[140px] shrink-0 flex-col font-mono text-[11.5px] text-muted max-sm:hidden">
-                <span className="truncate">{item.source}</span>
-                {when && (
-                  <time dateTime={item.publishedAt} className="text-[10.5px]">
-                    {when}
-                  </time>
-                )}
+        {story.versions.map((item, index) => (
+          // The same row as the article page's «Como cada jornal contou» (components/StoryParts.tsx).
+          <li key={item.articleId} className="flex items-start gap-3 border-t border-[var(--card-line-soft)] py-3">
+            <SourceLogo domain={item.sourceDomain} name={item.source} size={24} />
+            <span className="min-w-0 flex-1">
+              <span className="block font-mono text-[11px] text-muted">
+                <b className="text-ink">{item.source}</b> · <time dateTime={item.publishedAt}>{formatDateTime(item.publishedAt)}</time>
+                {index === 0 && " · primeiro a publicar"}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-mono text-[11px] text-muted sm:hidden">
-                  {item.source}
-                  {when && (
-                    <>
-                      {" "}
-                      · <time dateTime={item.publishedAt}>{when}</time>
-                    </>
-                  )}
-                </span>
-                <Link
-                  href={`/article/${item.articleId}`}
-                  className="block text-[15.5px] leading-snug text-[var(--text-excerpt)] hover:text-ink hover:underline"
-                >
-                  {item.title}
-                </Link>
-              </span>
-              {item.url && (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...outletClick(item.url, "how-each-told-card")}
-                  aria-label={`Ler em ${item.source} (abre num novo separador)`}
-                  className="shrink-0 rounded-lg border border-line px-2.5 py-1 font-mono text-xs font-bold hover:bg-surface"
-                >
-                  Ler <span aria-hidden="true">↗</span>
-                </a>
-              )}
-            </li>
-          );
-        })}
+              <Link href={`/article/${item.articleId}`} className="block leading-snug hover:underline">
+                {item.title}
+              </Link>
+            </span>
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                {...outletClick(item.url, "how-each-told-card")}
+                aria-label={`Ler em ${item.source} (abre num novo separador)`}
+                className="shrink-0 rounded-lg border border-line px-2.5 py-1 font-mono text-xs font-bold hover:bg-surface"
+              >
+                Ler <span aria-hidden="true">↗</span>
+              </a>
+            )}
+          </li>
+        ))}
       </ol>
     </details>
   );
