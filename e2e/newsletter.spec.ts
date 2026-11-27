@@ -11,7 +11,10 @@ test("search the news by words and by outlet", async ({ page }) => {
   await expect(page.getByText(/Com «código»/)).toBeVisible();
   await expect(page.getByRole("link", { name: /Título com código/ }).first()).toBeVisible();
   // Picking a paper keeps the words.
-  await page.getByRole("button", { name: /^Jornais/ }).click();
+  await page
+    .getByRole("navigation", { name: "Filtrar notícias" })
+    .getByRole("button", { name: /^Jornais/ })
+    .click();
   await page
     .getByRole("dialog", { name: "Escolher jornais" })
     .getByRole("checkbox", { name: /Observador/ })

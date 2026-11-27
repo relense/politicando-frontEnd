@@ -152,3 +152,16 @@ No new route: log into the audit you already have, with `entity: "reader"`, `ent
 `action` one of `reader.view | reader.suspend | reader.unsuspend | reader.ban | reader.unban | reader.remove_content | reader.delete`
 (`after`: `{ "reason": "…", "until": "…" }` for actions). Please also accept `entityId` as a filter
 (`GET /admin/audit?entity=reader&entityId=812`), so a reader's page can show who looked at it and what was done.
+
+## Asked: today's news counts per outlet and party (27 Nov 2026)
+
+The home page's box beside the news, «Hoje: N notícias»: a bar per outlet, most first, and a tab per party. The site
+sends when the day starts (05:00 in Lisbon; before 05:00, the previous day's), so the API only needs `since`.
+
+1. `GET /articles/sources?since=2026-11-27T05:00:00.000Z` → `{ "total": 214, "items": [{ "name": "publico.pt", "count": 31 }] }`:
+   visible articles with `publishedAt >= since`, most first (ties by name). `total` is distinct articles. Without
+   `since`, as today. The site reads `total` as the sign that `since` was understood: without it, nothing is shown.
+2. `GET /articles/parties?since=…` → `{ "total": 214, "items": [{ "slug": "ps", "count": 48 }] }`: articles about each
+   party (the match of `GET /articles?party=ps`), most first; one article about three parties counts for each.
+
+Public, a 60 s cache is fine. Until both exist the box hides (or shows only the outlets).

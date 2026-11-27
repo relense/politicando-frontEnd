@@ -1081,7 +1081,15 @@ test("stories: one card per news told by several outlets, Importa, Hoje em 5, ev
   const today = page.getByRole("region", { name: /^Hoje em/ }).filter({ visible: true });
   await expect(today).toContainText("0 de 5");
   // How fresh each one is: the outlets of the last 24 hours and the latest article's age.
-  await expect(today.getByRole("listitem").first()).toContainText(/\d+ jorna(l|is) · /);
+  await expect(today).toContainText(/\d+ jorna(l|is) · /);
+  // One story at a time: the arrows and a dot per story move between them.
+  await expect(today.getByRole("link")).toHaveCount(1);
+  const first = await today.getByRole("link").textContent();
+  await today.getByRole("button", { name: "História seguinte" }).click();
+  await expect(today.getByRole("link")).not.toHaveText(first!);
+  await expect(today.getByRole("button", { name: /^Ir para a história 2 / })).toHaveAttribute("aria-current", "step");
+  await today.getByRole("button", { name: "História anterior" }).click();
+  await expect(today.getByRole("link")).toHaveText(first!);
   await noSeriousA11yIssues(page);
 
   // The card's title (the outlet's own row, opened above, has the same headline).
