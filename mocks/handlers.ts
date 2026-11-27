@@ -277,10 +277,18 @@ export const handlers = [
       ).map((party) => ({ ...party, leader: leaders[party.slug] ?? null })),
     ),
   ),
-  http.get(`${API}/articles/sources`, () => {
+  // With `since` (today's counts box), the fixtures' dates are fixed, so every article counts as today's.
+  http.get(`${API}/articles/sources`, ({ request }) => {
     const counts = new Map<string, number>();
     for (const article of articles) counts.set(article.source, (counts.get(article.source) ?? 0) + 1);
-    return HttpResponse.json({ items: [...counts].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count) });
+    const items = [...counts].map(([name, count]) => ({ name, count })).sort((x, y) => y.count - x.count || x.name.localeCompare(y.name));
+    return HttpResponse.json(new URL(request.url).searchParams.has("since") ? { total: articles.length, items } : { items });
+  }),
+  http.get(`${API}/articles/parties`, () => {
+    const counts = new Map<string, number>();
+    for (const article of articles) for (const party of article.parties) counts.set(party.slug, (counts.get(party.slug) ?? 0) + 1);
+    const items = [...counts].map(([slug, count]) => ({ slug, count })).sort((x, y) => y.count - x.count || x.slug.localeCompare(y.slug));
+    return HttpResponse.json({ total: articles.length, items });
   }),
   http.post(`${API}/newsletter/subscribe`, async ({ request }) => {
     const body = (await request.json().catch(() => null)) as { email?: unknown; recaptchaToken?: unknown } | null;
