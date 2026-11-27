@@ -1,3 +1,4 @@
+import { SiteSearchBox } from "@/components/SiteSearchBox";
 import { BudgetBox, loadBudgetBox, showsBudgetBox } from "@/components/budget/BudgetBox";
 import { FEED_VIEW_COOKIE, parseFeedView } from "@/lib/feedViewCookie";
 import type { Metadata } from "next";
@@ -195,6 +196,7 @@ export default async function HomePage({ searchParams }: Props) {
         </div>
         <aside aria-label="Ao lado das notícias" className="hidden xl:block">
           <ScrollableSide className="no-scrollbar sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col gap-4 overflow-y-auto overflow-x-hidden overscroll-contain pb-2">
+            <SiteSearchBox compact />
             {podcast && <PodcastBox podcast={podcast} episode={episode} />}
             {budgetShown && <BudgetBox data={budgetShown} now={requestTime()} />}
             {today.length > 0 && <TodayInFive stories={today} />}
