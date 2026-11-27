@@ -38,7 +38,10 @@ export function TodayCounts({ total, sources, parties }: { total: number; source
               key={key}
               type="button"
               aria-pressed={tab === key}
-              onClick={() => setTab(key)}
+              onClick={() => {
+                setTab(key);
+                setAll(false);
+              }}
               className={`${label} rounded-full border px-2.5 py-1 ${tab === key ? "border-ink bg-ink text-paper" : "border-line text-muted hover:bg-surface"}`}
             >
               {name}

@@ -41,7 +41,9 @@ describe("the counts from the API", () => {
     expect((await getTodayCounts(since)).sources).toEqual([]);
   });
   it("without the parties endpoint, only the outlets", async () => {
-    server.use(http.get(`${API}/articles/parties`, () => HttpResponse.json({ error: { code: "not_found", message: "x" } }, { status: 404 })));
+    server.use(
+      http.get(`${API}/articles/parties`, () => HttpResponse.json({ error: { code: "not_found", message: "x" } }, { status: 404 })),
+    );
     const counts = await getTodayCounts(since);
     expect(counts.parties).toEqual([]);
     expect(counts.sources.length).toBeGreaterThan(0);
