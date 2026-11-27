@@ -13,7 +13,16 @@ const story = (id: number): Story =>
     lastPublishedAt: "2026-11-20T09:00:00.000Z",
     sourceCount: 2,
     recentSourceCount: 2,
-    versions: [],
+    versions: [
+      {
+        source: "Jornal Exemplo",
+        sourceDomain: "exemplo.pt",
+        articleId: id * 10,
+        title: `História ${id}`,
+        url: null,
+        publishedAt: "2026-11-20T08:00:00.000Z",
+      },
+    ],
     parties: [],
     deputies: [],
     government: [],
