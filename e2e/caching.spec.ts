@@ -32,3 +32,12 @@ for (const [url, item] of [
     expect(paths.filter((path) => item.test(path))).toEqual([]);
   });
 }
+
+// Social previews are drawn from data that rarely changes: Cloudflare may keep them for a day.
+for (const url of ["/opengraph-image", "/deputados/1000/opengraph-image", "/iniciativas/5000/opengraph-image"]) {
+  test(`${url} can be kept by a shared cache`, async ({ request }) => {
+    const answer = await request.get(url);
+    expect(answer.ok()).toBe(true);
+    expect(answer.headers()["cache-control"]).toMatch(/^public, .*s-maxage=86400/);
+  });
+}
