@@ -106,7 +106,7 @@ export function InitiativeItem({
       </p>
 
       <Heading className="text-xl font-bold leading-snug sm:text-2xl">
-        <Link href={initiativePath(initiative.id)} className="hover:underline">
+        <Link prefetch={false} href={initiativePath(initiative.id)} className="hover:underline">
           {headlineOf(initiative)}
         </Link>
       </Heading>
@@ -138,7 +138,7 @@ export function InitiativeItem({
           ))}
           {initiative.topics.map((topic) => (
             <li key={topic.slug}>
-              <Link href={`/iniciativas?tema=${topic.slug}`} className={`${chip} hover:bg-surface`}>
+              <Link prefetch={false} href={`/iniciativas?tema=${topic.slug}`} className={`${chip} hover:bg-surface`}>
                 <span aria-hidden="true" className="text-muted">
                   #
                 </span>

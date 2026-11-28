@@ -17,7 +17,7 @@ export function BlogRow({ post }: { post: EditorialPost }) {
           Destaque · Blog <span className="font-normal normal-case tracking-normal text-muted">· {KIND_LABELS[post.kind]}</span>
         </p>
         <h2 id="destaque-blog-feed" className="mt-1 font-bold leading-snug">
-          <Link href={editorialPath(post.slug)} className="after:absolute after:inset-0">
+          <Link prefetch={false} href={editorialPath(post.slug)} className="after:absolute after:inset-0">
             {post.title}
           </Link>
         </h2>
@@ -68,7 +68,7 @@ export function EventRow({ item, now }: { item: AgendaItem; now: number }) {
           </time>
         </p>
         <h2 id="proximo-evento-feed" className="mt-0.5 font-bold leading-snug">
-          <Link href={`/agenda#evento-${item.id}`} className="after:absolute after:inset-0">
+          <Link prefetch={false} href={`/agenda#evento-${item.id}`} className="after:absolute after:inset-0">
             {item.title}
           </Link>
         </h2>
@@ -77,7 +77,7 @@ export function EventRow({ item, now }: { item: AgendaItem; now: number }) {
         )}
       </div>
       <span className="relative z-10 shrink-0 font-mono text-xs font-bold">
-        <Link href="/agenda" className="hover:underline">
+        <Link prefetch={false} href="/agenda" className="hover:underline">
           Agenda <span aria-hidden="true">→</span>
         </Link>
       </span>

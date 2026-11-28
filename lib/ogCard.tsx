@@ -8,6 +8,8 @@ const domineBold = readFile(join(process.cwd(), "assets/fonts/Domine-Bold.ttf"))
 /** Social preview images (WhatsApp, X, Facebook, LinkedIn…): 1200×630, the size they all crop to. */
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_TYPE = "image/png";
+/** How long a shared cache (Cloudflare) keeps a social preview. */
+export const OG_CACHE_CONTROL = "public, s-maxage=86400, stale-while-revalidate=3600";
 
 const INK = "#191919";
 const MUTED = "#625d56";
@@ -83,6 +85,11 @@ export async function ogCard({ kicker, title, subtitle, color = MARKER, badge, i
         </div>
       </div>
     </div>,
-    { ...OG_SIZE, fonts: heading ? [{ name: "Domine", data: heading, weight: 700, style: "normal" }] : undefined },
+    {
+      ...OG_SIZE,
+      fonts: heading ? [{ name: "Domine", data: heading, weight: 700, style: "normal" }] : undefined,
+      // Next answers these with max-age=0; drawn from data that rarely changes, Cloudflare may keep them for a day.
+      headers: { "Cache-Control": OG_CACHE_CONTROL },
+    },
   );
 }

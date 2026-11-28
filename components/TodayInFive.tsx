@@ -92,6 +92,7 @@ export function TodayInFive({ stories, headingId = "hoje-em-5" }: { stories: Sto
           </span>
           <span className="min-w-0 flex-1">
             <Link
+              prefetch={false}
               href={storyPath(story)}
               {...umamiEvent("hoje-em-5-open", { position: current + 1 })}
               className={`font-bold leading-snug hover:underline ${seen ? "text-muted" : ""}`}

@@ -76,7 +76,7 @@ export function ArticleImage({
     const frame = <NoImage source={source} sourceDomain={sourceDomain} compact={compact} />;
     if (!href) return <div className={`relative ${className ?? ""}`}>{frame}</div>;
     return (
-      <Link href={href} tabIndex={-1} aria-hidden="true" className={`relative ${className ?? ""}`}>
+      <Link prefetch={false} href={href} tabIndex={-1} aria-hidden="true" className={`relative ${className ?? ""}`}>
         {frame}
       </Link>
     );
@@ -120,7 +120,7 @@ export function ArticleImage({
   if (!href) return <div className={`relative ${className ?? ""}`}>{content}</div>;
   // The title already links here, so this duplicate stays out of the tab order and screen readers.
   return (
-    <Link href={href} tabIndex={-1} aria-hidden="true" className={`relative ${className ?? ""}`}>
+    <Link prefetch={false} href={href} tabIndex={-1} aria-hidden="true" className={`relative ${className ?? ""}`}>
       {content}
     </Link>
   );

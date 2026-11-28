@@ -97,7 +97,7 @@ export function DeputyInitiatives({ detail, limit }: { detail: DeputyDetail; lim
             {item.number && ` n.º ${item.number}`} · <span className="font-bold text-ink">{STATUS_LABELS[item.status]}</span>
           </p>
           <p className="text-sm font-bold leading-snug">
-            <Link href={initiativePath(item.id)} className="hover:underline">
+            <Link prefetch={false} href={initiativePath(item.id)} className="hover:underline">
               {headlineOf(item)}
             </Link>
           </p>
@@ -117,7 +117,7 @@ export function DeputyArticles({ detail, limit }: { detail: DeputyDetail; limit?
           <p className="font-mono text-[11px] text-muted">
             {article.source} · {formatDate(article.publishedAt)}
           </p>
-          <Link href={`/article/${article.id}`} className="text-sm font-bold leading-snug hover:underline">
+          <Link prefetch={false} href={`/article/${article.id}`} className="text-sm font-bold leading-snug hover:underline">
             {article.title}
           </Link>
         </li>

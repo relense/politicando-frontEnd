@@ -51,14 +51,14 @@ export function PlaceFinder({ groups }: { groups: FinderGroup[] }) {
                 id={`distrito-${group.key}`}
                 className="mb-1 border-b border-line pb-1 font-mono text-xs font-bold uppercase tracking-widest"
               >
-                <Link href={group.href} className="hover:underline">
+                <Link prefetch={false} href={group.href} className="hover:underline">
                   {group.name}
                 </Link>
               </h3>
               <ul>
                 {group.places.map((place) => (
                   <li key={place.key}>
-                    <Link href={place.href} className="-mx-2 flex items-baseline gap-2 rounded px-2 py-1 hover:bg-surface">
+                    <Link prefetch={false} href={place.href} className="-mx-2 flex items-baseline gap-2 rounded px-2 py-1 hover:bg-surface">
                       <span
                         aria-hidden="true"
                         className="size-2.5 shrink-0 self-center rounded-sm"

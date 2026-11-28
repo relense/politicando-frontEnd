@@ -51,6 +51,7 @@ export function PollStrip({ initiativeId, poll }: { initiativeId: number; poll: 
         </p>
       </div>
       <Link
+        prefetch={false}
         href={`${initiativePath(initiativeId)}#previsao-iniciativa`}
         className="shrink-0 rounded-full px-3.5 py-1.5 font-mono text-xs font-bold text-[#0f2e2a]"
         style={{ background: POLL_LINE }}
@@ -105,13 +106,13 @@ export function NewsLine({ initiative }: { initiative: Initiative }) {
             {lastAt && <> · última {formatRelative(lastAt, now)}</>}
           </p>
           {first ? (
-            <Link href={`/article/${first.id}`} className="block truncate text-sm hover:underline">
+            <Link prefetch={false} href={`/article/${first.id}`} className="block truncate text-sm hover:underline">
               <span className="text-muted">{first.source}: </span>
               {first.title}
             </Link>
           ) : (
             total === 1 && (
-              <Link href={page} className="font-mono text-[11px] font-bold underline underline-offset-2">
+              <Link prefetch={false} href={page} className="font-mono text-[11px] font-bold underline underline-offset-2">
                 Ver a notícia →
               </Link>
             )
@@ -136,7 +137,7 @@ export function NewsLine({ initiative }: { initiative: Initiative }) {
               {items.map((item) => (
                 <li key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 py-2 sm:grid-cols-[7rem_minmax(0,1fr)_auto]">
                   <span className="truncate font-mono text-[11px] text-muted max-sm:col-span-2">{item.source}</span>
-                  <Link href={`/article/${item.id}`} className="text-sm leading-snug hover:underline">
+                  <Link prefetch={false} href={`/article/${item.id}`} className="text-sm leading-snug hover:underline">
                     {item.title}
                   </Link>
                   <RelativeTime value={item.publishedAt} className="font-mono text-[11px] text-muted" />
@@ -146,7 +147,7 @@ export function NewsLine({ initiative }: { initiative: Initiative }) {
           ) : (
             <p className="py-2 font-mono text-[11px] text-muted">{detail.isError ? "Não foi possível carregar." : "A carregar…"}</p>
           )}
-          <Link href={page} className="mt-1 inline-block font-mono text-[11px] font-bold underline underline-offset-2">
+          <Link prefetch={false} href={page} className="mt-1 inline-block font-mono text-[11px] font-bold underline underline-offset-2">
             Ver as {count} na página da iniciativa →
           </Link>
         </div>

@@ -61,7 +61,6 @@ export const LEGAL_LINKS = [
 
 const heading = "mb-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted";
 
-
 /**
  * The end of pages that have one (articles, Parliament, contracts…): the morning email first, then the site's map, our
  * profiles, how to report an error, and the legal line. The endless feeds put the profiles in the side column instead.
@@ -89,7 +88,7 @@ export function SiteFooter() {
                   <ul className="space-y-1.5 text-sm">
                     {column.links.map((link) => (
                       <li key={link.href}>
-                        <Link href={link.href} className="hover:underline">
+                        <Link prefetch={false} href={link.href} className="hover:underline">
                           {link.label}
                         </Link>
                       </li>
@@ -107,7 +106,7 @@ export function SiteFooter() {
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-ink">
             {LEGAL_LINKS.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="hover:underline">
+                <Link prefetch={false} href={link.href} className="hover:underline">
                   {link.label}
                 </Link>
               </li>

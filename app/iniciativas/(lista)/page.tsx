@@ -201,10 +201,10 @@ export default async function InitiativesPage({ searchParams }: Props) {
               {tidyName(party.name)}
             </h2>
             <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs">
-              <Link href={partyPath(party.slug)} className="text-link underline">
+              <Link prefetch={false} href={partyPath(party.slug)} className="text-link underline">
                 Página do partido →
               </Link>
-              <Link href={pathOf({ ...filters, party: null })} className="text-muted underline hover:text-ink">
+              <Link prefetch={false} href={pathOf({ ...filters, party: null })} className="text-muted underline hover:text-ink">
                 Ver as de todos os partidos
               </Link>
             </p>
@@ -243,13 +243,19 @@ export default async function InitiativesPage({ searchParams }: Props) {
           <nav aria-label="Fase" className="mb-4 lg:hidden">
             <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
               <li>
-                <Link href={pathOf(base)} aria-current={!filters.stage ? "page" : undefined} className={pill(!filters.stage)}>
+                <Link
+                  prefetch={false}
+                  href={pathOf(base)}
+                  aria-current={!filters.stage ? "page" : undefined}
+                  className={pill(!filters.stage)}
+                >
                   Todas
                 </Link>
               </li>
               {steps.map((step) => (
                 <li key={step.key}>
                   <Link
+                    prefetch={false}
                     href={pathOf({ ...base, stage: step.key })}
                     aria-current={filters.stage === step.key ? "page" : undefined}
                     className={pill(filters.stage === step.key)}
@@ -267,6 +273,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
               <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
                 <li>
                   <Link
+                    prefetch={false}
                     href={pathOf({ ...filters, party: null })}
                     aria-current={!filters.party ? "page" : undefined}
                     className={pill(!filters.party)}
@@ -277,6 +284,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
                 {parties.map((item) => (
                   <li key={item.slug}>
                     <Link
+                      prefetch={false}
                       href={pathOf({ ...filters, party: item.slug })}
                       aria-current={filters.party === item.slug ? "page" : undefined}
                       className={`${pill(filters.party === item.slug)} inline-flex items-center gap-1.5`}
@@ -301,7 +309,7 @@ export default async function InitiativesPage({ searchParams }: Props) {
               <span className="text-muted"> · {filters.oldest ? "mais antigas primeiro" : "mais recentes primeiro"}</span>
             </p>
             {polls.length > 0 && (
-              <Link href="/previsoes" className="ml-auto font-bold text-[#17766b] hover:underline dark:text-[#5fd3c4]">
+              <Link prefetch={false} href="/previsoes" className="ml-auto font-bold text-[#17766b] hover:underline dark:text-[#5fd3c4]">
                 {polls.length} com previsão aberta →
               </Link>
             )}
@@ -311,19 +319,31 @@ export default async function InitiativesPage({ searchParams }: Props) {
               </p>
             )}
             {filters.q && (
-              <Link href={pathOf({ ...filters, q: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
+              <Link
+                prefetch={false}
+                href={pathOf({ ...filters, q: null })}
+                className="rounded-full border border-line px-2 py-0.5 hover:bg-surface"
+              >
                 Pesquisa: «{filters.q}» <span aria-hidden="true">×</span>
                 <span className="sr-only"> (tirar a pesquisa)</span>
               </Link>
             )}
             {party && (
-              <Link href={pathOf({ ...filters, party: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
+              <Link
+                prefetch={false}
+                href={pathOf({ ...filters, party: null })}
+                className="rounded-full border border-line px-2 py-0.5 hover:bg-surface"
+              >
                 Partido: {party.acronym} <span aria-hidden="true">×</span>
                 <span className="sr-only"> (tirar o filtro)</span>
               </Link>
             )}
             {topic && (
-              <Link href={pathOf({ ...filters, topic: null })} className="rounded-full border border-line px-2 py-0.5 hover:bg-surface">
+              <Link
+                prefetch={false}
+                href={pathOf({ ...filters, topic: null })}
+                className="rounded-full border border-line px-2 py-0.5 hover:bg-surface"
+              >
                 Tema: {topic.label} <span aria-hidden="true">×</span>
                 <span className="sr-only"> (tirar o filtro)</span>
               </Link>
@@ -399,6 +419,7 @@ function PathLink({
   const color = tone ? toneColor(tone) : "var(--ink)";
   return (
     <Link
+      prefetch={false}
       href={href}
       aria-current={active ? "page" : undefined}
       title={title}
@@ -435,6 +456,7 @@ function PartyBars({ parties, counts, filters }: { parties: ArticleParty[]; coun
           return (
             <li key={item.slug}>
               <Link
+                prefetch={false}
                 href={pathOf({ ...filters, party: active ? null : item.slug })}
                 aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-2 rounded px-1 py-1 font-mono text-xs hover:bg-surface ${active ? "bg-surface font-bold" : ""}`}
@@ -470,6 +492,7 @@ function TopicBars({ topics, filters }: { topics: TopicCount[]; filters: Filters
   const row = (topic: TopicCount, index: number) => (
     <li key={topic.slug}>
       <Link
+        prefetch={false}
         href={pathOf({ ...filters, topic: filters.topic === topic.slug ? null : topic.slug })}
         aria-current={filters.topic === topic.slug ? "page" : undefined}
         className={`block rounded px-1 py-1 font-mono text-xs hover:bg-surface ${filters.topic === topic.slug ? "bg-surface font-bold" : ""}`}
@@ -531,10 +554,20 @@ function SearchBar({ filters }: { filters: Filters }) {
         </button>
       </form>
       <nav aria-label="Ordem" className="flex gap-1.5">
-        <Link href={pathOf({ ...filters, oldest: false })} aria-current={!filters.oldest ? "page" : undefined} className={order(false)}>
+        <Link
+          prefetch={false}
+          href={pathOf({ ...filters, oldest: false })}
+          aria-current={!filters.oldest ? "page" : undefined}
+          className={order(false)}
+        >
           Mais recentes
         </Link>
-        <Link href={pathOf({ ...filters, oldest: true })} aria-current={filters.oldest ? "page" : undefined} className={order(true)}>
+        <Link
+          prefetch={false}
+          href={pathOf({ ...filters, oldest: true })}
+          aria-current={filters.oldest ? "page" : undefined}
+          className={order(true)}
+        >
           Mais antigas
         </Link>
       </nav>

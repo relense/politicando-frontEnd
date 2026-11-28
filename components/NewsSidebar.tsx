@@ -139,7 +139,7 @@ export function BlogSpotlight({ post, headingId = "destaque-blog" }: { post: Edi
         <span className="font-mono text-xs text-muted">{KIND_LABELS[post.kind]}</span>
       </div>
       <h2 id={headingId} className="mt-2 text-xl font-bold leading-snug">
-        <Link href={href} className="hover:underline">
+        <Link prefetch={false} href={href} className="hover:underline">
           {post.title}
         </Link>
       </h2>
@@ -148,7 +148,7 @@ export function BlogSpotlight({ post, headingId = "destaque-blog" }: { post: Edi
         <time dateTime={post.publishedAt} className="text-muted">
           {formatLongDate(post.publishedAt)}
         </time>
-        <Link href={href} className="font-bold hover:underline">
+        <Link prefetch={false} href={href} className="font-bold hover:underline">
           Ler <span aria-hidden="true">→</span>
         </Link>
       </div>
@@ -176,7 +176,7 @@ export function PowerNow({ data }: { data: PowerNowData }) {
       </h2>
       <div className="mt-1 divide-y divide-line">
         {president && (
-          <Link href="/presidente" className={`${row} flex items-center gap-3`}>
+          <Link prefetch={false} href="/presidente" className={`${row} flex items-center gap-3`}>
             <GovernmentPortrait name={president.name} photoUrl={president.photoUrl} size="sm" />
             <span className="min-w-0">
               <span className={`${kicker} block`}>Presidente da República</span>
@@ -186,7 +186,7 @@ export function PowerNow({ data }: { data: PowerNowData }) {
           </Link>
         )}
         {government && (
-          <Link href="/governo" className={`${row} flex items-center gap-3`}>
+          <Link prefetch={false} href="/governo" className={`${row} flex items-center gap-3`}>
             {pm && <GovernmentPortrait name={pm.name} photoUrl={pm.photoUrl} size="sm" />}
             <span className="min-w-0">
               <span className={`${kicker} block`}>Primeiro-Ministro</span>
@@ -210,7 +210,7 @@ export function PowerNow({ data }: { data: PowerNowData }) {
           </Link>
         )}
         {election && (
-          <Link href={`/eleicoes/${election.id}`} className={row}>
+          <Link prefetch={false} href={`/eleicoes/${election.id}`} className={row}>
             <span className={`${kicker} block`}>Quem ganhou as últimas legislativas</span>
             <span className="mt-1 flex items-baseline gap-2">
               <span aria-hidden="true" className="size-2.5 shrink-0 self-center rounded-full" style={{ backgroundColor: election.color }} />
@@ -229,7 +229,7 @@ export function PowerNow({ data }: { data: PowerNowData }) {
           </Link>
         )}
         {parliament && needed !== null && (
-          <Link href="/parlamento" className={row}>
+          <Link prefetch={false} href="/parlamento" className={row}>
             <span className="flex items-baseline justify-between gap-2">
               <span className={kicker}>Parlamento hoje</span>
               <span className="font-mono text-xs text-muted">{parliament.total} deputados</span>
@@ -258,7 +258,11 @@ export function PowerNow({ data }: { data: PowerNowData }) {
           <ul className="pt-2">
             {figures.map((item) => (
               <li key={item.label}>
-                <Link href={item.href} className="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-surface">
+                <Link
+                  prefetch={false}
+                  href={item.href}
+                  className="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-surface"
+                >
                   <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                   <span className="min-w-0 flex-1 first-letter:uppercase">{item.label}</span>
                   <span className="font-mono font-bold tabular-nums" style={{ color: item.color }}>
@@ -292,7 +296,11 @@ export function MostCommented({ articles }: { articles: Article[] }) {
               {index + 1}
             </span>
             <span className="min-w-0">
-              <Link href={`/article/${article.id}#comentarios`} className="block text-sm font-bold leading-snug hover:underline">
+              <Link
+                prefetch={false}
+                href={`/article/${article.id}#comentarios`}
+                className="block text-sm font-bold leading-snug hover:underline"
+              >
                 {article.title}
               </Link>
               <span className="mt-0.5 block font-mono text-xs text-muted">

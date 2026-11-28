@@ -226,14 +226,18 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
       {large && state !== "upcoming" && item.opensAt && item.closesAt && <AgendaBar item={item} now={now} count={count} />}
       {what && <p className={`${large ? "mt-3" : "mt-2"} text-[12px] text-muted`}>O que se vota: a {what.toLowerCase()} de</p>}
       <h3 className={`font-serif font-bold leading-snug ${large ? "text-xl sm:text-2xl" : "text-[17px]"}`}>
-        <Link href={`/iniciativas/${item.id}`} className="hover:underline">
+        <Link prefetch={false} href={`/iniciativas/${item.id}`} className="hover:underline">
           {title}
         </Link>
       </h3>
       <p className="mt-0.5 text-[12px] text-muted">{byline(item)}</p>
       {large && (
         <>
-          <Link href={`/iniciativas/${item.id}`} className="mt-1 inline-block font-mono text-[11px] text-ink underline underline-offset-2">
+          <Link
+            prefetch={false}
+            href={`/iniciativas/${item.id}`}
+            className="mt-1 inline-block font-mono text-[11px] text-ink underline underline-offset-2"
+          >
             Ler a proposta em linguagem simples →
           </Link>
         </>
@@ -276,7 +280,11 @@ export function PollCard({ item, large = false, showThread = true }: { item: Pre
       )}
 
       {showThread && item.threadId && <ThreadTeaser threadId={item.threadId} state={state} picked={Boolean(pick)} />}
-      <Link href="/previsoes#como-funciona" className="mt-2 inline-block font-mono text-[10px] text-muted underline underline-offset-2">
+      <Link
+        prefetch={false}
+        href="/previsoes#como-funciona"
+        className="mt-2 inline-block font-mono text-[10px] text-muted underline underline-offset-2"
+      >
         <span aria-hidden="true">ⓘ</span> Como funciona
       </Link>
     </div>
@@ -376,6 +384,7 @@ function ThreadTeaser({ threadId, state, picked }: { threadId: number; state: Pr
         </p>
       )}
       <Link
+        prefetch={false}
         href={`/forum/votacoes/${threadId}`}
         className={`mt-2 flex items-center justify-between border-t border-line pt-2 font-mono text-[11px] font-bold ${highlighted ? GOLD_TEXT : ""}`}
       >
@@ -456,7 +465,7 @@ export function PredictionsCard({ initial, headingId = "passa-ou-chumba" }: { in
         Passa ou chumba?
       </h2>
       <PollCard item={first} />
-      <Link href="/previsoes" className="mt-2 inline-block font-mono text-[11px] font-bold underline underline-offset-2">
+      <Link prefetch={false} href="/previsoes" className="mt-2 inline-block font-mono text-[11px] font-bold underline underline-offset-2">
         {more > 0 ? `Mais ${more} ${more === 1 ? "votação" : "votações"} para prever →` : "Todas as votações →"}
       </Link>
     </section>
@@ -526,7 +535,7 @@ export function RecordBox() {
       </h2>
       {!reader ? (
         <p className="mt-2 text-sm text-muted">
-          <Link href="/entrar?depois=%2Fprevisoes" className="font-bold text-ink underline">
+          <Link prefetch={false} href="/entrar?depois=%2Fprevisoes" className="font-bold text-ink underline">
             Entra
           </Link>{" "}
           para guardar as tuas previsões e ver quantas acertas.
@@ -609,7 +618,7 @@ function Record({ data }: { data: MyPredictions }) {
       </p>
       {insight && <p className="mt-2 text-sm">{insight}</p>}
       {streak >= 2 && <p className="mt-2 text-sm font-bold">{streak} seguidas!</p>}
-      <Link href="/conta/previsoes" className="mt-2 inline-block font-mono text-[11px] font-bold underline">
+      <Link prefetch={false} href="/conta/previsoes" className="mt-2 inline-block font-mono text-[11px] font-bold underline">
         Ver todas →
       </Link>
     </>
@@ -628,7 +637,11 @@ export function MyPredictionsList() {
       <div className="max-w-xl rounded-2xl border border-dashed border-line p-6">
         <h1 className="text-2xl font-bold">As minhas previsões</h1>
         <p className="mt-2 text-muted">Entra para veres as tuas previsões e quantas acertaste.</p>
-        <Link href="/entrar?depois=%2Fconta%2Fprevisoes" className="mt-4 inline-flex font-mono text-sm font-bold underline">
+        <Link
+          prefetch={false}
+          href="/entrar?depois=%2Fconta%2Fprevisoes"
+          className="mt-4 inline-flex font-mono text-sm font-bold underline"
+        >
           Entrar
         </Link>
       </div>
@@ -645,7 +658,7 @@ export function MyPredictionsList() {
         ) : mine.data.items.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-dashed border-line p-6 text-center text-muted">
             Ainda não fizeste previsões.{" "}
-            <Link href="/previsoes" className="font-bold text-ink underline">
+            <Link prefetch={false} href="/previsoes" className="font-bold text-ink underline">
               Passa ou chumba?
             </Link>
           </p>
@@ -653,7 +666,7 @@ export function MyPredictionsList() {
           <ul aria-label="As minhas previsões" className="mt-6 divide-y divide-line rounded-2xl border border-line">
             {mine.data.items.map((item) => (
               <li key={item.initiativeId} className="p-3">
-                <Link href={`/iniciativas/${item.initiativeId}`} className="font-semibold hover:underline">
+                <Link prefetch={false} href={`/iniciativas/${item.initiativeId}`} className="font-semibold hover:underline">
                   {item.title}
                 </Link>
                 <p className="mt-1 font-mono text-[11px] text-muted">

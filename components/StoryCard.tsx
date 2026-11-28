@@ -72,7 +72,7 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
 
       <h2 className={cardTitle}>
         {/* The whole card opens the story; the links on it stay on top. */}
-        <Link href={path} className={cardTitleLink}>
+        <Link prefetch={false} href={path} className={cardTitleLink}>
           {story.title}
         </Link>
       </h2>
@@ -107,7 +107,7 @@ export function StoryCard({ story, why }: { story: Story; why?: string }) {
           importance={story.importance}
           mergedFrom={story.mergedFrom}
         />
-        <Link href={`${path}#comentarios`} className={cardAction}>
+        <Link prefetch={false} href={`${path}#comentarios`} className={cardAction}>
           <CommentIcon />
           <span>
             <span className="tabular-nums">{formatNumber(story.commentCount)}</span>{" "}
@@ -161,7 +161,7 @@ function HowEachTold({ story }: { story: Story }) {
                 <b className="text-ink">{item.source}</b> · <time dateTime={item.publishedAt}>{formatDateTime(item.publishedAt)}</time>
                 {index === 0 && " · primeiro a publicar"}
               </span>
-              <Link href={`/article/${item.articleId}`} className="block leading-snug hover:underline">
+              <Link prefetch={false} href={`/article/${item.articleId}`} className="block leading-snug hover:underline">
                 {item.title}
               </Link>
             </span>
@@ -228,6 +228,7 @@ export function StoryContext({ story, className = "" }: { story: Story; classNam
       {chips.map((chip) => (
         <li key={chip.key} className="min-w-0 max-sm:shrink-0 sm:max-w-full">
           <Link
+            prefetch={false}
             href={chip.href}
             className="flex h-8 min-w-0 items-center gap-2 rounded-lg border border-[var(--card-line)] bg-[var(--inset)] pl-1.5 pr-2.5 font-mono text-xs hover:border-[var(--card-line-strong)]"
           >

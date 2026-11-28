@@ -74,6 +74,7 @@ export default async function PartiesPage() {
                 {others.map((party) => (
                   <li key={party.slug}>
                     <Link
+                      prefetch={false}
                       href={partyPath(party.slug)}
                       className="flex items-center gap-3 rounded-xl border border-line p-3 hover:bg-surface"
                     >
@@ -117,7 +118,7 @@ function PartyCard({ party }: { party: PartyOverview }) {
         <div className="min-w-0">
           <h3 className="font-mono text-lg font-bold leading-tight">
             {/* The whole card opens the party; the leader's link sits above it. */}
-            <Link href={partyPath(party.slug)} className="after:absolute after:inset-0">
+            <Link prefetch={false} href={partyPath(party.slug)} className="after:absolute after:inset-0">
               {party.acronym}
             </Link>
           </h3>
@@ -141,6 +142,7 @@ function PartyCard({ party }: { party: PartyOverview }) {
           <span className="block font-mono text-xs text-muted">{party.leader.title ?? "Líder"}</span>
           {party.leader.href ? (
             <Link
+              prefetch={false}
               href={party.leader.href}
               className="relative z-10 font-bold underline decoration-line underline-offset-2 hover:decoration-ink"
             >
