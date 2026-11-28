@@ -79,14 +79,14 @@ function Row({
         </p>
         <ArticleKindLabel kind={kind} className="relative z-10 mt-0.5" />
         <h2 className="mt-1.5 text-[17px] font-semibold leading-snug sm:text-lg">
-          <Link href={path} className="decoration-1 underline-offset-4 after:absolute after:inset-0 group-hover:underline">
+          <Link prefetch={false} href={path} className="decoration-1 underline-offset-4 after:absolute after:inset-0 group-hover:underline">
             {title}
           </Link>
         </h2>
         {text && <p className="mt-1 line-clamp-2 text-sm leading-normal text-[var(--text-excerpt)] max-sm:hidden">{text}</p>}
         <div className="relative z-10 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
           {lead}
-          <Link href={`${path}#comentarios`} className="inline-flex items-center gap-1 hover:text-ink [&_svg]:size-3.5">
+          <Link prefetch={false} href={`${path}#comentarios`} className="inline-flex items-center gap-1 hover:text-ink [&_svg]:size-3.5">
             <CommentIcon />
             <span className="tabular-nums">{formatNumber(commentCount)}</span>
             <span className="sr-only">{commentCount === 1 ? " comentário" : " comentários"}</span>
@@ -95,7 +95,7 @@ function Row({
             <ul aria-label="Partidos mencionados" className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               {parties.slice(0, 4).map((party, index) => (
                 <li key={party.slug} className={index > 1 ? "max-sm:hidden" : ""}>
-                  <Link href={partyPath(party.slug)} className="inline-flex items-center gap-1.5 hover:text-ink">
+                  <Link prefetch={false} href={partyPath(party.slug)} className="inline-flex items-center gap-1.5 hover:text-ink">
                     <span className="flex size-[18px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
                       <PartyLogo slug={party.slug} acronym={party.acronym} size={14} />
                     </span>
@@ -156,7 +156,11 @@ export function StoryRow({ story, why }: { story: Story; why: string }) {
       }
       extra={
         chip && (
-          <Link href={chip.href} className="inline-flex min-w-0 max-w-full items-center gap-1.5 hover:text-ink max-sm:hidden">
+          <Link
+            prefetch={false}
+            href={chip.href}
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 hover:text-ink max-sm:hidden"
+          >
             <span className="font-semibold" style={{ color: chip.color }}>
               {chip.badge}
             </span>

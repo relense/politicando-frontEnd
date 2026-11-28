@@ -34,6 +34,7 @@ export function StoryVersions({ story, current }: { story: StoryDetail; current:
           return (
             <li key={item.articleId}>
               <Link
+                prefetch={false}
                 href={`/article/${item.articleId}`}
                 aria-current={here ? "page" : undefined}
                 className={`inline-flex items-center gap-2 rounded-lg border py-1 pl-1 pr-2.5 font-mono text-xs font-bold ${
@@ -72,7 +73,7 @@ export function StoryUpdated({ story, current, now }: { story: StoryDetail; curr
       {newest.id === current ? (
         <span className="text-ink">{label}</span>
       ) : (
-        <Link href={`/article/${newest.id}`} className="text-ink underline underline-offset-2 hover:no-underline">
+        <Link prefetch={false} href={`/article/${newest.id}`} className="text-ink underline underline-offset-2 hover:no-underline">
           {label}
         </Link>
       )}
@@ -102,7 +103,7 @@ export function StoryDevelopments({ story, current }: { story: StoryDetail; curr
               {here ? (
                 <span className="block text-sm leading-snug">{item.title}</span>
               ) : (
-                <Link href={`/article/${item.id}`} className="block text-sm leading-snug hover:underline">
+                <Link prefetch={false} href={`/article/${item.id}`} className="block text-sm leading-snug hover:underline">
                   {item.title}
                 </Link>
               )}
@@ -138,7 +139,7 @@ export function HowEachToldList({ story, current }: { story: StoryDetail; curren
                 {here ? (
                   <span className="block leading-snug">{item.title}</span>
                 ) : (
-                  <Link href={`/article/${item.articleId}`} className="block leading-snug hover:underline">
+                  <Link prefetch={false} href={`/article/${item.articleId}`} className="block leading-snug hover:underline">
                     {item.title}
                   </Link>
                 )}
@@ -275,7 +276,7 @@ export function StoryContextBox({ story }: { story: StoryDetail }) {
         {explainers.map((post) => (
           <li key={post.slug} className={item}>
             {badge("Explica", "var(--kind-explica)")}
-            <Link href={editorialPath(post.slug)} className="font-semibold leading-snug hover:underline">
+            <Link prefetch={false} href={editorialPath(post.slug)} className="font-semibold leading-snug hover:underline">
               {post.title}
             </Link>
             <span className="font-mono text-[11px] text-muted">Blog · {KIND_LABELS[post.kind as EditorialKind] ?? "Artigo"} →</span>
@@ -284,7 +285,7 @@ export function StoryContextBox({ story }: { story: StoryDetail }) {
         {party && (
           <li className={item}>
             {badge("Partido", "var(--kind-partido)")}
-            <Link href={`${partyPath(party.slug)}#como-vota`} className="font-semibold leading-snug hover:underline">
+            <Link prefetch={false} href={`${partyPath(party.slug)}#como-vota`} className="font-semibold leading-snug hover:underline">
               Como votou o {party.acronym} nesta legislatura
             </Link>
             <span className="font-mono text-[11px] text-muted">Página do partido →</span>
@@ -293,7 +294,7 @@ export function StoryContextBox({ story }: { story: StoryDetail }) {
         {agenda.map((event) => (
           <li key={event.id} className={item}>
             {badge("Agenda", "var(--kind-agenda)")}
-            <Link href={`/agenda#evento-${event.id}`} className="font-semibold leading-snug hover:underline">
+            <Link prefetch={false} href={`/agenda#evento-${event.id}`} className="font-semibold leading-snug hover:underline">
               {event.title}
             </Link>
             <span className="font-mono text-[11px] text-muted">

@@ -232,6 +232,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 {view.tag && (
                   <li>
                     <Link
+                      prefetch={false}
                       href={pathOf(view, { tag: null })}
                       className="block rounded-lg px-3 py-2 font-mono text-xs underline hover:bg-surface"
                     >
@@ -242,6 +243,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 {tags.map(([tag, count]) => (
                   <li key={tag}>
                     <Link
+                      prefetch={false}
                       href={pathOf(view, { tag })}
                       aria-current={view.tag === tag ? "true" : undefined}
                       className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.tag === tag ? "font-bold" : ""}`}
@@ -268,6 +270,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 <ul aria-label="Ordem" className="absolute right-0 z-30 mt-2 w-52 rounded-2xl border border-line bg-paper p-2 shadow-xl">
                   <li>
                     <Link
+                      prefetch={false}
                       href={pathOf(view, { popular: false })}
                       aria-current={view.popular ? undefined : "true"}
                       className={`block rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.popular ? "" : "font-bold"}`}
@@ -277,6 +280,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                   </li>
                   <li>
                     <Link
+                      prefetch={false}
                       href={pathOf(view, { popular: true })}
                       aria-current={view.popular ? "true" : undefined}
                       className={`block rounded-lg px-3 py-2 text-sm hover:bg-surface ${view.popular ? "font-bold" : ""}`}
@@ -288,6 +292,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
               </details>
               <div className="flex h-10 overflow-hidden rounded-full border border-line font-mono text-xs font-bold max-sm:hidden">
                 <Link
+                  prefetch={false}
                   href={pathOf(view, { popular: false })}
                   aria-current={view.popular ? undefined : "true"}
                   className={`flex items-center px-4 ${view.popular ? "hover:bg-surface" : "bg-ink text-paper"}`}
@@ -295,6 +300,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                   Recentes
                 </Link>
                 <Link
+                  prefetch={false}
                   href={pathOf(view, { popular: true })}
                   aria-current={view.popular ? "true" : undefined}
                   className={`flex items-center px-4 ${view.popular ? "bg-ink text-paper" : "hover:bg-surface"}`}
@@ -309,13 +315,19 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           <span className="shrink-0 font-mono text-[11px] text-muted">Formato</span>
           <ul aria-label="Formato" className="no-scrollbar flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-0.5">
             <li>
-              <Link href={pathOf(view, { kind: null })} aria-current={view.kind ? undefined : "true"} className={chip(!view.kind)}>
+              <Link
+                prefetch={false}
+                href={pathOf(view, { kind: null })}
+                aria-current={view.kind ? undefined : "true"}
+                className={chip(!view.kind)}
+              >
                 Tudo <span className="font-normal opacity-70">{EDITORIAL_KINDS.reduce((sum, kind) => sum + counts[kind], 0)}</span>
               </Link>
             </li>
             {EDITORIAL_KINDS.map((kind) => (
               <li key={kind}>
                 <Link
+                  prefetch={false}
                   href={pathOf(view, { kind })}
                   aria-current={view.kind === kind ? "true" : undefined}
                   className={chip(view.kind === kind)}
@@ -340,7 +352,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 {count && view.kind && ` · ${KIND_PLURALS[view.kind]}`}
                 {view.tag && ` · ${capital(view.tag)}`}
                 {" · "}
-                <Link href="/editorial" className="underline hover:text-ink">
+                <Link prefetch={false} href="/editorial" className="underline hover:text-ink">
                   Ver tudo
                 </Link>
               </>
@@ -394,7 +406,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
           {pages > 1 && (
             <nav aria-label="Páginas" className="mt-6 flex items-center justify-between font-mono text-sm">
               {view.page > 1 ? (
-                <Link href={pathOf(view, { page: view.page - 1 })} rel="prev" className="text-link underline">
+                <Link prefetch={false} href={pathOf(view, { page: view.page - 1 })} rel="prev" className="text-link underline">
                   ← Mais recentes
                 </Link>
               ) : (
@@ -404,7 +416,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 Página {view.page} de {pages}
               </span>
               {view.page < pages ? (
-                <Link href={pathOf(view, { page: view.page + 1 })} rel="next" className="text-link underline">
+                <Link prefetch={false} href={pathOf(view, { page: view.page + 1 })} rel="next" className="text-link underline">
                   Mais antigas →
                 </Link>
               ) : (
@@ -465,7 +477,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                   <li key={post.slug} className="flex gap-3 py-2.5">
                     <span className="w-5 shrink-0 text-xl font-bold text-[var(--stage-debate)]">{index + 1}</span>
                     <span className="min-w-0">
-                      <Link href={editorialPath(post.slug)} className="block font-bold leading-snug hover:underline">
+                      <Link prefetch={false} href={editorialPath(post.slug)} className="block font-bold leading-snug hover:underline">
                         {post.title}
                       </Link>
                       <span className="font-mono text-[11px] text-muted">
@@ -500,7 +512,7 @@ export default async function EditorialIndexPage({ searchParams }: Props) {
                 <span aria-hidden="true" className="mt-2 size-2 shrink-0 rounded-full" style={{ backgroundColor: KINDS.interview.color }} />
                 <span>
                   <b>Fontes</b> ligadas em cada artigo, e as{" "}
-                  <Link href="/feedback/correcoes" className="underline hover:text-link">
+                  <Link prefetch={false} href="/feedback/correcoes" className="underline hover:text-link">
                     correções ficam registadas
                   </Link>
                   .
@@ -599,7 +611,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
         </p>
         <h3 className="text-xl font-bold leading-snug sm:text-2xl">
           {/* The whole card opens the post; the links on it stay on top. */}
-          <Link href={href} className="after:absolute after:inset-0 after:rounded-2xl">
+          <Link prefetch={false} href={href} className="after:absolute after:inset-0 after:rounded-2xl">
             {post.title}
           </Link>
         </h3>
@@ -618,6 +630,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
             {partyTags.map((party) => (
               <li key={party.slug}>
                 <Link
+                  prefetch={false}
                   href={`/partido/${party.slug}`}
                   className="flex items-center gap-1.5 rounded-full border border-line py-0.5 pl-0.5 pr-2.5 font-mono text-xs font-bold hover:bg-surface"
                 >
@@ -632,6 +645,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
               topics.slice(0, 3).map((tag) => (
                 <li key={tag}>
                   <Link
+                    prefetch={false}
                     href={`/editorial?tema=${encodeURIComponent(tag)}`}
                     className="block rounded-full border border-line px-3 py-1 font-mono text-xs hover:bg-surface"
                   >
@@ -645,7 +659,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
           <div className="relative z-10 mt-3 flex flex-wrap items-center gap-2">
             {typeof post.importa === "number" && <PostImporta slug={post.slug} title={post.title} importa={post.importa} />}
             {typeof post.commentCount === "number" && (
-              <Link href={`${href}#comentarios`} className={action}>
+              <Link prefetch={false} href={`${href}#comentarios`} className={action}>
                 <CommentIcon />
                 <span>
                   <span>{post.commentCount}</span>{" "}
@@ -666,6 +680,7 @@ function BlogRow({ post, partyOf }: { post: EditorialPost; partyOf: (tag: string
         />
       ) : (
         <Link
+          prefetch={false}
           href={href}
           tabIndex={-1}
           aria-hidden="true"

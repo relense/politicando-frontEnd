@@ -195,7 +195,7 @@ function Featured({
             {ELECTION_TYPES.find((item) => item.type === election.type)?.label} · {formatLongDate(election.date)}
           </p>
           <h2 id="mais-recente" className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
-            <Link href={electionPath(election.id)} className="hover:underline">
+            <Link prefetch={false} href={electionPath(election.id)} className="hover:underline">
               {election.name}
             </Link>
           </h2>
@@ -243,7 +243,7 @@ function Featured({
             <span className="text-muted">
               Participação <span className="font-bold text-ink">{formatPercent(result.turnout?.turnoutPct)}</span>
             </span>
-            <Link href={electionPath(election.id)} className="whitespace-nowrap font-bold hover:underline">
+            <Link prefetch={false} href={electionPath(election.id)} className="whitespace-nowrap font-bold hover:underline">
               Ver resultados <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -420,7 +420,7 @@ function ElectionCard({ election, parties }: { election: Election; parties: Part
   const classes = "block h-full rounded-2xl border border-line p-4";
   // Results are only reachable once the import has finished.
   return election.imported ? (
-    <Link href={electionPath(election.id)} className={`${classes} hover:bg-surface`}>
+    <Link prefetch={false} href={electionPath(election.id)} className={`${classes} hover:bg-surface`}>
       {content}
     </Link>
   ) : (
@@ -467,7 +467,7 @@ function OlderElections({ type, label, elections, parties }: { type: string; lab
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:grid-cols-[9rem_minmax(0,1fr)_auto_auto]"
                   >
                     {election.imported ? (
-                      <Link href={electionPath(election.id)} className="hover:underline">
+                      <Link prefetch={false} href={electionPath(election.id)} className="hover:underline">
                         {name}
                       </Link>
                     ) : (

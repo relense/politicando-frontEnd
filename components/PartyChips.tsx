@@ -10,6 +10,7 @@ export function PartyChips({ parties, className = "" }: { parties: ArticleParty[
       {parties.map((party) => (
         <li key={party.slug}>
           <Link
+            prefetch={false}
             href={partyPath(party.slug)}
             className="flex h-[30px] items-center gap-1.5 rounded-full border border-[var(--chip-line)] pl-[3px] pr-2.5 font-mono text-xs font-medium hover:bg-[var(--button)]"
           >

@@ -67,7 +67,7 @@ export function ArticleCard({
 
       <h2 className={cardTitle}>
         {/* The whole card opens the story; the links on it stay on top. */}
-        <Link href={articlePath} className={cardTitleLink}>
+        <Link prefetch={false} href={articlePath} className={cardTitleLink}>
           {article.title}
         </Link>
       </h2>
@@ -89,7 +89,7 @@ export function ArticleCard({
 
       <div className={cardActions}>
         {article.votes && <ArticleVote id={article.id} title={article.title} up={article.votes.up} down={article.votes.down} />}
-        <Link href={`${articlePath}#comentarios`} className={cardAction}>
+        <Link prefetch={false} href={`${articlePath}#comentarios`} className={cardAction}>
           <CommentIcon />
           {/* On a phone the number alone, so the row fits; the word stays for screen readers. */}
           <span>
